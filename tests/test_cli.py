@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock
-from cli import main, run_session, list_tickets, show_info
+from claude_mpm.cli import main, run_session, list_tickets, show_info
 
 
 class TestCLI:
@@ -10,55 +10,55 @@ class TestCLI:
     
     def test_main_no_args(self):
         """Test main with no arguments defaults to run."""
-        with patch('cli.run_session') as mock_run:
+        with patch('claude_mpm.cli.run_session') as mock_run:
             result = main([])
             assert result == 0
             mock_run.assert_called_once()
     
     def test_main_run_command(self):
         """Test explicit run command."""
-        with patch('cli.run_session') as mock_run:
+        with patch('claude_mpm.cli.run_session') as mock_run:
             result = main(['run'])
             assert result == 0
             mock_run.assert_called_once()
     
     def test_main_tickets_command(self):
         """Test tickets command."""
-        with patch('cli.list_tickets') as mock_list:
+        with patch('claude_mpm.cli.list_tickets') as mock_list:
             result = main(['tickets'])
             assert result == 0
             mock_list.assert_called_once()
     
     def test_main_info_command(self):
         """Test info command."""
-        with patch('cli.show_info') as mock_info:
+        with patch('claude_mpm.cli.show_info') as mock_info:
             result = main(['info'])
             assert result == 0
             mock_info.assert_called_once()
     
     def test_main_debug_flag(self):
         """Test debug flag."""
-        with patch('cli.run_session') as mock_run:
-            with patch('cli.setup_logging') as mock_logging:
+        with patch('claude_mpm.cli.run_session') as mock_run:
+            with patch('claude_mpm.cli.setup_logging') as mock_logging:
                 main(['--debug', 'run'])
                 mock_logging.assert_called_with(level='DEBUG', log_dir=None)
     
     def test_main_custom_log_dir(self, tmp_path):
         """Test custom log directory."""
-        with patch('cli.run_session') as mock_run:
-            with patch('cli.setup_logging') as mock_logging:
+        with patch('claude_mpm.cli.run_session') as mock_run:
+            with patch('claude_mpm.cli.setup_logging') as mock_logging:
                 main(['--log-dir', str(tmp_path), 'run'])
                 mock_logging.assert_called_with(level='INFO', log_dir=tmp_path)
     
     def test_main_keyboard_interrupt(self):
         """Test handling keyboard interrupt."""
-        with patch('cli.run_session', side_effect=KeyboardInterrupt):
+        with patch('claude_mpm.cli.run_session', side_effect=KeyboardInterrupt):
             result = main(['run'])
             assert result == 0
     
     def test_main_exception(self):
         """Test handling general exception."""
-        with patch('cli.run_session', side_effect=Exception("Test error")):
+        with patch('claude_mpm.cli.run_session', side_effect=Exception("Test error")):
             result = main(['run'])
             assert result == 1
     
@@ -112,7 +112,7 @@ class TestCLI:
             # Verify ticket creation was disabled
             assert mock_orchestrator.ticket_creation_enabled is False
     
-    @patch('cli.TicketManager')
+    @patch('claude_mpm.cli.TicketManager')
     def test_list_tickets(self, mock_manager_class, capsys):
         """Test listing tickets."""
         # Mock ticket manager
@@ -153,7 +153,7 @@ class TestCLI:
     
     def test_list_tickets_empty(self, capsys):
         """Test listing tickets when none exist."""
-        with patch('cli.TicketManager') as mock_class:
+        with patch('claude_mpm.cli.TicketManager') as mock_class:
             mock_manager = MagicMock()
             mock_manager.list_recent_tickets.return_value = []
             mock_class.return_value = mock_manager
@@ -168,7 +168,7 @@ class TestCLI:
     
     def test_list_tickets_import_error(self, capsys):
         """Test listing tickets when ai-trackdown-pytools not installed."""
-        with patch('cli.TicketManager', side_effect=ImportError):
+        with patch('claude_mpm.cli.TicketManager', side_effect=ImportError):
             args = Mock()
             args.limit = 10
             
