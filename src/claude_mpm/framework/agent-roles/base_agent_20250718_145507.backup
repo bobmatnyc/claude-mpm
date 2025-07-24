@@ -1,0 +1,6 @@
+# Base Agent Instructions
+
+<!-- 
+These instructions are prepended to EVERY agent prompt.
+They contain common rules, behaviors, and constraints that apply to ALL agents.
+-->

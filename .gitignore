@@ -1,0 +1,22 @@
+# AI Trackdown
+.ai-trackdown/cache/
+.ai-trackdown/logs/
+*.tmp
+
+# Common ignores
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+dist/
+build/
+*.egg-info/

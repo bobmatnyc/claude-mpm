@@ -1,0 +1,151 @@
+"""
+Content assembly for framework CLAUDE.md templates.
+
+Assembles sections and applies template variable substitution.
+"""
+
+import hashlib
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from collections import OrderedDict
+
+
+class ContentAssembler:
+    """Assembles framework CLAUDE.md content from sections."""
+    
+    def __init__(self):
+        """Initialize content assembler."""
+        self.template_variables = {}
+    
+    def generate_content_hash(self) -> str:
+        """
+        Generate a content hash for integrity verification.
+        
+        Returns:
+            str: 16-character hash of content
+        """
+        timestamp = datetime.utcnow().isoformat()
+        hash_obj = hashlib.sha256(timestamp.encode())
+        return hash_obj.hexdigest()[:16]
+    
+    def assemble_content(self, 
+                        sections: OrderedDict,
+                        template_variables: Optional[Dict[str, str]] = None) -> str:
+        """
+        Assemble complete content from sections.
+        
+        Args:
+            sections: OrderedDict of section_name -> (generator_func, section_data)
+            template_variables: Variables to substitute in the template
+            
+        Returns:
+            str: Complete assembled content
+        """
+        # Store template variables
+        if template_variables:
+            self.template_variables = template_variables
+        
+        # Generate all sections
+        content_parts = []
+        for section_name, (generator_func, section_data) in sections.items():
+            section_content = generator_func(section_data)
+            content_parts.append(section_content)
+        
+        # Join all sections
+        full_content = '\n'.join(content_parts)
+        
+        # Apply template variable substitution
+        full_content = self.apply_template_variables(full_content)
+        
+        return full_content
+    
+    def apply_template_variables(self, content: str) -> str:
+        """
+        Apply template variable substitution to content.
+        
+        Args:
+            content: Content with template variables
+            
+        Returns:
+            str: Content with variables substituted
+        """
+        for var_name, var_value in self.template_variables.items():
+            placeholder = f"{{{{{var_name}}}}}"
+            content = content.replace(placeholder, var_value)
+        
+        return content
+    
+    def merge_sections(self, 
+                      base_sections: OrderedDict,
+                      custom_sections: Dict[str, tuple]) -> OrderedDict:
+        """
+        Merge custom sections with base sections.
+        
+        Args:
+            base_sections: Base section definitions
+            custom_sections: Custom sections to merge
+            
+        Returns:
+            OrderedDict: Merged sections
+        """
+        merged = OrderedDict(base_sections)
+        
+        for section_name, section_def in custom_sections.items():
+            merged[section_name] = section_def
+        
+        return merged
+    
+    def insert_section_after(self,
+                           sections: OrderedDict,
+                           new_section_name: str,
+                           new_section_def: tuple,
+                           after_section: str) -> OrderedDict:
+        """
+        Insert a new section after a specified section.
+        
+        Args:
+            sections: Current sections
+            new_section_name: Name of new section
+            new_section_def: Definition tuple for new section
+            after_section: Section to insert after
+            
+        Returns:
+            OrderedDict: Updated sections
+        """
+        if after_section not in sections:
+            # If target section doesn't exist, just append
+            sections[new_section_name] = new_section_def
+            return sections
+        
+        new_sections = OrderedDict()
+        for key, value in sections.items():
+            new_sections[key] = value
+            if key == after_section:
+                new_sections[new_section_name] = new_section_def
+        
+        return new_sections
+    
+    def create_metadata_dict(self, 
+                           version: str,
+                           framework_version: str,
+                           content_hash: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Create metadata dictionary for header generation.
+        
+        Args:
+            version: CLAUDE_MD_VERSION string
+            framework_version: Framework version
+            content_hash: Optional content hash
+            
+        Returns:
+            Dict: Metadata for header
+        """
+        timestamp = datetime.utcnow().isoformat()
+        
+        return {
+            'version': version,
+            'framework_version': framework_version,
+            'deployment_date': timestamp,
+            'last_updated': timestamp,
+            'content_hash': content_hash or self.generate_content_hash()
+        }

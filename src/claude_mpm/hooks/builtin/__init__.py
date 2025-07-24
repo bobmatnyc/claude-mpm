@@ -1,0 +1,1 @@
+"""Built-in hooks for claude-mpm."""

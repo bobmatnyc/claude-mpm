@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(git clone:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(rm:*)",
+      "WebFetchTool(domain:v0.dev)",
+      "Bash(python3:*)",
+      "Bash(git log:*)"
+    ]
+  },
+  "enableAllProjectMcpServers": false
+}

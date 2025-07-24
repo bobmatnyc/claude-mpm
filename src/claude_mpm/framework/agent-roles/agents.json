@@ -1,0 +1,157 @@
+{
+  "agent_registry": {
+    "version": "3.0.0",
+    "last_updated": "2025-07-14",
+    "description": "Core framework agents - 10 essential agents for Claude PM Framework",
+    "standard_agents": {
+      "architect": {
+        "name": "PM Orchestrator Agent",
+        "type": "core",
+        "file": "pm-orchestrator-agent.md",
+        "description": "Multi-agent orchestrator and project management specialist - Primary coordination hub",
+        "tools": ["task_tool", "todo_write", "memory_collection", "health_monitoring", "orchestration"],
+        "coordination_role": "primary_orchestrator",
+        "memory_categories": ["project", "pattern", "feedback", "architecture"],
+        "specializations": ["multi_agent_orchestration", "task_delegation", "framework_management", "memory_collection"],
+        "context_keywords": ["orchestration", "coordination", "delegation", "task_tool", "project_management"]
+      },
+      "data": {
+        "name": "Data Engineer Agent",
+        "type": "core",
+        "file": "data-agent.md",
+        "description": "Designs and implements data processing and storage solutions",
+        "tools": ["data_processing", "analytics", "ml_ops"],
+        "coordination_role": "data_management",
+        "memory_categories": ["pattern", "project"],
+        "specializations": ["data_modeling", "etl_pipelines", "data_storage", "analytics"],
+        "context_keywords": ["data", "storage", "pipelines", "analytics", "databases"]
+      },
+      "documentation": {
+        "name": "Documentation Agent",
+        "type": "core",
+        "file": "documentation-agent.md",
+        "description": "Technical writing, documentation, knowledge management",
+        "tools": ["documentation", "writing", "knowledge_management"],
+        "coordination_role": "knowledge_documentation",
+        "memory_categories": ["pattern", "project", "team"],
+        "specializations": ["technical_writing", "documentation", "knowledge_management"],
+        "context_keywords": ["documentation", "writing", "knowledge", "guides", "docs"]
+      },
+      "engineer": {
+        "name": "Engineer Agent",
+        "type": "core",
+        "file": "engineer-agent.md",
+        "description": "Implements features and writes production code",
+        "tools": ["development", "implementation", "testing"],
+        "coordination_role": "execution",
+        "memory_categories": ["pattern", "team", "error"],
+        "specializations": ["feature_implementation", "code_development", "debugging"],
+        "context_keywords": ["implementation", "coding", "features", "development", "programming"]
+      },
+      "operations": {
+        "name": "Operations Agent",
+        "type": "core",
+        "file": "ops-agent.md",
+        "description": "Manages deployment pipelines and infrastructure",
+        "tools": ["deployment", "monitoring", "infrastructure"],
+        "coordination_role": "operational_management",
+        "memory_categories": ["pattern", "team", "error"],
+        "specializations": ["ci_cd", "infrastructure", "deployment", "monitoring"],
+        "context_keywords": ["deployment", "infrastructure", "devops", "ci_cd", "monitoring"]
+      },
+      "qa": {
+        "name": "QA Agent",
+        "type": "core",
+        "file": "qa-agent.md",
+        "description": "Tests functionality and ensures quality standards",
+        "tools": ["testing", "validation", "quality_control"],
+        "coordination_role": "quality_assurance",
+        "memory_categories": ["error", "pattern", "team"],
+        "specializations": ["testing", "quality_assurance", "bug_detection", "test_automation"],
+        "context_keywords": ["testing", "quality", "bugs", "validation", "qa"]
+      },
+      "research": {
+        "name": "Research Agent",
+        "type": "core",
+        "file": "research-agent.md",
+        "description": "Investigates technologies and gathers requirements",
+        "tools": ["research", "analysis", "documentation"],
+        "coordination_role": "information_gathering",
+        "memory_categories": ["pattern", "project"],
+        "specializations": ["technology_research", "requirements_analysis", "market_research"],
+        "context_keywords": ["research", "analysis", "requirements", "investigation", "exploration"]
+      },
+      "security": {
+        "name": "Security Agent",
+        "type": "core",
+        "file": "security-agent.md",
+        "description": "Analyzes security vulnerabilities and implements security measures",
+        "tools": ["security_scan", "audit", "compliance"],
+        "coordination_role": "security_oversight",
+        "memory_categories": ["error", "pattern", "team"],
+        "specializations": ["security_analysis", "vulnerability_assessment", "security_implementation"],
+        "context_keywords": ["security", "vulnerabilities", "authentication", "authorization", "encryption"]
+      },
+      "ticketing": {
+        "name": "Ticketing Agent",
+        "type": "core",
+        "file": "ticketing-agent.md",
+        "description": "Universal ticketing interface and lifecycle management across multiple platforms",
+        "tools": ["ticket_operations", "workflow_automation", "multi_platform_integration"],
+        "coordination_role": "ticket_lifecycle_management",
+        "memory_categories": ["pattern", "project", "team"],
+        "specializations": ["ai_trackdown_integration", "multi_platform_support", "workflow_automation", "ticket_lifecycle_management"],
+        "context_keywords": ["tickets", "issues", "workflow", "automation", "tracking", "lifecycle"]
+      },
+      "version_control": {
+        "name": "Version Control Agent",
+        "type": "core",
+        "file": "version-control-agent.md",
+        "description": "Git operations, branch management, semantic versioning, and conflict resolution",
+        "tools": ["git_operations", "version_management", "conflict_resolution"],
+        "coordination_role": "version_control_management",
+        "memory_categories": ["pattern", "project", "error"],
+        "specializations": ["git_operations", "branch_management", "semantic_versioning", "conflict_resolution"],
+        "context_keywords": ["git", "version", "branch", "merge", "conflict", "repository", "versioning"]
+      }
+    }
+  },
+  "configuration": {
+    "delegation_framework": {
+      "automatic_delegation": false,
+      "delegation_conditions": {},
+      "validation_required": true,
+      "framework_compatibility_check": true
+    },
+    "agent_validation": {
+      "required_fields": [
+        "name",
+        "type",
+        "description",
+        "specializations",
+        "coordination_role"
+      ],
+      "type_validation": "core_only",
+      "compatibility_checks": [
+        "tool_access_inheritance",
+        "coordination_protocol_compliance",
+        "framework_service_integration"
+      ]
+    },
+    "core_agent_requirements": {
+      "total_count": 10,
+      "mandatory_agents": [
+        "architect",
+        "data", 
+        "documentation",
+        "engineer",
+        "operations",
+        "qa",
+        "research",
+        "security",
+        "ticketing",
+        "version_control"
+      ]
+    }
+  }
+}
