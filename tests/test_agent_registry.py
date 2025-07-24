@@ -3,7 +3,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock
-from core.agent_registry import AgentRegistryAdapter
+from claude_mpm.core.agent_registry import AgentRegistryAdapter
 
 
 class TestAgentRegistryAdapter:

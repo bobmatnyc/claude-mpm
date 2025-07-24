@@ -7,12 +7,12 @@ and provides restore functionality.
 """
 
 import logging
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from .models import AgentModification, ModificationType
+from ...utils.path_operations import path_ops
 
 
 class BackupManager:
@@ -25,13 +25,13 @@ class BackupManager:
     
     def _ensure_backup_directory(self) -> None:
         """Ensure backup directory exists."""
-        self.backup_root.mkdir(parents=True, exist_ok=True)
+        path_ops.ensure_dir(self.backup_root)
     
     async def create_backup(self, file_path: str, modification_id: str) -> Optional[str]:
         """Create backup of agent file before modification."""
         try:
             source_path = Path(file_path)
-            if not source_path.exists():
+            if not path_ops.validate_exists(source_path):
                 return None
             
             # Create timestamped backup path
@@ -40,7 +40,7 @@ class BackupManager:
             backup_path = self.backup_root / backup_filename
             
             # Copy file to backup location
-            shutil.copy2(source_path, backup_path)
+            path_ops.safe_copy(source_path, backup_path)
             
             self.logger.debug(f"Created backup: {backup_path}")
             return str(backup_path)
@@ -57,13 +57,13 @@ class BackupManager:
                 return False
             
             backup_path = Path(modification.backup_path)
-            if not backup_path.exists():
+            if not path_ops.validate_exists(backup_path):
                 self.logger.error(f"Backup file not found: {backup_path}")
                 return False
             
             # Restore file
             original_path = Path(modification.file_path)
-            shutil.copy2(backup_path, original_path)
+            path_ops.safe_copy(backup_path, original_path)
             
             self.logger.info(f"Restored agent '{modification.agent_name}' from backup")
             return True
@@ -79,12 +79,12 @@ class BackupManager:
             cutoff_time = time.time() - (max_age_days * 24 * 3600)
             cleaned_count = 0
             
-            if self.backup_root.exists():
+            if path_ops.validate_is_dir(self.backup_root):
                 for backup_file in self.backup_root.iterdir():
                     if backup_file.is_file():
                         file_time = backup_file.stat().st_mtime
                         if file_time < cutoff_time:
-                            backup_file.unlink()
+                            path_ops.safe_delete(backup_file)
                             cleaned_count += 1
             
             if cleaned_count > 0:

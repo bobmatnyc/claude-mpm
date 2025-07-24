@@ -16,11 +16,13 @@ import fcntl
 
 try:
     from ..utils.logger import get_logger, setup_logging
+    from ..utils.subprocess_runner import SubprocessRunner, OutputMode
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     from utils.logger import get_logger, setup_logging
+    from utils.subprocess_runner import SubprocessRunner, OutputMode
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
@@ -61,6 +63,9 @@ class PTYOrchestrator:
         self.ticket_creation_enabled = True
         self.process = None
         self.master_fd = None
+        
+        # Initialize subprocess runner
+        self.subprocess_runner = SubprocessRunner(logger=self.logger)
         
     def run_interactive(self):
         """Run an interactive session using pty."""
@@ -293,10 +298,9 @@ class PTYOrchestrator:
             ]
             
             # Run Claude
-            import subprocess
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = self.subprocess_runner.run(cmd)
             
-            if result.returncode == 0:
+            if result.success:
                 print(result.stdout)
                 
                 # Process output for tickets

@@ -8,6 +8,7 @@ import logging
 
 # Import needed for restore operation
 from .state_manager import ParentDirectoryOperation, ParentDirectoryAction
+from ...utils.path_operations import path_ops
 
 
 class BackupManager:
@@ -27,7 +28,7 @@ class BackupManager:
         
         # Ensure framework backup directory exists
         self.framework_backups_dir = self.base_dir / "backups" / "framework"
-        self.framework_backups_dir.mkdir(parents=True, exist_ok=True)
+        path_ops.ensure_dir(self.framework_backups_dir)
     
     def create_backup(self, file_path: Path, backups_dir: Path) -> Optional[Path]:
         """Create a timestamped backup of a file.
@@ -39,13 +40,13 @@ class BackupManager:
         Returns:
             Path to the created backup file, or None if backup failed
         """
-        if not file_path.exists():
+        if not path_ops.validate_exists(file_path):
             self.logger.warning(f"Cannot backup non-existent file: {file_path}")
             return None
             
         try:
             # Create backups directory if it doesn't exist
-            backups_dir.mkdir(parents=True, exist_ok=True)
+            path_ops.ensure_dir(backups_dir)
             
             # Generate timestamp for backup filename
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
@@ -53,7 +54,7 @@ class BackupManager:
             backup_path = backups_dir / backup_filename
             
             # Copy file to backup location
-            shutil.copy2(file_path, backup_path)
+            path_ops.safe_copy(file_path, backup_path)
             self.logger.info(f"Created backup: {backup_path}")
             
             return backup_path
@@ -76,10 +77,10 @@ class BackupManager:
         try:
             # Check for INSTRUCTIONS.md first, then CLAUDE.md
             target_file = target_directory / "INSTRUCTIONS.md"
-            if not target_file.exists():
+            if not path_ops.validate_exists(target_file):
                 target_file = target_directory / "CLAUDE.md"
             
-            if not target_file.exists():
+            if not path_ops.validate_exists(target_file):
                 self.logger.warning(f"No INSTRUCTIONS.md or CLAUDE.md file to backup in {target_directory}")
                 return None
 
@@ -101,7 +102,7 @@ class BackupManager:
         Returns:
             Path to the created backup, or None if backup failed
         """
-        if not framework_template_path.exists():
+        if not path_ops.validate_exists(framework_template_path):
             self.logger.warning(f"Framework template not found: {framework_template_path}")
             return None
             

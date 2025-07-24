@@ -1,6 +1,5 @@
 """Orchestrator using Claude's system prompt feature."""
 
-import subprocess
 import os
 from pathlib import Path
 from typing import Optional
@@ -10,12 +9,14 @@ import tempfile
 
 try:
     from ..utils.logger import get_logger, setup_logging
+    from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
     from ..hooks.hook_client import HookServiceClient
 except ImportError:
     from utils.logger import get_logger, setup_logging
+    from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
@@ -78,6 +79,9 @@ class SystemPromptOrchestrator:
         self.session_start = datetime.now()
         self.ticket_creation_enabled = True
         
+        # Initialize subprocess runner
+        self.subprocess_runner = SubprocessRunner(logger=self.logger)
+        
     def run_interactive(self):
         """Run an interactive session with framework as system prompt."""
         from claude_mpm._version import __version__
@@ -139,7 +143,7 @@ class SystemPromptOrchestrator:
             # use a different approach like pexpect to monitor the output stream.
             
             # Run Claude interactively with framework as system prompt
-            result = subprocess.run(cmd)
+            result = self.subprocess_runner.run(cmd)
             
             self.logger.info(f"Claude exited with code: {result.returncode}")
             
@@ -259,9 +263,9 @@ class SystemPromptOrchestrator:
             ]
             
             # Run Claude with message as stdin (increased timeout for larger prompts)
-            result = subprocess.run(cmd, input=full_message, capture_output=True, text=True, timeout=60)
+            result = self.subprocess_runner.run_with_timeout(cmd, timeout=60, input=full_message)
             
-            if result.returncode == 0:
+            if result.success:
                 print(result.stdout)
                 
                 # Process output for tickets and delegations
@@ -307,7 +311,10 @@ class SystemPromptOrchestrator:
                     except Exception as e:
                         self.logger.warning(f"Post-delegation hook error: {e}")
             else:
-                print(f"Error: {result.stderr}")
+                if result.timed_out:
+                    print(f"Error: Command timed out after 60 seconds")
+                else:
+                    print(f"Error: {result.stderr}")
                 
             # Create tickets
             self._create_tickets()

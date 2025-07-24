@@ -1,6 +1,5 @@
 """Direct orchestrator that runs Claude with minimal intervention."""
 
-import subprocess
 import os
 from pathlib import Path
 from typing import Optional
@@ -10,11 +9,13 @@ import tempfile
 
 try:
     from ..utils.logger import get_logger, setup_logging
+    from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     from utils.logger import get_logger, setup_logging
+    from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
@@ -51,6 +52,9 @@ class DirectOrchestrator:
         # State
         self.session_start = datetime.now()
         self.ticket_creation_enabled = True
+        
+        # Initialize subprocess runner
+        self.subprocess_runner = SubprocessRunner(logger=self.logger)
         
     def run_interactive(self):
         """Run an interactive session by launching Claude directly."""
@@ -101,9 +105,9 @@ class DirectOrchestrator:
             
             # Run Claude with framework
             print("\nInjecting framework instructions...")
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = self.subprocess_runner.run(cmd)
             
-            if result.returncode == 0:
+            if result.success:
                 print("\nFramework injected. Claude's response:")
                 print("-" * 50)
                 print(result.stdout)
@@ -141,7 +145,7 @@ class DirectOrchestrator:
                     print(f"Using session ID: {session_id}")
                 
                 # Run Claude interactively
-                subprocess.run(interactive_cmd)
+                self.subprocess_runner.run(interactive_cmd)
             else:
                 print(f"Error injecting framework: {result.stderr}")
             
@@ -215,9 +219,9 @@ class DirectOrchestrator:
             ]
             
             # Run Claude
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = self.subprocess_runner.run(cmd)
             
-            if result.returncode == 0:
+            if result.success:
                 print(result.stdout)
                 
                 # Process output for tickets

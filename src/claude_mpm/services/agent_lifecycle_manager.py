@@ -34,21 +34,22 @@ from enum import Enum
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Any, Tuple, Union
 
-from claude_pm.services.shared_prompt_cache import SharedPromptCache
-from claude_pm.services.agent_registry import AgentRegistry, AgentMetadata
-from claude_pm.services.agent_modification_tracker import (
+from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.agent_registry import AgentRegistry, AgentMetadata
+from claude_mpm.services.agent_modification_tracker import (
     AgentModificationTracker, 
     AgentModification, 
     ModificationType, 
     ModificationTier
 )
-from claude_pm.services.agent_persistence_service import (
+from claude_mpm.services.agent_persistence_service import (
     AgentPersistenceService,
     PersistenceRecord,
     PersistenceStrategy,
     PersistenceOperation
 )
-from claude_pm.core.base_service import BaseService
+from claude_mpm.core.base_service import BaseService
+from claude_mpm.utils.path_operations import path_ops
 
 
 class LifecycleOperation(Enum):
@@ -266,9 +267,10 @@ class AgentLifecycleManager(BaseService):
         """Load existing agent lifecycle records."""
         try:
             records_file = Path.home() / '.claude-pm' / 'agent_tracking' / 'lifecycle_records.json'
-            if records_file.exists():
-                with open(records_file, 'r') as f:
-                    data = json.load(f)
+            if path_ops.validate_exists(records_file):
+                data_content = path_ops.safe_read(records_file)
+                if data_content:
+                    data = json.loads(data_content)
                 
                 for agent_name, record_data in data.items():
                     record = AgentLifecycleRecord(**record_data)
@@ -286,7 +288,7 @@ class AgentLifecycleManager(BaseService):
         """Save agent lifecycle records to disk."""
         try:
             records_file = Path.home() / '.claude-pm' / 'agent_tracking' / 'lifecycle_records.json'
-            records_file.parent.mkdir(parents=True, exist_ok=True)
+            path_ops.ensure_dir(records_file.parent)
             
             data = {}
             for agent_name, record in self.agent_records.items():
@@ -296,8 +298,7 @@ class AgentLifecycleManager(BaseService):
                 record_dict['tier'] = record.tier.value
                 data[agent_name] = record_dict
             
-            with open(records_file, 'w') as f:
-                json.dump(data, f, indent=2, default=str)
+            path_ops.safe_write(records_file, json.dumps(data, indent=2, default=str))
             
             self.logger.debug(f"Saved {len(self.agent_records)} agent records")
             
@@ -624,8 +625,8 @@ class AgentLifecycleManager(BaseService):
                 
                 # Delete file
                 file_path = Path(record.file_path)
-                if file_path.exists():
-                    file_path.unlink()
+                if path_ops.validate_exists(file_path):
+                    path_ops.safe_delete(file_path)
                 
                 # Update lifecycle record
                 record.current_state = LifecycleState.DELETED
@@ -685,26 +686,24 @@ class AgentLifecycleManager(BaseService):
         else:  # SYSTEM
             base_path = Path.cwd() / 'claude_pm' / 'agents'
         
-        base_path.mkdir(parents=True, exist_ok=True)
+        path_ops.ensure_dir(base_path)
         return base_path / f"{agent_name}_agent.py"
     
     async def _create_deletion_backup(self, agent_name: str, record: AgentLifecycleRecord) -> Optional[str]:
         """Create backup before agent deletion."""
         try:
-            import shutil
-            
             source_path = Path(record.file_path)
-            if not source_path.exists():
+            if not path_ops.validate_exists(source_path):
                 return None
             
             backup_dir = Path.home() / '.claude-pm' / 'agent_tracking' / 'backups'
-            backup_dir.mkdir(parents=True, exist_ok=True)
+            path_ops.ensure_dir(backup_dir)
             
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             backup_filename = f"{agent_name}_deleted_{timestamp}{source_path.suffix}"
             backup_path = backup_dir / backup_filename
             
-            shutil.copy2(source_path, backup_path)
+            path_ops.safe_copy(source_path, backup_path)
             return str(backup_path)
             
         except Exception as e:
@@ -904,7 +903,7 @@ class AgentLifecycleManager(BaseService):
             if not backup_path and record.backup_paths:
                 backup_path = record.backup_paths[-1]
             
-            if not backup_path or not Path(backup_path).exists():
+            if not backup_path or not path_ops.validate_exists(backup_path):
                 return LifecycleOperationResult(
                     operation=LifecycleOperation.RESTORE,
                     agent_name=agent_name,
@@ -914,7 +913,15 @@ class AgentLifecycleManager(BaseService):
                 )
             
             # Read backup content
-            backup_content = Path(backup_path).read_text(encoding='utf-8')
+            backup_content = path_ops.safe_read(backup_path)
+            if not backup_content:
+                return LifecycleOperationResult(
+                    operation=LifecycleOperation.RESTORE,
+                    agent_name=agent_name,
+                    success=False,
+                    duration_ms=(time.time() - start_time) * 1000,
+                    error_message="Failed to read backup content"
+                )
             
             # Restore via update operation
             return await self.update_agent(

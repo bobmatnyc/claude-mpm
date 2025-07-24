@@ -6,10 +6,10 @@ import time
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from orchestration.system_prompt_orchestrator import SystemPromptOrchestrator
-from services.hook_service_manager import HookServiceManager
+from claude_mpm.orchestration.system_prompt_orchestrator import SystemPromptOrchestrator
+from claude_mpm.services.hook_service_manager import HookServiceManager
 
 
 def test_hook_integration():

@@ -1,6 +1,5 @@
 """Wrapper orchestrator that creates a custom Claude wrapper."""
 
-import subprocess
 import os
 import tempfile
 from pathlib import Path
@@ -10,11 +9,13 @@ import logging
 
 try:
     from ..utils.logger import get_logger, setup_logging
+    from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     from utils.logger import get_logger, setup_logging
+    from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
@@ -51,6 +52,9 @@ class WrapperOrchestrator:
         # State
         self.session_start = datetime.now()
         self.ticket_creation_enabled = True
+        
+        # Initialize subprocess runner
+        self.subprocess_runner = SubprocessRunner(logger=self.logger)
         
     def run_interactive(self):
         """Run an interactive session with a custom wrapper."""
@@ -133,7 +137,7 @@ fi
                 env['PATH'] = f"{tmpdir}:{env['PATH']}"
                 
                 # Run claude (which will use our wrapper)
-                subprocess.run(["claude"], env=env)
+                self.subprocess_runner.run(["claude"], env=env)
             
         finally:
             # Clean up
@@ -207,9 +211,9 @@ fi
             ]
             
             # Run Claude
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = self.subprocess_runner.run(cmd)
             
-            if result.returncode == 0:
+            if result.success:
                 print(result.stdout)
                 
                 # Process output for tickets

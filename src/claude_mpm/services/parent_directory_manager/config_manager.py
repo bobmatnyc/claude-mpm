@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 import logging
 
 from .operations import ParentDirectoryContext
+from ...utils.path_operations import path_ops
 
 
 @dataclass
@@ -52,9 +53,10 @@ class ConfigManager:
     async def load_managed_directories(self) -> None:
         """Load existing managed directories configuration."""
         try:
-            if self.managed_directories_file.exists():
-                with open(self.managed_directories_file, "r") as f:
-                    data = json.load(f)
+            if path_ops.validate_exists(self.managed_directories_file):
+                data_content = path_ops.safe_read(self.managed_directories_file)
+                if data_content:
+                    data = json.loads(data_content)
 
                 # Convert loaded data to ParentDirectoryConfig objects
                 for key, config_data in data.items():
@@ -94,8 +96,7 @@ class ConfigManager:
                     "deployment_metadata": config.deployment_metadata,
                 }
 
-            with open(self.managed_directories_file, "w") as f:
-                json.dump(data, f, indent=2)
+            path_ops.safe_write(self.managed_directories_file, json.dumps(data, indent=2))
 
             self.logger.debug("Managed directories configuration saved")
 
@@ -139,10 +140,10 @@ class ConfigManager:
         """
         try:
             # Validate inputs
-            if not target_directory.exists():
+            if not path_ops.validate_exists(target_directory):
                 raise ValueError(f"Target directory does not exist: {target_directory}")
 
-            if not target_directory.is_dir():
+            if not path_ops.validate_is_dir(target_directory):
                 raise ValueError(f"Target path is not a directory: {target_directory}")
 
             # Create configuration

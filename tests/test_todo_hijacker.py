@@ -9,8 +9,8 @@ from datetime import datetime
 
 import pytest
 
-from src.orchestration.todo_hijacker import TodoHijacker
-from src.orchestration.todo_transformer import TodoTransformer
+from claude_mpm.orchestration.todo_hijacker import TodoHijacker
+from claude_mpm.orchestration.todo_transformer import TodoTransformer
 
 
 class TestTodoTransformer:

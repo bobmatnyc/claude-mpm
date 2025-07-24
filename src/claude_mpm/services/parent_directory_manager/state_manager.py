@@ -17,6 +17,7 @@ import logging
 import json
 
 from ...core.logging_config import setup_logging, setup_streaming_logger, finalize_streaming_logs
+from ...utils.path_operations import path_ops
 
 
 class ParentDirectoryAction(Enum):
@@ -170,7 +171,7 @@ class StateManager:
         ]
 
         for directory in directories:
-            directory.mkdir(parents=True, exist_ok=True)
+            path_ops.ensure_dir(directory)
     
     def initialize_paths(self, parent_directory_manager_dir: Path, working_dir: Path) -> Dict[str, Path]:
         """Initialize and return parent directory manager paths.
@@ -201,7 +202,7 @@ class StateManager:
         """
         try:
             # Clean up old backups
-            if backups_dir.exists():
+            if path_ops.validate_is_dir(backups_dir):
                 cutoff_date = datetime.now().timestamp() - (
                     retention_days * 24 * 60 * 60
                 )
@@ -210,7 +211,7 @@ class StateManager:
                     if backup_file.is_file():
                         file_mtime = backup_file.stat().st_mtime
                         if file_mtime < cutoff_date:
-                            backup_file.unlink()
+                            path_ops.safe_delete(backup_file)
                             if self.logger:
                                 self.logger.debug(f"Removed old backup: {backup_file}")
 
@@ -329,16 +330,16 @@ class StateManager:
             package_dir = Path(__file__).parent.parent.parent.parent
             # Check in the package's data directory
             data_framework_path = package_dir / 'data' / 'framework' / 'CLAUDE.md'
-            if data_framework_path.exists():
+            if path_ops.validate_exists(data_framework_path):
                 return package_dir / 'data'
             # Also check for legacy location within the package
             legacy_framework_path = package_dir / 'framework' / 'CLAUDE.md'
-            if legacy_framework_path.exists():
+            if path_ops.validate_exists(legacy_framework_path):
                 return package_dir
             
         # Try relative to current module (source installations)
         current_dir = Path(__file__).parent.parent.parent.parent
-        if (current_dir / 'framework' / 'CLAUDE.md').exists():
+        if path_ops.validate_exists(current_dir / 'framework' / 'CLAUDE.md'):
             return current_dir
             
         # Fallback to working directory
@@ -408,7 +409,7 @@ class StateManager:
             target_file = target_directory / "CLAUDE.md"
 
             # Check if file exists
-            if not target_file.exists():
+            if not path_ops.validate_exists(target_file):
                 return ParentDirectoryStatus(
                     file_path=target_file,
                     exists=False,
@@ -421,7 +422,13 @@ class StateManager:
 
             # Calculate checksum
             import hashlib
-            content = target_file.read_text()
+            content = path_ops.safe_read(target_file)
+            if not content:
+                return ParentDirectoryStatus(
+                    file_path=target_file,
+                    exists=False,
+                    is_managed=config_manager.is_directory_managed(str(target_directory)),
+                )
             checksum = hashlib.sha256(content.encode()).hexdigest()
 
             # Check if managed
@@ -445,7 +452,7 @@ class StateManager:
 
             # Check for backups
             backup_available = False
-            if backups_dir.exists():
+            if path_ops.validate_is_dir(backups_dir):
                 backup_pattern = f"*{target_file.name}*"
                 backup_files = list(backups_dir.glob(backup_pattern))
                 backup_available = len(backup_files) > 0

@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
+from ...utils.path_operations import path_ops
 
 
 class VersionManager:
@@ -42,9 +43,10 @@ class VersionManager:
         try:
             for subsystem, filename in self.subsystem_files.items():
                 version_file = self.framework_path / filename
-                if version_file.exists():
+                if path_ops.validate_exists(version_file):
                     try:
-                        version = version_file.read_text().strip()
+                        version_content = path_ops.safe_read(version_file)
+                        version = version_content.strip() if version_content else ""
                         self.subsystem_versions[subsystem] = {
                             "version": version,
                             "file_path": str(version_file),

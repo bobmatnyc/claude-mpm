@@ -1,10 +1,14 @@
 """Simple orchestrator using Claude's print mode."""
 
-import subprocess
 import json
 from pathlib import Path
 from typing import Optional
 from datetime import datetime
+
+try:
+    from ..utils.subprocess_runner import SubprocessRunner
+except ImportError:
+    from utils.subprocess_runner import SubprocessRunner
 
 class SimpleOrchestrator:
     """Orchestrator that uses Claude's print mode for each interaction."""
@@ -14,6 +18,7 @@ class SimpleOrchestrator:
         self.log_level = log_level
         self.conversation_id = None
         self.framework_injected = False
+        self.subprocess_runner = SubprocessRunner()
         
     def send_message(self, message: str) -> str:
         """Send a message to Claude and get response."""
@@ -41,13 +46,9 @@ class SimpleOrchestrator:
             cmd.extend(["--conversation", self.conversation_id])
         
         # Run Claude
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True
-        )
+        result = self.subprocess_runner.run(cmd)
         
-        if result.returncode != 0:
+        if not result.success:
             raise Exception(f"Claude failed: {result.stderr}")
         
         # Extract conversation ID from output if needed

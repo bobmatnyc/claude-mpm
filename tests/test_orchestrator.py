@@ -7,7 +7,7 @@ import queue
 import time
 from pathlib import Path
 from unittest.mock import Mock, patch, MagicMock, call
-from orchestration.orchestrator import MPMOrchestrator
+from claude_mpm.orchestration.orchestrator import MPMOrchestrator
 
 
 class TestMPMOrchestrator:
@@ -191,7 +191,7 @@ class TestMPMOrchestrator:
         assert orchestrator.session_log[1]['type'] == "output"
         assert orchestrator.session_log[1]['content'] == "claude output"
     
-    @patch("services.ticket_manager.TicketManager")
+    @patch("claude_mpm.services.ticket_manager.TicketManager")
     def test_create_tickets(self, mock_ticket_manager_class):
         """Test ticket creation at end of session."""
         # Mock ticket manager
@@ -230,7 +230,7 @@ class TestMPMOrchestrator:
         orchestrator.ticket_extractor.extract_from_line("TODO: Task")
         
         # Try to create tickets
-        with patch("services.ticket_manager.TicketManager") as mock_manager:
+        with patch("claude_mpm.services.ticket_manager.TicketManager") as mock_manager:
             orchestrator._create_tickets()
             # Should not create ticket manager
             mock_manager.assert_not_called()

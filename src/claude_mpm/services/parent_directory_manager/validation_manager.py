@@ -14,6 +14,7 @@ from datetime import datetime
 import logging
 
 from .state_manager import ParentDirectoryOperation, ParentDirectoryAction
+from ...utils.path_operations import path_ops
 
 
 class ValidationManager:
@@ -48,10 +49,10 @@ class ValidationManager:
         try:
             # Check for INSTRUCTIONS.md first, then CLAUDE.md
             target_file = target_directory / "INSTRUCTIONS.md"
-            if not target_file.exists():
+            if not path_ops.validate_exists(target_file):
                 target_file = target_directory / "CLAUDE.md"
             
-            if not target_file.exists():
+            if not path_ops.validate_exists(target_file):
                 return ParentDirectoryOperation(
                     action=ParentDirectoryAction.VALIDATE,
                     target_path=target_file,
@@ -80,7 +81,14 @@ class ValidationManager:
 
             if rendered_content:
                 # Compare with actual content
-                actual_content = target_file.read_text()
+                actual_content = path_ops.safe_read(target_file)
+                if not actual_content:
+                    return ParentDirectoryOperation(
+                        action=ParentDirectoryAction.VALIDATE,
+                        target_path=target_file,
+                        success=False,
+                        error_message="Failed to read file content",
+                    )
 
                 if actual_content != rendered_content:
                     validation_warnings.append("Content differs from expected template output")
@@ -112,7 +120,7 @@ class ValidationManager:
                 action=ParentDirectoryAction.VALIDATE,
                 # Try to determine which file would be used
                 target_file = target_directory / "INSTRUCTIONS.md"
-                if not target_file.exists():
+                if not path_ops.validate_exists(target_file):
                     target_file = target_directory / "CLAUDE.md"
                 return ParentDirectoryOperation(
                     action=ParentDirectoryAction.VALIDATE,
@@ -258,19 +266,22 @@ class ValidationManager:
         try:
             # Try INSTRUCTIONS.md first, then fall back to CLAUDE.md
             framework_template_path = framework_path / "framework" / "INSTRUCTIONS.md"
-            if not framework_template_path.exists():
+            if not path_ops.validate_exists(framework_template_path):
                 framework_template_path = framework_path / "framework" / "CLAUDE.md"
             
-            if not framework_template_path.exists():
+            if not path_ops.validate_exists(framework_template_path):
                 self.logger.error(f"Framework template does not exist: {framework_template_path}")
                 return False
             
-            if not framework_template_path.is_file():
+            if not path_ops.validate_is_file(framework_template_path):
                 self.logger.error(f"Framework template path is not a file: {framework_template_path}")
                 return False
             
             # Read and validate content
-            content = framework_template_path.read_text()
+            content = path_ops.safe_read(framework_template_path)
+            if not content:
+                self.logger.error(f"Failed to read framework template at {framework_template_path}")
+                return False
             
             if len(content.strip()) == 0:
                 self.logger.error(f"Framework template is empty: {framework_template_path}")
@@ -356,8 +367,10 @@ class ValidationManager:
         
         # Check for permanent protection
         is_permanent_protection = False
-        if target_file.exists() and should_skip:
-            existing_content = target_file.read_text()
+        if path_ops.validate_exists(target_file) and should_skip:
+            existing_content = path_ops.safe_read(target_file)
+            if not existing_content:
+                return False, "Failed to read existing file content"
             if not template_deployer.is_framework_deployment_template(existing_content):
                 is_permanent_protection = True
                 reason = "Existing file is not a framework deployment template"

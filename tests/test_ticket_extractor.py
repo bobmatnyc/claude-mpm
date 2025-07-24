@@ -1,7 +1,7 @@
 """Tests for ticket extraction functionality."""
 
 import pytest
-from orchestration.ticket_extractor import TicketExtractor
+from claude_mpm.orchestration.ticket_extractor import TicketExtractor
 
 
 class TestTicketExtractor:

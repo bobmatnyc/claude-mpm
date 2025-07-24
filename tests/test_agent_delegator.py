@@ -2,8 +2,8 @@
 
 import pytest
 from unittest.mock import Mock, MagicMock
-from orchestration.agent_delegator import AgentDelegator
-from core.agent_registry import AgentRegistryAdapter
+from claude_mpm.orchestration.agent_delegator import AgentDelegator
+from claude_mpm.core.agent_registry import AgentRegistryAdapter
 
 
 class TestAgentDelegator:

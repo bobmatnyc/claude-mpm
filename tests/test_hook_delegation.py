@@ -7,10 +7,10 @@ import json
 from pathlib import Path
 
 # Add src to path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from orchestration.subprocess_orchestrator import SubprocessOrchestrator
-from services.hook_service_manager import HookServiceManager
+from claude_mpm.orchestration.subprocess_orchestrator import SubprocessOrchestrator
+from claude_mpm.services.hook_service_manager import HookServiceManager
 
 
 def test_delegation_hooks():

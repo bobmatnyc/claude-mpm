@@ -1,6 +1,5 @@
 """Subprocess orchestrator that mimics Claude's Task tool for non-interactive mode."""
 
-import subprocess
 import concurrent.futures
 import json
 import time
@@ -12,6 +11,7 @@ import re
 
 try:
     from ..utils.logger import get_logger, setup_logging
+    from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from ..core.claude_launcher import ClaudeLauncher, LaunchMode
@@ -20,6 +20,7 @@ try:
     from .todo_hijacker import TodoHijacker
 except ImportError:
     from utils.logger import get_logger, setup_logging
+    from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from core.claude_launcher import ClaudeLauncher, LaunchMode
@@ -100,6 +101,9 @@ class SubprocessOrchestrator:
         self.session_start = datetime.now()
         self.ticket_creation_enabled = True
         self._pending_todo_delegations = []
+        
+        # Initialize subprocess runner
+        self.subprocess_runner = SubprocessRunner(logger=self.logger)
         
     def detect_delegations(self, response: str) -> List[Dict[str, str]]:
         """

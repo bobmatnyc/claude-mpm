@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, Any
 
 from .models import AgentModification, ModificationHistory
+from ...utils.path_operations import path_ops
 
 
 class PersistenceManager:
@@ -33,7 +34,7 @@ class PersistenceManager:
         ]
         
         for directory in directories:
-            directory.mkdir(parents=True, exist_ok=True)
+            path_ops.ensure_dir(directory)
         
         self.logger.debug(f"Created persistence directories at {self.persistence_root}")
     
@@ -56,8 +57,7 @@ class PersistenceManager:
                     'modifications': [mod.to_dict() for mod in history.modifications]
                 }
             
-            with open(history_file, 'w') as f:
-                json.dump(history_data, f, indent=2, default=str)
+            path_ops.safe_write(history_file, json.dumps(history_data, indent=2, default=str))
             
             # Save active modifications
             active_file = self.persistence_root / 'active_modifications.json'
@@ -66,8 +66,7 @@ class PersistenceManager:
                 for mod_id, mod in active_modifications.items()
             }
             
-            with open(active_file, 'w') as f:
-                json.dump(active_data, f, indent=2, default=str)
+            path_ops.safe_write(active_file, json.dumps(active_data, indent=2, default=str))
             
             self.logger.debug(f"Persisted {len(modification_history)} agent histories")
             
@@ -82,9 +81,10 @@ class PersistenceManager:
         try:
             # Load modification history
             history_file = self.history_root / 'modification_history.json'
-            if history_file.exists():
-                with open(history_file, 'r') as f:
-                    history_data = json.load(f)
+            if path_ops.validate_exists(history_file):
+                history_content = path_ops.safe_read(history_file)
+                if history_content:
+                    history_data = json.loads(history_content)
                 
                 for agent_name, data in history_data.items():
                     history = ModificationHistory(
@@ -106,9 +106,10 @@ class PersistenceManager:
             
             # Load active modifications
             active_file = self.persistence_root / 'active_modifications.json'
-            if active_file.exists():
-                with open(active_file, 'r') as f:
-                    active_data = json.load(f)
+            if path_ops.validate_exists(active_file):
+                active_content = path_ops.safe_read(active_file)
+                if active_content:
+                    active_data = json.loads(active_content)
                 
                 for mod_id, mod_data in active_data.items():
                     modification = AgentModification.from_dict(mod_data)
@@ -125,8 +126,7 @@ class PersistenceManager:
         """Save agent-specific state data."""
         try:
             agent_file = self.persistence_root / 'agents' / f"{agent_name}_state.json"
-            with open(agent_file, 'w') as f:
-                json.dump(state_data, f, indent=2, default=str)
+            path_ops.safe_write(agent_file, json.dumps(state_data, indent=2, default=str))
             
             self.logger.debug(f"Saved state for agent '{agent_name}'")
             
@@ -137,9 +137,10 @@ class PersistenceManager:
         """Load agent-specific state data."""
         try:
             agent_file = self.persistence_root / 'agents' / f"{agent_name}_state.json"
-            if agent_file.exists():
-                with open(agent_file, 'r') as f:
-                    return json.load(f)
+            if path_ops.validate_exists(agent_file):
+                agent_content = path_ops.safe_read(agent_file)
+                if agent_content:
+                    return json.loads(agent_content)
             
         except Exception as e:
             self.logger.error(f"Failed to load agent state for '{agent_name}': {e}")

@@ -6,10 +6,10 @@ import time
 from pathlib import Path
 import sys
 
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from orchestration.todo_hijacker import TodoHijacker
-from orchestration.todo_transformer import TodoTransformer
+from claude_mpm.orchestration.todo_hijacker import TodoHijacker
+from claude_mpm.orchestration.todo_transformer import TodoTransformer
 
 # Test the transformer
 print("=== Testing TODO Transformer ===")
