@@ -1,63 +1,69 @@
-"""Terminal UI using curses for Claude MPM."""
+"""Terminal UI for claude-mpm with multiple panes."""
 
 import curses
-import json
-import os
 import subprocess
 import threading
+import queue
 import time
-from datetime import datetime
 from pathlib import Path
-from queue import Queue
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
+import json
+from datetime import datetime
+
+try:
+    from ..services.ticket_manager import TicketManager
+    from ..core.logger import get_logger
+except ImportError:
+    from claude_mpm.services.ticket_manager import TicketManager
+    from claude_mpm.core.logger import get_logger
 
 
 class TerminalUI:
-    """Terminal UI with multiple panes for Claude MPM."""
+    """Multi-pane terminal UI for claude-mpm."""
     
     def __init__(self):
-        self.claude_output = []
+        self.logger = get_logger("terminal_ui")
+        self.ticket_manager = None
         self.todos = []
         self.tickets = []
-        self.command_queue = Queue()
-        self.output_queue = Queue()
-        self.process = None
-        self.running = False
+        self.claude_output = []
+        self.active_pane = 0  # 0=claude, 1=todos, 2=tickets
+        self.claude_process = None
+        self.output_queue = queue.Queue()
         
-        # Get directories
-        self.home_dir = Path.home()
-        self.claude_dir = self.home_dir / ".claude"
-        self.todo_file = self.claude_dir / "todos.json"
-        self.tickets_dir = Path.cwd() / "tickets" / "tasks"
-        
+        # Try to initialize ticket manager
+        try:
+            self.ticket_manager = TicketManager()
+        except Exception as e:
+            self.logger.warning(f"Ticket manager not available: {e}")
+    
     def run(self):
         """Run the terminal UI."""
         curses.wrapper(self._main)
-        
+    
     def _main(self, stdscr):
         """Main curses loop."""
-        # Initialize colors
+        # Setup
+        curses.curs_set(0)  # Hide cursor
+        stdscr.nodelay(1)   # Non-blocking input
+        stdscr.timeout(100) # Refresh every 100ms
+        
+        # Initialize color pairs
         curses.start_color()
-        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)
-        curses.init_pair(2, curses.COLOR_GREEN, curses.COLOR_BLACK)
-        curses.init_pair(3, curses.COLOR_YELLOW, curses.COLOR_BLACK)
+        curses.init_pair(1, curses.COLOR_WHITE, curses.COLOR_BLUE)   # Header
+        curses.init_pair(2, curses.COLOR_BLACK, curses.COLOR_WHITE)  # Active pane
+        curses.init_pair(3, curses.COLOR_GREEN, curses.COLOR_BLACK)  # Success
+        curses.init_pair(4, curses.COLOR_RED, curses.COLOR_BLACK)    # Error
         
-        # Configure screen
-        stdscr.nodelay(True)
-        curses.curs_set(0)
-        
-        # Start Claude subprocess
+        # Start Claude process
         self._start_claude()
         
-        # Start output reader thread
-        reader_thread = threading.Thread(target=self._read_claude_output)
-        reader_thread.daemon = True
-        reader_thread.start()
+        # Load initial data
+        self._load_todos()
+        self._load_tickets()
         
-        # Main loop
-        self.running = True
-        while self.running:
-            # Get screen dimensions
+        while True:
+            # Get terminal size
             height, width = stdscr.getmaxyx()
             
             # Clear screen
@@ -68,126 +74,33 @@ class TerminalUI:
             self._draw_panes(stdscr, height, width)
             self._draw_footer(stdscr, height, width)
             
-            # Refresh screen
-            stdscr.refresh()
-            
             # Handle input
-            try:
-                key = stdscr.getch()
-                if key == ord('q') or key == ord('Q'):
-                    self.running = False
-                elif key == curses.KEY_F5:
-                    self._refresh_data()
-            except:
-                pass
+            key = stdscr.getch()
+            if key == ord('q') or key == ord('Q'):
+                if self._confirm_quit(stdscr):
+                    break
+            elif key == ord('\t'):  # Tab to switch panes
+                self.active_pane = (self.active_pane + 1) % 3
+            elif key == curses.KEY_F5:  # Refresh
+                self._load_todos()
+                self._load_tickets()
+            elif key == ord('n') or key == ord('N'):  # New ticket
+                if self.active_pane == 2:
+                    self._create_ticket(stdscr)
             
-            # Update data
+            # Update Claude output
             self._update_claude_output()
-            self._load_todos()
-            self._load_tickets()
             
-            # Small delay
-            time.sleep(0.1)
-        
-        # Cleanup
-        if self.process:
-            self.process.terminate()
-    
-    def _start_claude(self):
-        """Start Claude subprocess."""
-        try:
-            # Load system instructions
-            from ..core.simple_runner import SimpleClaudeRunner
-            runner = SimpleClaudeRunner(enable_tickets=False)
-            system_prompt = runner._create_system_prompt()
-            
-            # Build command
-            cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
-            if system_prompt:
-                cmd.extend(["--append-system-prompt", system_prompt])
-            
-            # Start process
-            self.process = subprocess.Popen(
-                cmd,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
-        except Exception as e:
-            self.claude_output.append(f"Error starting Claude: {e}")
-    
-    def _read_claude_output(self):
-        """Read output from Claude subprocess."""
-        if not self.process:
-            return
-            
-        while self.running:
-            try:
-                line = self.process.stdout.readline()
-                if line:
-                    self.output_queue.put(line.strip())
-            except:
-                break
-    
-    def _update_claude_output(self):
-        """Update Claude output from queue."""
-        while not self.output_queue.empty():
-            try:
-                line = self.output_queue.get_nowait()
-                self.claude_output.append(line)
-                # Keep last 1000 lines
-                if len(self.claude_output) > 1000:
-                    self.claude_output = self.claude_output[-1000:]
-            except:
-                break
-    
-    def _load_todos(self):
-        """Load todos from file."""
-        try:
-            if self.todo_file.exists():
-                with open(self.todo_file, 'r') as f:
-                    data = json.load(f)
-                    self.todos = data.get('todos', [])
-        except:
-            self.todos = []
-    
-    def _load_tickets(self):
-        """Load tickets from directory."""
-        try:
-            self.tickets = []
-            if self.tickets_dir.exists():
-                for ticket_file in sorted(self.tickets_dir.glob("*.md"))[:10]:
-                    self.tickets.append({
-                        'file': ticket_file.name,
-                        'id': ticket_file.stem,
-                        'modified': datetime.fromtimestamp(ticket_file.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
-                    })
-        except:
-            self.tickets = []
-    
-    def _refresh_data(self):
-        """Refresh todos and tickets."""
-        self._load_todos()
-        self._load_tickets()
+            # Refresh display
+            stdscr.refresh()
     
     def _draw_header(self, stdscr, width):
-        """Draw header."""
+        """Draw the header."""
         header = " Claude MPM Terminal UI "
-        x = (width - len(header)) // 2
+        padding = (width - len(header)) // 2
         stdscr.attron(curses.color_pair(1))
         stdscr.addstr(0, 0, " " * width)
-        stdscr.addstr(0, x, header)
-        stdscr.attroff(curses.color_pair(1))
-    
-    def _draw_footer(self, stdscr, height, width):
-        """Draw footer."""
-        footer = " Q: Quit | F5: Refresh | Tab: Switch Panes "
-        x = (width - len(footer)) // 2
-        stdscr.attron(curses.color_pair(1))
-        stdscr.addstr(height - 1, 0, " " * width)
-        stdscr.addstr(height - 1, x, footer)
+        stdscr.addstr(0, padding, header)
         stdscr.attroff(curses.color_pair(1))
     
     def _draw_panes(self, stdscr, height, width):
@@ -209,105 +122,207 @@ class TerminalUI:
         self._draw_todo_pane(stdscr, 1, claude_width + 1, todo_height, side_width)
         
         # Draw horizontal separator
-        for x in range(claude_width + 1, width):
-            stdscr.addch(todo_height + 1, x, '─')
+        stdscr.hline(todo_height + 1, claude_width + 1, '─', side_width)
         
         # Draw Tickets pane (bottom right)
-        tickets_y = todo_height + 2
-        tickets_height = pane_height - todo_height - 1
-        self._draw_tickets_pane(stdscr, tickets_y, claude_width + 1, tickets_height, side_width)
+        ticket_height = pane_height - todo_height - 1
+        self._draw_ticket_pane(stdscr, todo_height + 2, claude_width + 1, ticket_height, side_width)
     
     def _draw_claude_pane(self, stdscr, y, x, height, width):
         """Draw Claude output pane."""
         # Title
-        stdscr.attron(curses.color_pair(2))
-        stdscr.addstr(y, x + 2, "Claude Output")
-        stdscr.attroff(curses.color_pair(2))
+        title = " Claude Output "
+        if self.active_pane == 0:
+            stdscr.attron(curses.color_pair(2))
+        stdscr.addstr(y, x, title + " " * (width - len(title)))
+        if self.active_pane == 0:
+            stdscr.attroff(curses.color_pair(2))
         
         # Content
-        content_y = y + 2
-        max_lines = height - 3
+        content_height = height - 2
+        start_line = max(0, len(self.claude_output) - content_height)
         
-        # Show last n lines of output
-        start_idx = max(0, len(self.claude_output) - max_lines)
-        for i, line in enumerate(self.claude_output[start_idx:]):
-            if i >= max_lines:
-                break
-            try:
-                # Truncate line if too long
-                if len(line) > width - 4:
-                    line = line[:width - 7] + "..."
-                stdscr.addstr(content_y + i, x + 2, line)
-            except:
-                pass
+        for i, line in enumerate(self.claude_output[start_line:start_line + content_height]):
+            if y + i + 2 < y + height:
+                truncated = line[:width-2] if len(line) > width-2 else line
+                try:
+                    stdscr.addstr(y + i + 2, x + 1, truncated)
+                except curses.error:
+                    pass  # Ignore if we can't write (edge of screen)
     
     def _draw_todo_pane(self, stdscr, y, x, height, width):
-        """Draw ToDo pane."""
+        """Draw ToDo list pane."""
         # Title
-        stdscr.attron(curses.color_pair(2))
-        stdscr.addstr(y, x + 2, f"ToDos ({len(self.todos)})")
-        stdscr.attroff(curses.color_pair(2))
+        title = f" ToDo List ({len(self.todos)}) "
+        if self.active_pane == 1:
+            stdscr.attron(curses.color_pair(2))
+        stdscr.addstr(y, x, title + " " * (width - len(title)))
+        if self.active_pane == 1:
+            stdscr.attroff(curses.color_pair(2))
         
         # Content
-        content_y = y + 2
-        max_lines = height - 3
-        
-        for i, todo in enumerate(self.todos[:max_lines]):
-            if i >= max_lines:
-                break
-            
-            # Status icon
-            status_icon = {
-                'pending': '○',
-                'in_progress': '◐',
-                'completed': '●'
-            }.get(todo.get('status', 'pending'), '?')
-            
-            # Priority color
-            priority = todo.get('priority', 'medium')
-            if priority == 'high':
-                stdscr.attron(curses.color_pair(3))
-            
-            # Format line
-            content = todo.get('content', '')
-            if len(content) > width - 8:
-                content = content[:width - 11] + "..."
-            
-            line = f"{status_icon} {content}"
-            
-            try:
-                stdscr.addstr(content_y + i, x + 2, line)
-            except:
-                pass
-            
-            if priority == 'high':
-                stdscr.attroff(curses.color_pair(3))
+        content_height = height - 2
+        for i, todo in enumerate(self.todos[:content_height]):
+            if y + i + 2 < y + height:
+                status_icon = "✓" if todo.get('status') == 'completed' else "○"
+                priority = todo.get('priority', 'medium')[0].upper()
+                text = f"{status_icon} [{priority}] {todo.get('content', '')}"
+                truncated = text[:width-2] if len(text) > width-2 else text
+                
+                # Color based on status
+                if todo.get('status') == 'completed':
+                    stdscr.attron(curses.color_pair(3))
+                try:
+                    stdscr.addstr(y + i + 2, x + 1, truncated)
+                except curses.error:
+                    pass
+                if todo.get('status') == 'completed':
+                    stdscr.attroff(curses.color_pair(3))
     
-    def _draw_tickets_pane(self, stdscr, y, x, height, width):
+    def _draw_ticket_pane(self, stdscr, y, x, height, width):
         """Draw Tickets pane."""
         # Title
-        stdscr.attron(curses.color_pair(2))
-        stdscr.addstr(y, x + 2, f"Recent Tickets ({len(self.tickets)})")
-        stdscr.attroff(curses.color_pair(2))
+        title = f" Tickets ({len(self.tickets)}) [N]ew "
+        if self.active_pane == 2:
+            stdscr.attron(curses.color_pair(2))
+        stdscr.addstr(y, x, title + " " * (width - len(title)))
+        if self.active_pane == 2:
+            stdscr.attroff(curses.color_pair(2))
         
         # Content
-        content_y = y + 2
-        max_lines = height - 3
-        
-        for i, ticket in enumerate(self.tickets[:max_lines]):
-            if i >= max_lines:
-                break
-            
-            # Format line
-            id_str = ticket['id']
-            if len(id_str) > 12:
-                id_str = id_str[:12] + "..."
-            
-            line = f"{id_str} ({ticket['modified']})"
-            if len(line) > width - 4:
-                line = line[:width - 7] + "..."
-            
+        content_height = height - 2
+        for i, ticket in enumerate(self.tickets[:content_height]):
+            if y + i + 2 < y + height:
+                ticket_id = ticket.get('id', 'N/A')
+                title = ticket.get('title', 'No title')
+                text = f"[{ticket_id}] {title}"
+                truncated = text[:width-2] if len(text) > width-2 else text
+                try:
+                    stdscr.addstr(y + i + 2, x + 1, truncated)
+                except curses.error:
+                    pass
+    
+    def _draw_footer(self, stdscr, height, width):
+        """Draw the footer."""
+        footer = " [Tab] Switch Pane | [F5] Refresh | [Q] Quit "
+        stdscr.attron(curses.color_pair(1))
+        stdscr.addstr(height - 1, 0, " " * width)
+        stdscr.addstr(height - 1, 0, footer)
+        stdscr.attroff(curses.color_pair(1))
+    
+    def _start_claude(self):
+        """Start Claude process in a thread."""
+        def run_claude():
             try:
-                stdscr.addstr(content_y + i, x + 2, line)
-            except:
-                pass
+                cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+                self.claude_process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    stdin=subprocess.PIPE,
+                    text=True,
+                    bufsize=1
+                )
+                
+                # Read output
+                for line in iter(self.claude_process.stdout.readline, ''):
+                    if line:
+                        self.output_queue.put(line.rstrip())
+                        
+            except Exception as e:
+                self.output_queue.put(f"Error starting Claude: {e}")
+        
+        thread = threading.Thread(target=run_claude, daemon=True)
+        thread.start()
+    
+    def _update_claude_output(self):
+        """Update Claude output from queue."""
+        try:
+            while True:
+                line = self.output_queue.get_nowait()
+                self.claude_output.append(line)
+                # Keep last 1000 lines
+                if len(self.claude_output) > 1000:
+                    self.claude_output = self.claude_output[-1000:]
+        except queue.Empty:
+            pass
+    
+    def _load_todos(self):
+        """Load ToDo items from Claude's todo file."""
+        try:
+            # Look for Claude's todo files
+            todo_dir = Path.home() / ".claude" / "todos"
+            if todo_dir.exists():
+                todos = []
+                for todo_file in todo_dir.glob("*.json"):
+                    try:
+                        with open(todo_file, 'r') as f:
+                            data = json.load(f)
+                            if isinstance(data, list):
+                                todos.extend(data)
+                    except:
+                        pass
+                
+                # Sort by priority and status
+                priority_order = {'high': 0, 'medium': 1, 'low': 2}
+                todos.sort(key=lambda x: (
+                    x.get('status') == 'completed',
+                    priority_order.get(x.get('priority', 'medium'), 1)
+                ))
+                self.todos = todos[:20]  # Keep top 20
+        except Exception as e:
+            self.logger.error(f"Error loading todos: {e}")
+    
+    def _load_tickets(self):
+        """Load tickets from ticket manager."""
+        if self.ticket_manager:
+            try:
+                self.tickets = self.ticket_manager.list_recent_tickets(limit=20)
+            except Exception as e:
+                self.logger.error(f"Error loading tickets: {e}")
+    
+    def _create_ticket(self, stdscr):
+        """Create a new ticket."""
+        if not self.ticket_manager:
+            return
+        
+        # Simple input dialog
+        curses.echo()
+        stdscr.addstr(10, 10, "Enter ticket title: ")
+        stdscr.refresh()
+        title = stdscr.getstr(10, 30, 60).decode('utf-8')
+        curses.noecho()
+        
+        if title:
+            try:
+                ticket = self.ticket_manager.create_ticket(
+                    title=title,
+                    description="Created from Terminal UI",
+                    priority="medium"
+                )
+                self._load_tickets()
+            except Exception as e:
+                self.logger.error(f"Error creating ticket: {e}")
+    
+    def _confirm_quit(self, stdscr):
+        """Confirm quit dialog."""
+        height, width = stdscr.getmaxyx()
+        msg = "Really quit? (y/n)"
+        y = height // 2
+        x = (width - len(msg)) // 2
+        
+        stdscr.addstr(y, x, msg)
+        stdscr.refresh()
+        
+        key = stdscr.getch()
+        return key == ord('y') or key == ord('Y')
+
+
+def main():
+    """Run the terminal UI."""
+    ui = TerminalUI()
+    ui.run()
+
+
+if __name__ == "__main__":
+    main()

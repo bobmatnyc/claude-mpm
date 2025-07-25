@@ -59,7 +59,6 @@ venv\Scripts\activate
 pip install -e .
 
 # This automatically installs:
-# - ai-trackdown-pytools (ticket management)
 # - pexpect (for interactive mode)
 # - psutil (for process monitoring)
 # - And other dependencies
@@ -122,23 +121,13 @@ If Claude CLI isn't in your PATH:
 export PATH="/path/to/claude:$PATH"
 ```
 
-### 2. Create Ticket Directory
-
-```bash
-# Claude MPM will create this automatically, but you can do it manually
-mkdir -p tickets/tasks
-```
-
-### 3. Set Up Aliases (Optional)
+### 2. Set Up Aliases (Optional)
 
 Add convenient aliases to your shell configuration:
 
 ```bash
 # Quick access to claude-mpm
 alias cmpm='claude-mpm'
-
-# Quick ticket access
-alias ticket='claude-mpm-ticket'
 
 # Interactive mode
 alias claude-interactive='claude-mpm'

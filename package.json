@@ -1,5 +1,5 @@
 {
-  "name": "claude-mpm",
+  "name": "@bobmatnyc/claude-mpm",
   "version": "0.5.0",
   "description": "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking",
   "keywords": [
@@ -8,38 +8,31 @@
     "orchestration",
     "multi-agent",
     "project-management",
-    "cli"
+    "cli",
+    "claude-code",
+    "anthropic"
   ],
-  "homepage": "https://github.com/claude-mpm/claude-mpm",
+  "homepage": "https://github.com/bobmatnyc/claude-mpm",
   "bugs": {
-    "url": "https://github.com/claude-mpm/claude-mpm/issues"
+    "url": "https://github.com/bobmatnyc/claude-mpm/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/claude-mpm/claude-mpm.git"
+    "url": "git+https://github.com/bobmatnyc/claude-mpm.git"
   },
   "license": "MIT",
-  "author": "Claude MPM Team",
-  "main": "index.js",
+  "author": "Bob Matsuoka <bob@matsuoka.com>",
   "bin": {
-    "claude-mpm": "./bin/claude-mpm",
-    "ticket": "./bin/ticket"
+    "claude-mpm": "./npm-bin/claude-mpm.js"
   },
   "files": [
-    "bin/",
-    "lib/",
-    "README.md",
+    "npm-bin/",
+    "README.npm.md",
     "LICENSE",
-    "package.json"
+    "scripts/postinstall.js"
   ],
   "scripts": {
-    "postinstall": "node scripts/postinstall.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "dependencies": {
-    "command-exists": "^1.2.9",
-    "mkdirp": "^1.0.4",
-    "which": "^2.0.2"
+    "postinstall": "node scripts/postinstall.js"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -48,5 +41,9 @@
     "darwin",
     "linux"
   ],
-  "preferGlobal": true
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }

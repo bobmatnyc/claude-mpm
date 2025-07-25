@@ -4,7 +4,7 @@ This document provides guidelines for working with the claude-mpm project.
 
 ## Project Overview
 
-Claude MPM (Multi-Agent Project Manager) is an orchestration layer for Claude that enables multi-agent workflows through subprocess delegation.
+Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables multi-agent workflows and extensible capabilities.
 
 ## Key Resources
 
@@ -13,8 +13,6 @@ Claude MPM (Multi-Agent Project Manager) is an orchestration layer for Claude th
 - 🚀 **Deployment**: See [docs/DEPLOY.md](docs/DEPLOY.md) for versioning and deployment
 - 📊 **Logging**: See [docs/LOGGING.md](docs/LOGGING.md) for comprehensive logging guide
 - 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
-- 🎫 **Ticket Management**: See [docs/ticket_wrapper.md](docs/ticket_wrapper.md) for the `ticket` command wrapper
-- 🔧 **Claude Launcher**: See [docs/claude_launcher_migration.md](docs/claude_launcher_migration.md) for subprocess handling
 
 ## Development Guidelines
 
@@ -42,19 +40,15 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
 
 ### Key Components
 
-1. **Orchestrators** (`src/claude_mpm/orchestration/`)
-   - Multiple strategies for running Claude
-   - Unified through `ClaudeLauncher` in `core/`
-
-2. **Agent System** (`src/claude_mpm/agents/`)
+1. **Agent System** (`src/claude_mpm/agents/`)
    - Templates for different agent roles
    - Dynamic discovery via `AgentRegistry`
 
-3. **Hook System** (`src/claude_mpm/hooks/`)
+2. **Hook System** (`src/claude_mpm/hooks/`)
    - Extensibility through pre/post hooks
    - Managed by hook service
 
-4. **Services** (`src/claude_mpm/services/`)
+3. **Services** (`src/claude_mpm/services/`)
    - Business logic layer
    - Hook service, agent management, etc.
 
@@ -66,9 +60,6 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
 
 # Non-interactive mode
 ./claude-mpm run -i "Your prompt here" --non-interactive
-
-# With subprocess orchestration
-./claude-mpm run --subprocess -i "Your prompt" --non-interactive
 ```
 
 ## Common Issues

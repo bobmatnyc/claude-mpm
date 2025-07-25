@@ -86,9 +86,9 @@ setup(
     description="Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking",
     long_description=open("README.md").read() if os.path.exists("README.md") else "",
     long_description_content_type="text/markdown",
-    author="Claude MPM Team",
-    author_email="team@claude-mpm.dev",
-    url="https://github.com/claude-mpm/claude-mpm",
+    author="Bob Matsuoka",
+    author_email="bob@matsuoka.com",
+    url="https://github.com/bobmatnyc/claude-mpm",
     license="MIT",
     python_requires=">=3.8",
     package_dir={"": "src"},
@@ -117,6 +117,9 @@ setup(
             "black",
             "flake8",
             "mypy",
+        ],
+        "ui": [
+            "rich>=13.0.0",
         ]
     },
     entry_points={
