@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import logging
 
+from ...utils.config_manager import ConfigurationManager
+
 
 class VersionBumpType(Enum):
     """Types of version bumps."""
@@ -135,6 +137,7 @@ class SemanticVersionManager:
         """
         self.project_root = Path(project_root)
         self.logger = logger
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
 
         # Version file patterns
         self.version_files = {
@@ -238,8 +241,7 @@ class SemanticVersionManager:
     def _parse_package_json_version(self, file_path: Path) -> Optional[str]:
         """Parse version from package.json."""
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
+            data = self.config_mgr.load_json(file_path)
             return data.get("version")
         except Exception:
             return None
@@ -454,13 +456,10 @@ class SemanticVersionManager:
     def _update_package_json_version(self, file_path: Path, new_version: str) -> bool:
         """Update version in package.json."""
         try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-
+            data = self.config_mgr.load_json(file_path)
             data["version"] = new_version
 
-            with open(file_path, "w") as f:
-                json.dump(data, f, indent=2)
+            self.config_mgr.save_json(data, file_path)
 
             return True
 

@@ -25,7 +25,6 @@ Created for ISS-0118: Agent Registry and Hierarchical Discovery System
 """
 
 import asyncio
-import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -50,6 +49,7 @@ from claude_mpm.services.agent_persistence_service import (
 )
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.utils.path_operations import path_ops
+from claude_mpm.utils.config_manager import ConfigurationManager
 
 
 class LifecycleOperation(Enum):
@@ -167,6 +167,9 @@ class AgentLifecycleManager(BaseService):
         # Operation lock for thread safety
         self._operation_lock = asyncio.Lock()
         
+        # Configuration manager
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
+        
         self.logger.info("AgentLifecycleManager initialized")
     
     async def _initialize(self) -> None:
@@ -268,9 +271,7 @@ class AgentLifecycleManager(BaseService):
         try:
             records_file = Path.home() / '.claude-pm' / 'agent_tracking' / 'lifecycle_records.json'
             if path_ops.validate_exists(records_file):
-                data_content = path_ops.safe_read(records_file)
-                if data_content:
-                    data = json.loads(data_content)
+                data = self.config_mgr.load_json(records_file)
                 
                 for agent_name, record_data in data.items():
                     record = AgentLifecycleRecord(**record_data)
@@ -298,7 +299,14 @@ class AgentLifecycleManager(BaseService):
                 record_dict['tier'] = record.tier.value
                 data[agent_name] = record_dict
             
-            path_ops.safe_write(records_file, json.dumps(data, indent=2, default=str))
+            # Use save_json with custom encoder for datetime serialization
+            import json
+            
+            # First convert to JSON string with custom encoder, then save
+            json_str = json.dumps(data, indent=2, default=str)
+            records_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(records_file, 'w', encoding='utf-8') as f:
+                f.write(json_str)
             
             self.logger.debug(f"Saved {len(self.agent_records)} agent records")
             

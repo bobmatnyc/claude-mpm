@@ -17,6 +17,8 @@ import os
 from pathlib import Path
 from typing import Dict, Optional, List, Tuple
 
+from ..utils.config_manager import ConfigurationManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,6 +63,7 @@ class ConfigAliasManager:
         else:
             self.aliases_file = Path(aliases_file)
         
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
         self._ensure_aliases_file()
         self._aliases: Dict[str, str] = self._load_aliases()
         
@@ -74,20 +77,15 @@ class ConfigAliasManager:
     def _load_aliases(self) -> Dict[str, str]:
         """Load aliases from the JSON file."""
         try:
-            with open(self.aliases_file, 'r') as f:
-                return json.load(f)
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse aliases file: {e}")
-            return {}
-        except Exception as e:
+            return self.config_mgr.load_json(self.aliases_file)
+        except (json.JSONDecodeError, Exception) as e:
             logger.error(f"Failed to load aliases: {e}")
             return {}
     
     def _save_aliases(self, aliases: Dict[str, str]) -> None:
         """Save aliases to the JSON file."""
         try:
-            with open(self.aliases_file, 'w') as f:
-                json.dump(aliases, f, indent=2, sort_keys=True)
+            self.config_mgr.save_json(aliases, self.aliases_file, sort_keys=True)
         except Exception as e:
             logger.error(f"Failed to save aliases: {e}")
             raise ConfigAliasError(f"Failed to save aliases: {e}")

@@ -2,13 +2,13 @@
 Improved prompt management functionality.
 """
 
-import json
 import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
 from .models import ImprovedPrompt
+from ...utils.config_manager import ConfigurationManager
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,7 @@ class ImprovedPromptManager:
         
         # Cache for improved prompts
         self.improved_prompts_cache: Dict[str, ImprovedPrompt] = {}
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
         
         # Load existing prompts on initialization
         self._load_improved_prompts()
@@ -38,8 +39,7 @@ class ImprovedPromptManager:
             # Load improved prompts from training directory
             for prompt_file in self.improved_prompts_dir.glob('*.json'):
                 try:
-                    with open(prompt_file, 'r') as f:
-                        data = json.load(f)
+                    data = self.config_mgr.load_json(prompt_file)
                     
                     # Convert to ImprovedPrompt object
                     improved_prompt = ImprovedPrompt(

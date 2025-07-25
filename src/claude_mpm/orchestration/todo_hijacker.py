@@ -1,6 +1,5 @@
 """TODO Hijacker - Monitors Claude's TODO files and transforms them into agent delegations."""
 
-import json
 import time
 import logging
 from pathlib import Path
@@ -11,9 +10,11 @@ from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreat
 
 try:
     from ..utils.logger import get_logger
+    from ..utils.config_manager import ConfigurationManager
     from .todo_transformer import TodoTransformer
 except ImportError:
     from utils.logger import get_logger
+    from utils.config_manager import ConfigurationManager
     from orchestration.todo_transformer import TodoTransformer
 
 
@@ -98,6 +99,7 @@ class TodoHijacker:
         self.transformer = TodoTransformer()
         self.observer = None
         self.on_delegation = on_delegation
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
         
         # State tracking
         self._processed_todos = set()
@@ -157,8 +159,7 @@ class TodoHijacker:
         """
         try:
             # Read and parse the TODO file
-            with open(file_path, 'r') as f:
-                todo_data = json.load(f)
+            todo_data = self.config_mgr.load_json(file_path)
             
             # Extract TODOs
             todos = self._extract_todos(todo_data)
@@ -266,8 +267,7 @@ class TodoHijacker:
             todo_files = list(self.todo_dir.glob("*.json"))
             
             for todo_file in todo_files:
-                with open(todo_file, 'r') as f:
-                    todo_data = json.load(f)
+                todo_data = self.config_mgr.load_json(todo_file)
                 
                 todos = self._extract_todos(todo_data)
                 for todo in todos:

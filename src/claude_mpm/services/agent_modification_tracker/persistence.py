@@ -13,6 +13,7 @@ from typing import Dict, Any
 
 from .models import AgentModification, ModificationHistory
 from ...utils.path_operations import path_ops
+from ...utils.config_manager import ConfigurationManager
 
 
 class PersistenceManager:
@@ -22,6 +23,7 @@ class PersistenceManager:
         self.logger = logging.getLogger(__name__)
         self.persistence_root = persistence_root
         self.history_root = persistence_root / 'history'
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
         self._ensure_directories()
     
     def _ensure_directories(self) -> None:
@@ -57,7 +59,12 @@ class PersistenceManager:
                     'modifications': [mod.to_dict() for mod in history.modifications]
                 }
             
-            path_ops.safe_write(history_file, json.dumps(history_data, indent=2, default=str))
+            # Use custom encoder for datetime serialization
+            import json as json_module
+            json_str = json_module.dumps(history_data, indent=2, default=str)
+            history_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(history_file, 'w', encoding='utf-8') as f:
+                f.write(json_str)
             
             # Save active modifications
             active_file = self.persistence_root / 'active_modifications.json'
@@ -66,7 +73,12 @@ class PersistenceManager:
                 for mod_id, mod in active_modifications.items()
             }
             
-            path_ops.safe_write(active_file, json.dumps(active_data, indent=2, default=str))
+            # Use custom encoder for datetime serialization
+            import json as json_module
+            json_str = json_module.dumps(active_data, indent=2, default=str)
+            active_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(active_file, 'w', encoding='utf-8') as f:
+                f.write(json_str)
             
             self.logger.debug(f"Persisted {len(modification_history)} agent histories")
             
@@ -82,9 +94,7 @@ class PersistenceManager:
             # Load modification history
             history_file = self.history_root / 'modification_history.json'
             if path_ops.validate_exists(history_file):
-                history_content = path_ops.safe_read(history_file)
-                if history_content:
-                    history_data = json.loads(history_content)
+                history_data = self.config_mgr.load_json(history_file)
                 
                 for agent_name, data in history_data.items():
                     history = ModificationHistory(
@@ -107,9 +117,7 @@ class PersistenceManager:
             # Load active modifications
             active_file = self.persistence_root / 'active_modifications.json'
             if path_ops.validate_exists(active_file):
-                active_content = path_ops.safe_read(active_file)
-                if active_content:
-                    active_data = json.loads(active_content)
+                active_data = self.config_mgr.load_json(active_file)
                 
                 for mod_id, mod_data in active_data.items():
                     modification = AgentModification.from_dict(mod_data)
@@ -126,7 +134,12 @@ class PersistenceManager:
         """Save agent-specific state data."""
         try:
             agent_file = self.persistence_root / 'agents' / f"{agent_name}_state.json"
-            path_ops.safe_write(agent_file, json.dumps(state_data, indent=2, default=str))
+            # Use custom encoder for datetime serialization
+            import json as json_module
+            json_str = json_module.dumps(state_data, indent=2, default=str)
+            agent_file.parent.mkdir(parents=True, exist_ok=True)
+            with open(agent_file, 'w', encoding='utf-8') as f:
+                f.write(json_str)
             
             self.logger.debug(f"Saved state for agent '{agent_name}'")
             
@@ -138,9 +151,7 @@ class PersistenceManager:
         try:
             agent_file = self.persistence_root / 'agents' / f"{agent_name}_state.json"
             if path_ops.validate_exists(agent_file):
-                agent_content = path_ops.safe_read(agent_file)
-                if agent_content:
-                    return json.loads(agent_content)
+                return self.config_mgr.load_json(agent_file)
             
         except Exception as e:
             self.logger.error(f"Failed to load agent state for '{agent_name}': {e}")

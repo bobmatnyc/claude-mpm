@@ -7,7 +7,6 @@ This module manages the loading, saving, and tracking of managed directory
 configurations for the parent directory manager.
 """
 
-import json
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass, field
@@ -15,6 +14,7 @@ import logging
 
 from .operations import ParentDirectoryContext
 from ...utils.path_operations import path_ops
+from ...utils.config_manager import ConfigurationManager
 
 
 @dataclass
@@ -49,14 +49,13 @@ class ConfigManager:
         self.logger = logger or logging.getLogger(__name__)
         self.managed_directories_file = self.configs_dir / "managed_directories.json"
         self.managed_directories: Dict[str, ParentDirectoryConfig] = {}
+        self.config_mgr = ConfigurationManager(cache_enabled=True)
 
     async def load_managed_directories(self) -> None:
         """Load existing managed directories configuration."""
         try:
             if path_ops.validate_exists(self.managed_directories_file):
-                data_content = path_ops.safe_read(self.managed_directories_file)
-                if data_content:
-                    data = json.loads(data_content)
+                data = self.config_mgr.load_json(self.managed_directories_file)
 
                 # Convert loaded data to ParentDirectoryConfig objects
                 for key, config_data in data.items():
@@ -96,7 +95,7 @@ class ConfigManager:
                     "deployment_metadata": config.deployment_metadata,
                 }
 
-            path_ops.safe_write(self.managed_directories_file, json.dumps(data, indent=2))
+            self.config_mgr.save_json(data, self.managed_directories_file)
 
             self.logger.debug("Managed directories configuration saved")
 

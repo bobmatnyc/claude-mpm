@@ -5,12 +5,12 @@ Handles loading configuration from files, environment variables,
 and default values with proper validation and type conversion.
 """
 
-import json
 import os
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-import yaml
 import logging
+
+from ..utils.config_manager import ConfigurationManager
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,7 @@ class Config:
         """
         self._config: Dict[str, Any] = {}
         self._env_prefix = env_prefix
+        self._config_mgr = ConfigurationManager(cache_enabled=True)
 
         # Load base configuration
         if config:
@@ -67,17 +68,9 @@ class Config:
             return
 
         try:
-            with open(file_path, "r") as f:
-                if file_path.suffix.lower() in [".yml", ".yaml"]:
-                    file_config = yaml.safe_load(f)
-                elif file_path.suffix.lower() == ".json":
-                    file_config = json.load(f)
-                else:
-                    logger.error(f"Unsupported configuration file format: {file_path}")
-                    return
-
+            file_config = self._config_mgr.load_auto(file_path)
             if file_config:
-                self._config.update(file_config)
+                self._config = self._config_mgr.merge_configs(self._config, file_config)
                 logger.info(f"Loaded configuration from {file_path}")
 
         except Exception as e:
@@ -270,7 +263,7 @@ class Config:
 
     def update(self, config: Dict[str, Any]) -> None:
         """Update configuration with new values."""
-        self._config.update(config)
+        self._config = self._config_mgr.merge_configs(self._config, config)
 
     def to_dict(self) -> Dict[str, Any]:
         """Get configuration as dictionary."""
@@ -281,13 +274,12 @@ class Config:
         file_path = Path(file_path)
 
         try:
-            with open(file_path, "w") as f:
-                if format.lower() == "json":
-                    json.dump(self._config, f, indent=2)
-                elif format.lower() in ["yaml", "yml"]:
-                    yaml.dump(self._config, f, default_flow_style=False)
-                else:
-                    raise ValueError(f"Unsupported format: {format}")
+            if format.lower() == "json":
+                self._config_mgr.save_json(self._config, file_path)
+            elif format.lower() in ["yaml", "yml"]:
+                self._config_mgr.save_yaml(self._config, file_path)
+            else:
+                raise ValueError(f"Unsupported format: {format}")
 
             logger.info(f"Configuration saved to {file_path}")
 
