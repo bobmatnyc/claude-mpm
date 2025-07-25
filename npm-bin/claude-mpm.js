@@ -2,7 +2,7 @@
 
 /**
  * NPM wrapper for claude-mpm
- * This script checks for Python/pip installation and runs the Python version
+ * This script checks for Python/pip/pipx installation and runs the Python version
  */
 
 const { spawn, execSync } = require('child_process');
@@ -37,6 +37,10 @@ function info(message) {
   log('ℹ ' + message, colors.cyan);
 }
 
+function warn(message) {
+  log('⚠ ' + message, colors.yellow);
+}
+
 // Check if a command exists
 function commandExists(cmd) {
   try {
@@ -48,9 +52,19 @@ function commandExists(cmd) {
 }
 
 // Check if claude-mpm is installed via pip
-function isClaudeMpmInstalled() {
+function isClaudeMpmInstalledPip() {
   try {
     execSync('pip show claude-mpm', { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Check if claude-mpm is installed via pipx
+function isClaudeMpmInstalledPipx() {
+  try {
+    execSync('pipx list | grep claude-mpm', { stdio: 'ignore' });
     return true;
   } catch (e) {
     return false;
@@ -64,7 +78,51 @@ function getPythonCommand() {
   return null;
 }
 
-// Install claude-mpm via pip
+// Check if environment is externally managed
+function isExternallyManaged() {
+  const python = getPythonCommand();
+  if (!python) return false;
+  
+  try {
+    // Try to install a dummy package to check
+    execSync(`${python} -m pip install --dry-run pip 2>&1`, { encoding: 'utf8' });
+    return false;
+  } catch (e) {
+    return e.toString().includes('externally-managed-environment');
+  }
+}
+
+// Install pipx if needed
+async function installPipx() {
+  info('Installing pipx for isolated Python app management...');
+  
+  try {
+    if (process.platform === 'darwin' && commandExists('brew')) {
+      execSync('brew install pipx', { stdio: 'inherit' });
+      execSync('pipx ensurepath', { stdio: 'inherit' });
+      success('pipx installed successfully!');
+      return true;
+    } else {
+      const python = getPythonCommand();
+      execSync(`${python} -m pip install --user pipx`, { stdio: 'inherit' });
+      execSync(`${python} -m pipx ensurepath`, { stdio: 'inherit' });
+      success('pipx installed successfully!');
+      return true;
+    }
+  } catch (e) {
+    error('Failed to install pipx automatically.');
+    console.log('\nPlease install pipx manually:');
+    if (process.platform === 'darwin') {
+      console.log('  brew install pipx');
+    } else {
+      console.log('  python3 -m pip install --user pipx');
+    }
+    console.log('  pipx ensurepath');
+    return false;
+  }
+}
+
+// Install claude-mpm
 async function installClaudeMpm() {
   info('Installing claude-mpm Python package...');
   
@@ -74,13 +132,56 @@ async function installClaudeMpm() {
     process.exit(1);
   }
 
+  // Check if environment is externally managed
+  if (isExternallyManaged()) {
+    warn('Python environment is externally managed (PEP 668).');
+    
+    // Try pipx first
+    if (commandExists('pipx')) {
+      info('Using pipx for installation...');
+      try {
+        execSync('pipx install claude-mpm', { stdio: 'inherit' });
+        success('claude-mpm installed successfully via pipx!');
+        info('You may need to restart your terminal or run: source ~/.bashrc');
+        return;
+      } catch (e) {
+        error('Failed to install via pipx.');
+      }
+    } else {
+      info('pipx is recommended for installing Python applications on your system.');
+      const installed = await installPipx();
+      if (installed) {
+        try {
+          execSync('pipx install claude-mpm', { stdio: 'inherit' });
+          success('claude-mpm installed successfully via pipx!');
+          info('You may need to restart your terminal or run: source ~/.bashrc');
+          return;
+        } catch (e) {
+          error('Failed to install via pipx.');
+        }
+      }
+    }
+  }
+
+  // Try regular pip install
   try {
     execSync(`${python} -m pip install --upgrade claude-mpm`, { 
       stdio: 'inherit' 
     });
     success('claude-mpm installed successfully!');
   } catch (e) {
-    error('Failed to install claude-mpm. Please try: pip install claude-mpm');
+    if (e.toString().includes('externally-managed-environment')) {
+      error('Cannot install system-wide due to PEP 668.');
+      console.log('\nOptions:');
+      console.log('1. Install pipx and run: pipx install claude-mpm');
+      console.log('2. Use a virtual environment');
+      console.log('3. Install with: pip install --user claude-mpm');
+    } else {
+      error('Failed to install claude-mpm. Please try manually:');
+      console.log('  pip install claude-mpm');
+      console.log('  or');
+      console.log('  pipx install claude-mpm');
+    }
     process.exit(1);
   }
 }
@@ -111,6 +212,36 @@ function checkClaude() {
   }
 }
 
+// Find claude-mpm command
+function findClaudeMpmCommand() {
+  // Check if installed via pipx
+  if (commandExists('claude-mpm')) {
+    return 'claude-mpm';
+  }
+  
+  // Check pipx bin directory
+  const pipxBin = path.join(os.homedir(), '.local', 'bin', 'claude-mpm');
+  if (fs.existsSync(pipxBin)) {
+    return pipxBin;
+  }
+  
+  // Check if it's in Python scripts
+  const python = getPythonCommand();
+  if (python) {
+    try {
+      const scriptsPath = execSync(`${python} -m site --user-base`, { encoding: 'utf8' }).trim();
+      const claudeMpmPath = path.join(scriptsPath, 'bin', 'claude-mpm');
+      if (fs.existsSync(claudeMpmPath)) {
+        return claudeMpmPath;
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
+  
+  return null;
+}
+
 // Main function
 async function main() {
   // Check prerequisites
@@ -122,35 +253,46 @@ async function main() {
     process.exit(1);
   }
 
-  // Check if pip exists
-  if (!commandExists('pip') && !commandExists('pip3')) {
-    error('pip is not installed. Please install pip.');
-    process.exit(1);
+  // Check if claude-mpm is installed
+  let claudeMpmCommand = findClaudeMpmCommand();
+  
+  if (!claudeMpmCommand && !isClaudeMpmInstalledPip() && !isClaudeMpmInstalledPipx()) {
+    await installClaudeMpm();
+    claudeMpmCommand = findClaudeMpmCommand();
+    
+    if (!claudeMpmCommand) {
+      error('claude-mpm was installed but cannot be found in PATH.');
+      console.log('\nPlease ensure your PATH includes:');
+      console.log('  ~/.local/bin (for pipx or pip --user installations)');
+      console.log('\nYou can add it by running:');
+      console.log('  echo \'export PATH="$HOME/.local/bin:$PATH"\' >> ~/.bashrc');
+      console.log('  source ~/.bashrc');
+      process.exit(1);
+    }
   }
 
-  // Install claude-mpm if not present
-  if (!isClaudeMpmInstalled()) {
-    await installClaudeMpm();
+  // If still not found, try one more time
+  if (!claudeMpmCommand) {
+    claudeMpmCommand = 'claude-mpm';  // Hope it's in PATH
   }
 
   // Run claude-mpm with all arguments
   const args = process.argv.slice(2);
-  const child = spawn('claude-mpm', args, { 
+  const child = spawn(claudeMpmCommand, args, { 
     stdio: 'inherit',
     shell: true 
   });
 
   child.on('error', (err) => {
     if (err.code === 'ENOENT') {
-      error('claude-mpm command not found. Installing...');
-      installClaudeMpm().then(() => {
-        // Retry after installation
-        spawn('claude-mpm', args, { stdio: 'inherit', shell: true });
-      });
+      error('claude-mpm command not found after installation.');
+      console.log('\nPlease check that claude-mpm is in your PATH.');
+      console.log('You may need to restart your terminal or run:');
+      console.log('  source ~/.bashrc');
     } else {
       error(`Failed to run claude-mpm: ${err.message}`);
-      process.exit(1);
     }
+    process.exit(1);
   });
 
   child.on('exit', (code) => {

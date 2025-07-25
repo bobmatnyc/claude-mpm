@@ -8,11 +8,11 @@
 
 console.log('\n🎉 @bobmatnyc/claude-mpm installed!');
 console.log('\nThis is a wrapper that will install and run the Python package.');
-console.log('On first run, it will automatically install claude-mpm via pip.');
+console.log('On first run, it will automatically install claude-mpm via pip or pipx.');
 console.log('\nRequirements:');
 console.log('  • Claude Code 1.0.60 or later');
 console.log('  • Python 3.8 or later');
-console.log('  • pip');
+console.log('  • pip or pipx (recommended for system-wide installs)');
 console.log('\nUsage: claude-mpm [options]');
 console.log('\nFor more info: https://github.com/bobmatnyc/claude-mpm\n');
 
