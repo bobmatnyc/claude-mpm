@@ -2,7 +2,7 @@
 Framework Agent Loader Service
 
 Implements agent profile loading logic based on directory hierarchy:
-1. Framework .claude-pm (next to framework/INSTRUCTIONS.md or CLAUDE.md): system, trained, user agents
+1. Framework .claude-pm (next to agents/INSTRUCTIONS.md or CLAUDE.md): system, trained, user agents
 2. Project .claude-pm (in project root): project agents
 
 Loading precedence: Project → Framework (user → trained → system)
@@ -29,7 +29,7 @@ class FrameworkAgentLoader:
         Initialize loader with framework and project directory detection
         
         Args:
-            framework_claude_md_path: Optional explicit path to framework/INSTRUCTIONS.md or CLAUDE.md
+            framework_claude_md_path: Optional explicit path to agents/INSTRUCTIONS.md or CLAUDE.md
         """
         # Find framework .claude-pm directory (next to framework/CLAUDE.md)
         if framework_claude_md_path:
@@ -48,7 +48,7 @@ class FrameworkAgentLoader:
             logger.info(f"Project agents directory: {self.project_agents_dir}")
     
     def _find_framework_directory(self) -> Optional[Path]:
-        """Find directory containing framework/INSTRUCTIONS.md (or legacy CLAUDE.md)"""
+        """Find directory containing agents/INSTRUCTIONS.md (or legacy CLAUDE.md)"""
         # Check if we're running from a wheel installation
         try:
             import claude_pm
@@ -56,8 +56,8 @@ class FrameworkAgentLoader:
             path_str = str(package_path.resolve())
             if 'site-packages' in path_str or 'dist-packages' in path_str:
                 # For wheel installations, check data directory
-                data_instructions = package_path / "data" / "framework" / "INSTRUCTIONS.md"
-                data_claude = package_path / "data" / "framework" / "CLAUDE.md"
+                data_instructions = package_path / "data" / "agents" / "INSTRUCTIONS.md"
+                data_claude = package_path / "data" / "agents" / "CLAUDE.md"
                 if data_instructions.exists() or data_claude.exists():
                     return package_path / "data"
         except Exception:
@@ -67,8 +67,8 @@ class FrameworkAgentLoader:
         
         # Check current directory and parents
         for path in [current] + list(current.parents):
-            framework_instructions = path / "framework" / "INSTRUCTIONS.md"
-            framework_claude = path / "framework" / "CLAUDE.md"  # Legacy
+            framework_instructions = path / "agents" / "INSTRUCTIONS.md"
+            framework_claude = path / "agents" / "CLAUDE.md"  # Legacy
             if framework_instructions.exists() or framework_claude.exists():
                 return path
                 

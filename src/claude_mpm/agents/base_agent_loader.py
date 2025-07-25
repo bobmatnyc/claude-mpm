@@ -93,10 +93,6 @@ TEMPLATE_SECTIONS = {
         "templates": ["FULL"],  # Moved to FULL only - not needed for most tasks
         "content": "Test Response Protocol"
     },
-    "ticketed_hello_world": {
-        "templates": ["FULL"],  # Only for FULL template
-        "content": "Ticketed Hello World Protocol"
-    },
     "reporting_requirements": {
         "templates": ["STANDARD", "FULL"],
         "content": "Reporting Requirements"
@@ -124,10 +120,6 @@ TEMPLATE_SECTIONS = {
     "collaboration_protocols": {
         "templates": ["STANDARD", "FULL"],  # Keep for STANDARD - essential
         "content": "Collaboration Protocols"
-    },
-    "ticket_updates": {
-        "templates": ["FULL"],  # Detailed ticket update section only for FULL
-        "content": "Ticket Update Requirements"
     },
     "cross_agent_dependencies": {
         "templates": ["FULL"],  # Only needed for complex multi-agent tasks
@@ -221,7 +213,7 @@ def _remove_test_mode_instructions(content: str) -> str:
     """
     Remove test-mode specific instructions from base agent content.
     
-    This removes the "Standard Test Response Protocol" and "Ticketed Hello World Protocol"
+    This removes the "Standard Test Response Protocol"
     sections to save context when not in test mode.
     
     Args:
@@ -249,7 +241,6 @@ def _remove_test_mode_instructions(content: str) -> str:
             # Check if we've reached a section that's NOT part of test protocol
             # This includes any heading that's not a subsection of the test protocol
             if (line.startswith('####') or line.startswith('###') or line.startswith('##')) and \
-               'Ticketed Hello World Protocol' not in line and \
                'Standard Test Response Protocol' not in line:
                 skip_section = False
                 # Don't skip this line - it's the start of a new section

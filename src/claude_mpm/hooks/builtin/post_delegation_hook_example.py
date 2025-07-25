@@ -4,8 +4,8 @@ import json
 import re
 from typing import Dict, Any, List
 
-from src.hooks.base_hook import PostDelegationHook, HookContext, HookResult
-from src.utils.logger import get_logger
+from claude_mpm.hooks.base_hook import PostDelegationHook, HookContext, HookResult
+from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
 

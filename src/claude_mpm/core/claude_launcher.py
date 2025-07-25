@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple, Union, IO
 import logging
 from enum import Enum
 
-from ..utils.logger import get_logger
+from ..core.logger import get_logger
 
 
 class LaunchMode(Enum):
@@ -41,6 +41,9 @@ class ClaudeLauncher:
         
         if not self.claude_path:
             raise RuntimeError("Claude executable not found in PATH")
+        
+        # Check Claude version
+        self._check_claude_version()
     
     def _find_claude_executable(self) -> Optional[str]:
         """Find Claude executable in PATH.
@@ -48,7 +51,14 @@ class ClaudeLauncher:
         Returns:
             Path to claude executable or None if not found
         """
-        # Check common locations first
+        # First, search PATH in order (respects user's PATH preferences)
+        for path_dir in os.environ.get("PATH", "").split(os.pathsep):
+            claude_path = os.path.join(path_dir, "claude")
+            if os.path.exists(claude_path) and os.access(claude_path, os.X_OK):
+                self.logger.debug(f"Found claude at: {claude_path}")
+                return claude_path
+        
+        # If not found in PATH, check common locations
         common_paths = [
             "/usr/local/bin/claude",
             "/opt/homebrew/bin/claude",
@@ -60,14 +70,49 @@ class ClaudeLauncher:
                 self.logger.debug(f"Found claude at: {path}")
                 return path
         
-        # Fall back to PATH search
-        for path_dir in os.environ.get("PATH", "").split(os.pathsep):
-            claude_path = os.path.join(path_dir, "claude")
-            if os.path.exists(claude_path) and os.access(claude_path, os.X_OK):
-                self.logger.debug(f"Found claude at: {claude_path}")
-                return claude_path
-        
         return None
+    
+    def _check_claude_version(self):
+        """Check if Claude version meets minimum requirements."""
+        import subprocess
+        import re
+        
+        try:
+            # Get Claude version
+            result = subprocess.run(
+                [self.claude_path, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            
+            if result.returncode == 0:
+                version_output = result.stdout.strip()
+                # Extract version number (e.g., "1.0.60 (Claude Code)")
+                match = re.match(r"(\d+\.\d+\.\d+)", version_output)
+                if match:
+                    version_str = match.group(1)
+                    version_parts = version_str.split(".")
+                    version_tuple = tuple(int(part) for part in version_parts)
+                    
+                    # Require 1.0.60 or higher
+                    if version_tuple < (1, 0, 60):
+                        raise RuntimeError(
+                            f"Claude Code version {version_str} is too old. "
+                            f"Version 1.0.60 or higher is required for native agent support. "
+                            f"Please update Claude Code."
+                        )
+                    
+                    self.logger.info(f"Claude Code version {version_str} meets requirements")
+                else:
+                    self.logger.warning(f"Could not parse Claude version from: {version_output}")
+            else:
+                self.logger.warning("Could not determine Claude version")
+                
+        except subprocess.TimeoutExpired:
+            self.logger.warning("Claude version check timed out")
+        except Exception as e:
+            self.logger.warning(f"Error checking Claude version: {e}")
     
     def build_command(
         self,

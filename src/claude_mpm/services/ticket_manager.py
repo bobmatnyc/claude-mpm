@@ -5,9 +5,9 @@ from typing import Optional, Dict, Any, List
 from datetime import datetime
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
 
 
 class TicketManager:
@@ -33,10 +33,41 @@ class TicketManager:
         """Initialize ai-trackdown-pytools TaskManager."""
         try:
             from ai_trackdown_pytools.core.task import TaskManager
+            from ai_trackdown_pytools import Config, Project
             
-            # TaskManager expects project root, not tickets directory
+            # First, ensure tickets directory exists
+            tickets_dir = self.project_path / "tickets"
+            if not tickets_dir.exists():
+                tickets_dir.mkdir(exist_ok=True)
+                (tickets_dir / "epics").mkdir(exist_ok=True)
+                (tickets_dir / "issues").mkdir(exist_ok=True)
+                (tickets_dir / "tasks").mkdir(exist_ok=True)
+                self.logger.info(f"Created tickets directory structure at: {tickets_dir}")
+            
+            # Check if we need to configure ai-trackdown
+            config_file = self.project_path / ".trackdown.yaml"
+            if not config_file.exists():
+                # Create default config that uses tickets/ directory
+                config = Config.create_default(config_file)
+                config.set("paths.tickets_dir", "tickets")
+                config.set("paths.epics_dir", "tickets/epics")
+                config.set("paths.issues_dir", "tickets/issues")
+                config.set("paths.tasks_dir", "tickets/tasks")
+                config.save()
+                self.logger.info("Created .trackdown.yaml configuration")
+            
+            # Initialize project (which uses the config)
+            project = Project(self.project_path)
+            
+            # Now create TaskManager with the configured project
             task_manager = TaskManager(self.project_path)
-            self.logger.info(f"Initialized TaskManager for: {self.project_path}")
+            
+            # Verify it's using the right directory
+            if hasattr(task_manager, 'tasks_dir'):
+                self.logger.info(f"TaskManager using tasks directory: {task_manager.tasks_dir}")
+            else:
+                self.logger.info(f"Initialized TaskManager for: {self.project_path}")
+            
             return task_manager
             
         except ImportError:
@@ -45,6 +76,7 @@ class TicketManager:
             return None
         except Exception as e:
             self.logger.error(f"Failed to initialize TaskManager: {e}")
+            self.logger.debug(f"Error details: {str(e)}", exc_info=True)
             return None
     
     def create_ticket(
@@ -55,6 +87,8 @@ class TicketManager:
         priority: str = "medium",
         tags: Optional[List[str]] = None,
         source: str = "claude-mpm",
+        parent_epic: Optional[str] = None,
+        parent_issue: Optional[str] = None,
         **kwargs
     ) -> Optional[str]:
         """

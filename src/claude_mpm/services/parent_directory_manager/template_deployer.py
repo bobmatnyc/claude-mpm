@@ -536,15 +536,15 @@ class TemplateDeployer:
         if content:
             # Maintain backup functionality with the generated content
             # Try INSTRUCTIONS.md first, then fall back to CLAUDE.md
-            framework_template_path = self.framework_path / "framework" / "INSTRUCTIONS.md"
+            framework_template_path = self.framework_path / "agents" / "INSTRUCTIONS.md"
             if not framework_template_path.exists():
-                framework_template_path = self.framework_path / "framework" / "CLAUDE.md"
+                framework_template_path = self.framework_path / "agents" / "CLAUDE.md"
             # For wheel installations, check data directory
             if not framework_template_path.exists():
                 # Check data directory for both INSTRUCTIONS.md and CLAUDE.md
-                data_template_path = self.framework_path / "data" / "framework" / "INSTRUCTIONS.md"
+                data_template_path = self.framework_path / "data" / "agents" / "INSTRUCTIONS.md"
                 if not data_template_path.exists():
-                    data_template_path = self.framework_path / "data" / "framework" / "CLAUDE.md"
+                    data_template_path = self.framework_path / "data" / "agents" / "CLAUDE.md"
                 if data_template_path.exists():
                     framework_template_path = data_template_path
             

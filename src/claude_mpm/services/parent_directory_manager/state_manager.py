@@ -16,7 +16,7 @@ from enum import Enum
 import logging
 import json
 
-from ...core.logging_config import setup_logging, setup_streaming_logger, finalize_streaming_logs
+from ...core.logger import setup_logging, setup_streaming_logger, finalize_streaming_logs
 from ...utils.path_operations import path_ops
 
 

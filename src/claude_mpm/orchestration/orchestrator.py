@@ -14,14 +14,14 @@ from datetime import datetime
 
 try:
     # Try relative imports first
-    from ..utils.logger import get_logger, setup_logging
+    from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     # Fall back to absolute imports
-    from utils.logger import get_logger, setup_logging
+    from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader

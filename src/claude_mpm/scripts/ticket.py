@@ -29,7 +29,7 @@ from typing import Optional, List
 import subprocess
 
 from claude_mpm.services.ticket_manager import TicketManager
-from claude_mpm.utils.logger import get_logger
+from claude_mpm.core.logger import get_logger
 
 
 class TicketCLI:

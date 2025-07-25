@@ -1,15 +1,45 @@
-"""Agent registry integration for Claude MPM."""
+"""
+Consolidated Agent Registry for Claude MPM.
+
+This module combines functionality from:
+- agent_registry.py (current working implementation)
+- agent_registry_original.py (legacy convenience functions)
+
+Provides:
+- Agent discovery from the framework
+- Agent listing and selection
+- Compatibility with both sync and async interfaces
+- Legacy function names for backwards compatibility
+"""
 
 import os
 import sys
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Set
 import importlib.util
+from datetime import datetime
+from dataclasses import dataclass
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
+
+
+@dataclass
+class AgentMetadata:
+    """Metadata for an agent."""
+    name: str
+    type: str
+    path: str
+    tier: str = "system"
+    last_modified: float = 0.0
+    specializations: List[str] = None
+    description: str = ""
+    
+    def __post_init__(self):
+        if self.specializations is None:
+            self.specializations = []
 
 
 class SimpleAgentRegistry:
@@ -22,29 +52,154 @@ class SimpleAgentRegistry:
     
     def _discover_agents(self):
         """Discover agents from the framework."""
-        agents_dir = self.framework_path / "src" / "claude_mpm" / "agents"
-        if agents_dir.exists():
-            for agent_file in agents_dir.glob("*.md"):
-                agent_id = agent_file.stem
-                self.agents[agent_id] = {
-                    'type': agent_id,
-                    'path': str(agent_file),
-                    'last_modified': agent_file.stat().st_mtime
-                }
+        # Check multiple possible locations
+        agent_locations = [
+            self.framework_path / "src" / "claude_mpm" / "agents" / "templates",
+            self.framework_path / "src" / "claude_mpm" / "agents",
+            self.framework_path / "agents",
+        ]
+        
+        for agents_dir in agent_locations:
+            if agents_dir.exists():
+                # Look for both .md and .json files
+                for pattern in ["*.md", "*.json"]:
+                    for agent_file in agents_dir.glob(pattern):
+                        agent_id = agent_file.stem
+                        self.agents[agent_id] = {
+                            'name': agent_id,
+                            'type': agent_id,
+                            'path': str(agent_file),
+                            'last_modified': agent_file.stat().st_mtime,
+                            'tier': self._determine_tier(agent_file),
+                            'specializations': self._extract_specializations(agent_id),
+                            'description': self._extract_description(agent_id)
+                        }
     
-    def listAgents(self, **kwargs):
-        """List all agents."""
+    def _determine_tier(self, agent_path: Path) -> str:
+        """Determine agent tier based on path."""
+        path_str = str(agent_path)
+        if 'project' in path_str or '.claude-mpm' in path_str:
+            return 'project'
+        elif 'user' in path_str or str(Path.home()) in path_str:
+            return 'user'
+        else:
+            return 'system'
+    
+    def _extract_specializations(self, agent_id: str) -> List[str]:
+        """Extract specializations based on agent type."""
+        specialization_map = {
+            'engineer': ['coding', 'architecture', 'implementation'],
+            'documentation': ['docs', 'api', 'guides'],
+            'qa': ['testing', 'quality', 'validation'],
+            'research': ['analysis', 'investigation', 'exploration'],
+            'ops': ['deployment', 'monitoring', 'infrastructure'],
+            'security': ['security', 'audit', 'compliance'],
+            'version_control': ['git', 'versioning', 'releases'],
+            'data_engineer': ['data', 'etl', 'analytics']
+        }
+        return specialization_map.get(agent_id, [])
+    
+    def _extract_description(self, agent_id: str) -> str:
+        """Extract description for agent."""
+        descriptions = {
+            'engineer': 'Software engineering and implementation',
+            'documentation': 'Documentation creation and maintenance',
+            'qa': 'Quality assurance and testing',
+            'research': 'Research and investigation',
+            'ops': 'Operations and deployment',
+            'security': 'Security analysis and compliance',
+            'version_control': 'Version control and release management',
+            'data_engineer': 'Data engineering and analytics'
+        }
+        return descriptions.get(agent_id, f'{agent_id.title()} agent')
+    
+    def listAgents(self, **kwargs) -> Dict[str, Any]:
+        """List all agents (camelCase for compatibility)."""
         return self.agents
+    
+    def list_agents(self, agent_type: Optional[str] = None, tier: Optional[str] = None) -> List[AgentMetadata]:
+        """List agents with optional filtering."""
+        results = []
+        for agent_id, metadata in self.agents.items():
+            if agent_type and metadata.get('type') != agent_type:
+                continue
+            if tier and metadata.get('tier') != tier:
+                continue
+            
+            results.append(AgentMetadata(
+                name=metadata['name'],
+                type=metadata['type'],
+                path=metadata['path'],
+                tier=metadata.get('tier', 'system'),
+                last_modified=metadata.get('last_modified', 0),
+                specializations=metadata.get('specializations', []),
+                description=metadata.get('description', '')
+            ))
+        return results
+    
+    def get_agent(self, agent_name: str) -> Optional[AgentMetadata]:
+        """Get a specific agent."""
+        metadata = self.agents.get(agent_name)
+        if metadata:
+            return AgentMetadata(
+                name=metadata['name'],
+                type=metadata['type'],
+                path=metadata['path'],
+                tier=metadata.get('tier', 'system'),
+                last_modified=metadata.get('last_modified', 0),
+                specializations=metadata.get('specializations', []),
+                description=metadata.get('description', '')
+            )
+        return None
+    
+    def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+        """Discover agents (optionally refresh)."""
+        if force_refresh:
+            self.agents.clear()
+            self._discover_agents()
+        
+        return {
+            agent_id: AgentMetadata(
+                name=metadata['name'],
+                type=metadata['type'],
+                path=metadata['path'],
+                tier=metadata.get('tier', 'system'),
+                last_modified=metadata.get('last_modified', 0),
+                specializations=metadata.get('specializations', []),
+                description=metadata.get('description', '')
+            )
+            for agent_id, metadata in self.agents.items()
+        }
+    
+    @property
+    def core_agent_types(self) -> Set[str]:
+        """Get core agent types."""
+        return {
+            'documentation',
+            'engineer', 
+            'qa',
+            'research',
+            'ops',
+            'security',
+            'version_control',
+            'data_engineer'
+        }
+    
+    @property
+    def specialized_agent_types(self) -> Set[str]:
+        """Get specialized agent types beyond core."""
+        all_types = set(metadata['type'] for metadata in self.agents.values())
+        return all_types - self.core_agent_types
 
 
 class AgentRegistryAdapter:
     """
-    Adapter to integrate claude-multiagent-pm's agent registry.
+    Adapter to integrate agent registry functionality.
     
     This adapter:
-    1. Locates the claude-multiagent-pm installation
-    2. Dynamically imports the agent registry
-    3. Provides a clean interface for agent operations
+    1. Locates the claude-mpm installation
+    2. Provides a clean interface for agent operations
+    3. Maintains backwards compatibility
     """
     
     def __init__(self, framework_path: Optional[Path] = None):
@@ -52,7 +207,7 @@ class AgentRegistryAdapter:
         Initialize the agent registry adapter.
         
         Args:
-            framework_path: Path to claude-multiagent-pm (auto-detected if None)
+            framework_path: Path to claude-mpm (auto-detected if None)
         """
         self.logger = get_logger("agent_registry")
         self.framework_path = framework_path or self._find_framework()
@@ -109,8 +264,7 @@ class AgentRegistryAdapter:
         """Check if a path is a valid claude-mpm installation."""
         return (
             path.exists() and 
-            (path / "src" / "claude_mpm").exists() and 
-            (path / "src" / "claude_mpm" / "agents").exists()
+            (path / "src" / "claude_mpm").exists()
         )
     
     def _initialize_registry(self):
@@ -120,8 +274,6 @@ class AgentRegistryAdapter:
             return
         
         try:
-            # For now, create a simple registry implementation
-            # This will be replaced with proper agent discovery later
             self.registry = SimpleAgentRegistry(self.framework_path)
             self.logger.info("Agent registry initialized successfully")
             
@@ -133,7 +285,7 @@ class AgentRegistryAdapter:
         List available agents.
         
         Args:
-            **kwargs: Arguments to pass to AgentRegistry.listAgents()
+            **kwargs: Arguments to pass to registry
             
         Returns:
             Dictionary of agents with metadata
@@ -192,10 +344,16 @@ class AgentRegistryAdapter:
         
         try:
             # Get agents with required specializations
+            agents = self.registry.listAgents()
+            
             if required_specializations:
-                agents = self.registry.listAgents(specializations=required_specializations)
-            else:
-                agents = self.registry.listAgents()
+                # Filter by specializations
+                filtered = {}
+                for agent_id, metadata in agents.items():
+                    agent_specs = set(metadata.get('specializations', []))
+                    if any(spec in agent_specs for spec in required_specializations):
+                        filtered[agent_id] = metadata
+                agents = filtered
             
             if not agents:
                 return None
@@ -236,16 +394,10 @@ class AgentRegistryAdapter:
                 'system': []
             }
             
-            # Categorize by path
+            # Categorize by tier
             for agent_id, metadata in all_agents.items():
-                agent_path = metadata.get('path', '')
-                
-                if 'project-specific' in agent_path:
-                    hierarchy['project'].append(agent_id)
-                elif 'user-agents' in agent_path or 'user-defined' in agent_path:
-                    hierarchy['user'].append(agent_id)
-                else:
-                    hierarchy['system'].append(agent_id)
+                tier = metadata.get('tier', 'system')
+                hierarchy[tier].append(agent_id)
             
             return hierarchy
             
@@ -267,8 +419,8 @@ class AgentRegistryAdapter:
             'research',
             'ops',
             'security',
-            'version-control',
-            'data-engineer'
+            'version_control',
+            'data_engineer'
         ]
     
     def format_agent_for_task_tool(self, agent_name: str, task: str, context: str = "") -> str:
@@ -291,13 +443,12 @@ class AgentRegistryAdapter:
             'research': 'Researcher',
             'ops': 'Ops',
             'security': 'Security',
-            'version-control': 'Versioner',
-            'data-engineer': 'Data Engineer'
+            'version_control': 'Versioner',
+            'data_engineer': 'Data Engineer'
         }
         
         nickname = nicknames.get(agent_name, agent_name.title())
         
-        from datetime import datetime
         today = datetime.now().strftime("%Y-%m-%d")
         
         return f"""**{nickname}**: {task}
@@ -310,3 +461,167 @@ TEMPORAL CONTEXT: Today is {today}. Apply date awareness to task execution.
 
 **Authority**: Agent has full authority for {agent_name} operations
 **Expected Results**: Completed task with operational insights"""
+
+
+# Export main class as AgentRegistry for compatibility
+AgentRegistry = SimpleAgentRegistry
+
+# Convenience functions for backwards compatibility
+def create_agent_registry(cache_service: Any = None, framework_path: Optional[Path] = None) -> AgentRegistry:
+    """
+    Create a new AgentRegistry instance
+    
+    Args:
+        cache_service: Ignored for compatibility
+        framework_path: Path to framework (auto-detected if None)
+        
+    Returns:
+        AgentRegistry instance
+    """
+    if not framework_path:
+        adapter = AgentRegistryAdapter()
+        framework_path = adapter.framework_path
+    
+    if framework_path:
+        return AgentRegistry(framework_path)
+    else:
+        raise ValueError("Could not find claude-mpm framework path")
+
+def discover_agents(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+    """
+    Convenience function for synchronous agent discovery
+    
+    Args:
+        force_refresh: Force cache refresh
+        
+    Returns:
+        Dictionary of discovered agents
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        return adapter.registry.discover_agents(force_refresh=force_refresh)
+    return {}
+
+def get_core_agent_types() -> Set[str]:
+    """
+    Get the set of core agent types
+    
+    Returns:
+        Set of core agent type names
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        return adapter.registry.core_agent_types
+    return set()
+
+def get_specialized_agent_types() -> Set[str]:
+    """
+    Get the set of specialized agent types beyond core 9
+    
+    Returns:
+        Set of specialized agent type names
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        return adapter.registry.specialized_agent_types
+    return set()
+
+def listAgents() -> Dict[str, Dict[str, Any]]:
+    """
+    Synchronous function for listing all agents (camelCase compatibility)
+    
+    Returns:
+        Dictionary of agent name -> agent metadata
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        return adapter.registry.listAgents()
+    return {}
+
+def list_agents(agent_type: Optional[str] = None, tier: Optional[str] = None) -> List[AgentMetadata]:
+    """
+    Synchronous function to list agents with optional filtering
+    
+    Args:
+        agent_type: Filter by agent type
+        tier: Filter by hierarchy tier
+        
+    Returns:
+        List of agent metadata dictionaries
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        return adapter.registry.list_agents(agent_type=agent_type, tier=tier)
+    return []
+
+def discover_agents_sync(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+    """
+    Synchronous function for agent discovery
+    
+    Args:
+        force_refresh: Force cache refresh
+        
+    Returns:
+        Dictionary of discovered agents
+    """
+    return discover_agents(force_refresh)
+
+def get_agent(agent_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Synchronous function to get a specific agent
+    
+    Args:
+        agent_name: Name of agent to retrieve
+        
+    Returns:
+        Agent metadata or None
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        agent = adapter.registry.get_agent(agent_name)
+        if agent:
+            return {
+                'name': agent.name,
+                'type': agent.type,
+                'path': agent.path,
+                'tier': agent.tier,
+                'last_modified': agent.last_modified,
+                'specializations': agent.specializations,
+                'description': agent.description
+            }
+    return None
+
+def get_registry_stats() -> Dict[str, Any]:
+    """
+    Synchronous function to get registry statistics
+    
+    Returns:
+        Dictionary of registry statistics
+    """
+    adapter = AgentRegistryAdapter()
+    if adapter.registry:
+        agents = adapter.registry.list_agents()
+        return {
+            'total_agents': len(agents),
+            'agent_types': len(set(a.type for a in agents)),
+            'tiers': list(set(a.tier for a in agents))
+        }
+    return {'total_agents': 0, 'agent_types': 0, 'tiers': []}
+
+
+# Export all public symbols
+__all__ = [
+    'AgentRegistry',
+    'AgentRegistryAdapter', 
+    'AgentMetadata',
+    'SimpleAgentRegistry',
+    'create_agent_registry',
+    'discover_agents',
+    'get_core_agent_types',
+    'get_specialized_agent_types',
+    'listAgents',
+    'list_agents',
+    'discover_agents_sync',
+    'get_agent',
+    'get_registry_stats'
+]

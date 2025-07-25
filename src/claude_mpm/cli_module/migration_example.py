@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from claude_mpm._version import __version__
-from claude_mpm.utils.logger import get_logger, setup_logging
+from claude_mpm.core.logger import get_logger, setup_logging
 from claude_mpm.services.hook_service_manager import HookServiceManager
 from claude_mpm.cli import ArgumentRegistry, CommandRegistry, register_standard_commands
 

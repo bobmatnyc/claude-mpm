@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "project_name": "claude-mpm",
+  "agents": {
+    "enabled": true
+  },
+  "tickets": {
+    "auto_create": true,
+    "prefix": "TSK"
+  }
+}

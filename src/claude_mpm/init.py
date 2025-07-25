@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import json
 
-from claude_mpm.utils.logger import get_logger
+from claude_mpm.core.logger import get_logger
 
 
 class ProjectInitializer:

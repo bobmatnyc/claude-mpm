@@ -1,0 +1,19 @@
+2025-07-25 01:24:44,448 - claude_mpm - INFO - subprocess_orchestrator.py:62 - Initializing Subprocess Orchestrator (log_level=DEBUG)
+2025-07-25 01:24:44,448 - claude_mpm.framework_loader - INFO - framework_loader.py:52 - Using claude-mpm at: /Users/masa/Projects/claude-mpm
+2025-07-25 01:24:44,448 - claude_mpm.framework_loader - INFO - framework_loader.py:133 - Loaded working directory CLAUDE.md (legacy) from: /Users/masa/Projects/claude-mpm/CLAUDE.md
+2025-07-25 01:24:44,449 - claude_mpm.framework_loader - INFO - framework_loader.py:112 - Using agents from templates directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates
+2025-07-25 01:24:44,449 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: version_control_agent
+2025-07-25 01:24:44,449 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: research_agent
+2025-07-25 01:24:44,449 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: engineer_agent
+2025-07-25 01:24:44,449 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: documentation_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: security_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: ops_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: ticketing_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: data_engineer_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: qa_agent
+2025-07-25 01:24:44,450 - claude_mpm.framework_loader - DEBUG - framework_loader.py:176 - Loaded agent: base_agent
+2025-07-25 01:24:44,450 - claude_mpm.agent_registry - INFO - agent_registry.py:126 - Agent registry initialized successfully
+2025-07-25 01:24:44,451 - claude_mpm - INFO - subprocess_orchestrator.py:146 - Detected 2 delegations
+2025-07-25 01:24:44,451 - claude_mpm - DEBUG - subprocess_orchestrator.py:148 -   Engineer: Create a factorial function in Python with proper ...
+2025-07-25 01:24:44,451 - claude_mpm - DEBUG - subprocess_orchestrator.py:148 -   QA: Write comprehensive tests for the factorial functi...
+2025-07-25 01:24:44,451 - claude_mpm.ClaudeLauncher - DEBUG - claude_launcher.py:60 - Found claude at: /opt/homebrew/bin/claude

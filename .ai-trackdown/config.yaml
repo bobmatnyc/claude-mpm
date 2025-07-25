@@ -1,0 +1,28 @@
+version: 0.9.0
+project:
+  name: claude-mpm
+  description: ''
+  version: 0.9.0
+editor:
+  default: code
+templates:
+  directory: templates
+tasks:
+  directory: tickets
+  auto_id: true
+  id_format: TSK-{counter:04d}
+  counter: 3
+git:
+  auto_commit: false
+  commit_prefix: '[ai-trackdown]'
+plugins: {}
+issues:
+  directory: tickets/issues
+  auto_id: true
+  id_format: ISS-{counter:04d}
+  counter: 11
+epics:
+  directory: tickets/epics
+  auto_id: true
+  id_format: EP-{counter:04d}
+  counter: 2

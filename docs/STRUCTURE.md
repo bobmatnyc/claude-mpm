@@ -37,9 +37,11 @@ claude-mpm/
 ├── examples/                         # Example implementations
 │   └── todo_hijacker_demo.py         # Todo hijacking demonstration
 │
-├── scripts/                          # Utility scripts
+├── scripts/                          # ALL executable scripts and utilities
 │   ├── claude-mpm                    # Main executable script
-│   └── tests/                        # Test scripts
+│   ├── run_mpm.py                    # Python runner for MPM
+│   ├── demo/                         # Demo scripts
+│   └── test_*.py                     # Test scripts (temporary/debugging)
 │
 ├── src/claude_mpm/                   # Main source code (Python package)
 │   ├── __init__.py                   # Package initialization
@@ -90,9 +92,10 @@ claude-mpm/
 │   └── utils/                        # Utilities
 │       └── logger.py                 # Logging utilities
 │
-├── tests/                            # Test suite
-│   ├── test_*.py                     # Test files
-│   └── ...
+├── tests/                            # ALL test files (pytest/unittest)
+│   ├── test_*.py                     # Unit and integration tests
+│   ├── e2e/                          # End-to-end tests
+│   └── fixtures/                     # Test fixtures and data
 │
 ├── setup.py                          # Setup script
 ├── pyproject.toml                    # Python project configuration
@@ -139,9 +142,14 @@ Extensibility through pre/post hooks:
 ### `/docs/` - Documentation
 Project documentation including this structure guide.
 
-### `/scripts/` - Scripts
+### `/scripts/` - Executable Scripts and Utilities
+All executable scripts and command-line utilities should be placed here:
 - **claude-mpm**: Main executable bash script
-- **tests/**: Various test scripts
+- **run_mpm.py**: Python runner for MPM
+- **demo/**: Demo and example scripts
+- **Debugging scripts**: Temporary test scripts for debugging (prefix with `test_`)
+- **Migration scripts**: Database or data migration scripts
+- **Build scripts**: Build and deployment automation
 
 ## File Placement Guidelines
 
@@ -153,8 +161,18 @@ When creating new files, follow these guidelines:
 4. **Service classes**: Place in `/src/claude_mpm/services/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
 6. **Tests**: Place in `/tests/` with `test_` prefix
+   - Unit tests: `/tests/test_*.py`
+   - Integration tests: `/tests/test_*.py` (with clear naming)
+   - E2E tests: `/tests/e2e/`
+   - Test data: `/tests/fixtures/`
 7. **Documentation**: Place in `/docs/`
+   - Design docs: `/docs/design/`
+   - User guides: `/docs/`
 8. **Scripts**: Place in `/scripts/`
+   - Executable scripts: `/scripts/*.py` or `/scripts/*.sh`
+   - Demo scripts: `/scripts/demo/`
+   - **NEVER place scripts in the project root directory**
+   - **NEVER place test files outside of `/tests/`**
 
 ## Important Notes
 

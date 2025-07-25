@@ -1,0 +1,50 @@
+[
+  {
+    "content": "Analyze core module for duplications and redundancies",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Analyze orchestration layer for optimization opportunities",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Analyze services layer for code duplication",
+    "status": "completed",
+    "priority": "high",
+    "id": "3"
+  },
+  {
+    "content": "Analyze hooks system for redundancies",
+    "status": "completed",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Analyze utilities for consolidation opportunities",
+    "status": "completed",
+    "priority": "medium",
+    "id": "5"
+  },
+  {
+    "content": "Check for unused imports and dead code",
+    "status": "completed",
+    "priority": "medium",
+    "id": "6"
+  },
+  {
+    "content": "Analyze architectural patterns for improvements",
+    "status": "completed",
+    "priority": "high",
+    "id": "7"
+  },
+  {
+    "content": "Review test coverage and test duplication",
+    "status": "completed",
+    "priority": "low",
+    "id": "8"
+  }
+]

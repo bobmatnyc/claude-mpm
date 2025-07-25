@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 
 from ...core.base_service import BaseService
-from ...core.logging_config import setup_logging
+from ...core.logger import setup_logging
 
 # Import extracted modules for delegation
 from .backup_manager import BackupManager

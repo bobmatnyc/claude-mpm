@@ -1,0 +1,508 @@
+{
+  "numStartups": 16,
+  "installMethod": "unknown",
+  "autoUpdates": true,
+  "theme": "light",
+  "tipsHistory": {
+    "new-user-warmup": 1,
+    "memory-command": 3,
+    "theme-command": 4,
+    "shift-enter": 5,
+    "prompt-queue": 6,
+    "enter-to-steer-in-relatime": 7,
+    "todo-list": 8,
+    "# for memory": 9,
+    "install-github-app": 10,
+    "drag-and-drop-images": 11,
+    "permissions": 12,
+    "double-esc": 13,
+    "continue": 14,
+    "custom-commands": 15,
+    "shift-tab": 16
+  },
+  "promptQueueUseCount": 7,
+  "userID": "a7f30f4b4d364fd10924ba8fef06ef9fa656eecdbf231cdcd3fa63b726a0faf5",
+  "firstStartTime": "2025-07-25T13:05:52.151Z",
+  "projects": {
+    "/Users/masa/Projects/claude-mpm": {
+      "allowedTools": [],
+      "history": [
+        {
+          "display": "merge to main",
+          "pastedContents": {}
+        },
+        {
+          "display": "push",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's orchestrate EP-0003 -- all agents should be given a task ticket on which to work",
+          "pastedContents": {}
+        },
+        {
+          "display": "check now",
+          "pastedContents": {}
+        },
+        {
+          "display": "update this info in docs/DEPLOY.md which should be linked to CLAUDE.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "wait -- we still need to publish",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's update to version 1.3.2 which should fix these issues.",
+          "pastedContents": {}
+        },
+        {
+          "display": "if there's a package that automatically handles python package versioning automatically, even better",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's also use dynamic semantic versioning in this project.  Basically I want a canonical VERSION file which is updated based on git activity and reflected in CHANGELOG",
+          "pastedContents": {}
+        },
+        {
+          "display": "\"  - The log_delegation method exists but no delegations.jsonl files are being created\n  - This means we're not tracking PM's delegation decisions properly\n  - The code calls log_delegation at line 580 but files aren't appearing\n\" maybe because we're using the internal tool now and don't have visibility into delegation",
+          "pastedContents": {}
+        },
+        {
+          "display": "revew the existing logs and note anything we need to address",
+          "pastedContents": {}
+        },
+        {
+          "display": "can you be specific about the format expectation?",
+          "pastedContents": {}
+        },
+        {
+          "display": "that's the problem -- we should be using 1.1.3",
+          "pastedContents": {}
+        },
+        {
+          "display": "these tickets were all created in a tasks/ directory. They should have been a tickets/ parent directory. Let's determine if this was a config error or a bug in ai-trackdown-pytools",
+          "pastedContents": {}
+        },
+        {
+          "display": "under epics should be issues",
+          "pastedContents": {}
+        },
+        {
+          "display": "you should have access to ai-trackdown-pytools (aliased as \"ticket\") make sure you have the latest version and create and epic to capture this work with individual issues for each of the sections.",
+          "pastedContents": {}
+        },
+        {
+          "display": "\"Subprocess pooling\" we're no longer handline subprocess management, we're using claude code's.  Not sure that we can add value there",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's make sure --mpm:logging verbose (or equivalent) is enabled so we can capture full prompt and response history.  Verify that either we can do this directly, or we can capture this data and save it in [project-root].claude-mpm/logs using claude code hooks",
+          "pastedContents": {}
+        },
+        {
+          "display": "I want to analyze this codebase for optimizations and redundancies.",
+          "pastedContents": {}
+        },
+        {
+          "display": "\"Claude MPM v0.5.0 - Interactive Session\nStarting Claude with framework instructions...\n--------------------------------------------------\n\nFramework version: 0005\nFramework size: 16,398 bytes\n\nAgent versions (base-agent):\n  - data_engineer        0002-0003\n  - documentation        0002-0003\n  - engineer             0002-0005\n  - ops                  0002-0003\n  - qa                   0002-0003\n  - research             0002-0005\n  - security             0002-0003\n  - version_control      0002-0003\n--------------------------------------------------\nerror: unknown option '--allowed-tools'\n(Did you mean --allowedTools?)\n\"",
+          "pastedContents": {}
+        },
+        {
+          "display": "isn't there a claude cli for allowed tools?",
+          "pastedContents": {}
+        },
+        {
+          "display": "should we also remoev tool support from the PM agent so it can ONLY delegate?",
+          "pastedContents": {}
+        },
+        {
+          "display": "We should also before specific that absent any instructions to the contrary, the PM MUST delegate all work, and that's it's only role is to determine the appropriate delegate, collect and organize results, and either re-delegate or report back.",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "OK.  The PM took this task and failed to orchestrate.  Is that an instructions failure?  [Pasted text #1 +33 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "> I want to analyze this codebase for optimizations and redundancies.\n\n⏺ I'll analyze the claude-mpm codebase for optimizations and redundancies. Let me start by examining the project structure and identifying\n  areas that might have duplicate code or opportunities for optimization.\n\n⏺ Update Todos\n  ⎿  ☐ [Research] Analyze project structure and identify main components\n     ☐ [Research] Search for duplicate code patterns across the codebase\n     ☐ [Research] Examine import patterns and module dependencies\n     ☐ [Research] Analyze orchestrator implementations for redundancies\n     ☐ [Research] Review agent system for optimization opportunities\n     ☐ [Research] Check for unused code and dead imports\n\n⏺ Let me start by understanding the project structure:\n\n⏺ Read(docs/STRUCTURE.md)\n  ⎿  Read 204 lines (ctrl+r to expand)\n\n⏺ Now let me examine the main source directories to understand the codebase better:\n\n⏺ List(src/claude_mpm)\n  ⎿  Listed 197 paths (ctrl+r to expand)\n\n⏺ Now let me look for duplicate patterns and redundancies. Let me start by checking the orchestrator implementations:\n\n⏺ Search(pattern: \"class.*Orchestrator\", path: \"src/claude_mpm/orchestration\", output_mode: \"content\")\n  ⎿  Found 16 lines (ctrl+r to expand)\n\n⏺ Let me check if there are base classes or interfaces these orchestrators should implement:\n\n⏺ Search(pattern: \"^from.*orchestrator.*import|^import.*orchestrator\", path: \"src/claude_mpm/orchestration\", output_mode: \"content\")\n  ⎿  Found 5 lines (ctrl+r to expand)\n  ⎿  Interrupted by user\n"
+            }
+          }
+        },
+        {
+          "display": " I want to analyze this codebase for optimizations and redundancies. ",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's add ruby, php, and golang as preferred languages",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "Good -- that worked.  Let's update research and engineer agents as follows:  [Pasted text #1 +100 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "{\n  \"research_agent\": {\n    \"version\": 4,\n    \"agent_type\": \"research\",\n    \"narrative_fields\": {\n      \"when_to_use\": [\n        \"Pre-implementation codebase analysis with tree-sitter\",\n        \"Technical pattern discovery and architectural assessment\",\n        \"Integration requirements and dependency mapping\",\n        \"Code quality and security posture evaluation\",\n        \"Best practices synthesis for implementation guidance\"\n      ],\n      \"specialized_knowledge\": [\n        \"Tree-sitter AST analysis and code structure extraction\",\n        \"Dependency graph analysis and circular dependency detection\",\n        \"Security pattern recognition and vulnerability assessment\",\n        \"Performance pattern identification and optimization opportunities\",\n        \"Testing infrastructure analysis and coverage assessment\"\n      ],\n      \"unique_capabilities\": [\n        \"Generate hierarchical code summaries optimized for LLM consumption\",\n        \"Extract semantic patterns from AST structures using tree-sitter\",\n        \"Identify critical integration points and API surfaces\",\n        \"Synthesize agent-specific actionable insights from codebase analysis\",\n        \"Create token-efficient context for specialized agent delegation\"\n      ],\n      \"instructions\": \"# Research Agent - CODEBASE ANALYSIS SPECIALIST\\n\\nConduct comprehensive codebase analysis using tree-sitter to generate hierarchical summaries optimized for LLM consumption and agent delegation.\\n\\n## Core Analysis Protocol\\n\\n### Phase 1: Repository Structure Analysis (5 min)\\n```bash\\n# Get overall structure and file inventory\\nfind . -name \\\"*.ts\\\" -o -name \\\"*.js\\\" -o -name \\\"*.py\\\" -o -name \\\"*.java\\\" | head -20\\ntree -I 'node_modules|.git|dist|build' -L 3\\n```\\n\\n### Phase 2: Tree-sitter Structural Extraction (10-15 min)\\n```bash\\n# Parse key files for structural data\\ntree-sitter parse [file] --quiet | grep -E \\\"(function_declaration|class_declaration|interface_declaration|import_statement)\\\"\\n```\\n\\n### Phase 3: Pattern Detection (5-10 min)\\n```bash\\n# Security patterns\\ngrep -r \\\"password\\\\|token\\\\|auth\\\\|crypto\\\\|encrypt\\\" --include=\\\"*.ts\\\" --include=\\\"*.js\\\" .\\n# Performance patterns\\ngrep -r \\\"async\\\\|await\\\\|Promise\\\" --include=\\\"*.ts\\\" --include=\\\"*.js\\\" .\\n# Error handling\\ngrep -r \\\"try.*catch\\\\|throw\\\\|Error\\\" --include=\\\"*.ts\\\" --include=\\\"*.js\\\" .\\n```\\n\\n### Phase 4: Generate Hierarchical Summary\\nProduce token-efficient analysis following this structure:\\n\\n```markdown\\n# Tree-sitter Code Analysis Report\\n\\n## Executive Summary\\n- **Codebase**: [Project name]\\n- **Primary Language**: [TypeScript/Python/etc.]\\n- **Architecture**: [MVC/Component-based/Microservices]\\n- **Complexity Level**: [Low/Medium/High]\\n- **Ready for [Agent Type] Work**: [✓/⚠️/❌]\\n\\n## Key Components Analysis\\n### [Critical File 1]\\n- **Type**: [Component/Service/Utility]\\n- **Size**: [X lines, Y functions, Z classes]\\n- **Key Functions**: `funcName()` - [purpose] (lines X-Y)\\n- **Patterns**: [Error handling: ✓/⚠️/❌, Async: ✓/⚠️/❌]\\n\\n## Agent-Specific Insights\\n### For Security Agent:\\n- Authentication mechanisms: [OAuth/JWT/Session]\\n- Vulnerability surface: [Input validation, auth flows]\\n- Risk areas: [Specific concerns with line numbers]\\n\\n### For Engineer Agent:\\n- Code patterns: [Functional/OOP, async patterns]\\n- Refactoring opportunities: [DRY violations, complex functions]\\n- Implementation constraints: [Framework limitations, dependencies]\\n\\n### For QA Agent:\\n- Testing infrastructure: [Framework, coverage]\\n- Quality gates: [Linting, type checking]\\n- Risk areas: [Complex functions, error handling gaps]\\n\\n## Recommendations\\n1. **Immediate**: [Most urgent actions]\\n2. **Implementation**: [Specific guidance for Engineer Agent]\\n3. **Quality**: [Testing and validation needs]\\n```\\n\\n## Analysis Quality Standards\\n- ✓ Token budget <2K for hierarchical summary\\n- ✓ Agent-specific actionable insights\\n- ✓ File paths and line numbers for reference\\n- ✓ Security and performance concerns highlighted\\n- ✓ Clear implementation recommendations\\n\\n## Tools Integration\\n- Use tree-sitter-cli with language-specific parsers\\n- Fallback to regex analysis if parsing fails\\n- Focus on exported functions and public APIs\\n- Provide partial analysis rather than failing completely\"\n    },\n    \"configuration_fields\": {\n      \"model\": \"claude-4-sonnet-20250514\",\n      \"description\": \"Tree-sitter codebase analysis and hierarchical summary generation\",\n      \"tags\": [\"research\", \"tree-sitter\", \"codebase-analysis\", \"ast\", \"patterns\"],\n      \"tools\": [\"Read\", \"Grep\", \"Glob\", \"LS\", \"WebSearch\", \"WebFetch\", \"TodoWrite\", \"Bash\"],\n      \"temperature\": 0.2,\n      \"timeout\": 900,\n      \"max_tokens\": 12288,\n      \"memory_limit\": 3072,\n      \"cpu_limit\": 60,\n      \"network_access\": true,\n      \"context_isolation\": \"moderate\",\n      \"preserve_context\": true,\n      \"analysis_depth\": \"comprehensive\",\n      \"output_format\": \"hierarchical_summary\",\n      \"token_budget_target\": 2000,\n      \"primary_role\": \"Codebase analysis and technical research using tree-sitter\",\n      \"specializations\": [\"tree-sitter-analysis\", \"ast-parsing\", \"code-patterns\", \"architecture-assessment\", \"integration-mapping\"],\n      \"authority\": \"Codebase structure analysis and implementation guidance\",\n      \"required_tools\": [\"tree-sitter-cli\", \"language-parsers\"]\n    }\n  },\n\n  \"engineer_agent\": {\n    \"version\": 4,\n    \"agent_type\": \"engineer\",\n    \"narrative_fields\": {\n      \"when_to_use\": [\n        \"Code implementation following tree-sitter research analysis\",\n        \"Bug fixes with research-identified patterns and constraints\",\n        \"Refactoring based on AST analysis and architectural insights\",\n        \"Feature implementation with research-validated approaches\",\n        \"Integration work following dependency and pattern analysis\"\n      ],\n      \"specialized_knowledge\": [\n        \"Implementation patterns derived from tree-sitter analysis\",\n        \"Codebase-specific conventions and architectural decisions\",\n        \"Integration constraints and dependency requirements\",\n        \"Security patterns and vulnerability mitigation techniques\",\n        \"Performance optimization based on code structure analysis\"\n      ],\n      \"unique_capabilities\": [\n        \"Implement code following research-identified patterns and constraints\",\n        \"Apply codebase-specific conventions discovered through AST analysis\",\n        \"Integrate with existing architecture based on dependency mapping\",\n        \"Implement security measures targeting research-identified vulnerabilities\",\n        \"Optimize performance based on tree-sitter pattern analysis\"\n      ],\n      \"instructions\": \"# Engineer Agent - RESEARCH-GUIDED IMPLEMENTATION\\n\\nImplement code solutions based on tree-sitter research analysis and codebase pattern discovery. Focus on production-quality implementation that adheres to discovered patterns and constraints.\\n\\n## Implementation Protocol\\n\\n### Phase 1: Research Validation (2-3 min)\\n- **Verify Research Context**: Confirm tree-sitter analysis findings are current and accurate\\n- **Pattern Confirmation**: Validate discovered patterns against current codebase state\\n- **Constraint Assessment**: Understand integration requirements and architectural limitations\\n- **Security Review**: Note research-identified security concerns and mitigation strategies\\n\\n### Phase 2: Implementation Planning (3-5 min)\\n- **Pattern Adherence**: Follow established codebase conventions identified in research\\n- **Integration Strategy**: Plan implementation based on dependency analysis\\n- **Error Handling**: Implement comprehensive error handling matching codebase patterns\\n- **Testing Approach**: Align with research-identified testing infrastructure\\n\\n### Phase 3: Code Implementation (15-30 min)\\n```typescript\\n// Example: Following research-identified patterns\\n// Research found: \\\"Authentication uses JWT with bcrypt hashing\\\"\\n// Research found: \\\"Error handling uses custom ApiError class\\\"\\n// Research found: \\\"Async operations use Promise-based patterns\\\"\\n\\nimport { ApiError } from '../utils/errors'; // Following research pattern\\nimport jwt from 'jsonwebtoken'; // Following research dependency\\n\\nexport async function authenticateUser(credentials: UserCredentials): Promise<AuthResult> {\\n  try {\\n    // Implementation follows research-identified patterns\\n    const user = await validateCredentials(credentials);\\n    const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET);\\n    \\n    return { success: true, token, user };\\n  } catch (error) {\\n    // Following research-identified error handling pattern\\n    throw new ApiError('Authentication failed', 401, error);\\n  }\\n}\\n```\\n\\n### Phase 4: Quality Assurance (5-10 min)\\n- **Pattern Compliance**: Ensure implementation matches research-identified conventions\\n- **Integration Testing**: Verify compatibility with existing codebase structure\\n- **Security Validation**: Address research-identified security concerns\\n- **Performance Check**: Optimize based on research-identified performance patterns\\n\\n## Implementation Standards\\n\\n### Code Quality Requirements\\n- **Type Safety**: Full TypeScript typing following codebase patterns\\n- **Error Handling**: Comprehensive error handling matching research findings\\n- **Documentation**: Inline JSDoc following project conventions\\n- **Testing**: Unit tests aligned with research-identified testing framework\\n\\n### Integration Guidelines\\n- **API Consistency**: Follow research-identified API design patterns\\n- **Data Flow**: Respect research-mapped data flow and state management\\n- **Security**: Implement research-recommended security measures\\n- **Performance**: Apply research-identified optimization techniques\\n\\n### Validation Checklist\\n- ✓ Follows research-identified codebase patterns\\n- ✓ Integrates with existing architecture\\n- ✓ Addresses research-identified security concerns\\n- ✓ Uses research-validated dependencies and APIs\\n- ✓ Implements comprehensive error handling\\n- ✓ Includes appropriate tests and documentation\\n\\n## Research Integration Protocol\\n- **Always reference**: Research agent's hierarchical summary\\n- **Validate patterns**: Against current codebase state\\n- **Follow constraints**: Architectural and integration limitations\\n- **Address concerns**: Security and performance issues identified\\n- **Maintain consistency**: With established conventions and practices\"\n    },\n    \"configuration_fields\": {\n      \"model\": \"claude-4-sonnet-20250514\",\n      \"description\": \"Research-guided code implementation with pattern adherence\",\n      \"tags\": [\"engineering\", \"implementation\", \"research-guided\", \"pattern-adherence\", \"integration\"],\n      \"tools\": [\"Read\", \"Write\", \"Edit\", \"MultiEdit\", \"Bash\", \"Grep\", \"Glob\", \"LS\", \"WebSearch\", \"TodoWrite\"],\n      \"temperature\": 0.05,\n      \"timeout\": 1200,\n      \"max_tokens\": 12288,\n      \"memory_limit\": 3072,\n      \"cpu_limit\": 70,\n      \"network_access\": true,\n      \"preferred_languages\": [\"typescript\", \"python\", \"javascript\"],\n      \"code_style\": \"research-validated-patterns\",\n      \"error_handling\": \"comprehensive-with-context\",\n      \"integration_mode\": \"architecture-aware\",\n      \"security_focus\": \"research-guided-mitigation\",\n      \"primary_role\": \"Research-guided code implementation and integration\",\n      \"specializations\": [\"pattern-implementation\", \"architecture-integration\", \"security-implementation\", \"performance-optimization\"],\n      \"authority\": \"Code implementation following research analysis\",\n      \"research_dependency\": \"tree-sitter analysis required before implementation\"\n    }\n  }\n}"
+            }
+          }
+        },
+        {
+          "display": "I want to analyze this codebase for optimizations and redundancies.  How would you do this?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "Let's update framework instructions to indicate that ToDos should always use the [<agent>] previx, .e.g, [Engineer] when creating todowrite lists",
+          "pastedContents": {}
+        },
+        {
+          "display": "I want to analyze this codebase for optimizations and redundancies.  How would you do this?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's explain in \"Agent versions:\" that it's base--agent",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "how do you work?",
+          "pastedContents": {}
+        },
+        {
+          "display": "what is your role?",
+          "pastedContents": {}
+        },
+        {
+          "display": "\"[Pasted text #1 +19 lines]\" let's fix framework version detection, and let's note the agent versions on startup as well",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "claude-mpm % claude-mpm\n[INFO] Activating virtual environment...\n[INFO] Working directory: /Users/masa/Projects/claude-mpm\n[INFO] Framework path: /Users/masa/Projects/claude-mpm\nFailed to initialize hook client: 'url'\nClaude MPM v0.5.0 - Interactive Session\nStarting Claude with framework instructions...\n--------------------------------------------------\n\nFramework version: unknown\nFramework size: 14,393 bytes\n--------------------------------------------------\n╭───────────────────────────────────────────────────╮\n│ ✻ Welcome to Claude Code!                         │\n│                                                   │\n│   /help for help, /status for your current setup  │\n│                                                   │\n│   cwd: /Users/masa/Projects/claude-mpm            │\n╰───────────────────────────────────────────────────╯\n"
+            }
+          }
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "update the agents with the guidance in: update-optimized-specialized-agents.json",
+          "pastedContents": {}
+        },
+        {
+          "display": "where is [Pasted text #1 +3 lines] put into the agent YAML?",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": " \"narrative_fields\": {\n    \"instructions\": \"# Claude MPM Framework Agent\\n\\nYou are a specialized agent in the Claude MPM framework. Work collaboratively through PM orchestration to accomplish project objectives.\\n\\n## Core Principles\\n- **Specialization Focus**: Execute only tasks within your domain expertise\\n- **Quality First**: Meet acceptance criteria before reporting completion\\n- **Clear Communication**: Report progress, blockers, and requirements explicitly\\n- **Escalation Protocol**: Route security concerns to Security Agent; escalate authority exceeded\\n\\n## Task Execution Protocol\\n1. **Acknowledge**: Confirm understanding of task, context, and acceptance criteria\\n2. **Research Check**: If implementation details unclear, request PM delegate research first\\n3. **Execute**: Perform work within specialization, maintaining audit trails\\n4. **Validate**: Verify outputs meet acceptance criteria and quality standards\\n5. **Report**: Provide structured completion report with deliverables and next steps\\n\\n## Framework Integration\\n- **Hierarchy**: Operate within Project → User → System agent discovery\\n- **Communication**: Use Task Tool subprocess for PM coordination\\n- **Context Awareness**: Acknowledge current date/time in decisions\\n- **Handoffs**: Follow structured protocols for inter-agent coordination\\n- **Error Handling**: Implement graceful failure with clear error reporting\\n\\n## Quality Standards\\n- Idempotent operations where possible\\n- Comprehensive error handling and validation\\n- Structured output formats for integration\\n- Security-first approach for sensitive operations\\n- Performance-conscious implementation choices\"\n  },\n "
+            }
+          }
+        },
+        {
+          "display": "I moved the metadata to the top.  let's also add a timestamp for modification",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's use the same 4 digit serial that the templates use",
+          "pastedContents": {}
+        },
+        {
+          "display": "the framework should also have serial versioing",
+          "pastedContents": {}
+        },
+        {
+          "display": "INSTRUCTION.md is injected into the system prompt on startup.  It is not an agent file and we still need it.",
+          "pastedContents": {}
+        },
+        {
+          "display": "where is INSTRUCTIONS.md?",
+          "pastedContents": {}
+        },
+        {
+          "display": "delete the markdown files",
+          "pastedContents": {}
+        },
+        {
+          "display": "the yaml files still contain obsolete info from the old .md templates.  Remove them -- only pull in from the JSON files",
+          "pastedContents": {}
+        },
+        {
+          "display": "redeploy the agent definitions",
+          "pastedContents": {}
+        },
+        {
+          "display": "continue",
+          "pastedContents": {}
+        },
+        {
+          "display": "use the target agent YAML file definition as a schema guideline",
+          "pastedContents": {}
+        },
+        {
+          "display": "actually, I think we need more structure in the definition files.  let's switch to JSON with schema validation.  The base agent should use the same format.  Bascially the rule should be narrative fields are combined, value fields the specific agent overrides the base agent.",
+          "pastedContents": {}
+        },
+        {
+          "display": "you didn't rewrite the agent templates like I asked.  All we need are a) version b) required field for each narrative description in the YAML file",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's also structure the description .md files with the narrative sections of the YAML files, and all other fields should be generated in code",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's remove previous instructions (we can always get them back) and start with the basics, customized for each type",
+          "pastedContents": {}
+        },
+        {
+          "display": "you aren't following all the guidelines:  [Pasted text #1 +384 lines]",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "1. Structural Foundation & Format\nDocument Structure\nBegin all YAML files with three dashes (---) to indicate document start and end with ellipsis (...) as part of standard YAML formatting. Use UTF-8 encoding exclusively for maximum Unicode compatibility.\nyaml---\n# Agent Definition\nname: \"security-auditor\"\nversion: \"1.0.0\"\n# ... rest of configuration\n...\nIndentation Rules\nUse consistent spacing (typically 2 spaces) for indentation levels and never use tabs, as YAML does not support them. Maintain consistent indentation throughout the entire file.\nyaml---\nagent:\n  profile:\n    name: \"data-analyst\"        # 2 spaces\n    specializations:\n      - \"data-processing\"       # 4 spaces\n      - \"visualization\"         # 4 spaces\n  configuration:\n    timeout: 300               # 2 spaces\n    memory_limit: 1024         # 2 spaces\n2. Agent Metadata Best Practices\nEssential Frontmatter Schema\nBased on the Claude PM Framework examples, implement comprehensive metadata:\nyaml---\n# Core Identity\nname: \"performance-optimizer\"\ndescription: \"Database and application performance specialist\"\nversion: \"2.1.0\"\nauthor: \"performance-team@company.com\"\ncreated: \"2025-07-25T10:00:00Z\"\nupdated: \"2025-07-25T15:30:00Z\"\n\n# Categorization\ntags: [\"performance\", \"database\", \"optimization\", \"monitoring\"]\nteam: \"infrastructure-team\"\nproject: \"payment-service\"\npriority: \"high\"\n\n# Behavioral Configuration\ntools: [\"Read\", \"Write\", \"Edit\", \"Bash\", \"ProfilerTools\"]\ntimeout: 600\nmax_tokens: 8192\nmodel: \"claude-3-5-sonnet-20241022\"\ntemperature: 0.1\n\n# Access Control\nfile_access: \"project\"\nnetwork_access: false\ndangerous_tools: false\nreview_required: true\n\n# Resource Management\nmemory_limit: 2048\ncpu_limit: 50\nexecution_timeout: 900\nClear Naming Conventions\nUse descriptive keys that convey their purpose to aid in readability and maintainability. Follow consistent naming patterns across all agent definitions.\n3. Agent Capabilities Definition\nWhen/Why/What Structure\nEvery agent should clearly define its usage context:\nyaml---\nname: \"api-security-auditor\"\n\n# WHEN to use this agent\nwhen_to_use:\n  - \"API endpoint security validation needed\"\n  - \"Authentication mechanism review required\" \n  - \"Authorization flow analysis needed\"\n  - \"Input validation security assessment\"\n\n# WHY this agent exists\nrationale:\n  specialized_knowledge:\n    - \"OAuth 2.0 and JWT security patterns\"\n    - \"API rate limiting and DDoS protection\"\n    - \"Input sanitization and injection prevention\"\n  unique_capabilities:\n    - \"OWASP API Security Top 10 compliance\"\n    - \"Authentication bypass detection\"\n    - \"Authorization escalation analysis\"\n\n# WHAT the agent does\ncapabilities:\n  primary_role: \"API security assessment and vulnerability analysis\"\n  specializations: [\"security\", \"api\", \"authentication\", \"authorization\"]\n  authority: \"Security recommendations and vulnerability reporting\"\n  \n  specific_tasks:\n    - task: \"Authentication Analysis\"\n      description: \"Verify proper authentication implementation\"\n    - task: \"Authorization Validation\" \n      description: \"Ensure proper access controls and permissions\"\n    - task: \"Input Validation Review\"\n      description: \"Check for injection vulnerabilities and input sanitization\"\nTool Configuration\nClearly define tool access and inheritance patterns:\nyaml# Explicit tool specification\ntools:\n  allowed: [\"Read\", \"Write\", \"Edit\", \"SecurityScan\", \"PenetrationTest\"]\n  inherit_from_parent: false\n  custom_tools:\n    - name: \"VulnerabilityScanner\"\n      config:\n        scan_depth: \"deep\"\n        compliance_checks: [\"OWASP\", \"NIST\"]\n\n# Alternative: Inheritance pattern\ntools: \"*\"  # Inherit all tools from parent\ntool_restrictions:\n  blocked: [\"Terminal\", \"NetworkAccess\"]\n  require_approval: [\"ModifyProduction\", \"DataExport\"]\n4. Context and Environment Management\nEnvironment Variables\nStructure environment configuration clearly and document complex configurations:\nyamlenvironment:\n  # Security scanning configuration\n  SECURITY_SCAN_DEPTH: \"comprehensive\"\n  COMPLIANCE_FRAMEWORKS: \"OWASP,NIST,ISO27001\"\n  REPORT_FORMAT: \"json\"\n  \n  # Performance settings\n  MAX_SCAN_TIME: \"3600\"\n  PARALLEL_SCANS: \"3\"\n  CACHE_RESULTS: \"true\"\n\n# Context filtering\ncontext_management:\n  isolation_level: \"strict\"\n  preserve_context: true\n  context_window_size: 100000\n  relevant_paths:\n    - \"/src/api/\"\n    - \"/src/auth/\"\n    - \"/config/security/\"\nIntegration Patterns\nDefine how the agent works with other agents and systems:\nyamlcollaboration:\n  upstream_agents:\n    - \"code-reviewer\"\n    - \"vulnerability-scanner\"\n  downstream_agents:\n    - \"compliance-reporter\"\n    - \"incident-manager\"\n  \n  coordination_patterns:\n    - pattern: \"security_pipeline\"\n      description: \"Automated security assessment workflow\"\n      triggers: [\"code_commit\", \"deployment_request\"]\n\n  communication_protocols:\n    input_format: \"security_context\"\n    output_format: \"security_report\"\n    notification_channels: [\"slack\", \"email\", \"dashboard\"]\n5. Performance and Resource Management\nResource Constraints\nDefine clear limits to prevent resource exhaustion:\nyamlperformance:\n  # Execution limits\n  max_execution_time: 1800  # 30 minutes\n  memory_limit_mb: 4096\n  cpu_limit_percent: 75\n  \n  # Concurrency controls\n  max_parallel_tasks: 3\n  queue_size: 50\n  \n  # Optimization settings\n  cache_enabled: true\n  cache_ttl_seconds: 3600\n  batch_processing: true\n  batch_size: 10\n\n# Monitoring and metrics\nmonitoring:\n  performance_tracking: true\n  success_rate_threshold: 0.95\n  average_response_time_ms: 2000\n  error_rate_threshold: 0.05\nLifecycle Management\nConfigure agent initialization, execution, and cleanup:\nyamllifecycle:\n  initialization:\n    pre_execution_hooks:\n      - \"validate_environment\"\n      - \"load_security_policies\"\n      - \"initialize_scanning_tools\"\n    \n    startup_checks:\n      - \"verify_tool_availability\"\n      - \"check_permissions\"\n      - \"validate_configuration\"\n  \n  execution:\n    retry_policy:\n      max_attempts: 3\n      backoff_strategy: \"exponential\"\n      retry_conditions: [\"timeout\", \"network_error\"]\n    \n    progress_reporting:\n      enabled: true\n      interval_seconds: 30\n      include_metrics: true\n  \n  cleanup:\n    post_execution_hooks:\n      - \"cleanup_temp_files\"\n      - \"save_audit_logs\"\n      - \"update_metrics\"\n    \n    timeout_handling:\n      graceful_shutdown_seconds: 60\n      force_kill_after_seconds: 120\n6. Schema Validation and Quality Assurance\nSchema Definition\nImplement validation rules to ensure configuration integrity:\nyamlschema_validation:\n  required_fields:\n    - \"name\"\n    - \"description\" \n    - \"version\"\n    - \"capabilities\"\n    - \"tools\"\n  \n  field_constraints:\n    name:\n      pattern: \"^[a-z][a-z0-9-]*[a-z0-9]$\"\n      max_length: 50\n    version:\n      pattern: \"^\\\\d+\\\\.\\\\d+\\\\.\\\\d+$\"\n    timeout:\n      min: 30\n      max: 3600\n    memory_limit:\n      min: 256\n      max: 8192\n\n  custom_validators:\n    - name: \"tool_compatibility\"\n      description: \"Validate tool combinations are compatible\"\n    - name: \"resource_limits\"\n      description: \"Ensure resource limits are within bounds\"\nDocumentation Requirements\nComprehensive documentation for maintainability:\nyamldocumentation:\n  # Inline documentation\n  usage_examples:\n    - name: \"Basic security scan\"\n      description: \"Standard API endpoint security assessment\"\n      command: \"@security-auditor scan api endpoints in /src/api/\"\n    \n    - name: \"Compliance audit\"\n      description: \"Full OWASP compliance assessment\"\n      command: \"@security-auditor audit compliance OWASP /src/\"\n  \n  # External references\n  references:\n    - type: \"documentation\"\n      url: \"https://docs.company.com/security-agents/api-auditor\"\n    - type: \"training\"\n      url: \"https://training.company.com/security-best-practices\"\n    - type: \"compliance\"\n      url: \"https://compliance.company.com/OWASP-requirements\"\n\n  # Change management\n  changelog:\n    - version: \"2.1.0\"\n      date: \"2025-07-25\"\n      changes:\n        - \"Added JWT validation capabilities\"\n        - \"Enhanced OAuth 2.0 flow analysis\"\n        - \"Improved error reporting\"\n    - version: \"2.0.0\"\n      date: \"2025-07-01\"\n      changes:\n        - \"Major refactor for Claude Code integration\"\n        - \"Added multi-framework compliance support\"\n7. Security and Access Control\nSecurity Configuration\nImplement comprehensive security measures:\nyamlsecurity:\n  # Access control\n  permissions:\n    read_access:\n      - \"/src/**\"\n      - \"/config/security/**\"\n      - \"/docs/api/**\"\n    write_access:\n      - \"/reports/security/**\"\n      - \"/logs/audit/**\"\n    restricted_paths:\n      - \"/config/secrets/**\"\n      - \"/keys/**\"\n      - \"/.env*\"\n  \n  # Data handling\n  data_classification:\n    input_sensitivity: \"internal\"\n    output_sensitivity: \"confidential\"\n    retention_policy: \"90_days\"\n  \n  # Audit requirements\n  audit_logging:\n    enabled: true\n    log_level: \"detailed\"\n    include_payloads: false\n    retention_days: 365\n    \n  compliance:\n    frameworks: [\"SOC2\", \"GDPR\", \"HIPAA\"]\n    data_residency: \"US\"\n    encryption_required: true\n8. Testing and Validation\nTest Configuration\nBuilt-in testing capabilities for agent validation:\nyamltesting:\n  # Unit tests\n  unit_tests:\n    - name: \"basic_functionality\"\n      description: \"Test core security scanning capabilities\"\n      test_cases:\n        - input: \"simple API endpoint\"\n          expected_output: \"security_report\"\n        - input: \"complex authentication flow\"\n          expected_output: \"detailed_analysis\"\n  \n  # Integration tests\n  integration_tests:\n    - name: \"tool_integration\"\n      description: \"Verify security tools work correctly\"\n      dependencies: [\"SecurityScanner\", \"VulnerabilityDB\"]\n    \n    - name: \"agent_collaboration\"\n      description: \"Test interaction with other agents\"\n      collaborators: [\"code-reviewer\", \"compliance-reporter\"]\n  \n  # Performance tests\n  performance_tests:\n    - name: \"large_codebase_scan\"\n      description: \"Test performance on large codebases\"\n      metrics:\n        - \"execution_time\"\n        - \"memory_usage\"\n        - \"accuracy\"\n      thresholds:\n        max_execution_time: 1800\n        max_memory_mb: 4096\n        min_accuracy: 0.95\n9. Error Handling and Recovery\nError Management\nRobust error handling and recovery mechanisms:\nyamlerror_handling:\n  # Error categorization\n  error_types:\n    - type: \"configuration_error\"\n      severity: \"high\"\n      action: \"abort\"\n      notification: true\n    \n    - type: \"tool_failure\"\n      severity: \"medium\"\n      action: \"retry\"\n      max_retries: 3\n    \n    - type: \"timeout\"\n      severity: \"medium\"\n      action: \"partial_results\"\n      graceful_degradation: true\n  \n  # Recovery strategies\n  recovery:\n    automatic_retry:\n      enabled: true\n      max_attempts: 3\n      backoff_multiplier: 2\n    \n    fallback_behavior:\n      enabled: true\n      fallback_agent: \"basic-security-scanner\"\n      partial_execution: true\n    \n    notification:\n      on_failure: true\n      channels: [\"email\", \"slack\"]\n      escalation_threshold: 3"
+            }
+          }
+        },
+        {
+          "display": "we don't need aliaes, let's just has \"agents\" (enum) as the argument",
+          "pastedContents": {}
+        },
+        {
+          "display": "sorry:  --mpm:agent force-deploy (should limit to single argument flags) -- fix",
+          "pastedContents": {}
+        },
+        {
+          "display": "it should be --mpm:force right?",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's also focus on just the basics, including versioning.  Rewrite the agent definition following best practices and the example in the doc.  For versioning, use XXXX-YYYY where XXXX = the base agent version and YYYY is the agent version ",
+          "pastedContents": {}
+        },
+        {
+          "display": "here is the doc:  docs/design/agent-yaml-best-practices.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's do a better job generating agent YAML.  Follow these design docs, and let's update the agent registry script to build the YAML properly.  Source can still be MD so AI can work with it, but have YAML sections clearly marked so they can be parsed by the registry",
+          "pastedContents": {}
+        },
+        {
+          "display": "force redeploymebnt of all agents (that should be a mpm: flag) so I can see there results",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's remove ticketing references from all agents and the base agent, we will add that back in when the framework is operational.",
+          "pastedContents": {}
+        },
+        {
+          "display": "exot",
+          "pastedContents": {}
+        },
+        {
+          "display": "/agents ",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "/agents ",
+          "pastedContents": {}
+        },
+        {
+          "display": "remove system/ add versioning inline all to agents, add versioning to base_agent.  On startup scan deployed agents and replce outdated system agents if the version is older or if base_agent is older (add agent and base versioning to deployed agents).  Use simple serial versioning for agents.",
+          "pastedContents": {}
+        },
+        {
+          "display": "one more thing.  We should makde Claude Code 1.0.60 or greater a requirement since we're now relying on it's native agent capabilities",
+          "pastedContents": {}
+        },
+        {
+          "display": "wait -- I think we should build on startup.  The system should check the agent deployment directory and rebuild any missing agents.  Rebuild from templates.  The system directory is unnecessary",
+          "pastedContents": {}
+        },
+        {
+          "display": "first check what's already there since it looks like we're deploying md files",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "OK.  Working better.  Now I want to impve the agent building process.  The process should be that a) on startup, the framework reads the  agent definitions in /[framework]/src/agents/templates, then iterates through each agent and builds a claude yaml file combining the agent definition with the base_agent template in /[framework]/src/agents/.  The out in the defined .claude path should be has the agent definition YAML.   ",
+          "pastedContents": {}
+        },
+        {
+          "display": "/agents ",
+          "pastedContents": {}
+        },
+        {
+          "display": "what agents do you have?",
+          "pastedContents": {}
+        },
+        {
+          "display": "what is your role?",
+          "pastedContents": {}
+        },
+        {
+          "display": "/agents ",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's also update claude in homebrew",
+          "pastedContents": {}
+        },
+        {
+          "display": "that's not correct.  When I launch claude locally, I get version 1.0.60",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "/status ",
+          "pastedContents": {}
+        },
+        {
+          "display": "OK. Looks like we're loading an older version of claude somehow.  It get's the instructions.  Let's do do things:  Instructions should say: \"You are Claude Multi-Agent Project Manager, or claude-mpm for short.\".  Let's let's see why it's launching an older version of claude:  \" Claude Code Status v1.0.59\n\n  L Session ID: b10ff15f-3c8c-46d7-93b4-a0d4d5ec4003\n\n Working Directory \n  L /Users/masa/Projects/claude-mpm\n\n System Diagnostics • /doctor\n ⚠  Running native installation but config install method is 'unknown'\n ⚠  Config mismatch: running native but config says unknown\n\n Account • /login\n  L Login Method: Claude Max Account\n  L Organization: bob@matsuoka.com's Organization\n  L Email: bob@matsuoka.com\n\n Memory • /memory\n  L project: CLAUDE.md\n\n Model • /model\n  L opus (claude-opus-4-20250514)\n\"",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "what agents are defined?",
+          "pastedContents": {}
+        },
+        {
+          "display": "what is your role",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "OK.  let's assume that claude's own agents framework will discover and use the agents we have.  Our instructions are a mess.  Let start from scratch and build up.  First of all, let's keep a framework instructions versioning system in the doc, starting with v:0.0.1 (use comments to track, and include modification date).  Our first instructions are that this claude instance is a PM Orchestrator that works through agents.  Let's be explicit that unless specifically asked by the user, it must delegate all tasks to agents.",
+          "pastedContents": {}
+        },
+        {
+          "display": "what instructions do you have?",
+          "pastedContents": {}
+        },
+        {
+          "display": "what is your role?",
+          "pastedContents": {}
+        },
+        {
+          "display": "wait -- now that we're using claude's native agents, subprocessPopen is probably not necessary.  We just want to launch claude with --append-system-prompt and our framework instructions",
+          "pastedContents": {}
+        },
+        {
+          "display": "\"claude --dangerously-skip-permissions --append-system-prompt \"Test prompt\"\" works fine.  I just tested it.  ",
+          "pastedContents": {}
+        },
+        {
+          "display": "let's verify that there is a size limit first",
+          "pastedContents": {}
+        },
+        {
+          "display": "now claude-mdm is hanging, or not returning subprocess output to the user:  \"claude-mpm % claude-mpm\n[INFO] Activating virtual environment...\n[INFO] Working directory: /Users/masa/Projects/claude-mpm\n[INFO] Framework path: /Users/masa/Projects/claude-mpm\n✓ Deployed 9 native agents to /Users/masa/Projects/claude-mpm/.claude/agents\nFailed to initialize hook client: 'url'\nClaude MPM v0.5.0 - Interactive Session (Subprocess Mode)\nStarting Claude with subprocess orchestration...\n--------------------------------------------------\n\nStarting Claude with full framework instructions...\nFramework version: 1.0.0\n--------------------------------------------------\ntest\n^C\nSession interrupted by user\nclaude-mpm % \n\"",
+          "pastedContents": {}
+        },
+        {
+          "display": "/exit",
+          "pastedContents": {}
+        },
+        {
+          "display": "all scripts should be in scripts/, tests in tests/ -- this should be noted in docs/STRUCTURE.md and linked from project CLAUDE.md",
+          "pastedContents": {}
+        },
+        {
+          "display": "we should only have two orchestration modes.  Interactive and non-interactive. That's it",
+          "pastedContents": {}
+        },
+        {
+          "display": "still not seeing the instructions reflected in clauded-mpm: \"[Pasted text #1 +24 lines]\"",
+          "pastedContents": {
+            "1": {
+              "id": 1,
+              "type": "text",
+              "content": "claude-mpm % claude-mpm\n[INFO] Activating virtual environment...\n[INFO] Working directory: /Users/masa/Projects/claude-mpm\n[INFO] Framework path: /Users/masa/Projects/claude-mpm\n✓ Deployed 9 native agents to /Users/masa/Projects/claude-mpm/.claude/agents\nClaude MPM v0.5.0 - Interactive Session\nStarting Claude with framework system prompt...\n--------------------------------------------------\nDebug: Running command: claude --dangerously-skip-permissions\n╭───────────────────────────────────────────────────╮\n│ ✻ Welcome to Claude Code!                         │\n│                                                   │\n│   /help for help, /status for your current setup  │\n│                                                   │\n│   cwd: /Users/masa/Projects/claude-mpm            │\n╰───────────────────────────────────────────────────╯\n\n ※ Tip: Use /memory to view and manage Claude memory\n\n> what is your role?\n\n⏺ I'm Claude Code, an interactive CLI tool that helps with software engineering tasks. I can assist with coding, debugging, refactoring, and\n   various development workflows using the tools available to me.\n\n"
+            }
+          }
+        },
+        {
+          "display": "what is your role?",
+          "pastedContents": {}
+        }
+      ],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false,
+      "hasCompletedProjectOnboarding": true,
+      "exampleFiles": [
+        "agent_lifecycle_manager.py",
+        "config_manager.py",
+        "persistence.py",
+        "semantic_versioning.py",
+        "version_manager.py"
+      ],
+      "exampleFilesGeneratedAt": 1753451657469,
+      "lastTotalWebSearchRequests": 0
+    }
+  },
+  "oauthAccount": {
+    "accountUuid": "2f357281-505c-4c4e-ac26-08b7d9365fd4",
+    "emailAddress": "bob@matsuoka.com",
+    "organizationUuid": "5ef934d0-9183-4b99-9d57-4b8c875be958",
+    "organizationRole": "admin",
+    "workspaceRole": null,
+    "organizationName": "bob@matsuoka.com's Organization"
+  },
+  "isQualifiedForDataSharing": false,
+  "appleTerminalSetupInProgress": false,
+  "appleTerminalBackupPath": "/Users/masa/Library/Preferences/com.apple.Terminal.plist.bak",
+  "optionAsMetaKeyInstalled": true,
+  "hasCompletedOnboarding": true,
+  "lastOnboardingVersion": "1.0.60",
+  "bypassPermissionsModeAccepted": true,
+  "subscriptionNoticeCount": 0,
+  "hasAvailableSubscription": false,
+  "cachedChangelog": "# Changelog\n\n## 1.0.60\n\n- You can now create custom subagents for specialized tasks! Run /agents to get started\n\n## 1.0.59\n\n- Rename CLAUDE_CODE_BASH_PREFIX to CLAUDE_CODE_SHELL_PREFIX\n- SDK: Added tool confirmation support with canUseTool callback\n- SDK: Allow specifying env for spawned process\n- Hooks: Exposed PermissionDecision to hooks (including \"ask\")\n- Hooks: UserPromptSubmit now supports additionalContext in advanced JSON output\n- Fixed issue where some Max users that specified Opus would still see fallback to Sonnet\n\n## 1.0.58\n\n- Added support for reading PDFs\n- MCP: Improved server health status display in 'claude mcp list'\n- Hooks: Added CLAUDE_PROJECT_DIR env var for hook commands\n\n## 1.0.57\n\n- Added support for specifying a model in slash commands\n- Improved permission messages to help Claude understand allowed tools\n- Fix: Remove trailing newlines from bash output in terminal wrapping\n\n## 1.0.56\n\n- Windows: Enabled shift+tab for mode switching on versions of Node.js that support terminal VT mode\n- Fixes for WSL IDE detection\n- Fix an issue causing awsRefreshHelper changes to .aws directory not to be picked up\n\n## 1.0.55\n\n- Clarified knowledge cutoff for Opus 4 and Sonnet 4 models\n- Windows: fixed Ctrl+Z crash\n- SDK: Added ability to capture error logging\n- Add --system-prompt-file option to override system prompt in print mode\n\n## 1.0.54\n\n- Hooks: Added UserPromptSubmit hook and the current working directory to hook inputs\n- Custom slash commands: Added argument-hint to frontmatter\n- Windows: OAuth uses port 45454 and properly constructs browser URL\n- Windows: mode switching now uses alt + m, and plan mode renders properly\n- Shell: Switch to in-memory shell snapshot to fix file-related errors\n\n## 1.0.53\n\n- Updated @-mention file truncation from 100 lines to 2000 lines\n- Add helper script settings for AWS token refresh: awsAuthRefresh (for foreground operations like aws sso login) and awsCredentialExport (for background operation with STS-like response).\n\n## 1.0.52\n\n- Added support for MCP server instructions\n\n## 1.0.51\n\n- Added support for native Windows (requires Git for Windows)\n- Added support for Bedrock API keys through environment variable AWS_BEARER_TOKEN_BEDROCK\n- Settings: /doctor can now help you identify and fix invalid setting files\n- `--append-system-prompt` can now be used in interactive mode, not just --print/-p.\n- Increased auto-compact warning threshold from 60% to 80%\n- Fixed an issue with handling user directories with spaces for shell snapshots\n- OTEL resource now includes os.type, os.version, host.arch, and wsl.version (if running on Windows Subsystem for Linux)\n- Custom slash commands: Fixed user-level commands in subdirectories\n- Plan mode: Fixed issue where rejected plan from sub-task would get discarded\n\n## 1.0.48\n\n- Fixed a bug in v1.0.45 where the app would sometimes freeze on launch\n- Added progress messages to Bash tool based on the last 5 lines of command output\n- Added expanding variables support for MCP server configuration\n- Moved shell snapshots from /tmp to ~/.claude for more reliable Bash tool calls\n- Improved IDE extension path handling when Claude Code runs in WSL\n- Hooks: Added a PreCompact hook\n- Vim mode: Added c, f/F, t/T\n\n## 1.0.45\n\n- Redesigned Search (Grep) tool with new tool input parameters and features\n- Disabled IDE diffs for notebook files, fixing \"Timeout waiting after 1000ms\" error\n- Fixed config file corruption issue by enforcing atomic writes\n- Updated prompt input undo to Ctrl+\\_ to avoid breaking existing Ctrl+U behavior, matching zsh's undo shortcut\n- Stop Hooks: Fixed transcript path after /clear and fixed triggering when loop ends with tool call\n- Custom slash commands: Restored namespacing in command names based on subdirectories. For example, .claude/commands/frontend/component.md is now /frontend:component, not /component.\n\n## 1.0.44\n\n- New /export command lets you quickly export a conversation for sharing\n- MCP: resource_link tool results are now supported\n- MCP: tool annotations and tool titles now display in /mcp view\n- Changed Ctrl+Z to suspend Claude Code. Resume by running `fg`. Prompt input undo is now Ctrl+U.\n\n## 1.0.43\n\n- Fixed a bug where the theme selector was saving excessively\n- Hooks: Added EPIPE system error handling\n\n## 1.0.42\n\n- Added tilde (`~`) expansion support to `/add-dir` command\n\n## 1.0.41\n\n- Hooks: Split Stop hook triggering into Stop and SubagentStop\n- Hooks: Enabled optional timeout configuration for each command\n- Hooks: Added \"hook_event_name\" to hook input\n- Fixed a bug where MCP tools would display twice in tool list\n- New tool parameters JSON for Bash tool in `tool_decision` event\n\n## 1.0.40\n\n- Fixed a bug causing API connection errors with UNABLE_TO_GET_ISSUER_CERT_LOCALLY if `NODE_EXTRA_CA_CERTS` was set\n\n## 1.0.39\n\n- New Active Time metric in OpenTelemetry logging\n\n## 1.0.38\n\n- Released hooks. Special thanks to community input in https://github.com/anthropics/claude-code/issues/712. Docs: https://docs.anthropic.com/en/docs/claude-code/hooks\n\n## 1.0.37\n\n- Remove ability to set `Proxy-Authorization` header via ANTHROPIC_AUTH_TOKEN or apiKeyHelper\n\n## 1.0.36\n\n- Web search now takes today's date into context\n- Fixed a bug where stdio MCP servers were not terminating properly on exit\n\n## 1.0.35\n\n- Added support for MCP OAuth Authorization Server discovery\n\n## 1.0.34\n\n- Fixed a memory leak causing a MaxListenersExceededWarning message to appear\n\n## 1.0.33\n\n- Improved logging functionality with session ID support\n- Added prompt input undo functionality (Ctrl+Z and vim 'u' command)\n- Improvements to plan mode\n\n## 1.0.32\n\n- Updated loopback config for litellm\n- Added forceLoginMethod setting to bypass login selection screen\n\n## 1.0.31\n\n- Fixed a bug where ~/.claude.json would get reset when file contained invalid JSON\n\n## 1.0.30\n\n- Custom slash commands: Run bash output, @-mention files, enable thinking with thinking keywords\n- Improved file path autocomplete with filename matching\n- Added timestamps in Ctrl-r mode and fixed Ctrl-c handling\n- Enhanced jq regex support for complex filters with pipes and select\n\n## 1.0.29\n\n- Improved CJK character support in cursor navigation and rendering\n\n## 1.0.28\n\n- Slash commands: Fix selector display during history navigation\n- Resizes images before upload to prevent API size limit errors\n- Added XDG_CONFIG_HOME support to configuration directory\n- Performance optimizations for memory usage\n- New attributes (terminal.type, language) in OpenTelemetry logging\n\n## 1.0.27\n\n- Streamable HTTP MCP servers are now supported\n- Remote MCP servers (SSE and HTTP) now support OAuth\n- MCP resources can now be @-mentioned\n- /resume slash command to switch conversations within Claude Code\n\n## 1.0.25\n\n- Slash commands: moved \"project\" and \"user\" prefixes to descriptions\n- Slash commands: improved reliability for command discovery\n- Improved support for Ghostty\n- Improved web search reliability\n\n## 1.0.24\n\n- Improved /mcp output\n- Fixed a bug where settings arrays got overwritten instead of merged\n\n## 1.0.23\n\n- Released TypeScript SDK: import @anthropic-ai/claude-code to get started\n- Released Python SDK: pip install claude-code-sdk to get started\n\n## 1.0.22\n\n- SDK: Renamed `total_cost` to `total_cost_usd`\n\n## 1.0.21\n\n- Improved editing of files with tab-based indentation\n- Fix for tool_use without matching tool_result errors\n- Fixed a bug where stdio MCP server processes would linger after quitting Claude Code\n\n## 1.0.18\n\n- Added --add-dir CLI argument for specifying additional working directories\n- Added streaming input support without require -p flag\n- Improved startup performance and session storage performance\n- Added CLAUDE_BASH_MAINTAIN_PROJECT_WORKING_DIR environment variable to freeze working directory for bash commands\n- Added detailed MCP server tools display (/mcp)\n- MCP authentication and permission improvements\n- Added auto-reconnection for MCP SSE connections on disconnect\n- Fixed issue where pasted content was lost when dialogs appeared\n\n## 1.0.17\n\n- We now emit messages from sub-tasks in -p mode (look for the parent_tool_use_id property)\n- Fixed crashes when the VS Code diff tool is invoked multiple times quickly\n- MCP server list UI improvements\n- Update Claude Code process title to display \"claude\" instead of \"node\"\n\n## 1.0.11\n\n- Claude Code can now also be used with a Claude Pro subscription\n- Added /upgrade for smoother switching to Claude Max plans\n- Improved UI for authentication from API keys and Bedrock/Vertex/external auth tokens\n- Improved shell configuration error handling\n- Improved todo list handling during compaction\n\n## 1.0.10\n\n- Added markdown table support\n- Improved streaming performance\n\n## 1.0.8\n\n- Fixed Vertex AI region fallback when using CLOUD_ML_REGION\n- Increased default otel interval from 1s -> 5s\n- Fixed edge cases where MCP_TIMEOUT and MCP_TOOL_TIMEOUT weren't being respected\n- Fixed a regression where search tools unnecessarily asked for permissions\n- Added support for triggering thinking non-English languages\n- Improved compacting UI\n\n## 1.0.7\n\n- Renamed /allowed-tools -> /permissions\n- Migrated allowedTools and ignorePatterns from .claude.json -> settings.json\n- Deprecated claude config commands in favor of editing settings.json\n- Fixed a bug where --dangerously-skip-permissions sometimes didn't work in --print mode\n- Improved error handling for /install-github-app\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.6\n\n- Improved edit reliability for tab-indented files\n- Respect CLAUDE_CONFIG_DIR everywhere\n- Reduced unnecessary tool permission prompts\n- Added support for symlinks in @file typeahead\n- Bugfixes, UI polish, and tool reliability improvements\n\n## 1.0.4\n\n- Fixed a bug where MCP tool errors weren't being parsed correctly\n\n## 1.0.1\n\n- Added `DISABLE_INTERLEAVED_THINKING` to give users the option to opt out of interleaved thinking.\n- Improved model references to show provider-specific names (Sonnet 3.7 for Bedrock, Sonnet 4 for Console)\n- Updated documentation links and OAuth process descriptions\n\n## 1.0.0\n\n- Claude Code is now generally available\n- Introducing Sonnet 4 and Opus 4 models\n\n## 0.2.125\n\n- Breaking change: Bedrock ARN passed to `ANTHROPIC_MODEL` or `ANTHROPIC_SMALL_FAST_MODEL` should no longer contain an escaped slash (specify `/` instead of `%2F`)\n- Removed `DEBUG=true` in favor of `ANTHROPIC_LOG=debug`, to log all requests\n\n## 0.2.117\n\n- Breaking change: --print JSON output now returns nested message objects, for forwards-compatibility as we introduce new metadata fields\n- Introduced settings.cleanupPeriodDays\n- Introduced CLAUDE_CODE_API_KEY_HELPER_TTL_MS env var\n- Introduced --debug mode\n\n## 0.2.108\n\n- You can now send messages to Claude while it works to steer Claude in real-time\n- Introduced BASH_DEFAULT_TIMEOUT_MS and BASH_MAX_TIMEOUT_MS env vars\n- Fixed a bug where thinking was not working in -p mode\n- Fixed a regression in /cost reporting\n- Deprecated MCP wizard interface in favor of other MCP commands\n- Lots of other bugfixes and improvements\n\n## 0.2.107\n\n- CLAUDE.md files can now import other files. Add @path/to/file.md to ./CLAUDE.md to load additional files on launch\n\n## 0.2.106\n\n- MCP SSE server configs can now specify custom headers\n- Fixed a bug where MCP permission prompt didn't always show correctly\n\n## 0.2.105\n\n- Claude can now search the web\n- Moved system & account status to /status\n- Added word movement keybindings for Vim\n- Improved latency for startup, todo tool, and file edits\n\n## 0.2.102\n\n- Improved thinking triggering reliability\n- Improved @mention reliability for images and folders\n- You can now paste multiple large chunks into one prompt\n\n## 0.2.100\n\n- Fixed a crash caused by a stack overflow error\n- Made db storage optional; missing db support disables --continue and --resume\n\n## 0.2.98\n\n- Fixed an issue where auto-compact was running twice\n\n## 0.2.96\n\n- Claude Code can now also be used with a Claude Max subscription (https://claude.ai/upgrade)\n\n## 0.2.93\n\n- Resume conversations from where you left off from with \"claude --continue\" and \"claude --resume\"\n- Claude now has access to a Todo list that helps it stay on track and be more organized\n\n## 0.2.82\n\n- Added support for --disallowedTools\n- Renamed tools for consistency: LSTool -> LS, View -> Read, etc.\n\n## 0.2.75\n\n- Hit Enter to queue up additional messages while Claude is working\n- Drag in or copy/paste image files directly into the prompt\n- @-mention files to directly add them to context\n- Run one-off MCP servers with `claude --mcp-config <path-to-file>`\n- Improved performance for filename auto-complete\n\n## 0.2.74\n\n- Added support for refreshing dynamically generated API keys (via apiKeyHelper), with a 5 minute TTL\n- Task tool can now perform writes and run bash commands\n\n## 0.2.72\n\n- Updated spinner to indicate tokens loaded and tool usage\n\n## 0.2.70\n\n- Network commands like curl are now available for Claude to use\n- Claude can now run multiple web queries in parallel\n- Pressing ESC once immediately interrupts Claude in Auto-accept mode\n\n## 0.2.69\n\n- Fixed UI glitches with improved Select component behavior\n- Enhanced terminal output display with better text truncation logic\n\n## 0.2.67\n\n- Shared project permission rules can be saved in .claude/settings.json\n\n## 0.2.66\n\n- Print mode (-p) now supports streaming output via --output-format=stream-json\n- Fixed issue where pasting could trigger memory or bash mode unexpectedly\n\n## 0.2.63\n\n- Fixed an issue where MCP tools were loaded twice, which caused tool call errors\n\n## 0.2.61\n\n- Navigate menus with vim-style keys (j/k) or bash/emacs shortcuts (Ctrl+n/p) for faster interaction\n- Enhanced image detection for more reliable clipboard paste functionality\n- Fixed an issue where ESC key could crash the conversation history selector\n\n## 0.2.59\n\n- Copy+paste images directly into your prompt\n- Improved progress indicators for bash and fetch tools\n- Bugfixes for non-interactive mode (-p)\n\n## 0.2.54\n\n- Quickly add to Memory by starting your message with '#'\n- Press ctrl+r to see full output for long tool results\n- Added support for MCP SSE transport\n\n## 0.2.53\n\n- New web fetch tool lets Claude view URLs that you paste in\n- Fixed a bug with JPEG detection\n\n## 0.2.50\n\n- New MCP \"project\" scope now allows you to add MCP servers to .mcp.json files and commit them to your repository\n\n## 0.2.49\n\n- Previous MCP server scopes have been renamed: previous \"project\" scope is now \"local\" and \"global\" scope is now \"user\"\n\n## 0.2.47\n\n- Press Tab to auto-complete file and folder names\n- Press Shift + Tab to toggle auto-accept for file edits\n- Automatic conversation compaction for infinite conversation length (toggle with /config)\n\n## 0.2.44\n\n- Ask Claude to make a plan with thinking mode: just say 'think' or 'think harder' or even 'ultrathink'\n\n## 0.2.41\n\n- MCP server startup timeout can now be configured via MCP_TIMEOUT environment variable\n- MCP server startup no longer blocks the app from starting up\n\n## 0.2.37\n\n- New /release-notes command lets you view release notes at any time\n- `claude config add/remove` commands now accept multiple values separated by commas or spaces\n\n## 0.2.36\n\n- Import MCP servers from Claude Desktop with `claude mcp add-from-claude-desktop`\n- Add MCP servers as JSON strings with `claude mcp add-json <n> <json>`\n\n## 0.2.34\n\n- Vim bindings for text input - enable with /vim or /config\n\n## 0.2.32\n\n- Interactive MCP setup wizard: Run \"claude mcp add\" to add MCP servers with a step-by-step interface\n- Fix for some PersistentShell issues\n\n## 0.2.31\n\n- Custom slash commands: Markdown files in .claude/commands/ directories now appear as custom slash commands to insert prompts into your conversation\n- MCP debug mode: Run with --mcp-debug flag to get more information about MCP server errors\n\n## 0.2.30\n\n- Added ANSI color theme for better terminal compatibility\n- Fixed issue where slash command arguments weren't being sent properly\n- (Mac-only) API keys are now stored in macOS Keychain\n\n## 0.2.26\n\n- New /approved-tools command for managing tool permissions\n- Word-level diff display for improved code readability\n- Fuzzy matching for slash commands\n\n## 0.2.21\n\n- Fuzzy matching for /commands\n",
+  "changelogLastFetched": 1753453893211,
+  "fallbackAvailableWarningThreshold": 0.5,
+  "lastReleaseNotesSeen": "1.0.60"
+}

@@ -5,9 +5,9 @@ from typing import Optional, Dict, Any
 import logging
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
 
 
 class MinimalFrameworkLoader:

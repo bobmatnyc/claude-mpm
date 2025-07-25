@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Consolidate logging implementations (logger.py, logging_config.py, project_logger.py)",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Merge agent_registry.py and agent_registry_original.py",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Consolidate base_service.py and enhanced_base_service.py",
+    "status": "completed",
+    "priority": "medium",
+    "id": "3"
+  },
+  {
+    "content": "Refactor framework_loader.py and minimal_framework_loader.py into single configurable loader",
+    "status": "completed",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Update imports across codebase for consolidated modules",
+    "status": "completed",
+    "priority": "low",
+    "id": "5"
+  },
+  {
+    "content": "Create migration guide documentation",
+    "status": "completed",
+    "priority": "low",
+    "id": "6"
+  }
+]
