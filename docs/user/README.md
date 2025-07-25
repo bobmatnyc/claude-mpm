@@ -4,13 +4,12 @@ Welcome to the Claude MPM user documentation. This guide will help you understan
 
 ## What is Claude MPM?
 
-Claude MPM (Multi-Agent Project Manager) is a subprocess orchestration layer for Claude that enhances your AI assistant with:
+Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enhances your AI assistant with:
 
-- **Multi-agent workflows** - Automatically delegates tasks to specialized agents
-- **Automatic ticket extraction** - Creates tickets from conversations
+- **Multi-agent workflows** - Delegates tasks to specialized agents
+- **Hook system** - Extensible architecture for customization
 - **Session management** - Comprehensive logging and history
-- **Memory protection** - Prevents context overflow
-- **Subprocess control** - Full control over Claude's execution
+- **Service architecture** - Clean separation of business logic
 
 ## Documentation Structure
 
@@ -23,16 +22,15 @@ New to Claude MPM? Start here to get up and running quickly.
 ### [02. Guides](02-guides/README.md)
 Step-by-step guides for common tasks and workflows.
 - Basic usage patterns
-- Ticket management
 - Interactive mode usage
-- Subprocess orchestration
+- Agent system usage
 
 ### [03. Features](03-features/README.md)
 Deep dives into Claude MPM's features.
-- Automatic ticket creation
 - Agent delegation system
+- Hook system
 - Session logging
-- Memory protection
+- Service architecture
 
 ### [04. Reference](04-reference/README.md)
 Technical reference and troubleshooting.

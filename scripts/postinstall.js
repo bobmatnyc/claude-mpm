@@ -1,82 +1,43 @@
 #!/usr/bin/env node
 
 /**
- * Post-install script for claude-mpm npm package
+ * Post-install script for @bobmatnyc/claude-mpm npm package
  * 
- * Sets up necessary directories and validates dependencies
+ * This is a wrapper that will install the Python package on first run
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+console.log('\n🎉 @bobmatnyc/claude-mpm installed!');
+console.log('\nThis is a wrapper that will install and run the Python package.');
+console.log('On first run, it will automatically install claude-mpm via pip.');
+console.log('\nRequirements:');
+console.log('  • Claude Code 1.0.60 or later');
+console.log('  • Python 3.8 or later');
+console.log('  • pip');
+console.log('\nUsage: claude-mpm [options]');
+console.log('\nFor more info: https://github.com/bobmatnyc/claude-mpm\n');
+
+// Quick checks (non-blocking)
 const { execSync } = require('child_process');
-const mkdirp = require('mkdirp');
-
-console.log('🚀 Setting up claude-mpm...');
-
-// Create user directories
-const userDir = path.join(os.homedir(), '.claude-mpm');
-const directories = [
-  path.join(userDir, 'agents', 'user-defined'),
-  path.join(userDir, 'config'),
-  path.join(userDir, 'logs'),
-  path.join(userDir, 'templates')
-];
-
-directories.forEach(dir => {
-  mkdirp.sync(dir);
-  console.log(`✅ Created directory: ${dir}`);
-});
-
-// Create default config if not exists
-const configFile = path.join(userDir, 'config', 'settings.json');
-if (!fs.existsSync(configFile)) {
-  const defaultConfig = {
-    version: '1.0',
-    hooks: {
-      enabled: true,
-      port_range: [8080, 8099]
-    },
-    logging: {
-      level: 'INFO',
-      max_size_mb: 100,
-      retention_days: 30
-    },
-    agents: {
-      auto_discover: true,
-      precedence: ['project', 'user', 'system']
-    },
-    orchestration: {
-      default_mode: 'subprocess',
-      enable_todo_hijacking: false
-    }
-  };
-  
-  fs.writeFileSync(configFile, JSON.stringify(defaultConfig, null, 2));
-  console.log('✅ Created default configuration');
-}
 
 // Check for Python
 try {
-  const pythonVersion = execSync('python3 --version', { encoding: 'utf8' });
+  const pythonVersion = execSync('python3 --version 2>&1', { encoding: 'utf8' });
   console.log(`✅ Found ${pythonVersion.trim()}`);
 } catch (e) {
-  console.warn('⚠️  Python 3.8+ is required but not found in PATH');
-  console.warn('   Please install Python from https://python.org');
+  try {
+    const pythonVersion = execSync('python --version 2>&1', { encoding: 'utf8' });
+    console.log(`✅ Found ${pythonVersion.trim()}`);
+  } catch (e2) {
+    console.warn('⚠️  Python 3.8+ is required but not found');
+    console.warn('   Please install Python from https://python.org');
+  }
 }
 
 // Check for Claude CLI
 try {
-  execSync('which claude', { encoding: 'utf8' });
-  console.log('✅ Found Claude CLI');
+  const claudeVersion = execSync('claude --version 2>&1', { encoding: 'utf8' });
+  console.log(`✅ Found Claude Code ${claudeVersion.trim()}`);
 } catch (e) {
-  console.warn('⚠️  Claude CLI not found in PATH');
-  console.warn('   Please install Claude CLI to use claude-mpm');
+  console.warn('⚠️  Claude Code not found');
+  console.warn('   Please install Claude Code 1.0.60+ from https://claude.ai/code');
 }
-
-console.log('\n✨ claude-mpm setup complete!');
-console.log('\nUsage:');
-console.log('  claude-mpm          # Interactive mode');
-console.log('  claude-mpm -i "prompt"  # Non-interactive mode');
-console.log('  ticket create "Fix bug"  # Create a ticket');
-console.log('\nFor more information, visit: https://github.com/claude-mpm/claude-mpm');

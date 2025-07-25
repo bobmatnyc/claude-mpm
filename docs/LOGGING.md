@@ -29,7 +29,7 @@ All logs are stored in `.claude-mpm/logs/` within your project directory:
 ```
 .claude-mpm/
 └── logs/
-    ├── system/         # Framework and orchestration logs
+    ├── system/         # Framework and system logs
     ├── agents/         # Per-agent execution logs
     │   ├── engineer/
     │   ├── research/
@@ -105,7 +105,7 @@ Logs are stored in JSON Lines format (`.jsonl`):
   "response": "Complete agent response here...",
   "metadata": {
     "session_id": "20250125_143052",
-    "delegation_format": "subprocess"
+    "delegation_format": "agent_system"
   }
 }
 ```

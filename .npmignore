@@ -1,0 +1,50 @@
+# Python files
+src/
+*.py
+*.pyc
+__pycache__/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# Development files
+tests/
+docs/
+scripts/*.py
+requirements*.txt
+setup.py
+setup.cfg
+pyproject.toml
+MANIFEST.in
+tox.ini
+.flake8
+mypy.ini
+
+# Git and CI
+.git/
+.github/
+.gitignore
+.gitlab-ci.yml
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Keep only what's needed for npm
+!npm-bin/
+!scripts/postinstall.js
+!README.npm.md
+!package.json
+!LICENSE

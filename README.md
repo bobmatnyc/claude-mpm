@@ -1,8 +1,7 @@
 # Claude MPM - Multi-Agent Project Manager
 
-A subprocess orchestration layer for Claude that enables multi-agent workflows, automatic ticket extraction, and comprehensive session management.
+A framework for Claude that enables multi-agent workflows and extensible capabilities through a modular architecture.
 
-> **Fork Notice**: This is a fork and evolution of [claude-multiagent-pm](https://github.com/bobmatnyc/claude-multiagent-pm) that fundamentally changes how Claude is orchestrated from file-based (CLAUDE.md) to subprocess-based control. See [key differences](docs/user/differences-from-claude-multiagent-pm.md).
 
 ## 📚 Documentation
 
@@ -13,80 +12,64 @@ A subprocess orchestration layer for Claude that enables multi-agent workflows, 
 
 ## Why Claude MPM?
 
-Unlike traditional CLAUDE.md file-based configuration, Claude MPM runs Claude as a **managed subprocess**, providing:
+Claude MPM provides a modular framework for extending Claude's capabilities:
 
-- **🎮 Full Process Control**: Start, stop, and manage Claude programmatically
-- **💉 Dynamic Injection**: Inject framework instructions at runtime, not via static files
-- **📊 Real-time Monitoring**: Intercept all I/O for pattern detection and logging
-- **🎫 Automatic Ticket Creation**: Extract TODOs, BUGs, and FEATUREs automatically
+- **🧩 Modular Architecture**: Extensible agent system and hook-based customization
+- **🤖 Multi-Agent Support**: Specialized agents for different tasks
 - **📝 Comprehensive Logging**: Every interaction is logged for review
-- **🛡️ Memory Protection**: Prevent runaway processes from consuming system resources
-
-### The Power of Subprocess Control
-
-With Claude MPM, you're not just running Claude - you're orchestrating it:
-
-```bash
-# Traditional: Claude reads files, you hope for the best
-claude  # Reads CLAUDE.md, no visibility
-
-# Claude MPM: Full control and visibility
-claude-mpm  # Launches Claude with monitoring, logging, and automation
-```
+- **🛠️ Service-Based Design**: Clean separation of concerns through services
 
 ## How It Works
 
 ```
 ┌─────────────┐       ┌─────────────────┐       ┌──────────────┐
-│   Terminal  │──────▶│   Claude MPM    │──────▶│    Claude    │
-│   (User)    │       │  (Orchestrator) │       │ (Subprocess) │
+│   Terminal  │──────▶│   Claude MPM    │──────▶│   Services   │
+│   (User)    │       │   Framework     │       │   & Agents   │
 └─────────────┘       └─────────────────┘       └──────────────┘
                              │
                     ┌────────┴────────┐
                     │                 │
               ┌─────▼─────┐    ┌─────▼─────┐
-              │  Ticket   │    │   Agent   │
-              │ Extractor │    │ Delegator │
+              │   Hook    │    │   Agent   │
+              │  System   │    │  Registry │
               └───────────┘    └───────────┘
 ```
 
 ## Overview
 
-Claude MPM orchestrates Claude as a subprocess, enabling:
+Claude MPM provides a modular framework for extending Claude's capabilities:
 
-- **Subprocess Control**: Launch and manage Claude as a child process
-- **Framework Injection**: Dynamically inject PM framework instructions
-- **Ticket Extraction**: Automatically extract TODO/BUG/FEATURE items
-- **Agent Delegation Detection**: Track delegations to specialized agents
-- **Agent Registry Integration**: Full integration with claude-multiagent-pm's agent system
+- **Agent System**: Specialized agents for different task types
+- **Hook System**: Extensible architecture through pre/post hooks
+- **Service Layer**: Clean separation of business logic
+- **Agent Registry**: Dynamic agent discovery and loading
 - **Session Logging**: Comprehensive logging of all interactions
-- **AI Trackdown Integration**: Create tickets using ai-trackdown-pytools
 
 ## Key Features
 
-### Subprocess Orchestration
-- Launch Claude as a managed child process
-- Full control over stdin/stdout/stderr
-- Dynamic prompt injection without file pollution
-- Process-level error handling and recovery
+### Agent System
+- Specialized agents for different domains (Research, Engineer, etc.)
+- Dynamic agent discovery and registration
+- Template-based agent definitions
+- Extensible agent architecture
 
-### Automatic Ticket Extraction
-- Real-time pattern matching on Claude's output
-- Automatic creation of TODO, BUG, FEATURE tickets
-- Integration with ai-trackdown-pytools
-- No manual ticket creation needed
+### Hook System
+- Pre and post-processing hooks
+- Customizable behavior injection
+- Plugin-like extensibility
+- Clean integration points
 
-### Agent Delegation Detection
-- Monitor for delegation patterns in output
-- Track which agents are handling tasks
-- Format proper Task Tool delegations
-- Support for all claude-multiagent-pm agents
+### Service Architecture
+- Modular service components
+- Clean separation of concerns
+- Reusable business logic
+- Well-defined interfaces
 
 ### Session Management
 - Comprehensive logging of all interactions
-- Session replay capabilities
 - Debug mode for troubleshooting
 - Organized log structure
+- Performance monitoring
 
 ## Installation
 
@@ -111,7 +94,6 @@ source venv/bin/activate
 - Claude CLI (must be installed and in PATH)
 
 #### Automatically Installed
-- ai-trackdown-pytools (for ticket management)
 - tree-sitter & language packs (for code analysis)
 - All other Python dependencies
 
@@ -130,66 +112,28 @@ These tree-sitter dependencies enable:
 ### Basic Usage
 
 ```bash
-# Run interactive orchestrated session
+# Run interactive session
 claude-mpm
 
 # Run with debug logging
 claude-mpm --debug
 
-# Run without automatic ticket creation
-claude-mpm run --no-tickets
-
-# List recent tickets
-claude-mpm tickets
-
 # Show configuration info
 claude-mpm info
-
-# Ticket management (automatically available)
-claude-mpm-ticket create "Fix bug" -t bug -p high
-claude-mpm-ticket list
-claude-mpm-ticket view TSK-0001
-
-# Or use the local wrapper
-./ticket create "Fix bug" -t bug -p high
 ```
 
-### Ticket Management
-
-Claude MPM automatically installs ai-trackdown-pytools and provides the `claude-mpm-ticket` command:
-
-```bash
-# Create tickets quickly (available after installation)
-claude-mpm-ticket create "Add new feature" -t feature
-claude-mpm-ticket create "Fix login bug" -t bug -p high -d "Users cannot log in"
-
-# List and view tickets
-claude-mpm-ticket list
-claude-mpm-ticket view TSK-0001
-
-# Update and close tickets
-claude-mpm-ticket update TSK-0001 -s in_progress
-claude-mpm-ticket close TSK-0001
-
-# Or use the local wrapper
-./ticket create "Fix bug" -t bug -p high
-```
-
-See [Ticket Management Guide](docs/user/ticket_wrapper.md) for full documentation.
 
 ### Command Line Options
 
 ```
-claude-mpm [-h] [-d] [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH] {run,tickets,info}
+claude-mpm [-h] [-d] [--log-dir LOG_DIR] {run,info}
 
 Options:
   -d, --debug          Enable debug logging
   --log-dir LOG_DIR    Custom log directory (default: ~/.claude-mpm/logs)
-  --framework-path     Path to claude-multiagent-pm framework
 
 Commands:
-  run                  Run orchestrated Claude session (default)
-  tickets              List recent tickets
+  run                  Run Claude session (default)
   info                 Show framework and configuration info
 ```
 
@@ -209,41 +153,6 @@ claude-mpm
 claude-mpm run -i "Explain the codebase structure" --non-interactive
 ```
 
-## How Subprocess Orchestration Works
-
-### The Traditional Way (claude-multiagent-pm)
-```
-Project/
-├── CLAUDE.md          # Static configuration file
-└── src/               # Claude reads CLAUDE.md on startup
-
-# User runs: claude
-# Claude reads CLAUDE.md from disk
-# No external control or monitoring
-```
-
-### The Claude MPM Way
-```python
-# No files in your project!
-# Framework injected via subprocess:
-
-orchestrator = SubprocessOrchestrator()
-orchestrator.start()  # Launch Claude as subprocess
-orchestrator.inject_framework()  # Inject instructions via stdin
-orchestrator.monitor_output()  # Real-time pattern detection
-orchestrator.extract_tickets()  # Automatic ticket creation
-orchestrator.log_session()  # Comprehensive logging
-
-# Full programmatic control over Claude!
-```
-
-### Benefits of Subprocess Approach
-
-1. **Clean Projects**: No CLAUDE.md files polluting your repository
-2. **Dynamic Control**: Change behavior at runtime
-3. **Advanced Features**: Pattern detection, ticket extraction, logging
-4. **Better Integration**: Works with any project structure
-5. **Process Safety**: Memory limits, error recovery, timeouts
 
 ## Architecture
 
@@ -252,17 +161,14 @@ orchestrator.log_session()  # Comprehensive logging
 ```
 claude-mpm/
 ├── src/claude_mpm/
-│   ├── orchestration/           # Subprocess orchestrators
-│   │   ├── subprocess_orchestrator.py
-│   │   ├── system_prompt_orchestrator.py
-│   │   └── agent_delegator.py
+│   ├── agents/                  # Agent templates
 │   ├── core/                    # Core functionality
 │   │   ├── agent_registry.py    # Agent discovery
-│   │   ├── claude_launcher.py   # Main launcher
-│   │   └── ticket_extractor.py  # Pattern matching
+│   │   └── simple_runner.py     # Main runner
 │   ├── services/                # Business logic
 │   │   ├── hook_service.py
-│   │   └── ticket_manager.py
+│   │   └── agent_deployment.py
+│   ├── hooks/                   # Hook system
 │   └── cli/                     # CLI interface
 └── docs/                        # Organized documentation
     ├── user/                    # User guides
@@ -291,38 +197,6 @@ Logs are stored in `~/.claude-mpm/logs/` by default:
 - `latest.log` - Symlink to most recent log
 - Session logs in `~/.claude-mpm/sessions/`
 
-## Relationship to claude-multiagent-pm
-
-Claude MPM is a fork and evolution of [claude-multiagent-pm](https://github.com/bobmatnyc/claude-multiagent-pm) that changes the fundamental approach:
-
-### What's Different
-
-| Feature | claude-multiagent-pm | Claude MPM |
-|---------|---------------------|------------|
-| **Context Loading** | CLAUDE.md file | Subprocess injection |
-| **Process Control** | None | Full subprocess management |
-| **Ticket Extraction** | Manual | Automatic |
-| **Session Logging** | No | Yes |
-| **Memory Protection** | No | Yes |
-| **Dynamic Injection** | No | Yes |
-
-### What's the Same
-
-- Same agent system and templates
-- Same specialization patterns
-- Same delegation mechanisms
-- Compatible agent definitions
-
-### Migration
-
-Moving from claude-multiagent-pm to Claude MPM:
-
-1. **No CLAUDE.md needed** - Framework injected automatically
-2. **Same agents work** - Full compatibility maintained
-3. **New features** - Tickets, logging, process control
-4. **Cleaner projects** - No framework files in your repo
-
-See [detailed differences](docs/user/differences-from-claude-multiagent-pm.md) for more information.
 
 ## Development
 
@@ -336,9 +210,6 @@ pip install -e ".[dev]"
 
 # Run tests
 python run_tests.py
-
-# Run example orchestration
-python examples/test_orchestration.py
 
 # Test agent integration
 python examples/test_agent_integration.py
@@ -363,16 +234,6 @@ For detailed troubleshooting, see the [User Guide](docs/user/README.md#troublesh
 which claude  # Check if Claude is in PATH
 ```
 
-**Framework not detected**
-```bash
-claude-mpm --framework-path /path/to/claude-multiagent-pm
-```
-
-**Tickets not created**
-```bash
-pip install ai-trackdown-pytools  # Install ticket system
-mkdir -p tickets/tasks            # Create ticket directory
-```
 
 **Debug mode**
 ```bash

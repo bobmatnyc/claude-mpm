@@ -46,7 +46,6 @@ claude-mpm [options]
 
 **Options:**
 - `--model MODEL` - Claude model to use
-- `--no-tickets` - Disable ticket creation
 - `--debug` - Enable debug logging
 
 **Examples:**
@@ -74,8 +73,6 @@ claude-mpm run [options]
 
 **Options:**
 - `--non-interactive` - Exit after response
-- `--subprocess` - Use subprocess orchestration
-- `--no-tickets` - Disable ticket creation
 - `--timeout SECONDS` - Command timeout
 - `--no-parallel` - Disable parallel execution
 - `--memory-limit MB` - Memory limit for subprocess
@@ -86,44 +83,11 @@ claude-mpm run [options]
 # Basic non-interactive
 claude-mpm run -i "Explain Python decorators" --non-interactive
 
-# With subprocess orchestration
-claude-mpm run --subprocess -i "Create API with tests"
-
 # With options
 claude-mpm run -i "Complex task" \
-  --subprocess \
   --timeout 600 \
   --memory-limit 4096 \
   --logging INFO
-```
-
-### `claude-mpm tickets`
-
-List recent tickets created by Claude MPM.
-
-```bash
-claude-mpm tickets [options]
-```
-
-**Options:**
-- `--limit N` - Number of tickets to show (default: 10)
-- `--type TYPE` - Filter by type (task, bug, feature)
-- `--status STATUS` - Filter by status
-- `--format FORMAT` - Output format (table, json, csv)
-
-**Examples:**
-```bash
-# List recent tickets
-claude-mpm tickets
-
-# Show more tickets
-claude-mpm tickets --limit 20
-
-# Filter by type
-claude-mpm tickets --type bug
-
-# JSON output
-claude-mpm tickets --format json
 ```
 
 ### `claude-mpm info`
@@ -150,128 +114,6 @@ claude-mpm info --verbose
 claude-mpm info --json
 ```
 
-## Ticket Command (`ticket` wrapper)
-
-The `ticket` command is a wrapper around ai-trackdown-pytools.
-
-### `ticket create`
-
-Create a new ticket.
-
-```bash
-./ticket create "title" [options]
-```
-
-**Options:**
-- `-t, --type TYPE` - Ticket type (task, bug, feature, issue)
-- `-p, --priority PRIORITY` - Priority (low, medium, high, critical)
-- `-d, --description DESC` - Detailed description
-- `-a, --assignee NAME` - Assign to someone
-- `--tags TAGS` - Comma-separated tags
-
-**Examples:**
-```bash
-# Basic ticket
-./ticket create "Add user authentication"
-
-# With options
-./ticket create "Fix memory leak" \
-  -t bug \
-  -p high \
-  -d "Application crashes after 1 hour"
-
-# With tags
-./ticket create "Add OAuth" -t feature --tags "auth,backend"
-```
-
-### `ticket list`
-
-List tickets.
-
-```bash
-./ticket list [options]
-```
-
-**Options:**
-- `--limit N` - Number to show (default: 10)
-- `-v, --verbose` - Show details
-- `--type TYPE` - Filter by type
-- `--priority PRIORITY` - Filter by priority
-- `--status STATUS` - Filter by status
-
-**Examples:**
-```bash
-# Basic list
-./ticket list
-
-# Verbose with more items
-./ticket list -v --limit 20
-
-# Filter
-./ticket list --type bug --priority high
-```
-
-### `ticket view`
-
-View a specific ticket.
-
-```bash
-./ticket view TICKET_ID [options]
-```
-
-**Options:**
-- `-v, --verbose` - Show all metadata
-
-**Examples:**
-```bash
-# View ticket
-./ticket view TSK-0001
-
-# With metadata
-./ticket view TSK-0001 -v
-```
-
-### `ticket update`
-
-Update ticket properties.
-
-```bash
-./ticket update TICKET_ID [options]
-```
-
-**Options:**
-- `-s, --status STATUS` - Update status
-- `-p, --priority PRIORITY` - Update priority
-- `-a, --assignee NAME` - Update assignee
-- `--tags TAGS` - Update tags
-- `-d, --description DESC` - Update description
-
-**Examples:**
-```bash
-# Update status
-./ticket update TSK-0001 -s in_progress
-
-# Multiple updates
-./ticket update TSK-0001 \
-  -s in_progress \
-  -p critical \
-  -a "john.doe"
-```
-
-### `ticket close`
-
-Close a completed ticket.
-
-```bash
-./ticket close TICKET_ID
-```
-
-**Examples:**
-```bash
-# Close ticket
-./ticket close TSK-0001
-```
-
 ## Environment Variables
 
 Override default behavior with environment variables:
@@ -282,7 +124,6 @@ Override default behavior with environment variables:
 | `CLAUDE_MPM_DEBUG` | Enable debug | `export CLAUDE_MPM_DEBUG=true` |
 | `CLAUDE_MPM_SESSION_DIR` | Session directory | `export CLAUDE_MPM_SESSION_DIR=~/logs` |
 | `CLAUDE_MPM_TIMEOUT` | Default timeout | `export CLAUDE_MPM_TIMEOUT=600` |
-| `CLAUDE_MPM_NO_TICKETS` | Disable tickets | `export CLAUDE_MPM_NO_TICKETS=true` |
 | `CLAUDE_PATH` | Claude CLI path | `export CLAUDE_PATH=/usr/local/bin/claude` |
 
 ## Configuration Files

@@ -4,20 +4,19 @@ Welcome to the Claude MPM developer documentation. This comprehensive guide cove
 
 ## What is Claude MPM?
 
-Claude MPM (Multi-Agent Project Manager) is a subprocess orchestration layer for Claude that enables:
+Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables:
 
-- **Subprocess Control**: Launch and control Claude as a managed subprocess
 - **Multi-Agent Workflows**: Coordinate specialized agents for complex tasks
-- **Pattern Detection**: Automatically extract tickets, TODOs, and action items
+- **Hook System**: Extensible architecture for customization
+- **Service Architecture**: Clean separation of business logic
 - **Session Management**: Comprehensive logging and state management
-- **Dynamic Framework Injection**: Inject instructions at runtime without static files
+- **Dynamic Framework Loading**: Load framework based on configuration
 
 ## Documentation Structure
 
 ### 📐 [01-architecture/](01-architecture/)
 Understanding the system design and architecture
 - [Architecture Overview](01-architecture/README.md)
-- [Subprocess Design](01-architecture/subprocess-design.md)
 - [Component Diagram](01-architecture/component-diagram.md)
 - [Data Flow](01-architecture/data-flow.md)
 - [Design Patterns](01-architecture/patterns.md)
@@ -25,9 +24,7 @@ Understanding the system design and architecture
 ### 🔧 [02-core-components/](02-core-components/)
 Deep dive into the main components
 - [Component Index](02-core-components/README.md)
-- [Orchestrators](02-core-components/orchestrators.md)
 - [Agent System](02-core-components/agent-system.md)
-- [Ticket Extractor](02-core-components/ticket-extractor.md)
 - [Hook Service](02-core-components/hook-service.md)
 
 ### 💻 [03-development/](03-development/)
@@ -42,14 +39,12 @@ Setting up and developing Claude MPM
 Complete API documentation
 - [API Index](04-api-reference/README.md)
 - [Core API](04-api-reference/core-api.md)
-- [Orchestration API](04-api-reference/orchestration-api.md)
 - [Services API](04-api-reference/services-api.md)
 - [Utils API](04-api-reference/utils-api.md)
 
 ### 🔌 [05-extending/](05-extending/)
 Extending Claude MPM with custom components
 - [Extension Guide](05-extending/README.md)
-- [Custom Orchestrators](05-extending/custom-orchestrators.md)
 - [Custom Hooks](05-extending/custom-hooks.md)
 - [Custom Services](05-extending/custom-services.md)
 - [Plugin Development](05-extending/plugins.md)
@@ -57,7 +52,6 @@ Extending Claude MPM with custom components
 ### 🔍 [06-internals/](06-internals/)
 Internal implementation details
 - [Internal Documentation](06-internals/README.md)
-- [Subprocess Logging](06-internals/subprocess-logging.md)
 - [Migration Guides](06-internals/migrations/)
 - [Codebase Analysis](06-internals/analysis/)
 
@@ -92,12 +86,12 @@ Follow the [Development Setup](03-development/setup.md) guide for a complete dev
 
 ## Key Concepts
 
-### Subprocess Orchestration
-Claude MPM runs Claude as a subprocess using `subprocess.Popen`, providing full control over:
-- Input/output streams
-- Process lifecycle
-- Resource monitoring
-- Pattern detection
+### Framework Architecture
+Claude MPM provides a modular framework with:
+- Pluggable components
+- Service-oriented design
+- Clean interfaces
+- Extensible hooks
 
 ### Agent System
 Multiple specialized agents handle different aspects:

@@ -1,0 +1,50 @@
+[
+  {
+    "content": "Analyze current file reading patterns in FrameworkLoader and AgentRegistry",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Design and implement centralized caching service with TTL support",
+    "status": "in_progress",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Add file modification detection for cache invalidation",
+    "status": "pending",
+    "priority": "high",
+    "id": "3"
+  },
+  {
+    "content": "Integrate caching into FrameworkLoader",
+    "status": "pending",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Integrate caching into AgentRegistry",
+    "status": "pending",
+    "priority": "medium",
+    "id": "5"
+  },
+  {
+    "content": "Add cache monitoring and metrics",
+    "status": "pending",
+    "priority": "medium",
+    "id": "6"
+  },
+  {
+    "content": "Create tests for caching functionality",
+    "status": "pending",
+    "priority": "medium",
+    "id": "7"
+  },
+  {
+    "content": "Add configuration options for cache behavior",
+    "status": "pending",
+    "priority": "low",
+    "id": "8"
+  }
+]
