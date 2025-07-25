@@ -6,8 +6,8 @@ import logging
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from ..core.logger import get_logger
-from ..constants import EnvironmentVars, Paths, AgentMetadata
+from claude_mpm.core.logger import get_logger
+from claude_mpm.constants import EnvironmentVars, Paths, AgentMetadata
 
 
 class AgentDeploymentService:
@@ -44,6 +44,7 @@ class AgentDeploymentService:
     def deploy_agents(self, target_dir: Optional[Path] = None, force_rebuild: bool = False) -> Dict[str, Any]:
         """
         Build and deploy agents by combining base_agent.md with templates.
+        Also deploys system instructions for PM framework.
         
         Args:
             target_dir: Target directory for agents (default: .claude/agents/)
@@ -53,7 +54,7 @@ class AgentDeploymentService:
             Dictionary with deployment results
         """
         if not target_dir:
-            target_dir = Path.cwd() / Paths.CLAUDE_AGENTS_DIR.value
+            target_dir = Path(Paths.CLAUDE_AGENTS_DIR.value).expanduser()
         
         target_dir = Path(target_dir)
         results = {
@@ -69,6 +70,8 @@ class AgentDeploymentService:
             # Create target directory if needed
             target_dir.mkdir(parents=True, exist_ok=True)
             self.logger.info(f"Building and deploying agents to: {target_dir}")
+            
+            # Note: System instructions are now loaded directly by SimpleClaudeRunner
             
             # Check if templates directory exists
             if not self.templates_dir.exists():
@@ -96,7 +99,7 @@ class AgentDeploymentService:
             for template_file in template_files:
                 try:
                     agent_name = template_file.stem.replace("_agent", "")
-                    target_file = target_dir / f"{agent_name}.yml"
+                    target_file = target_dir / f"{agent_name}.md"
                     
                     # Check if agent needs update
                     needs_update = force_rebuild
@@ -114,11 +117,11 @@ class AgentDeploymentService:
                         continue
                     
                     # Build the agent file
-                    agent_yaml = self._build_agent_yaml(agent_name, template_file, base_agent_data)
+                    agent_md = self._build_agent_markdown(agent_name, template_file, base_agent_data)
                     
                     # Write the agent file
                     is_update = target_file.exists()
-                    target_file.write_text(agent_yaml)
+                    target_file.write_text(agent_md)
                     
                     if is_update:
                         results["updated"].append({
@@ -172,6 +175,65 @@ class AgentDeploymentService:
             return int(match.group(1))
         return 0
     
+    def _build_agent_markdown(self, agent_name: str, template_path: Path, base_agent_data: dict) -> str:
+        """
+        Build a complete agent markdown file with YAML frontmatter.
+        
+        Args:
+            agent_name: Name of the agent
+            template_path: Path to the agent template JSON file
+            base_agent_data: Base agent data from JSON
+            
+        Returns:
+            Complete agent markdown content with YAML frontmatter
+        """
+        import json
+        from datetime import datetime
+        
+        # Read template JSON
+        template_data = json.loads(template_path.read_text())
+        
+        # Extract basic info
+        agent_version = template_data.get('version', 0)
+        base_version = base_agent_data.get('version', 0)
+        version_string = f"{base_version:04d}-{agent_version:04d}"
+        
+        # Build YAML frontmatter
+        description = (
+            template_data.get('configuration_fields', {}).get('description') or
+            template_data.get('description') or
+            'Agent for specialized tasks'
+        )
+        
+        tags = (
+            template_data.get('configuration_fields', {}).get('tags') or
+            template_data.get('tags') or
+            [agent_name, 'mpm-framework']
+        )
+        
+        frontmatter = f"""---
+name: {agent_name}
+description: "{description}"
+version: "{version_string}"
+author: "{template_data.get('author', 'claude-mpm@anthropic.com')}"
+created: "{datetime.now().isoformat()}Z"
+updated: "{datetime.now().isoformat()}Z"
+tags: {tags}
+---
+
+"""
+        
+        # Get the main content (instructions)
+        # Check multiple possible locations for instructions
+        content = (
+            template_data.get('instructions') or
+            template_data.get('narrative_fields', {}).get('instructions') or
+            template_data.get('content') or
+            f"You are the {agent_name} agent. Perform tasks related to {template_data.get('description', 'your specialization')}."
+        )
+        
+        return frontmatter + content
+
     def _build_agent_yaml(self, agent_name: str, template_path: Path, base_agent_data: dict) -> str:
         """
         Build a complete agent YAML file by combining base agent and template.
@@ -395,7 +457,7 @@ metadata:
             return results
         
         # List deployed agents
-        agent_files = list(agents_dir.glob("*.yml"))
+        agent_files = list(agents_dir.glob("*.md"))
         for agent_file in agent_files:
             try:
                 # Read first few lines to get agent name from YAML
@@ -550,7 +612,7 @@ metadata:
             return results
         
         # Remove system agents only (identified by claude-mpm author)
-        agent_files = list(agents_dir.glob("*.yml"))
+        agent_files = list(agents_dir.glob("*.md"))
         
         for agent_file in agent_files:
             try:
@@ -834,3 +896,60 @@ metadata:
             'specializations': f'["{agent_name}"]',
             'authority': f'ALL {agent_name} decisions',
         })
+
+    def _deploy_system_instructions(self, target_dir: Path, force_rebuild: bool, results: Dict[str, Any]) -> None:
+        """
+        Deploy system instructions for PM framework.
+        
+        Args:
+            target_dir: Target directory for deployment
+            force_rebuild: Force rebuild even if exists
+            results: Results dictionary to update
+        """
+        try:
+            # Find the INSTRUCTIONS.md file
+            module_path = Path(__file__).parent.parent
+            instructions_path = module_path / "agents" / "INSTRUCTIONS.md"
+            
+            if not instructions_path.exists():
+                self.logger.warning(f"System instructions not found: {instructions_path}")
+                return
+            
+            # Target file for system instructions - use CLAUDE.md in user's home .claude directory
+            target_file = Path("~/.claude/CLAUDE.md").expanduser()
+            
+            # Ensure .claude directory exists
+            target_file.parent.mkdir(exist_ok=True)
+            
+            # Check if update needed
+            if not force_rebuild and target_file.exists():
+                # Compare modification times
+                if target_file.stat().st_mtime >= instructions_path.stat().st_mtime:
+                    results["skipped"].append("CLAUDE.md")
+                    self.logger.debug("System instructions up to date")
+                    return
+            
+            # Read and deploy system instructions
+            instructions_content = instructions_path.read_text()
+            target_file.write_text(instructions_content)
+            
+            is_update = target_file.exists()
+            if is_update:
+                results["updated"].append({
+                    "name": "CLAUDE.md", 
+                    "template": str(instructions_path),
+                    "target": str(target_file)
+                })
+                self.logger.info("Updated system instructions")
+            else:
+                results["deployed"].append({
+                    "name": "CLAUDE.md",
+                    "template": str(instructions_path), 
+                    "target": str(target_file)
+                })
+                self.logger.info("Deployed system instructions")
+                
+        except Exception as e:
+            error_msg = f"Failed to deploy system instructions: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)

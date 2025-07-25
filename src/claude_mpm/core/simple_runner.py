@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Optional
 
 try:
-    from ..services.agent_deployment import AgentDeploymentService
-    from ..services.ticket_manager import TicketManager
-    from .logger import get_logger
+    from claude_mpm.services.agent_deployment import AgentDeploymentService
+    from claude_mpm.services.ticket_manager import TicketManager
+    from claude_mpm.core.logger import get_logger
 except ImportError:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
@@ -44,6 +44,9 @@ class SimpleClaudeRunner:
                 self.logger.warning(f"Ticket manager not available: {e}")
                 self.ticket_manager = None
                 self.enable_tickets = False
+        
+        # Load system instructions
+        self.system_instructions = self._load_system_instructions()
     
     def setup_agents(self) -> bool:
         """Deploy native agents to .claude/agents/."""
@@ -80,35 +83,67 @@ class SimpleClaudeRunner:
         if not self.setup_agents():
             print("Continuing without native agents...")
         
-        # Build command
+        if initial_context:
+            print("🚀 Claude MPM Framework Ready!")
+            print("")
+            print("📋 Specialized Agents Deployed:")
+            print("  - engineer: Coding, implementation, technical tasks")
+            print("  - qa: Testing, validation, quality assurance")  
+            print("  - documentation: Docs, guides, explanations")
+            print("  - research: Investigation and analysis")
+            print("  - security: Security-related tasks")
+            print("  - ops: Deployment and infrastructure")
+            print("  - version_control: Git and version management")
+            print("  - data_engineer: Data processing and APIs")
+            print("")
+            print("💡 Usage:")
+            print("  • Type '/agents' to see all available agents") 
+            print("  • Use 'Task(description=\"task here\", subagent_type=\"agent_name\")'")
+            print("  • Or delegate naturally: 'Please have the engineer review this code'")
+            print("")
+            print("Starting Claude...")
+        
+        print("-" * 40)
+        
+        # Build command with system instructions
         cmd = [
             "claude",
             "--model", "opus", 
             "--dangerously-skip-permissions"
         ]
         
-        # If we have initial context, send it first
-        if initial_context:
-            print("Loading initial context...")
-            init_cmd = cmd + ["--print", initial_context]
-            try:
-                result = subprocess.run(init_cmd, capture_output=True, text=True)
-                if result.returncode == 0:
-                    print("Context loaded. Starting interactive session...")
-                    print("-" * 40)
-                else:
-                    print(f"Warning: Context loading failed: {result.stderr}")
-            except Exception as e:
-                print(f"Warning: Context loading failed: {e}")
+        # Add system instructions if available
+        system_prompt = self._create_system_prompt()
+        if system_prompt and system_prompt != create_simple_context():
+            cmd.extend(["--append-system-prompt", system_prompt])
         
-        # Run interactive Claude
+        # Run interactive Claude directly
         try:
-            # For interactive mode, we need to let Claude inherit our terminal I/O
-            subprocess.run(cmd, stdin=None, stdout=None, stderr=None)
-        except KeyboardInterrupt:
-            print("\nSession ended by user")
+            # Use execvp to replace the current process with Claude
+            # This should avoid any subprocess issues
+            import os
+            
+            # Clean environment
+            clean_env = os.environ.copy()
+            claude_vars_to_remove = [
+                'CLAUDE_CODE_ENTRYPOINT', 'CLAUDECODE', 'CLAUDE_CONFIG_DIR',
+                'CLAUDE_MAX_PARALLEL_SUBAGENTS', 'CLAUDE_TIMEOUT'
+            ]
+            for var in claude_vars_to_remove:
+                clean_env.pop(var, None)
+            
+            print("Launching Claude...")
+            
+            # Replace current process with Claude
+            os.execvpe(cmd[0], cmd, clean_env)
+            
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Failed to launch Claude: {e}")
+            # Fallback to subprocess
+            try:
+                subprocess.run(cmd, stdin=None, stdout=None, stderr=None)
+            except Exception as fallback_error:
+                print(f"Fallback also failed: {fallback_error}")
     
     def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
         """Run Claude with a single prompt and return success status."""
@@ -121,7 +156,7 @@ class SimpleClaudeRunner:
         if context:
             full_prompt = f"{context}\n\n{prompt}"
         
-        # Build command
+        # Build command with system instructions
         cmd = [
             "claude",
             "--model", "opus",
@@ -129,6 +164,13 @@ class SimpleClaudeRunner:
             "--print",
             full_prompt
         ]
+        
+        # Add system instructions if available
+        system_prompt = self._create_system_prompt()
+        if system_prompt and system_prompt != create_simple_context():
+            # Insert system prompt before the user prompt
+            cmd.insert(-1, "--append-system-prompt")
+            cmd.insert(-1, system_prompt)
         
         try:
             # Run Claude
@@ -170,6 +212,33 @@ class SimpleClaudeRunner:
                 self.logger.debug("Ticket extraction method not available")
         except Exception as e:
             self.logger.debug(f"Ticket extraction failed: {e}")
+
+    def _load_system_instructions(self) -> Optional[str]:
+        """Load system instructions from agents/INSTRUCTIONS.md."""
+        try:
+            # Find the INSTRUCTIONS.md file
+            module_path = Path(__file__).parent.parent
+            instructions_path = module_path / "agents" / "INSTRUCTIONS.md"
+            
+            if not instructions_path.exists():
+                self.logger.warning(f"System instructions not found: {instructions_path}")
+                return None
+            
+            instructions = instructions_path.read_text()
+            self.logger.info("Loaded PM framework system instructions")
+            return instructions
+            
+        except Exception as e:
+            self.logger.error(f"Failed to load system instructions: {e}")
+            return None
+
+    def _create_system_prompt(self) -> str:
+        """Create the complete system prompt including instructions."""
+        if self.system_instructions:
+            return self.system_instructions
+        else:
+            # Fallback to basic context
+            return create_simple_context()
 
 
 def create_simple_context() -> str:
