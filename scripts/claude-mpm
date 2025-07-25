@@ -75,7 +75,7 @@ print_info "Framework path: $PROJECT_ROOT"
 
 # Check if this is a claude-mpm specific command or should be passed to claude
 MPM_PREFIX="--mpm:"
-MPM_COMMANDS=("run" "tickets" "info" "agents")
+MPM_COMMANDS=("run" "tickets" "info" "agents" "ui")
 FIRST_ARG="${1:-}"
 
 # Check if first argument is an MPM command (with or without prefix)
@@ -114,19 +114,9 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     # Run claude-mpm
     cd "$PROJECT_ROOT"
     
-    # Transform --mpm: prefixed flags to regular flags for Python
-    ARGS=()
-    for arg in "$@"; do
-        if [[ "$arg" == "--mpm:"* ]]; then
-            # Remove --mpm: prefix
-            ARGS+=("--${arg#--mpm:}")
-        elif [[ "$arg" == "-mpm:"* ]]; then
-            # Remove -mpm: prefix
-            ARGS+=("-${arg#-mpm:}")
-        else
-            ARGS+=("$arg")
-        fi
-    done
+    # Keep the arguments as-is (don't transform --mpm: prefix)
+    # The Python code expects --mpm: prefixed commands
+    ARGS=("$@")
     
     exec python -m claude_mpm "${ARGS[@]}"
 else
