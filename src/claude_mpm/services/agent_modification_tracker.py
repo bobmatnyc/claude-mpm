@@ -39,7 +39,7 @@ from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.shared_prompt_cache import SharedPromptCache
-from claude_mpm.services.agent_registry_service import AgentRegistry
+from claude_mpm.services.agent_registry import AgentRegistry
 from claude_mpm.utils.path_operations import path_ops
 from claude_mpm.utils.config_manager import ConfigurationManager
 
