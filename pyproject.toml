@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "0.3.0"
+version = "0.5.0"
 description = "Claude Multi-agent Project Manager - Clean orchestration with ticket management"
 readme = "README.md"
 requires-python = ">=3.8"

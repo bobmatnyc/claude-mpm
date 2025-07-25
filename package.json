@@ -1,6 +1,6 @@
 {
   "name": "claude-mpm",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Claude Multi-Agent Project Manager - Orchestrate Claude with agent delegation and ticket tracking",
   "keywords": [
     "claude",
