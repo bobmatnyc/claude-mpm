@@ -1,7 +1,28 @@
 """Version information for claude-mpm."""
 
-__version__ = "0.5.0"
-__version_info__ = (0, 5, 0)
+try:
+    # Try to get version from setuptools-scm (when installed as package)
+    from importlib.metadata import version, PackageNotFoundError
+    try:
+        __version__ = version("claude-mpm")
+    except PackageNotFoundError:
+        __version__ = "0.5.0"
+except ImportError:
+    # Fallback for older Python versions
+    __version__ = "0.5.0"
+
+# This file may be overwritten by setuptools-scm during build
+# The try/except ensures we always have a version available
+
+def get_version_tuple():
+    """Get version as a tuple of integers."""
+    parts = __version__.split(".")[:3]  # Take only major.minor.patch
+    try:
+        return tuple(int(p) for p in parts if p.isdigit())
+    except:
+        return (0, 5, 0)
+
+__version_info__ = get_version_tuple()
 
 # Version history
 # 0.5.0 - Comprehensive deployment support for PyPI, npm, and local installation

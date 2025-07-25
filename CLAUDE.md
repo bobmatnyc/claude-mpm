@@ -10,14 +10,20 @@ Claude MPM (Multi-Agent Project Manager) is an orchestration layer for Claude th
 
 - 📁 **Project Structure**: See [docs/STRUCTURE.md](docs/STRUCTURE.md) for file organization
 - 🧪 **Quality Assurance**: See [docs/QA.md](docs/QA.md) for testing guidelines
-- 🚀 **Claude Launcher**: See [docs/claude_launcher_migration.md](docs/claude_launcher_migration.md) for subprocess handling
+- 🚀 **Deployment**: See [docs/DEPLOY.md](docs/DEPLOY.md) for versioning and deployment
+- 📊 **Logging**: See [docs/LOGGING.md](docs/LOGGING.md) for comprehensive logging guide
+- 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
 - 🎫 **Ticket Management**: See [docs/ticket_wrapper.md](docs/ticket_wrapper.md) for the `ticket` command wrapper
+- 🔧 **Claude Launcher**: See [docs/claude_launcher_migration.md](docs/claude_launcher_migration.md) for subprocess handling
 
 ## Development Guidelines
 
 ### Before Making Changes
 
 1. **Understand the structure**: Always refer to `docs/STRUCTURE.md` when creating new files
+   - **Scripts**: ALL scripts go in `/scripts/`, NEVER in project root
+   - **Tests**: ALL tests go in `/tests/`, NEVER in project root
+   - **Python modules**: Always under `/src/claude_mpm/`
 2. **Run tests**: Execute E2E tests after significant changes using `./scripts/run_e2e_tests.sh`
 3. **Check imports**: Ensure all imports use the full package name: `from claude_mpm.module import ...`
 
@@ -77,3 +83,15 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
 2. Add tests for new features
 3. Run QA checks per `docs/QA.md`
 4. Update documentation as needed
+5. Use [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning:
+   - `feat:` for new features (minor version bump)
+   - `fix:` for bug fixes (patch version bump)
+   - `feat!:` or `BREAKING CHANGE:` for breaking changes (major version bump)
+
+## Deployment
+
+See [docs/DEPLOY.md](docs/DEPLOY.md) for the complete deployment process, including:
+- Version management with `./scripts/manage_version.py`
+- Building and publishing to PyPI
+- Creating GitHub releases
+- Post-deployment verification

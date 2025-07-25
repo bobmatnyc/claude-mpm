@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=7.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "claude-mpm"
-version = "0.5.0"
+dynamic = ["version"]
 description = "Claude Multi-agent Project Manager - Clean orchestration with ticket management"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -54,6 +54,7 @@ dev = [
 [project.scripts]
 claude-mpm = "claude_mpm.cli:main"
 claude-mpm-ticket = "claude_mpm.cli.ticket_cli:main"
+ticket = "claude_mpm.cli.ticket_cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -71,3 +72,13 @@ python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
+
+[tool.setuptools_scm]
+# Automatic versioning from git tags
+write_to = "src/claude_mpm/_version.py"
+version_scheme = "post-release"
+local_scheme = "dirty-tag"
+fallback_version = "0.5.0"
+
+[tool.setuptools.dynamic]
+version = {attr = "claude_mpm._version.__version__"}

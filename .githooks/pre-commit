@@ -1,0 +1,39 @@
+#!/bin/bash
+# Pre-commit hook to update VERSION file with current git version
+
+# Get the project root
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+
+# Get current version from setuptools-scm
+if command -v python3 &> /dev/null; then
+    VERSION=$(cd "$PROJECT_ROOT" && python3 -c "
+try:
+    from setuptools_scm import get_version
+    print(get_version())
+except:
+    import subprocess
+    result = subprocess.run(['git', 'describe', '--tags', '--always'], 
+                          capture_output=True, text=True)
+    if result.returncode == 0:
+        version = result.stdout.strip().lstrip('v')
+        # Handle dirty state
+        if subprocess.run(['git', 'diff', '--quiet'], capture_output=True).returncode != 0:
+            version += '.dirty'
+        print(version)
+    else:
+        print('0.5.0')
+" 2>/dev/null)
+
+    # Update VERSION file if it differs
+    if [ -n "$VERSION" ]; then
+        CURRENT_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "")
+        if [ "$VERSION" != "$CURRENT_VERSION" ]; then
+            echo "$VERSION" > "$PROJECT_ROOT/VERSION"
+            git add "$PROJECT_ROOT/VERSION"
+            echo "Updated VERSION file to $VERSION"
+        fi
+    fi
+fi
+
+# Continue with commit
+exit 0

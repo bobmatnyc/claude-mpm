@@ -4,13 +4,14 @@ import concurrent.futures
 import json
 import time
 import logging
+import subprocess
 from pathlib import Path
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 import re
 
 try:
-    from ..utils.logger import get_logger, setup_logging
+    from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
@@ -18,14 +19,16 @@ try:
     from .agent_delegator import AgentDelegator
     from ..hooks.hook_client import HookServiceClient
     from .todo_hijacker import TodoHijacker
+    from ..core.logger import get_project_logger
 except ImportError:
-    from utils.logger import get_logger, setup_logging
+    from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from core.claude_launcher import ClaudeLauncher, LaunchMode
     from orchestration.agent_delegator import AgentDelegator
     from orchestration.todo_hijacker import TodoHijacker
+    from core.logger import get_project_logger
     try:
         from hooks.hook_client import HookServiceClient
     except ImportError:
@@ -85,14 +88,17 @@ class SubprocessOrchestrator:
         if self.hook_manager and self.hook_manager.is_available() and HookServiceClient:
             try:
                 hook_info = self.hook_manager.get_service_info()
-                self.hook_client = HookServiceClient(base_url=hook_info['url'])
-                # Test connection
-                health = self.hook_client.health_check()
-                if health.get('status') == 'healthy':
-                    self.logger.info(f"Connected to hook service with {health.get('hooks_count', 0)} hooks")
+                if hook_info and 'url' in hook_info:
+                    self.hook_client = HookServiceClient(base_url=hook_info['url'])
+                    # Test connection
+                    health = self.hook_client.health_check()
+                    if health.get('status') == 'healthy':
+                        self.logger.info(f"Connected to hook service with {health.get('hooks_count', 0)} hooks")
+                    else:
+                        self.logger.warning("Hook service not healthy, disabling hooks")
+                        self.hook_client = None
                 else:
-                    self.logger.warning("Hook service not healthy, disabling hooks")
-                    self.hook_client = None
+                    self.logger.debug("Hook service info missing 'url' key, skipping hook client initialization")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize hook client: {e}")
                 self.hook_client = None
@@ -104,6 +110,14 @@ class SubprocessOrchestrator:
         
         # Initialize subprocess runner
         self.subprocess_runner = SubprocessRunner(logger=self.logger)
+        
+        # Initialize project logger
+        self.project_logger = get_project_logger(log_level)
+        self.project_logger.log_system(
+            f"Initializing Subprocess Orchestrator (log_level={log_level})",
+            level="INFO",
+            component="orchestrator"
+        )
         
     def detect_delegations(self, response: str) -> List[Dict[str, str]]:
         """
@@ -241,8 +255,16 @@ Remember: You are an autonomous agent. Complete the task independently and repor
         if self.log_level != "OFF":
             self.logger.info(f"Running subprocess for {agent} ({token_estimate} est. tokens)")
         
+        # Log the agent invocation
+        self.project_logger.log_system(
+            f"Invoking {agent} agent for task: {task[:100]}",
+            level="INFO",
+            component="orchestrator"
+        )
+        
         try:
             # Use unified launcher for one-shot execution
+            # Note: Agents get full tool access, only PM is restricted
             stdout, stderr, returncode = self.launcher.launch_oneshot(
                 message=prompt,
                 use_stdin=True,
@@ -280,6 +302,21 @@ Remember: You are an autonomous agent. Complete the task independently and repor
                     except Exception as e:
                         self.logger.warning(f"Post-delegation hook error: {e}")
                 
+                # Log agent invocation with full details
+                self.project_logger.log_agent_invocation(
+                    agent=agent,
+                    task=task,
+                    prompt=prompt,
+                    response=response,
+                    execution_time=execution_time,
+                    tokens=total_tokens,
+                    success=True,
+                    metadata={
+                        "session_id": getattr(self, 'current_session_id', None),
+                        "delegation_format": "subprocess"
+                    }
+                )
+                
                 return response, execution_time, total_tokens
             else:
                 error_msg = f"Subprocess failed: {stderr}"
@@ -292,12 +329,45 @@ Remember: You are an autonomous agent. Complete the task independently and repor
             error_msg = f"Subprocess timed out after {execution_time:.1f}s"
             if self.log_level != "OFF":
                 self.logger.error(f"{agent} {error_msg}")
+            
+            # Log timeout error
+            self.project_logger.log_agent_invocation(
+                agent=agent,
+                task=task,
+                prompt=prompt,
+                response=error_msg,
+                execution_time=execution_time,
+                tokens=token_estimate,
+                success=False,
+                metadata={
+                    "error": "timeout",
+                    "delegation_format": "subprocess"
+                }
+            )
+            
             return error_msg, execution_time, token_estimate
         except Exception as e:
             execution_time = time.time() - start_time
             error_msg = f"Subprocess error: {str(e)}"
             if self.log_level != "OFF":
                 self.logger.error(f"{agent} {error_msg}")
+            
+            # Log exception error
+            self.project_logger.log_agent_invocation(
+                agent=agent,
+                task=task,
+                prompt=prompt,
+                response=error_msg,
+                execution_time=execution_time,
+                tokens=token_estimate,
+                success=False,
+                metadata={
+                    "error": "exception",
+                    "exception_type": type(e).__name__,
+                    "delegation_format": "subprocess"
+                }
+            )
+            
             return error_msg, execution_time, token_estimate
     
     def _handle_todo_delegation(self, delegation: Dict[str, Any]):
@@ -422,6 +492,13 @@ Remember: You are an autonomous agent. Complete the task independently and repor
         5. Processes any TODO-based delegations if hijacking is enabled
         """
         try:
+            # Log session start
+            self.project_logger.log_system(
+                f"Starting non-interactive session with input: {user_input[:100]}",
+                level="INFO", 
+                component="orchestrator"
+            )
+            
             # Start TODO monitoring if enabled
             if self.todo_hijacker:
                 self.todo_hijacker.start_monitoring()
@@ -461,13 +538,29 @@ Example:
             
             if self.log_level != "OFF":
                 self.logger.info("Running PM with user input")
+                self.logger.info("Applying tool restrictions: Task, TodoWrite, WebSearch, WebFetch only")
             
-            # Use unified launcher for PM execution
-            stdout, stderr, returncode = self.launcher.launch_oneshot(
-                message=full_message,
-                use_stdin=True,
-                timeout=30
+            # Use unified launcher for PM execution with tool restrictions
+            # Create command with tool restrictions for PM
+            cmd = [self.launcher.claude_path, "--dangerously-skip-permissions"]
+            if self.launcher.model:
+                cmd.extend(["--model", self.launcher.model])
+            
+            # Restrict PM to only delegation and tracking tools
+            cmd.extend(["--allowedTools", "Task,TodoWrite,WebSearch,WebFetch"])
+            
+            # Use subprocess directly for more control
+            import subprocess
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
             )
+            
+            stdout, stderr = process.communicate(input=full_message, timeout=30)
+            returncode = process.returncode
             
             if returncode != 0:
                 print(f"Error: {stderr}")
@@ -479,8 +572,30 @@ Example:
             print(pm_response)
             print("-" * 50)
             
+            # Log PM response in DEBUG mode
+            if self.log_level == "DEBUG":
+                self.project_logger.log_system(
+                    f"PM Response (full): {pm_response}",
+                    level="DEBUG",
+                    component="orchestrator"
+                )
+                # Also save PM response to cache for analysis
+                from pathlib import Path
+                cache_dir = Path.cwd() / ".claude-mpm" / "cache"
+                cache_dir.mkdir(parents=True, exist_ok=True)
+                pm_cache_file = cache_dir / f"pm_response_{self.project_logger.session_id}.txt"
+                pm_cache_file.write_text(pm_response)
+            
             # Detect delegations
             delegations = self.detect_delegations(pm_response)
+            
+            # Log delegation detection
+            if delegations:
+                self.project_logger.log_delegation(
+                    pm_task=user_input,
+                    delegations=delegations,
+                    pm_response=pm_response
+                )
             
             if delegations:
                 print(f"\nDetected {len(delegations)} delegations. Running subprocesses...\n")
@@ -516,6 +631,9 @@ Example:
                 
             # Create tickets
             self._create_tickets()
+            
+            # Create session report
+            self.project_logger.create_session_report()
                 
         except Exception as e:
             print(f"Error: {e}")
@@ -527,14 +645,14 @@ Example:
                 self.todo_hijacker.stop_monitoring()
     
     def run_interactive(self):
-        """Run an interactive session with subprocess orchestration."""
+        """Run an interactive session with framework instructions."""
         try:
             from .._version import __version__
         except ImportError:
             from claude_mpm._version import __version__
             
-        print(f"Claude MPM v{__version__} - Interactive Session (Subprocess Mode)")
-        print("Starting Claude with subprocess orchestration...")
+        print(f"Claude MPM v{__version__} - Interactive Session")
+        print("Starting Claude with framework instructions...")
         print("-" * 50)
         
         # Get framework instructions
@@ -543,28 +661,79 @@ Example:
         # Submit hook for framework initialization if available
         if self.hook_client:
             hook_response = self.hook_client.execute_submit_hook(
-                "Starting interactive subprocess session",
+                "Starting interactive session with framework",
                 hook_type='framework_init',
                 framework=framework,
-                session_mode='interactive_subprocess'
+                session_mode='interactive'
             )
             if hook_response and 'framework' in hook_response:
                 framework = hook_response['framework']
         
-        # Run Claude in interactive mode
         if self.log_level != "OFF":
-            self.logger.info("Starting interactive Claude session with subprocess orchestration")
-            self.logger.info("Note: In interactive mode, the subprocess orchestrator monitors for delegations")
+            self.logger.info("Starting Claude with framework instructions")
+            self.logger.info(f"Framework size: {len(framework)} bytes")
         
-        # For now, we'll just run Claude normally and explain the limitation
-        print("\nNote: The subprocess orchestrator in interactive mode currently runs Claude")
-        print("without the framework as system prompt. Delegation detection will be added soon.")
-        print("For full subprocess control, use: claude-mpm --subprocess -i 'your prompt'")
+        print(f"\nFramework version: {self.framework_loader.framework_content.get('version', 'unknown')}")
+        print(f"Framework size: {len(framework):,} bytes")
+        
+        # Display agent versions
+        print("\nAgent versions (base-agent):")
+        try:
+            from pathlib import Path
+            import json
+            agents_dir = Path.cwd() / ".claude" / "agents"
+            if agents_dir.exists():
+                agent_files = sorted(agents_dir.glob("*.yml"))
+                if agent_files:
+                    for agent_file in agent_files[:8]:  # Show up to 8 agents
+                        try:
+                            with open(agent_file, 'r') as f:
+                                for line in f:
+                                    if line.startswith("version:"):
+                                        version = line.split(":", 1)[1].strip().strip('"')
+                                        agent_name = agent_file.stem
+                                        print(f"  - {agent_name:<20} {version}")
+                                        break
+                        except:
+                            pass
+                else:
+                    print("  No agents deployed")
+            else:
+                print("  No agents directory found")
+        except Exception as e:
+            print(f"  Error reading agent versions: {e}")
+        
         print("-" * 50)
         
         try:
-            # Use unified launcher for interactive mode
-            process = self.launcher.launch_interactive()
+            import subprocess
+            import sys
+            
+            # Build command with --append-system-prompt
+            cmd = [self.launcher.claude_path, "--dangerously-skip-permissions"]
+            
+            # Add model if specified
+            if self.launcher.model:
+                cmd.extend(["--model", self.launcher.model])
+            
+            # Add the framework as system prompt
+            cmd.extend(["--append-system-prompt", framework])
+            
+            # Restrict PM to only delegation and tracking tools
+            cmd.extend(["--allowedTools", "Task,TodoWrite,WebSearch,WebFetch"])
+            
+            if self.log_level != "OFF":
+                self.logger.debug(f"Launching Claude with command: {' '.join(cmd[:4])}... (framework omitted)")
+            
+            # Launch Claude directly with inherited stdio
+            process = subprocess.Popen(
+                cmd,
+                stdin=sys.stdin,
+                stdout=sys.stdout,
+                stderr=sys.stderr,
+                text=True
+            )
+            
             # Wait for process to complete
             process.wait()
             
