@@ -145,6 +145,15 @@ def main(argv: Optional[list] = None):
     # Info command
     info_parser = subparsers.add_parser(CLICommands.INFO.with_prefix(), help="Show framework and configuration info")
     
+    # UI command
+    ui_parser = subparsers.add_parser(CLICommands.UI.with_prefix(), help="Launch terminal UI with multiple panes")
+    ui_parser.add_argument(
+        "--mode",
+        choices=["terminal", "curses"],
+        default="terminal",
+        help="UI mode to launch (default: terminal)"
+    )
+    
     # Agent management commands
     agents_parser = subparsers.add_parser(CLICommands.AGENTS.with_prefix(), help="Manage Claude Code native agents")
     agents_subparsers = agents_parser.add_subparsers(dest="agents_command", help="Agent commands")
@@ -256,6 +265,8 @@ def main(argv: Optional[list] = None):
             show_info(args, hook_manager)
         elif args.command == CLICommands.AGENTS.with_prefix():
             manage_agents(args)
+        elif args.command == CLICommands.UI.with_prefix():
+            run_terminal_ui(args)
         else:
             parser.print_help()
             return 1
@@ -498,6 +509,42 @@ def manage_agents(args):
     except Exception as e:
         logger.error(f"Error managing agents: {e}")
         print(f"Error: {e}")
+
+
+def run_terminal_ui(args):
+    """Run the terminal UI."""
+    logger = get_logger("cli")
+    
+    ui_mode = getattr(args, 'mode', 'terminal')
+    
+    try:
+        if ui_mode == 'terminal':
+            # Try rich UI first
+            try:
+                from .ui.rich_terminal_ui import main as run_rich_ui
+                logger.info("Starting rich terminal UI...")
+                run_rich_ui()
+            except ImportError:
+                # Fallback to curses UI
+                logger.info("Rich not available, falling back to curses UI...")
+                from .ui.terminal_ui import TerminalUI
+                ui = TerminalUI()
+                ui.run()
+        else:
+            # Use curses UI
+            from .ui.terminal_ui import TerminalUI
+            ui = TerminalUI()
+            ui.run()
+    except ImportError as e:
+        logger.error(f"UI module not found: {e}")
+        print(f"Error: Terminal UI requires 'curses' (built-in) or 'rich' (pip install rich)")
+        return 1
+    except Exception as e:
+        logger.error(f"Error running terminal UI: {e}")
+        print(f"Error: {e}")
+        return 1
+    
+    return 0
 
 
 def show_info(args, hook_manager=None):

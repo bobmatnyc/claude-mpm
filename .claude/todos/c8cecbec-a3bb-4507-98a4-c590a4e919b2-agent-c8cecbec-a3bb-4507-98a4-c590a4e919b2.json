@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Explore existing UI directory structure and requirements",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Create base UI window/application class",
+    "status": "in_progress",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Implement agent management UI components",
+    "status": "pending",
+    "priority": "medium",
+    "id": "3"
+  },
+  {
+    "content": "Add hook system monitoring UI",
+    "status": "pending",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Create process/subprocess monitoring view",
+    "status": "pending",
+    "priority": "medium",
+    "id": "5"
+  },
+  {
+    "content": "Integrate UI with existing CLI commands",
+    "status": "pending",
+    "priority": "low",
+    "id": "6"
+  }
+]
