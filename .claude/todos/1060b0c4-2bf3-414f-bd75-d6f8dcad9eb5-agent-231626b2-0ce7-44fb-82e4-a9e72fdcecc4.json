@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Analyze current hook client implementations and their usage",
+    "status": "completed",
+    "priority": "high",
+    "id": "analyze-hook-clients"
+  },
+  {
+    "content": "Create migration plan from HTTP to JSON-RPC",
+    "status": "completed",
+    "priority": "high",
+    "id": "create-migration-plan"
+  },
+  {
+    "content": "Update all references to use JSON-RPC client",
+    "status": "completed",
+    "priority": "high",
+    "id": "update-references"
+  },
+  {
+    "content": "Add deprecation warnings to HTTP client",
+    "status": "completed",
+    "priority": "medium",
+    "id": "add-deprecation-warnings"
+  },
+  {
+    "content": "Update tests for JSON-RPC only",
+    "status": "completed",
+    "priority": "medium",
+    "id": "update-tests"
+  },
+  {
+    "content": "Create migration guide documentation",
+    "status": "completed",
+    "priority": "medium",
+    "id": "create-migration-guide"
+  }
+]

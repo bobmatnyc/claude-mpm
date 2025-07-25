@@ -1,7 +1,13 @@
-"""Client for interacting with the hook service."""
+"""Client for interacting with the hook service.
+
+DEPRECATED: This HTTP-based hook client is deprecated and will be removed in a future release.
+Please use the JSON-RPC implementation from claude_mpm.hooks.json_rpc_hook_client instead.
+See /docs/hook_system_migration_guide.md for migration instructions.
+"""
 
 import json
 import logging
+import warnings
 from typing import Any, Dict, List, Optional
 from urllib.parse import urljoin
 
@@ -16,7 +22,10 @@ logger = get_logger(__name__)
 
 
 class HookServiceClient:
-    """Client for interacting with the centralized hook service."""
+    """Client for interacting with the centralized hook service.
+    
+    DEPRECATED: Use JSONRPCHookClient from claude_mpm.hooks.json_rpc_hook_client instead.
+    """
     
     def __init__(self, base_url: str = "http://localhost:5001", timeout: int = 30):
         """Initialize hook service client.
@@ -25,6 +34,13 @@ class HookServiceClient:
             base_url: Base URL of hook service
             timeout: Request timeout in seconds
         """
+        warnings.warn(
+            "HookServiceClient is deprecated and will be removed in a future release. "
+            "Please use JSONRPCHookClient from claude_mpm.hooks.json_rpc_hook_client instead. "
+            "See /docs/hook_system_migration_guide.md for migration instructions.",
+            DeprecationWarning,
+            stacklevel=2
+        )
         self.base_url = base_url.rstrip('/')
         self.timeout = timeout
         
@@ -224,19 +240,25 @@ class HookServiceClient:
 
 
 # Convenience function for creating a default client
-def get_hook_client(base_url: Optional[str] = None) -> HookServiceClient:
-    """Get a hook service client instance.
+def get_hook_client(base_url: Optional[str] = None) -> 'JSONRPCHookClient':
+    """Get a hook client instance.
+    
+    DEPRECATED: This function now returns a JSONRPCHookClient for compatibility.
+    Import directly from claude_mpm.hooks.json_rpc_hook_client instead.
     
     Args:
-        base_url: Optional base URL override
+        base_url: Ignored (kept for backward compatibility)
         
     Returns:
-        HookServiceClient instance
+        JSONRPCHookClient instance
     """
-    import os
+    warnings.warn(
+        "get_hook_client from hook_client module is deprecated. "
+        "Import from claude_mpm.hooks.json_rpc_hook_client instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
     
-    if base_url is None:
-        # Check environment variable
-        base_url = os.environ.get('CLAUDE_MPM_HOOKS_URL', 'http://localhost:5001')
-        
-    return HookServiceClient(base_url)
+    # Import and return JSON-RPC client for compatibility
+    from claude_mpm.hooks.json_rpc_hook_client import JSONRPCHookClient
+    return JSONRPCHookClient()

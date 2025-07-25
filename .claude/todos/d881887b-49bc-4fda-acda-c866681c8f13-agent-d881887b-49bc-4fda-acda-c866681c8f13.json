@@ -1,0 +1,20 @@
+[
+  {
+    "content": "Check available test scripts and test structure",
+    "status": "in_progress",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Run E2E tests using the provided script",
+    "status": "pending",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Run full test suite if needed",
+    "status": "pending",
+    "priority": "medium",
+    "id": "3"
+  }
+]

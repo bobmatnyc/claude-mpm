@@ -9,7 +9,7 @@ from datetime import datetime
 from ..utils.imports import safe_import
 
 # Import with fallback support - using absolute imports as primary since we're at module level
-get_logger = safe_import('claude_mpm.utils.logger', 'utils.logger', ['get_logger'])
+get_logger = safe_import('claude_mpm.core.logger', 'core.logger', ['get_logger'])
 AgentRegistryAdapter = safe_import('claude_mpm.core.agent_registry', 'core.agent_registry', ['AgentRegistryAdapter'])
 
 

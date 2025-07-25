@@ -1,0 +1,20 @@
+[
+  {
+    "content": "Review git status and understand changes",
+    "status": "in_progress",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Clean up deleted files and organize changes",
+    "status": "pending",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Stage and commit organized changes",
+    "status": "pending",
+    "priority": "medium",
+    "id": "3"
+  }
+]

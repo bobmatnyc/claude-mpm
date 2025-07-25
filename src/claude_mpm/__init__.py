@@ -4,12 +4,14 @@ from ._version import __version__
 __author__ = "Claude MPM Team"
 
 # Import main components
-from .orchestration.orchestrator import MPMOrchestrator
-from .core.framework_loader import FrameworkLoader
+from .core.simple_runner import SimpleClaudeRunner
 from .services.ticket_manager import TicketManager
 
+# For backwards compatibility
+MPMOrchestrator = SimpleClaudeRunner
+
 __all__ = [
-    "MPMOrchestrator",
-    "FrameworkLoader", 
+    "SimpleClaudeRunner",
+    "MPMOrchestrator", 
     "TicketManager",
 ]

@@ -1,10 +1,14 @@
-# Claude MPM Hook Service
+# Claude MPM Hook System
 
-The Hook Service provides a centralized, extensible system for processing events throughout the claude-mpm orchestration pipeline.
+The Claude MPM hook system provides extensibility points for customizing behavior at key stages of execution.
+
+## Current Implementation (v0.5.0+)
+
+As of version 0.5.0, the hook system uses JSON-RPC for all hook executions. The previous HTTP-based implementation is deprecated and will be removed in a future release.
 
 ## Overview
 
-The hook service runs as a separate process and provides a REST API for executing hooks at various points in the orchestration workflow:
+The hook system allows you to intercept and modify behavior at various points in the orchestration workflow:
 
 - **Submit Hooks**: Process user prompts before orchestration
 - **Pre-Delegation Hooks**: Filter/enhance context before delegating to agents  
@@ -15,104 +19,28 @@ The hook service runs as a separate process and provides a REST API for executin
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Orchestrator  │────▶│   Hook Service   │────▶│   Hook Types    │
-│                 │     │   (REST API)     │     ├─────────────────┤
-│ - Process prompt│     │                  │     │ - SubmitHook    │
-│ - Delegate work │     │ - /execute_hook  │     │ - PreDelegation │
-│ - Create tickets│     │ - /list_hooks    │     │ - PostDelegation│
-└─────────────────┘     │ - /register_hook │     │ - TicketExtract │
-                        └──────────────────┘     └─────────────────┘
+│   Orchestrator  │────▶│ JSON-RPC Client  │────▶│   Hook Types    │
+│                 │     │                  │     ├─────────────────┤
+│ - Process prompt│     │ - No server req. │     │ - SubmitHook    │
+│ - Delegate work │     │ - Direct exec    │     │ - PreDelegation │
+│ - Create tickets│     │ - Auto discovery │     │ - PostDelegation│
+└─────────────────┘     └──────────────────┘     │ - TicketExtract │
+                                                  └─────────────────┘
 ```
 
-## Starting the Hook Service
-
-```bash
-# Using the shell script (recommended)
-./bin/claude-mpm-hooks
-
-# With custom port
-./bin/claude-mpm-hooks --port 5002
-
-# With debug logging
-./bin/claude-mpm-hooks --log-level DEBUG
-
-# Direct Python execution (for development)
-python -m src.services.hook_service --port 5001
-```
-
-## Hook Types
-
-### 1. Submit Hooks
-Process user prompts before they're sent to the orchestrator:
-```python
-class TicketDetectionSubmitHook(SubmitHook):
-    def execute(self, context: HookContext) -> HookResult:
-        prompt = context.data.get('prompt', '')
-        # Detect ticket references like TSK-001
-        tickets = self.ticket_pattern.findall(prompt)
-        return HookResult(
-            success=True,
-            data={'tickets': tickets},
-            modified=True
-        )
-```
-
-### 2. Pre-Delegation Hooks
-Modify agent context before delegation:
-```python
-class ContextFilterHook(PreDelegationHook):
-    def execute(self, context: HookContext) -> HookResult:
-        # Filter sensitive information
-        filtered_context = self._filter_sensitive(context.data['context'])
-        return HookResult(
-            success=True,
-            data={'context': filtered_context},
-            modified=True
-        )
-```
-
-### 3. Post-Delegation Hooks
-Process agent results:
-```python
-class ResultValidatorHook(PostDelegationHook):
-    def execute(self, context: HookContext) -> HookResult:
-        result = context.data.get('result', {})
-        # Validate result quality
-        issues = self._validate_result(result)
-        return HookResult(
-            success=True,
-            data={'validation_issues': issues},
-            modified=bool(issues)
-        )
-```
-
-### 4. Ticket Extraction Hooks
-Extract actionable items from conversations:
-```python
-class AutoTicketExtractionHook(TicketExtractionHook):
-    def execute(self, context: HookContext) -> HookResult:
-        content = context.data.get('content', '')
-        # Extract TODO, FIXME, etc.
-        tickets = self._extract_tickets(content)
-        return HookResult(
-            success=True,
-            data={'tickets': tickets},
-            modified=True
-        )
-```
-
-## Client Usage
+## Usage
 
 ### Basic Client Usage
 ```python
-from src.hooks.hook_client import get_hook_client
+from claude_mpm.hooks.json_rpc_hook_client import JSONRPCHookClient
 
 # Create client
-client = get_hook_client()
+client = JSONRPCHookClient()
 
-# Check service health
+# Check system health
 health = client.health_check()
-print(f"Service status: {health['status']}")
+print(f"Status: {health['status']}")
+print(f"Hooks available: {health['hook_count']}")
 
 # List available hooks
 hooks = client.list_hooks()
@@ -146,29 +74,100 @@ results = client.execute_ticket_extraction_hook(
 tickets = client.get_extracted_tickets(results)
 ```
 
-### Integration with Orchestrator
+## Hook Types
+
+### 1. Submit Hooks
+Process user prompts before they're sent to the orchestrator:
 ```python
-from src.orchestration.hook_enabled_orchestrator import HookEnabledOrchestrator
+from claude_mpm.hooks.base_hook import SubmitHook, HookContext, HookResult
 
-# Create hook-enabled orchestrator
-orchestrator = HookEnabledOrchestrator()
+class TicketDetectionSubmitHook(SubmitHook):
+    name = "ticket_detection"
+    priority = 10
+    
+    def execute(self, context: HookContext) -> HookResult:
+        prompt = context.data.get('prompt', '')
+        # Detect ticket references like TSK-001
+        tickets = self.ticket_pattern.findall(prompt)
+        return HookResult(
+            success=True,
+            data={'tickets': tickets},
+            modified=True
+        )
+```
 
-# Process prompt (hooks are called automatically)
-response = await orchestrator.process_prompt(
-    "Create ticket: Implement user dashboard"
-)
+### 2. Pre-Delegation Hooks
+Modify agent context before delegation:
+```python
+from claude_mpm.hooks.base_hook import PreDelegationHook
+
+class ContextFilterHook(PreDelegationHook):
+    name = "context_filter"
+    priority = 20
+    
+    def execute(self, context: HookContext) -> HookResult:
+        # Filter sensitive information
+        filtered_context = self._filter_sensitive(context.data['context'])
+        return HookResult(
+            success=True,
+            data={'context': filtered_context},
+            modified=True
+        )
+```
+
+### 3. Post-Delegation Hooks
+Process agent results:
+```python
+from claude_mpm.hooks.base_hook import PostDelegationHook
+
+class ResultValidatorHook(PostDelegationHook):
+    name = "result_validator"
+    priority = 30
+    
+    def execute(self, context: HookContext) -> HookResult:
+        result = context.data.get('result', {})
+        # Validate result quality
+        issues = self._validate_result(result)
+        return HookResult(
+            success=True,
+            data={'validation_issues': issues},
+            modified=bool(issues)
+        )
+```
+
+### 4. Ticket Extraction Hooks
+Extract actionable items from conversations:
+```python
+from claude_mpm.hooks.base_hook import TicketExtractionHook
+
+class AutoTicketExtractionHook(TicketExtractionHook):
+    name = "auto_ticket_extraction"
+    priority = 40
+    
+    def execute(self, context: HookContext) -> HookResult:
+        content = context.data.get('content', '')
+        # Extract TODO, FIXME, etc.
+        tickets = self._extract_tickets(content)
+        return HookResult(
+            success=True,
+            data={'tickets': tickets},
+            modified=True
+        )
 ```
 
 ## Creating Custom Hooks
 
-### 1. Create Hook Class
-```python
-from src.hooks.base_hook import SubmitHook, HookContext, HookResult
+### 1. Create Hook File
+Create a new Python file in the `builtin/` directory:
 
-class CustomSubmitHook(SubmitHook):
-    def __init__(self):
-        super().__init__(name="custom_hook", priority=25)
-        
+```python
+# builtin/my_custom_hook.py
+from claude_mpm.hooks.base_hook import SubmitHook, HookContext, HookResult
+
+class MyCustomHook(SubmitHook):
+    name = "my_custom_hook"
+    priority = 25  # 0-100, lower executes first
+    
     def execute(self, context: HookContext) -> HookResult:
         # Your hook logic here
         prompt = context.data.get('prompt', '')
@@ -181,16 +180,14 @@ class CustomSubmitHook(SubmitHook):
             data={'prompt': processed},
             modified=True
         )
+    
+    def _process(self, prompt: str) -> str:
+        # Your processing logic
+        return prompt.upper()
 ```
 
-### 2. Register Hook
-```python
-# In your hook module or service startup
-from src.services.hook_service import HookRegistry
-
-registry = HookRegistry()
-registry.register(CustomSubmitHook())
-```
+### 2. Hook Discovery
+Hooks are automatically discovered from the `builtin/` directory when the client is initialized. No manual registration required!
 
 ### 3. Hook Priority
 Hooks execute in priority order (0-100, lower first):
@@ -200,66 +197,15 @@ Hooks execute in priority order (0-100, lower first):
 - 61-80: Analytics and metrics
 - 81-100: Low priority post-processing
 
-## REST API Reference
+## Migration from HTTP-based Hooks
 
-### Health Check
-```
-GET /health
-Response: {
-    "status": "healthy",
-    "timestamp": "2025-01-23T10:00:00",
-    "hooks_count": 8
-}
-```
+If you're migrating from the old HTTP-based hook system, see `/docs/hook_system_migration_guide.md` for detailed instructions.
 
-### List Hooks
-```
-GET /hooks/list
-Response: {
-    "status": "success",
-    "hooks": {
-        "submit": [
-            {"name": "ticket_detection", "priority": 10, "enabled": true}
-        ],
-        "pre_delegation": [...],
-        "post_delegation": [...],
-        "ticket_extraction": [...]
-    }
-}
-```
-
-### Execute Hooks
-```
-POST /hooks/execute
-Body: {
-    "hook_type": "submit",
-    "context": {
-        "prompt": "User input here"
-    },
-    "metadata": {
-        "session_id": "abc123"
-    },
-    "hook_name": "specific_hook"  // Optional
-}
-Response: {
-    "status": "success",
-    "results": [
-        {
-            "hook_name": "ticket_detection",
-            "success": true,
-            "data": {...},
-            "modified": true,
-            "execution_time_ms": 5.2
-        }
-    ]
-}
-```
-
-## Environment Variables
-
-- `CLAUDE_MPM_HOOKS_URL`: Hook service URL (default: http://localhost:5001)
-- `CLAUDE_MPM_HOOKS_PORT`: Port for hook service (default: 5001)
-- `CLAUDE_MPM_LOG_LEVEL`: Logging level (default: INFO)
+Key changes:
+- No server startup required
+- Import from `json_rpc_hook_client` instead of `hook_client`
+- Automatic hook discovery from `builtin/` directory
+- Better error handling and performance
 
 ## Best Practices
 
@@ -272,21 +218,21 @@ Response: {
 
 ## Troubleshooting
 
-### Service Won't Start
-- Check if port is already in use: `lsof -i :5001`
-- Verify virtual environment is activated
-- Check Flask is installed: `pip install flask flask-cors`
+### Hooks Not Discovered
+- Verify hook file is in `builtin/` directory
+- Check file has `.py` extension
+- Ensure hook class inherits from correct base type
+- Check for Python syntax errors
 
-### Hooks Not Executing
-- Verify service is running: `curl http://localhost:5001/health`
-- Check hook is registered: `curl http://localhost:5001/hooks/list`
-- Enable debug logging: `--log-level DEBUG`
+### Hook Execution Errors
+- Enable debug logging to see detailed errors
+- Check hook's execute method returns HookResult
+- Verify context data structure matches expectations
 
 ### Performance Issues
 - Check hook execution times in results
-- Consider making heavy hooks async
-- Use caching for expensive operations
-- Profile hooks with `cProfile`
+- Consider caching expensive operations
+- Profile hooks with `cProfile` if needed
 
 ## Examples
 
