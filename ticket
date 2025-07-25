@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Project-level ticket wrapper
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Check if running from source or installed
+if [ -f "$SCRIPT_DIR/scripts/ticket" ]; then
+    # Running from source directory - use the scripts version
+    VENV_DIR="$SCRIPT_DIR/venv"
+    
+    # Check if virtual environment exists and activate it
+    if [ -d "$VENV_DIR" ]; then
+        source "$VENV_DIR/bin/activate"
+    else
+        # Create venv if it doesn't exist
+        echo "Creating virtual environment..."
+        python3 -m venv "$VENV_DIR"
+        source "$VENV_DIR/bin/activate"
+        
+        # Install dependencies
+        echo "Installing dependencies..."
+        pip install --upgrade pip > /dev/null 2>&1
+        pip install -e "$SCRIPT_DIR[dev]" > /dev/null 2>&1
+    fi
+    
+    # Execute the ticket script with Python from the virtual environment
+    exec python "$SCRIPT_DIR/scripts/ticket" "$@"
+elif command -v ticket &> /dev/null; then
+    # Running installed version
+    exec ticket "$@"
+else
+    echo "Error: ticket command not found. Please run ./install.sh"
+    exit 1
+fi

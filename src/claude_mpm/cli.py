@@ -21,6 +21,14 @@ except ImportError:
 
 def main(argv: Optional[list] = None):
     """Main CLI entry point."""
+    # Ensure directories are initialized on first run
+    try:
+        from .init import ensure_directories
+        ensure_directories()
+    except Exception:
+        # Continue even if initialization fails
+        pass
+    
     parser = argparse.ArgumentParser(
         prog="claude-mpm",
         description=f"Claude Multi-Agent Project Manager v{__version__} - Orchestrate Claude with agent delegation and ticket tracking",

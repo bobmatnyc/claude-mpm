@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Project-level claude-mpm wrapper that delegates to the scripts directory version
+
+set -e
+
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Check if running from source or installed
+if [ -f "$SCRIPT_DIR/scripts/claude-mpm" ]; then
+    # Running from source directory
+    exec "$SCRIPT_DIR/scripts/claude-mpm" "$@"
+elif command -v claude-mpm &> /dev/null; then
+    # Running installed version
+    exec claude-mpm "$@"
+else
+    echo "Error: claude-mpm not found. Please run ./install.sh"
+    exit 1
+fi
