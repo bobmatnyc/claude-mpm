@@ -1,20 +1,8 @@
 [
   {
-    "content": "Fix TaskManager initialization error in interactive mode",
+    "content": "Fix shell wrapper to handle --mpm:ui with --mode argument",
     "status": "completed",
     "priority": "high",
-    "id": "1"
-  },
-  {
-    "content": "Debug interactive session hanging after context loading",
-    "status": "completed",
-    "priority": "high",
-    "id": "2"
-  },
-  {
-    "content": "Test and fix interactive mode functionality",
-    "status": "in_progress",
-    "priority": "medium",
-    "id": "3"
+    "id": "5"
   }
 ]

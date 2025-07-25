@@ -7,7 +7,7 @@ including edge cases, boundary conditions, type validation, and error handling.
 
 import pytest
 import sys
-from tests.factorial import factorial_iterative, factorial_recursive, factorial
+from .factorial import factorial_iterative, factorial_recursive, factorial
 
 
 class TestFactorialIterative:

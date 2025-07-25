@@ -23,3 +23,7 @@ build/
 .claude/projects/
 .claude/statsig/
 .env
+
+# Test logs
+test_logs/
+tests/test_logs/

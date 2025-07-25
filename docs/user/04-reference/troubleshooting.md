@@ -65,7 +65,6 @@ This guide helps you resolve common issues with Claude MPM.
 1. **Make scripts executable**:
    ```bash
    chmod +x claude-mpm
-   chmod +x ticket
    chmod +x scripts/*
    ```
 
@@ -101,7 +100,7 @@ This guide helps you resolve common issues with Claude MPM.
 
 ### Framework Not Loading
 
-**Symptom**: Claude doesn't understand tickets or agents
+**Symptom**: Claude doesn't understand agents or framework commands
 
 **Solutions**:
 
@@ -120,34 +119,27 @@ This guide helps you resolve common issues with Claude MPM.
    claude-mpm --framework-path /path/to/framework
    ```
 
-### Tickets Not Created
+### Agent Delegation Issues
 
-**Symptom**: Using TODO patterns but no tickets appear
+**Symptom**: Agent delegations not working properly
 
 **Solutions**:
 
-1. **Check pattern format**:
-   ```
-   ✓ TODO: Description (correct)
-   ✗ TODO Description (missing colon)
-   ✗ todo: Description (lowercase)
-   ```
-
-2. **Verify tickets not disabled**:
+1. **Check agent registry**:
    ```bash
-   # Don't use --no-tickets
-   # Check environment
-   echo $CLAUDE_MPM_NO_TICKETS  # Should be empty or false
+   claude-mpm info | grep "Available agents"
    ```
 
-3. **Check ticket directory**:
+2. **Verify agent templates exist**:
    ```bash
-   ls -la tickets/tasks/
-   # Create if missing
-   mkdir -p tickets/tasks
+   ls -la ~/.claude-mpm/agents/
    ```
 
-4. **Verify ai-trackdown-pytools**:
+3. **Check delegation format**:
+   ```
+   # Correct format
+   Delegating to: Research Agent
+   ```
    ```bash
    pip show ai-trackdown-pytools
    # Reinstall if needed

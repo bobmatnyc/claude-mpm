@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Consolidate agent_modification_tracker service into single file",
+    "status": "completed",
+    "priority": "high",
+    "id": "flatten-agent-modification-tracker"
+  },
+  {
+    "content": "Consolidate agent_profile_loader service into single file",
+    "status": "completed",
+    "priority": "high",
+    "id": "flatten-agent-profile-loader"
+  },
+  {
+    "content": "Consolidate agent_registry_service into single file",
+    "status": "completed",
+    "priority": "medium",
+    "id": "flatten-agent-registry-service"
+  },
+  {
+    "content": "Consolidate framework_claude_md_generator service into single file",
+    "status": "completed",
+    "priority": "medium",
+    "id": "flatten-framework-claude-md-generator"
+  },
+  {
+    "content": "Check and consolidate any other nested services",
+    "status": "completed",
+    "priority": "low",
+    "id": "check-remaining-services"
+  },
+  {
+    "content": "Update all imports across the codebase for consolidated services",
+    "status": "completed",
+    "priority": "high",
+    "id": "update-imports"
+  }
+]
