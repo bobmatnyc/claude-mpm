@@ -28,6 +28,10 @@
       "allowedTools": [],
       "history": [
         {
+          "display": "we were working in another session.  Everthing is committed now.  Let's merge all branches to main and resolve any conflicts",
+          "pastedContents": {}
+        },
+        {
           "display": "let's commit everything and pause",
           "pastedContents": {}
         },
@@ -451,10 +455,6 @@
         },
         {
           "display": "what instructions do you have?",
-          "pastedContents": {}
-        },
-        {
-          "display": "what is your role?",
           "pastedContents": {}
         }
       ],
