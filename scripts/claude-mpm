@@ -74,11 +74,20 @@ print_info "Working directory: $(pwd)"
 print_info "Framework path: $PROJECT_ROOT"
 
 # Check if this is a claude-mpm specific command or should be passed to claude
-MPM_COMMANDS=("run" "tickets" "info")
+MPM_PREFIX="--mpm:"
+MPM_COMMANDS=("run" "tickets" "info" "agents")
 FIRST_ARG="${1:-}"
 
-# Check if first argument is a claude-mpm command
+# Check if first argument is an MPM command (with or without prefix)
 IS_MPM_COMMAND=false
+
+# Check for prefixed commands
+if [[ "$FIRST_ARG" == "$MPM_PREFIX"* ]]; then
+    IS_MPM_COMMAND=true
+    print_info "Detected MPM command: $FIRST_ARG"
+fi
+
+# Check for unprefixed commands (legacy support)
 for cmd in "${MPM_COMMANDS[@]}"; do
     if [[ "$FIRST_ARG" == "$cmd" ]]; then
         IS_MPM_COMMAND=true
@@ -92,10 +101,10 @@ if [[ "$FIRST_ARG" == "--help" ]] || [[ "$FIRST_ARG" == "-h" ]] || [[ "$FIRST_AR
     IS_MPM_COMMAND=true
 fi
 
-# Check if it's a claude-mpm specific flag
-MPM_FLAGS=("--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive")
+# Check if it's a claude-mpm specific flag (with or without prefix)
+MPM_FLAGS=("--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug")
 for flag in "${MPM_FLAGS[@]}"; do
-    if [[ " $* " =~ " $flag " ]]; then
+    if [[ " $* " =~ " $flag " ]] || [[ " $* " =~ " --mpm:${flag#--} " ]] || [[ " $* " =~ " -mpm:${flag#-} " ]]; then
         IS_MPM_COMMAND=true
         break
     fi
@@ -104,7 +113,22 @@ done
 if [[ "$IS_MPM_COMMAND" == true ]]; then
     # Run claude-mpm
     cd "$PROJECT_ROOT"
-    exec python -m claude_mpm.cli "$@"
+    
+    # Transform --mpm: prefixed flags to regular flags for Python
+    ARGS=()
+    for arg in "$@"; do
+        if [[ "$arg" == "--mpm:"* ]]; then
+            # Remove --mpm: prefix
+            ARGS+=("--${arg#--mpm:}")
+        elif [[ "$arg" == "-mpm:"* ]]; then
+            # Remove -mpm: prefix
+            ARGS+=("-${arg#-mpm:}")
+        else
+            ARGS+=("$arg")
+        fi
+    done
+    
+    exec python -m claude_mpm "${ARGS[@]}"
 else
     # Pass through to claude CLI
     print_info "Passing through to Claude CLI..."

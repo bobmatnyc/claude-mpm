@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional, Dict, Type, Any
 from enum import Enum
 
-from ..utils.logger import get_logger
+from ..core.logger import get_logger
 from .orchestrator import MPMOrchestrator
 from .system_prompt_orchestrator import SystemPromptOrchestrator
 from .subprocess_orchestrator import SubprocessOrchestrator
@@ -171,26 +171,9 @@ class OrchestratorFactory:
         Returns:
             OrchestratorMode enum value
         """
-        # If explicit mode provided, use it
-        if mode:
-            try:
-                return OrchestratorMode(mode)
-            except ValueError:
-                # Try to match by name (case-insensitive)
-                mode_upper = mode.upper()
-                for enum_mode in OrchestratorMode:
-                    if enum_mode.name == mode_upper:
-                        return enum_mode
-                raise
-        
-        # Determine from config flags (order matters - check subprocess flags first)
-        if config.get("interactive_subprocess", False):
-            return OrchestratorMode.INTERACTIVE_SUBPROCESS
-        elif config.get("subprocess", False):
-            return OrchestratorMode.SUBPROCESS
-        else:
-            # Default to system prompt orchestrator
-            return OrchestratorMode.SYSTEM_PROMPT
+        # Always use subprocess orchestrator for simplicity
+        # This provides consistent behavior in both interactive and non-interactive modes
+        return OrchestratorMode.SUBPROCESS
     
     def list_available_modes(self) -> Dict[str, Dict[str, Any]]:
         """List all available orchestrator modes with metadata.

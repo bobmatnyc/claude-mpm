@@ -265,9 +265,9 @@ class ValidationManager:
         """
         try:
             # Try INSTRUCTIONS.md first, then fall back to CLAUDE.md
-            framework_template_path = framework_path / "framework" / "INSTRUCTIONS.md"
+            framework_template_path = framework_path / "agents" / "INSTRUCTIONS.md"
             if not path_ops.validate_exists(framework_template_path):
-                framework_template_path = framework_path / "framework" / "CLAUDE.md"
+                framework_template_path = framework_path / "agents" / "CLAUDE.md"
             
             if not path_ops.validate_exists(framework_template_path):
                 self.logger.error(f"Framework template does not exist: {framework_template_path}")

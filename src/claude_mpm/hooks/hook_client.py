@@ -10,7 +10,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 from claude_mpm.hooks.base_hook import HookType
-from claude_mpm.utils.logger import get_logger
+from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
 

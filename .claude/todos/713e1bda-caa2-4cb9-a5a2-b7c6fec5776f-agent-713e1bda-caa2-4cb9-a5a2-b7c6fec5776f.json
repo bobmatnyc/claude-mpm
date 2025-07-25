@@ -1,0 +1,32 @@
+[
+  {
+    "content": "[Research] Analyze project structure and identify duplicate code patterns",
+    "status": "pending",
+    "priority": "high",
+    "id": "analyze-1"
+  },
+  {
+    "content": "[Research] Review orchestrator implementations for redundancies",
+    "status": "pending",
+    "priority": "high",
+    "id": "analyze-2"
+  },
+  {
+    "content": "[Research] Examine agent system for optimization opportunities",
+    "status": "pending",
+    "priority": "medium",
+    "id": "analyze-3"
+  },
+  {
+    "content": "[Research] Analyze hook system and service layer efficiency",
+    "status": "pending",
+    "priority": "medium",
+    "id": "analyze-4"
+  },
+  {
+    "content": "[Research] Check for unused imports and dead code",
+    "status": "pending",
+    "priority": "low",
+    "id": "analyze-5"
+  }
+]

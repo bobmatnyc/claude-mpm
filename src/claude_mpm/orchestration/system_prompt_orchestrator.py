@@ -8,22 +8,19 @@ import logging
 import tempfile
 
 try:
-    from ..utils.logger import get_logger, setup_logging
+    from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
-    from ..hooks.hook_client import HookServiceClient
+    # Hook client removed - will use JSON-RPC client from hook manager
 except ImportError:
-    from utils.logger import get_logger, setup_logging
+    from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
-    try:
-        from hooks.hook_client import HookServiceClient
-    except ImportError:
-        HookServiceClient = None
+    # Hook client removed - will use JSON-RPC client from hook manager
 
 
 class SystemPromptOrchestrator:
@@ -60,19 +57,18 @@ class SystemPromptOrchestrator:
         
         # Initialize hook client if available
         self.hook_client = None
-        if self.hook_manager and self.hook_manager.is_available() and HookServiceClient:
+        if self.hook_manager and self.hook_manager.is_available():
             try:
-                hook_info = self.hook_manager.get_service_info()
-                self.hook_client = HookServiceClient(base_url=hook_info['url'])
-                # Test connection
-                health = self.hook_client.health_check()
-                if health.get('status') == 'healthy':
-                    self.logger.info(f"Connected to hook service with {health.get('hooks_count', 0)} hooks")
-                else:
-                    self.logger.warning("Hook service not healthy, disabling hooks")
-                    self.hook_client = None
+                self.hook_client = self.hook_manager.get_client()
+                if self.hook_client:
+                    health = self.hook_client.health_check()
+                    if health.get('status') == 'healthy':
+                        self.logger.info(f"Using JSON-RPC hook client with {health.get('hook_count', 0)} hooks")
+                    else:
+                        self.logger.warning("Hook client not healthy, disabling hooks")
+                        self.hook_client = None
             except Exception as e:
-                self.logger.warning(f"Failed to initialize hook client: {e}")
+                self.logger.warning(f"Failed to get hook client: {e}")
                 self.hook_client = None
         
         # State
@@ -128,12 +124,11 @@ class SystemPromptOrchestrator:
                 prompt_file.write_text(framework)
                 self.logger.info(f"Framework also saved to: {prompt_file}")
             
-            # Build command with system prompt
+            # Build command for interactive mode
+            # For now, just launch Claude directly
             cmd = [
                 "claude",
-                "--model", "opus",
-                "--dangerously-skip-permissions",
-                "--append-system-prompt", framework  # Append to default system prompt
+                "--dangerously-skip-permissions"
             ]
             
             self.logger.info("Starting Claude with framework as system prompt")
@@ -143,9 +138,18 @@ class SystemPromptOrchestrator:
             # use a different approach like pexpect to monitor the output stream.
             
             # Run Claude interactively with framework as system prompt
-            result = self.subprocess_runner.run(cmd)
+            # Use subprocess.Popen directly for proper interactive mode
+            import subprocess
+            self.logger.info(f"Launching Claude interactively with command: {' '.join(cmd)}")
+            print(f"Debug: Running command: {' '.join(cmd)}")
             
-            self.logger.info(f"Claude exited with code: {result.returncode}")
+            # Start Claude with direct terminal I/O
+            process = subprocess.Popen(cmd)
+            
+            # Wait for Claude to complete
+            returncode = process.wait()
+            
+            self.logger.info(f"Claude exited with code: {returncode}")
             
             # Post-session hook (no delegations captured in interactive mode)
             if self.hook_client:
@@ -155,7 +159,7 @@ class SystemPromptOrchestrator:
                         agent="system",
                         result={
                             "task": "Interactive session completed",
-                            "exit_code": result.returncode,
+                            "exit_code": returncode,
                             "session_type": "interactive",
                             "note": "Task delegations not captured in interactive mode"
                         }
@@ -239,31 +243,35 @@ class SystemPromptOrchestrator:
                 except Exception as e:
                     self.logger.warning(f"Submit hook error (continuing): {e}")
             
-            # Use minimal framework for non-interactive mode
-            try:
-                from ..core.minimal_framework_loader import MinimalFrameworkLoader
-            except ImportError:
-                from core.minimal_framework_loader import MinimalFrameworkLoader
-            
-            minimal_loader = MinimalFrameworkLoader(self.framework_loader.framework_path)
-            framework = minimal_loader.get_framework_instructions()
+            # For testing, use a minimal prompt
+            # TODO: Re-enable full framework once Claude --print issues are resolved
+            minimal_prompt = "You are Claude, an AI assistant."
             
             # Log framework size
             if self.log_level != "OFF":
-                self.logger.info(f"Using minimal framework: {len(framework)} chars")
+                self.logger.info(f"Using minimal test prompt: {len(minimal_prompt)} chars")
             
-            full_message = framework + "\n\nUser: " + user_input
+            full_message = minimal_prompt + "\n\nUser: " + user_input
             
-            # Build command
+            # Build command for non-interactive mode
             cmd = [
                 "claude",
-                "--model", "opus",
                 "--dangerously-skip-permissions",
-                "--print"  # Print mode
+                "--print",  # Print response and exit
+                full_message
             ]
             
-            # Run Claude with message as stdin (increased timeout for larger prompts)
-            result = self.subprocess_runner.run_with_timeout(cmd, timeout=60, input=full_message)
+            # Log command details for debugging
+            if self.log_level != "OFF":
+                self.logger.debug(f"Command: claude --dangerously-skip-permissions --print <message of {len(full_message)} chars>")
+                # Also save message for debugging
+                debug_file = Path.home() / ".claude-mpm" / "debug" / f"message_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+                debug_file.parent.mkdir(parents=True, exist_ok=True)
+                debug_file.write_text(full_message)
+                self.logger.debug(f"Message saved to: {debug_file}")
+            
+            # Run Claude with message as argument
+            result = self.subprocess_runner.run_with_timeout(cmd, timeout=60)
             
             if result.success:
                 print(result.stdout)

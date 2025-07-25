@@ -8,15 +8,17 @@ from typing import Optional
 try:
     # Try relative imports first (when used as package)
     from ._version import __version__
-    from .utils.logger import get_logger, setup_logging
-    from .services.hook_service_manager import HookServiceManager
+    from .core.logger import get_logger, setup_logging
+    from .services.json_rpc_hook_manager import JSONRPCHookManager
     from .orchestration.factory import OrchestratorFactory
+    from .constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 except ImportError:
     # Fall back to absolute imports (when run directly)
     from claude_mpm._version import __version__
-    from utils.logger import get_logger, setup_logging
-    from services.hook_service_manager import HookServiceManager
+    from core.logger import get_logger, setup_logging
+    from services.json_rpc_hook_manager import JSONRPCHookManager
     from orchestration.factory import OrchestratorFactory
+    from constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 
 
 def main(argv: Optional[list] = None):
@@ -51,8 +53,8 @@ def main(argv: Optional[list] = None):
     
     parser.add_argument(
         "--logging",
-        choices=["OFF", "INFO", "DEBUG"],
-        default="OFF",
+        choices=[level.value for level in LogLevel],
+        default=LogLevel.OFF.value,
         help="Logging level (default: OFF)"
     )
     
@@ -97,26 +99,21 @@ def main(argv: Optional[list] = None):
         help="Run in non-interactive mode (read from stdin or --input)"
     )
     parser.add_argument(
-        "--subprocess",
-        action="store_true",
-        help="Use subprocess orchestration for agent delegations"
-    )
-    parser.add_argument(
-        "--interactive-subprocess",
-        action="store_true",
-        help="Use interactive subprocess orchestration with pexpect control"
-    )
-    parser.add_argument(
         "--todo-hijack",
         action="store_true",
         help="Enable TODO hijacking to transform Claude's TODOs into agent delegations"
     )
+    parser.add_argument(
+        "--no-native-agents",
+        action="store_true",
+        help="Disable deployment of Claude Code native agents"
+    )
     
-    # Commands
+    # Commands (prefixed with --mpm:)
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
     # Run command (default) - duplicate args for explicit 'run' command
-    run_parser = subparsers.add_parser("run", help="Run orchestrated Claude session (default)")
+    run_parser = subparsers.add_parser(CLICommands.RUN.with_prefix(), help="Run orchestrated Claude session (default)")
     run_parser.add_argument(
         "--no-hooks",
         action="store_true",
@@ -138,18 +135,13 @@ def main(argv: Optional[list] = None):
         help="Run in non-interactive mode (read from stdin or --input)"
     )
     run_parser.add_argument(
-        "--subprocess",
+        "--no-native-agents",
         action="store_true",
-        help="Use subprocess orchestration for agent delegations"
-    )
-    run_parser.add_argument(
-        "--interactive-subprocess",
-        action="store_true",
-        help="Use interactive subprocess orchestration with pexpect control"
+        help="Disable deployment of Claude Code native agents"
     )
     
     # List tickets command
-    list_parser = subparsers.add_parser("tickets", help="List recent tickets")
+    list_parser = subparsers.add_parser(CLICommands.TICKETS.with_prefix(), help="List recent tickets")
     list_parser.add_argument(
         "-n", "--limit",
         type=int,
@@ -158,18 +150,63 @@ def main(argv: Optional[list] = None):
     )
     
     # Info command
-    info_parser = subparsers.add_parser("info", help="Show framework and configuration info")
+    info_parser = subparsers.add_parser(CLICommands.INFO.with_prefix(), help="Show framework and configuration info")
+    
+    # Agent management commands
+    agents_parser = subparsers.add_parser(CLICommands.AGENTS.with_prefix(), help="Manage Claude Code native agents")
+    agents_subparsers = agents_parser.add_subparsers(dest="agents_command", help="Agent commands")
+    
+    # List agents
+    list_agents_parser = agents_subparsers.add_parser(AgentCommands.LIST.value, help="List available agents")
+    list_agents_parser.add_argument(
+        "--system",
+        action="store_true",
+        help="List system agents"
+    )
+    list_agents_parser.add_argument(
+        "--deployed",
+        action="store_true", 
+        help="List deployed agents"
+    )
+    
+    # Deploy agents
+    deploy_agents_parser = agents_subparsers.add_parser(AgentCommands.DEPLOY.value, help="Deploy system agents")
+    deploy_agents_parser.add_argument(
+        "--target",
+        type=Path,
+        help="Target directory (default: .claude/agents/)"
+    )
+    
+    # Force deploy agents
+    force_deploy_parser = agents_subparsers.add_parser(AgentCommands.FORCE_DEPLOY.value, help="Force deploy all system agents")
+    force_deploy_parser.add_argument(
+        "--target",
+        type=Path,
+        help="Target directory (default: .claude/agents/)"
+    )
+    
+    # Clean agents
+    clean_agents_parser = agents_subparsers.add_parser(AgentCommands.CLEAN.value, help="Remove deployed system agents")
+    clean_agents_parser.add_argument(
+        "--target",
+        type=Path,
+        help="Target directory (default: .claude/)"
+    )
     
     # Parse arguments
     args = parser.parse_args(argv)
     
+    # Debug: Print parsed args
+    if hasattr(args, 'debug') and args.debug:
+        print(f"DEBUG: Parsed args: {args}")
+    
     # Set up logging first
     # Handle deprecated --debug flag
-    if args.debug and args.logging == "OFF":
-        args.logging = "DEBUG"
+    if args.debug and args.logging == LogLevel.OFF.value:
+        args.logging = LogLevel.DEBUG.value
     
     # Only setup logging if not OFF
-    if args.logging != "OFF":
+    if args.logging != LogLevel.OFF.value:
         logger = setup_logging(level=args.logging, log_dir=args.log_dir)
     else:
         # Minimal logger for CLI feedback
@@ -187,13 +224,15 @@ def main(argv: Optional[list] = None):
             except ImportError:
                 from config.hook_config import HookConfig
             if HookConfig.is_hooks_enabled():
-                hook_manager = HookServiceManager(log_dir=args.log_dir)
+                hook_manager = JSONRPCHookManager(log_dir=args.log_dir)
                 if hook_manager.start_service():
-                    logger.info(f"Hook service started on port {hook_manager.port}")
-                    print(f"Hook service started on port {hook_manager.port}")
+                    logger.info("JSON-RPC hook system initialized")
+                    if args.logging != LogLevel.OFF.value:
+                        print("✓ JSON-RPC hook system initialized")
                 else:
-                    logger.warning("Failed to start hook service, continuing without hooks")
-                    print("Failed to start hook service, continuing without hooks")
+                    logger.warning("Failed to initialize JSON-RPC hooks, continuing without hooks")
+                    if args.logging != LogLevel.OFF.value:
+                        print("⚠️  Failed to initialize JSON-RPC hooks, continuing without hooks")
                     hook_manager = None
             else:
                 logger.info("Hooks disabled via configuration")
@@ -203,23 +242,27 @@ def main(argv: Optional[list] = None):
     
     # Default to run command
     if not args.command:
-        args.command = "run"
+        args.command = CLICommands.RUN.with_prefix()
         # Also set default arguments for run command when no subcommand specified
         args.no_tickets = getattr(args, 'no_tickets', False)
         args.no_hooks = getattr(args, 'no_hooks', False)
         args.input = getattr(args, 'input', None)
         args.non_interactive = getattr(args, 'non_interactive', False)
-        args.subprocess = getattr(args, 'subprocess', False)
-        args.interactive_subprocess = getattr(args, 'interactive_subprocess', False)
+    
+    # Debug output
+    logger.debug(f"Command: {args.command}")
+    logger.debug(f"Arguments: {args}")
     
     # Execute command
     try:
-        if args.command == "run":
+        if args.command == CLICommands.RUN.with_prefix():
             run_session(args, hook_manager)
-        elif args.command == "tickets":
+        elif args.command == CLICommands.TICKETS.with_prefix():
             list_tickets(args)
-        elif args.command == "info":
+        elif args.command == CLICommands.INFO.with_prefix():
             show_info(args, hook_manager)
+        elif args.command == CLICommands.AGENTS.with_prefix():
+            manage_agents(args)
         else:
             parser.print_help()
             return 1
@@ -280,10 +323,52 @@ def _show_session_summary(orchestrator):
 def run_session(args, hook_manager=None):
     """Run an orchestrated Claude session."""
     logger = get_logger("cli")
-    if args.logging != "OFF":
+    if args.logging != LogLevel.OFF.value:
         logger.info("Starting Claude MPM session")
         if hook_manager and hook_manager.is_available():
             logger.info(f"Hook service available at port {hook_manager.port}")
+    
+    # Deploy native agents if enabled
+    deploy_native = not getattr(args, 'no_native_agents', False)  # Deploy by default
+    if deploy_native:
+        try:
+            from .services.agent_deployment import AgentDeploymentService
+            deployment_service = AgentDeploymentService()
+            
+            # Deploy agents to .claude/agents/
+            logger.info("Deploying Claude Code native agents...")
+            deployment_results = deployment_service.deploy_agents()
+            
+            if deployment_results["deployed"] or deployment_results.get("updated", []):
+                deployed_count = len(deployment_results['deployed'])
+                updated_count = len(deployment_results.get('updated', []))
+                skipped_count = len(deployment_results.get('skipped', []))
+                
+                if deployed_count > 0:
+                    print(f"✓ Built and deployed {deployed_count} native agents to {deployment_results['target_dir']}")
+                if updated_count > 0:
+                    print(f"✓ Updated {updated_count} outdated agents")
+                if skipped_count > 0:
+                    print(f"✓ {skipped_count} agents already up to date")
+                    
+                if args.logging != LogLevel.OFF.value:
+                    for agent in deployment_results["deployed"]:
+                        logger.info(f"  - Deployed: {agent['name']}")
+                    for agent in deployment_results.get("updated", []):
+                        logger.info(f"  - Updated: {agent['name']}")
+            
+            if deployment_results["errors"]:
+                for error in deployment_results["errors"]:
+                    logger.warning(f"Agent deployment warning: {error}")
+            
+            # Set Claude environment variables
+            env_vars = deployment_service.set_claude_environment()
+            if args.logging != LogLevel.OFF.value:
+                logger.info(f"Set Claude environment: {env_vars}")
+            
+        except Exception as e:
+            logger.warning(f"Native agent deployment failed: {e}, continuing without native agents")
+            print(f"⚠️  Native agent deployment failed: {e}")
     
     # Create configuration for factory
     config = {
@@ -293,8 +378,6 @@ def run_session(args, hook_manager=None):
         "log_dir": args.log_dir,
         "hook_manager": hook_manager,
         "no_tickets": args.no_tickets,
-        "subprocess": getattr(args, 'subprocess', False),
-        "interactive_subprocess": getattr(args, 'interactive_subprocess', False),
         "enable_todo_hijacking": getattr(args, 'todo_hijack', False)
     }
     
@@ -306,11 +389,8 @@ def run_session(args, hook_manager=None):
     if args.non_interactive or args.input:
         user_input = _get_user_input(args, logger)
         
-        # Run appropriate session type
-        if getattr(args, 'interactive_subprocess', False):
-            orchestrator.run_orchestrated_session(user_input)
-        else:
-            orchestrator.run_non_interactive(user_input)
+        # Run non-interactive session
+        orchestrator.run_non_interactive(user_input)
     else:
         # Run interactive session
         orchestrator.run_interactive()
@@ -358,6 +438,136 @@ def list_tickets(args):
         print("Install with: pip install ai-trackdown-pytools")
     except Exception as e:
         logger.error(f"Error listing tickets: {e}")
+        print(f"Error: {e}")
+
+
+def manage_agents(args):
+    """Manage Claude Code native agents."""
+    logger = get_logger("cli")
+    
+    try:
+        from .services.agent_deployment import AgentDeploymentService
+        deployment_service = AgentDeploymentService()
+        
+        if not args.agents_command:
+            print("Error: No agent command specified")
+            print("\nUsage: claude-mpm --mpm:agents <command> [options]")
+            print("\nAvailable commands:")
+            print("  list          - List available agents")
+            print("  deploy        - Deploy system agents")
+            print("  force-deploy  - Force deploy all system agents")
+            print("  clean         - Remove deployed system agents")
+            print("\nExamples:")
+            print("  claude-mpm --mpm:agents list --system")
+            print("  claude-mpm --mpm:agents deploy")
+            print("  claude-mpm --mpm:agents force-deploy")
+            return
+        
+        if args.agents_command == AgentCommands.LIST.value:
+            # Determine what to list
+            if args.system:
+                # List available agent templates
+                print("Available Agent Templates:")
+                print("-" * 80)
+                agents = deployment_service.list_available_agents()
+                if not agents:
+                    print("No agent templates found")
+                else:
+                    for agent in agents:
+                        print(f"📄 {agent['file']}")
+                        if 'name' in agent:
+                            print(f"   Name: {agent['name']}")
+                        if 'description' in agent:
+                            print(f"   Description: {agent['description']}")
+                        if 'version' in agent:
+                            print(f"   Version: {agent['version']}")
+                        print()
+            
+            elif args.deployed:
+                # List deployed agents
+                print("Deployed Agents:")
+                print("-" * 80)
+                verification = deployment_service.verify_deployment()
+                if not verification["agents_found"]:
+                    print("No deployed agents found")
+                else:
+                    for agent in verification["agents_found"]:
+                        print(f"📄 {agent['file']}")
+                        if 'name' in agent:
+                            print(f"   Name: {agent['name']}")
+                        print(f"   Path: {agent['path']}")
+                        print()
+                
+                if verification["warnings"]:
+                    print("\nWarnings:")
+                    for warning in verification["warnings"]:
+                        print(f"  ⚠️  {warning}")
+            
+            else:
+                # Default: list both
+                print("Use --system to list system agents or --deployed to list deployed agents")
+        
+        elif args.agents_command == AgentCommands.DEPLOY.value:
+            # Deploy agents
+            print("Deploying system agents...")
+            results = deployment_service.deploy_agents(args.target, force_rebuild=False)
+            
+            if results["deployed"]:
+                print(f"\n✓ Successfully deployed {len(results['deployed'])} agents to {results['target_dir']}")
+                for agent in results["deployed"]:
+                    print(f"  - {agent['name']}")
+        
+        elif args.agents_command == AgentCommands.FORCE_DEPLOY.value:
+            # Force deploy agents
+            print("Force deploying all system agents...")
+            results = deployment_service.deploy_agents(args.target, force_rebuild=True)
+            
+            if results["deployed"]:
+                print(f"\n✓ Successfully deployed {len(results['deployed'])} agents to {results['target_dir']}")
+                for agent in results["deployed"]:
+                    print(f"  - {agent['name']}")
+            
+            if results.get("updated", []):
+                print(f"\n✓ Updated {len(results['updated'])} agents")
+                for agent in results["updated"]:
+                    print(f"  - {agent['name']}")
+            
+            if results.get("skipped", []):
+                print(f"\n✓ Skipped {len(results['skipped'])} up-to-date agents")
+            
+            if results["errors"]:
+                print("\n❌ Errors during deployment:")
+                for error in results["errors"]:
+                    print(f"  - {error}")
+            
+            # Set environment
+            env_vars = deployment_service.set_claude_environment(args.target.parent if args.target else None)
+            print(f"\n✓ Set Claude environment variables:")
+            for key, value in env_vars.items():
+                print(f"  - {key}={value}")
+        
+        elif args.agents_command == AgentCommands.CLEAN.value:
+            # Clean deployed agents
+            print("Cleaning deployed system agents...")
+            results = deployment_service.clean_deployment(args.target)
+            
+            if results["removed"]:
+                print(f"\n✓ Removed {len(results['removed'])} agents")
+                for path in results["removed"]:
+                    print(f"  - {Path(path).name}")
+            else:
+                print("No system agents found to remove")
+            
+            if results["errors"]:
+                print("\n❌ Errors during cleanup:")
+                for error in results["errors"]:
+                    print(f"  - {error}")
+        
+    except ImportError:
+        logger.error("Agent deployment service not available")
+        print("Error: Agent deployment service not available")
+    except Exception as e:
+        logger.error(f"Error managing agents: {e}")
         print(f"Error: {e}")
 
 
@@ -422,11 +632,15 @@ def show_info(args, hook_manager=None):
     if hook_manager:
         info = hook_manager.get_service_info()
         if info['running']:
-            print(f"  ✓ Hook Service: Running on port {info['port']}")
+            print(f"  ✓ Hook System: JSON-RPC ({info.get('hook_count', 0)} hooks)")
+            if 'discovered_hooks' in info and info['discovered_hooks']:
+                print(f"     Hooks: {', '.join(info['discovered_hooks'][:5])}")
+                if len(info['discovered_hooks']) > 5:
+                    print(f"     ... and {len(info['discovered_hooks']) - 5} more")
         else:
-            print("  ✗ Hook Service: Not running")
+            print("  ✗ Hook System: Not running")
     else:
-        print("  ✗ Hook Service: Disabled (--no-hooks)")
+        print("  ✗ Hook System: Disabled (--no-hooks)")
 
 
 if __name__ == "__main__":

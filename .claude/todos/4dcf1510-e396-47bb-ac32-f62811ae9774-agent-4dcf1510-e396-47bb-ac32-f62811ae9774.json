@@ -1,0 +1,26 @@
+[
+  {
+    "content": "Explore agent system structure and components",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Examine agent templates and their roles",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Understand agent loading and registry mechanism",
+    "status": "completed",
+    "priority": "high",
+    "id": "3"
+  },
+  {
+    "content": "Review agent deployment and management services",
+    "status": "completed",
+    "priority": "medium",
+    "id": "4"
+  }
+]

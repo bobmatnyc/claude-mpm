@@ -3,8 +3,8 @@
 import re
 from typing import Dict, Any
 
-from src.hooks.base_hook import SubmitHook, HookContext, HookResult
-from src.utils.logger import get_logger
+from claude_mpm.hooks.base_hook import SubmitHook, HookContext, HookResult
+from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
 

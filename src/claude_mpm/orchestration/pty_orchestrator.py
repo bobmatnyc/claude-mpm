@@ -15,13 +15,13 @@ import threading
 import fcntl
 
 try:
-    from ..utils.logger import get_logger, setup_logging
+    from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner, OutputMode
     from .ticket_extractor import TicketExtractor
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
-    from utils.logger import get_logger, setup_logging
+    from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner, OutputMode
     from orchestration.ticket_extractor import TicketExtractor
     from core.framework_loader import FrameworkLoader

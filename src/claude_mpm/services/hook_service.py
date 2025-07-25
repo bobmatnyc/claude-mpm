@@ -22,7 +22,7 @@ from claude_mpm.hooks.base_hook import (
     BaseHook, HookContext, HookResult, HookType,
     SubmitHook, PreDelegationHook, PostDelegationHook, TicketExtractionHook
 )
-from claude_mpm.utils.logger import get_logger
+from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
 

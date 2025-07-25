@@ -9,11 +9,11 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
     from ..utils.config_manager import ConfigurationManager
     from .todo_transformer import TodoTransformer
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
     from utils.config_manager import ConfigurationManager
     from orchestration.todo_transformer import TodoTransformer
 

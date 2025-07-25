@@ -1,0 +1,30 @@
+# AI Trackdown configuration for Claude MPM
+version: "1.0"
+project:
+  name: "claude-mpm"
+  description: "Claude Multi-Agent Project Manager"
+  
+paths:
+  # Use tickets/ instead of tasks/
+  tickets_dir: "tickets"
+  epics_dir: "tickets/epics"
+  issues_dir: "tickets/issues"
+  tasks_dir: "tickets/tasks"
+  
+# Ticket prefixes
+prefixes:
+  epic: "EP"
+  issue: "ISS"
+  task: "TSK"
+  
+# Default settings
+defaults:
+  status: "open"
+  priority: "medium"
+  
+# Integration settings
+integrations:
+  github:
+    enabled: false
+  gitlab:
+    enabled: false

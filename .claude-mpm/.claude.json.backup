@@ -1,0 +1,20 @@
+{
+  "installMethod": "unknown",
+  "autoUpdates": true,
+  "userID": "9ec59bd86295ff0f3aeb58137cfea8a554bb98c95550582763cfd36a8a2eba78",
+  "firstStartTime": "2025-07-25T12:50:29.981Z",
+  "projects": {
+    "/Users/masa/Projects/claude-mpm": {
+      "allowedTools": [],
+      "history": [],
+      "mcpContextUris": [],
+      "mcpServers": {},
+      "enabledMcpjsonServers": [],
+      "disabledMcpjsonServers": [],
+      "hasTrustDialogAccepted": false,
+      "projectOnboardingSeenCount": 0,
+      "hasClaudeMdExternalIncludesApproved": false,
+      "hasClaudeMdExternalIncludesWarningShown": false
+    }
+  }
+}

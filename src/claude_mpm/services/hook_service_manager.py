@@ -14,10 +14,10 @@ import psutil
 import logging
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
     from ..config.hook_config import HookConfig
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
     from config.hook_config import HookConfig
 
 

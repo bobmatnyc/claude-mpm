@@ -5,10 +5,10 @@ from typing import Optional, Dict, Any, List, Tuple
 from datetime import datetime
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
     from ..core.agent_registry import AgentRegistryAdapter
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
     from core.agent_registry import AgentRegistryAdapter
 
 

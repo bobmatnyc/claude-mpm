@@ -1,0 +1,13 @@
+# Claude MPM project files
+logs/
+cache/
+sessions/
+stats/*.json
+artifacts/
+
+# Keep directory structure
+!logs/.gitkeep
+!cache/.gitkeep
+!sessions/.gitkeep
+!stats/.gitkeep
+!artifacts/.gitkeep

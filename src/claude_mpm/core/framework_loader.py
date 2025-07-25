@@ -35,6 +35,8 @@ class FrameworkLoader:
         self.logger = get_logger("framework_loader")
         self.framework_path = framework_path or self._detect_framework_path()
         self.agents_dir = agents_dir
+        self.framework_version = None
+        self.framework_last_modified = None
         self.framework_content = self._load_framework_content()
         
         # Initialize agent registry
@@ -131,6 +133,26 @@ class FrameworkLoader:
             content = file_path.read_text()
             if hasattr(self.logger, 'level') and self.logger.level <= logging.INFO:
                 self.logger.info(f"Loaded {file_type} from: {file_path}")
+            
+            # Extract metadata if present
+            import re
+            version_match = re.search(r'<!-- FRAMEWORK_VERSION: (\d+) -->', content)
+            if version_match:
+                version = version_match.group(1)  # Keep as string to preserve leading zeros
+                self.logger.info(f"Framework version: {version}")
+                # Store framework version if this is the main INSTRUCTIONS.md
+                if 'INSTRUCTIONS.md' in str(file_path):
+                    self.framework_version = version
+                    
+            # Extract modification timestamp
+            timestamp_match = re.search(r'<!-- LAST_MODIFIED: ([^>]+) -->', content)
+            if timestamp_match:
+                timestamp = timestamp_match.group(1).strip()
+                self.logger.info(f"Last modified: {timestamp}")
+                # Store timestamp if this is the main INSTRUCTIONS.md
+                if 'INSTRUCTIONS.md' in str(file_path):
+                    self.framework_last_modified = timestamp
+            
             return content
         except Exception as e:
             if hasattr(self.logger, 'level') and self.logger.level <= logging.ERROR:
@@ -227,28 +249,36 @@ class FrameworkLoader:
             "agents": {},
             "version": "unknown",
             "loaded": False,
-            "working_claude_md": ""
+            "working_claude_md": "",
+            "framework_instructions": ""
         }
         
-        # Load instructions file
+        # Load instructions file from working directory
         self._load_instructions_file(content)
         
         if not self.framework_path:
             return content
+        
+        # Load framework's INSTRUCTIONS.md
+        framework_instructions_path = self.framework_path / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
+        if framework_instructions_path.exists():
+            loaded_content = self._try_load_file(framework_instructions_path, "framework INSTRUCTIONS.md")
+            if loaded_content:
+                content["framework_instructions"] = loaded_content
+                content["loaded"] = True
+                # Add framework version to content
+                if self.framework_version:
+                    content["instructions_version"] = self.framework_version
+                    content["version"] = self.framework_version  # Update main version key
+                # Add modification timestamp to content
+                if self.framework_last_modified:
+                    content["instructions_last_modified"] = self.framework_last_modified
         
         # Discover agent directories
         agents_dir, templates_dir, main_dir = self._discover_framework_paths()
         
         # Load agents from discovered directory
         self._load_agents_directory(content, agents_dir, templates_dir, main_dir)
-        
-        # Get version
-        version_file = self.framework_path / "src" / "claude_mpm" / "framework" / "VERSION"
-        if version_file.exists():
-            try:
-                content["version"] = version_file.read_text().strip()
-            except:
-                pass
         
         return content
     
@@ -270,7 +300,17 @@ class FrameworkLoader:
         """Format full framework instructions."""
         from datetime import datetime
         
-        # Start with header
+        # If we have the full framework INSTRUCTIONS.md, use it
+        if self.framework_content.get("framework_instructions"):
+            instructions = self.framework_content["framework_instructions"]
+            
+            # Add working directory instructions if they exist
+            if self.framework_content["working_claude_md"]:
+                instructions += f"\n\n## Working Directory Instructions\n{self.framework_content['working_claude_md']}\n"
+            
+            return instructions
+        
+        # Otherwise fall back to generating framework
         instructions = f"""
 <!-- Framework injected by Claude MPM -->
 <!-- Version: {self.framework_content['version']} -->

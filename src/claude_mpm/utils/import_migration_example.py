@@ -7,7 +7,7 @@ pattern with the new safe_import utility.
 # BEFORE: The old pattern used throughout the codebase
 # -----------------------------------------------------
 # try:
-#     from ..utils.logger import get_logger
+#     from ..core.logger import get_logger
 # except ImportError:
 #     from utils.logger import get_logger
 #

@@ -1,0 +1,14 @@
+[
+  {
+    "content": "Update DEPLOY.md with versioning information",
+    "status": "completed",
+    "priority": "high",
+    "id": "48"
+  },
+  {
+    "content": "Link DEPLOY.md to CLAUDE.md",
+    "status": "completed",
+    "priority": "medium",
+    "id": "49"
+  }
+]

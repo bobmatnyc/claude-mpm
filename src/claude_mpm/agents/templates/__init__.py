@@ -15,7 +15,6 @@ TEMPLATE_DIR = Path(__file__).parent
 # Core agent template mappings
 AGENT_TEMPLATES = {
     "documentation": "documentation_agent.md",
-    "ticketing": "ticketing_agent.md",
     "engineer": "engineer_agent.md", 
     "qa": "qa_agent.md",
     "version_control": "version_control_agent.md",
@@ -28,7 +27,6 @@ AGENT_TEMPLATES = {
 # Agent nicknames for reference
 AGENT_NICKNAMES = {
     "documentation": "Documenter",
-    "ticketing": "Ticketer",
     "engineer": "Engineer",
     "qa": "QA",
     "version_control": "Versioner",

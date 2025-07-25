@@ -5,9 +5,9 @@ from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 
 try:
-    from ..utils.logger import get_logger
+    from ..core.logger import get_logger
 except ImportError:
-    from utils.logger import get_logger
+    from core.logger import get_logger
 
 
 class TodoTransformer:
