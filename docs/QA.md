@@ -14,8 +14,8 @@ Quality assurance for claude-mpm involves multiple levels of testing:
 
 **Run the full test suite after:**
 - Major feature additions or modifications
-- Changes to core components (orchestrators, CLI, agents)
-- Updates to the Claude launcher or subprocess handling
+- Changes to core components (CLI, agents, services)
+- Updates to the framework or agent system
 - Modifications to the framework loading system
 - Before creating a new release
 
@@ -64,7 +64,7 @@ The E2E tests verify:
    - Simple prompts with `-i` flag
    - Reading from stdin
    - Various prompt types (math, facts, etc.)
-   - Subprocess orchestrator mode
+   - Different execution modes
 
 3. **Interactive Mode**
    - Startup without errors
@@ -89,15 +89,15 @@ Before committing significant changes, ensure:
 
 ## Testing Specific Components
 
-### Testing Orchestrators
+### Testing Execution Modes
 
-When modifying orchestrators:
+When modifying execution logic:
 ```bash
-# Test subprocess orchestrator
-./claude-mpm run --subprocess -i "test prompt" --non-interactive
-
-# Test system prompt orchestrator (default)
+# Test non-interactive mode
 ./claude-mpm run -i "test prompt" --non-interactive
+
+# Test interactive mode
+./claude-mpm
 ```
 
 ### Testing Hook System
@@ -197,10 +197,10 @@ echo "Explain Python decorators" > prompt.txt
 ./claude-mpm run -i prompt.txt --non-interactive
 ```
 
-### Scenario 3: Subprocess Orchestration
+### Scenario 3: Agent Delegation
 ```bash
-# Test delegation detection
-./claude-mpm run --subprocess -i "Create a TODO list for building a web app" --non-interactive
+# Test delegation to Research Agent
+./claude-mpm run -i "Research best practices for REST API design" --non-interactive
 ```
 
 ## Performance Testing
@@ -234,10 +234,10 @@ Before creating a release:
    claude-mpm --version
    ```
 
-3. **Test all orchestrators**
-   - Default (system prompt)
-   - Subprocess
-   - Interactive subprocess
+3. **Test all execution modes**
+   - Interactive (default)
+   - Non-interactive
+   - Debug mode
 
 4. **Verify documentation**
    - README.md examples work

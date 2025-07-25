@@ -81,7 +81,7 @@ FIRST_ARG="${1:-}"
 # Check if first argument is an MPM command (with or without prefix)
 IS_MPM_COMMAND=false
 
-# Check for prefixed commands
+# Check for prefixed commands (including --mpm:ui)
 if [[ "$FIRST_ARG" == "$MPM_PREFIX"* ]]; then
     IS_MPM_COMMAND=true
     print_info "Detected MPM command: $FIRST_ARG"
@@ -114,9 +114,28 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     # Run claude-mpm
     cd "$PROJECT_ROOT"
     
-    # Keep the arguments as-is (don't transform --mpm: prefix)
-    # The Python code expects --mpm: prefixed commands
-    ARGS=("$@")
+    # Transform --mpm: prefixed flags to regular flags for Python
+    # Special handling for --mpm:ui to keep it as a single argument
+    ARGS=()
+    for arg in "$@"; do
+        if [[ "$arg" == "--mpm:ui" ]]; then
+            # Keep --mpm:ui as is for proper subparser handling
+            ARGS+=("--mpm:ui")
+        elif [[ "$arg" == "--mpm:"* ]]; then
+            # Transform other --mpm: prefixed commands
+            ARGS+=("--mpm:${arg#--mpm:}")
+        elif [[ "$arg" == "-mpm:"* ]]; then
+            # Remove -mpm: prefix
+            ARGS+=("-${arg#-mpm:}")
+        else
+            ARGS+=("$arg")
+        fi
+    done
+    
+    # Debug: Print the command
+    if [[ "$CLAUDE_MPM_DEBUG" == "1" ]]; then
+        print_info "Running: python -m claude_mpm ${ARGS[*]}"
+    fi
     
     exec python -m claude_mpm "${ARGS[@]}"
 else

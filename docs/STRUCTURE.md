@@ -12,13 +12,6 @@ Claude MPM uses a standard Python project layout with the main package located i
 
 ```
 claude-mpm/
-├── .ai-trackdown/                    # AI Trackdown integration
-│   ├── cache/                        # Cache directory
-│   ├── config.yaml                   # AI Trackdown configuration
-│   ├── project.yaml                  # Project-specific config
-│   ├── schemas/                      # Schema definitions
-│   └── templates/                    # Template files
-│
 ├── .claude/                          # Claude-specific settings
 │   ├── settings.json                 # Claude settings
 │   └── hooks/                        # Claude hooks directory
@@ -35,7 +28,6 @@ claude-mpm/
 │   └── STRUCTURE.md                  # This file
 │
 ├── examples/                         # Example implementations
-│   └── todo_hijacker_demo.py         # Todo hijacking demonstration
 │
 ├── scripts/                          # ALL executable scripts and utilities
 │   ├── claude-mpm                    # Main executable script
@@ -64,7 +56,7 @@ claude-mpm/
 │   ├── core/                         # Core components
 │   │   ├── __init__.py
 │   │   ├── agent_registry.py         # Agent registry implementation
-│   │   ├── claude_launcher.py        # Unified Claude CLI launcher (NEW)
+│   │   ├── simple_runner.py          # Main runner implementation
 │   │   ├── framework_loader.py       # Framework loading
 │   │   └── ...
 │   │
@@ -77,12 +69,6 @@ claude-mpm/
 │   │   ├── base_hook.py              # Base hook class
 │   │   ├── hook_client.py            # Hook client implementation
 │   │   └── builtin/                  # Built-in hooks
-│   │
-│   ├── orchestration/                # Orchestration layer
-│   │   ├── orchestrator.py           # Base orchestrator
-│   │   ├── subprocess_orchestrator.py # Subprocess orchestrator
-│   │   ├── todo_hijacker.py          # Todo hijacking system
-│   │   └── ...
 │   │
 │   ├── services/                     # Service layer
 │   │   ├── hook_service.py           # Hook service
@@ -109,19 +95,13 @@ The main Python package following the src layout pattern. All source code lives 
 
 ### `/src/claude_mpm/core/` - Core Components
 - **agent_registry.py**: Dynamic agent discovery and management
-- **claude_launcher.py**: Unified launcher for Claude CLI (consolidates all subprocess calls)
+- **simple_runner.py**: Main runner implementation
 - **framework_loader.py**: Loads INSTRUCTIONS.md (or legacy CLAUDE.md) and framework instructions
 
 ### `/src/claude_mpm/agents/` - Agent System
 - **templates/**: Pre-defined agent templates (documentation, engineer, QA, etc.)
 - **base_agent.md**: Base template for all agents
 
-### `/src/claude_mpm/orchestration/` - Orchestration Layer
-Different orchestration strategies for running Claude:
-- **orchestrator.py**: Base orchestrator class
-- **subprocess_orchestrator.py**: Uses subprocess for delegations
-- **interactive_subprocess_orchestrator.py**: Interactive subprocess mode
-- **todo_hijacker.py**: Intercepts and transforms TODOs into agent delegations
 
 ### `/src/claude_mpm/services/` - Service Layer
 Business logic and service implementations:
@@ -157,8 +137,7 @@ When creating new files, follow these guidelines:
 
 1. **Python modules**: Place in appropriate subdirectory under `/src/claude_mpm/`
 2. **Agent templates**: Place in `/src/claude_mpm/agents/templates/`
-3. **New orchestrators**: Place in `/src/claude_mpm/orchestration/`
-4. **Service classes**: Place in `/src/claude_mpm/services/`
+3. **Service classes**: Place in `/src/claude_mpm/services/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
 6. **Tests**: Place in `/tests/` with `test_` prefix
    - Unit tests: `/tests/test_*.py`
@@ -186,10 +165,7 @@ When creating new files, follow these guidelines:
 
 ## Recent Additions
 
-- **ClaudeLauncher** (`/src/claude_mpm/core/claude_launcher.py`): Unified subprocess launcher for all Claude CLI calls
-- **Todo Hijacking System**: Advanced TODO interception and transformation
 - **Hook System**: Complete extensibility framework
-- **Interactive Subprocess Orchestrator**: Enhanced interactive mode support
 - **Tree-sitter Integration**: AST-level code analysis for 41+ programming languages
   - Enables advanced code understanding in Research Agent operations
   - Powers real-time agent modification tracking with syntax awareness
@@ -199,6 +175,5 @@ When creating new files, follow these guidelines:
 
 1. **Service-Oriented Architecture**: Business logic in service layer
 2. **Plugin Architecture**: Hook system for extensibility
-3. **Strategy Pattern**: Multiple orchestrator implementations
-4. **Registry Pattern**: Dynamic agent discovery
+3. **Registry Pattern**: Dynamic agent discovery
 5. **Adapter Pattern**: Integration with external systems

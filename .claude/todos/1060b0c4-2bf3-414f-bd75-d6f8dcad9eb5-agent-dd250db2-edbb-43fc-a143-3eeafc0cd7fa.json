@@ -1,0 +1,38 @@
+[
+  {
+    "content": "Create DI container implementation",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Create service registry implementation",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Update existing services to use constructor injection",
+    "status": "completed",
+    "priority": "medium",
+    "id": "3"
+  },
+  {
+    "content": "Create factory methods for complex dependencies",
+    "status": "completed",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Create tests demonstrating improved testability",
+    "status": "completed",
+    "priority": "medium",
+    "id": "5"
+  },
+  {
+    "content": "Document DI patterns and usage",
+    "status": "completed",
+    "priority": "low",
+    "id": "6"
+  }
+]

@@ -4,42 +4,43 @@ Understanding these core concepts will help you use Claude MPM effectively.
 
 ## What is Claude MPM?
 
-Claude MPM (Multi-Agent Project Manager) is an **orchestration layer** that sits between you and Claude. Think of it as a smart wrapper that enhances Claude with project management capabilities.
+Claude MPM (Multi-Agent Project Manager) is a **framework** that enhances Claude with multi-agent capabilities and extensible architecture.
 
 ```
-You → Claude MPM → Claude
+You → Claude MPM → Services & Agents
          ↓
     [Enhancement Layer]
-    - Ticket extraction
     - Agent delegation  
+    - Hook system
     - Session logging
-    - Memory protection
+    - Service architecture
 ```
 
 ## Key Concepts
 
-### 1. Subprocess Orchestration
+### 1. Agent System
 
-Unlike traditional Claude usage, Claude MPM runs Claude as a **subprocess**:
+Claude MPM provides a sophisticated agent system:
 
-- **Traditional**: You interact directly with Claude
-- **Claude MPM**: You interact with Claude MPM, which manages Claude
+- **Specialized Agents**: Different agents for different task types
+- **Dynamic Loading**: Agents are loaded based on task requirements
+- **Extensible**: Easy to add new agent types
 
 Benefits:
-- Full control over inputs/outputs
-- Real-time monitoring and interception
-- Dynamic instruction injection
-- Process-level resource management
+- Task-specific expertise
+- Better code organization
+- Modular capabilities
+- Clear separation of concerns
 
 ### 2. Framework Injection
 
-Claude MPM automatically injects a comprehensive framework that teaches Claude:
-- How to work with tickets
+Claude MPM provides a comprehensive framework that includes:
 - When to delegate to specialized agents
 - How to structure responses
 - Project management best practices
+- Hook points for customization
 
-This happens transparently - you don't need to manage any framework files.
+The framework is loaded dynamically based on your configuration.
 
 ### 3. Agents
 
@@ -54,22 +55,27 @@ Agents are specialized personas that handle specific types of tasks:
 | Research | Information gathering | "research", "investigate" |
 | Security | Security analysis | "security", "vulnerability" |
 
-### 4. Automatic Ticket Extraction
+### 4. Hook System
 
-Claude MPM monitors conversations for ticket patterns:
+Claude MPM provides a powerful hook system for extensibility:
 
+```python
+# Example hook
+class MyHook(BaseHook):
+    def pre_process(self, request):
+        # Modify request before processing
+        return request
+    
+    def post_process(self, response):
+        # Modify response after processing
+        return response
 ```
-TODO: Implement user authentication
-TASK: Refactor database queries  
-BUG: Login page shows 404 error
-FEATURE: Add dark mode support
-```
 
-These are automatically extracted and saved as tickets with:
-- Unique IDs (TSK-0001, TSK-0002, etc.)
-- Timestamps
-- Status tracking
-- Priority levels
+Hooks enable:
+- Custom processing logic
+- Integration with external systems
+- Response transformation
+- Request validation
 
 ### 5. Session Management
 
@@ -80,13 +86,13 @@ Every interaction is a **session**:
 - **Session End**: When the command completes
 - **Session Log**: Saved to `~/.claude-mpm/sessions/`
 
-### 6. Memory Protection
+### 6. Service Architecture
 
-Claude has context limits. Claude MPM helps by:
-- Monitoring context usage
-- Warning before limits
-- Suggesting context optimization
-- Preventing overflow errors
+Claude MPM uses a service-oriented architecture:
+- **Hook Service**: Manages extensibility
+- **Agent Service**: Handles agent lifecycle
+- **Logging Service**: Comprehensive logging
+- **Configuration Service**: Manages settings
 
 ## How It All Works Together
 
@@ -94,14 +100,13 @@ Claude has context limits. Claude MPM helps by:
 
 1. **You type**: 
    ```bash
-   claude-mpm run -i "TODO: Create a REST API for user management"
+   claude-mpm run -i "Create a REST API for user management"
    ```
 
 2. **Claude MPM**:
-   - Detects the TODO pattern
-   - Creates ticket TSK-0001
-   - Injects framework instructions
-   - Passes to Claude
+   - Loads appropriate framework
+   - Initializes services
+   - Prepares agent context
 
 3. **Claude (PM Agent)**:
    - Recognizes this needs engineering
@@ -109,9 +114,9 @@ Claude has context limits. Claude MPM helps by:
    - Provides structured response
 
 4. **Claude MPM**:
-   - Captures the response
+   - Processes through hooks
    - Logs everything
-   - Shows you the result
+   - Returns the result
 
 ### The Framework
 
@@ -119,32 +124,26 @@ The framework is a set of instructions that teaches Claude:
 
 ```markdown
 You are working with Claude MPM, which provides:
-- Automatic ticket management
 - Multi-agent delegation
+- Hook system for extensibility
 - Session tracking
-- And more...
+- Service architecture
 
-When you see "TODO:", create a ticket...
 When engineering is needed, delegate to Engineer...
+When documentation is needed, delegate to Documentation...
 ```
 
-This is injected automatically - you never see or manage it.
+This is loaded based on your configuration and needs.
 
-## Orchestration Modes
+## Execution Modes
 
-### 1. Direct Mode
-Default interactive mode where Claude handles its own I/O:
+### 1. Interactive Mode
+Default mode for interactive sessions:
 ```bash
-claude-mpm  # Launches Claude directly
+claude-mpm  # Launches interactive session
 ```
 
-### 2. Subprocess Mode
-Full subprocess control with monitoring:
-```bash
-claude-mpm run --subprocess -i "prompt"
-```
-
-### 3. Non-Interactive Mode
+### 2. Non-Interactive Mode
 Single command execution:
 ```bash
 claude-mpm run -i "prompt" --non-interactive

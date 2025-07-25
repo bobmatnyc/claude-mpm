@@ -1,1 +1,1 @@
-"""Terminal UI module for Claude MPM."""
+"""Terminal UI components for claude-mpm."""
