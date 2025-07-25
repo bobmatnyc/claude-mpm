@@ -146,7 +146,7 @@ def main(argv: Optional[list] = None):
     info_parser = subparsers.add_parser(CLICommands.INFO.with_prefix(), help="Show framework and configuration info")
     
     # UI command
-    ui_parser = subparsers.add_parser("--mpm:ui", help="Launch terminal UI with multiple panes")
+    ui_parser = subparsers.add_parser(CLICommands.UI.with_prefix(), help="Launch terminal UI with multiple panes")
     ui_parser.add_argument(
         "--mode",
         choices=["terminal", "curses"],
@@ -265,7 +265,7 @@ def main(argv: Optional[list] = None):
             show_info(args, hook_manager)
         elif args.command == CLICommands.AGENTS.with_prefix():
             manage_agents(args)
-        elif args.command == "--mpm:ui":
+        elif args.command == CLICommands.UI.with_prefix():
             run_terminal_ui(args)
         else:
             parser.print_help()

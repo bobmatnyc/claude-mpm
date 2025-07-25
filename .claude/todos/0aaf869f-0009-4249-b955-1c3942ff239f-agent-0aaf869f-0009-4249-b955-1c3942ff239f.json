@@ -4,5 +4,11 @@
     "status": "completed",
     "priority": "high",
     "id": "5"
+  },
+  {
+    "content": "Add UI command to CLICommands enum",
+    "status": "completed",
+    "priority": "high",
+    "id": "6"
   }
 ]

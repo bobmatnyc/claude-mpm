@@ -26,6 +26,7 @@ class CLICommands(str, Enum):
     TICKETS = "tickets"
     INFO = "info"
     AGENTS = "agents"
+    UI = "ui"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
