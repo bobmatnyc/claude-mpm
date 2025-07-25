@@ -7,7 +7,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-from claude_mpm.hooks.hook_client import get_hook_client
+from claude_mpm.hooks.json_rpc_hook_client import get_hook_client
 from claude_mpm.hooks.base_hook import HookType
 
 

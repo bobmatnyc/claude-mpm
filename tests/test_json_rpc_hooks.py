@@ -562,17 +562,27 @@ class TestIntegration(unittest.TestCase):
         
     def test_hook_client_backward_compatibility(self):
         """Test backward compatibility with get_hook_client function."""
-        from claude_mpm.hooks.hook_client import get_hook_client
+        # Test importing from old location shows deprecation warning
+        with self.assertWarns(DeprecationWarning):
+            from claude_mpm.hooks.hook_client import get_hook_client
+            client = get_hook_client()
         
-        # Should return JSON-RPC client by default
-        client = get_hook_client()
+        # Should always return JSON-RPC client now
         self.assertIsInstance(client, JSONRPCHookClient)
         
-        # Test with environment variable to use legacy HTTP
-        with patch.dict('os.environ', {'CLAUDE_MPM_HOOKS_JSON_RPC': 'false'}):
+        # Test direct import from new location (no warning)
+        from claude_mpm.hooks.json_rpc_hook_client import get_hook_client as get_json_rpc_client
+        client2 = get_json_rpc_client()
+        self.assertIsInstance(client2, JSONRPCHookClient)
+    
+    def test_http_client_deprecation_warning(self):
+        """Test that HookServiceClient shows deprecation warning."""
+        with self.assertWarns(DeprecationWarning) as cm:
             from claude_mpm.hooks.hook_client import HookServiceClient
-            client = get_hook_client()
-            self.assertIsInstance(client, HookServiceClient)
+            client = HookServiceClient()
+        
+        # Check warning message
+        self.assertIn("HookServiceClient is deprecated", str(cm.warning.message))
 
 
 if __name__ == '__main__':

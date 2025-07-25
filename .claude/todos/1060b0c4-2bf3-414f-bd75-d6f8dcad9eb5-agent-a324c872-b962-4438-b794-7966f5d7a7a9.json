@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Search for all usages of subprocess_runner.py and enhanced_subprocess_runner.py",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Analyze ClaudeLauncher to understand current direct subprocess handling",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Remove subprocess runner files and update imports",
+    "status": "completed",
+    "priority": "medium",
+    "id": "3"
+  },
+  {
+    "content": "Update or remove related tests",
+    "status": "completed",
+    "priority": "medium",
+    "id": "4"
+  },
+  {
+    "content": "Verify no broken functionality after removal",
+    "status": "completed",
+    "priority": "high",
+    "id": "5"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "content": "Check available test scripts and testing configuration",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Run the quick E2E tests",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Check test results and report any failures",
+    "status": "completed",
+    "priority": "medium",
+    "id": "3"
+  }
+]

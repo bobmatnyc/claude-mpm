@@ -1,14 +1,20 @@
 [
   {
-    "content": "Update DEPLOY.md with versioning information",
+    "content": "Fix TaskManager initialization error in interactive mode",
     "status": "completed",
     "priority": "high",
-    "id": "48"
+    "id": "1"
   },
   {
-    "content": "Link DEPLOY.md to CLAUDE.md",
+    "content": "Debug interactive session hanging after context loading",
     "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Test and fix interactive mode functionality",
+    "status": "in_progress",
     "priority": "medium",
-    "id": "49"
+    "id": "3"
   }
 ]

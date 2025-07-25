@@ -10,14 +10,12 @@ try:
     from ._version import __version__
     from .core.logger import get_logger, setup_logging
     from .services.json_rpc_hook_manager import JSONRPCHookManager
-    from .orchestration.factory import OrchestratorFactory
     from .constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 except ImportError:
     # Fall back to absolute imports (when run directly)
     from claude_mpm._version import __version__
     from core.logger import get_logger, setup_logging
     from services.json_rpc_hook_manager import JSONRPCHookManager
-    from orchestration.factory import OrchestratorFactory
     from constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 
 
@@ -97,11 +95,6 @@ def main(argv: Optional[list] = None):
         "--non-interactive",
         action="store_true",
         help="Run in non-interactive mode (read from stdin or --input)"
-    )
-    parser.add_argument(
-        "--todo-hijack",
-        action="store_true",
-        help="Enable TODO hijacking to transform Claude's TODOs into agent delegations"
     )
     parser.add_argument(
         "--no-native-agents",
@@ -300,103 +293,39 @@ def _get_user_input(args, logger):
         return sys.stdin.read()
 
 
-def _show_session_summary(orchestrator):
-    """Show session summary for tickets and delegations."""
-    # Show ticket summary
-    if hasattr(orchestrator, 'ticket_extractor'):
-        tickets = orchestrator.ticket_extractor.get_all_tickets()
-        if tickets:
-            print(f"\n📋 Extracted {len(tickets)} tickets during session:")
-            summary = orchestrator.ticket_extractor.get_summary()
-            for ticket_type, count in summary.items():
-                print(f"  - {ticket_type}: {count}")
-    
-    # Show delegation summary
-    if hasattr(orchestrator, 'agent_delegator'):
-        delegations = orchestrator.agent_delegator.get_delegation_summary()
-        if delegations:
-            print(f"\n👥 Agent delegations during session:")
-            for agent, count in delegations.items():
-                print(f"  - {agent}: {count} tasks")
 
 
 def run_session(args, hook_manager=None):
-    """Run an orchestrated Claude session."""
+    """Run a simplified Claude session."""
     logger = get_logger("cli")
     if args.logging != LogLevel.OFF.value:
         logger.info("Starting Claude MPM session")
-        if hook_manager and hook_manager.is_available():
-            logger.info(f"Hook service available at port {hook_manager.port}")
     
-    # Deploy native agents if enabled
-    deploy_native = not getattr(args, 'no_native_agents', False)  # Deploy by default
-    if deploy_native:
-        try:
-            from .services.agent_deployment import AgentDeploymentService
-            deployment_service = AgentDeploymentService()
-            
-            # Deploy agents to .claude/agents/
-            logger.info("Deploying Claude Code native agents...")
-            deployment_results = deployment_service.deploy_agents()
-            
-            if deployment_results["deployed"] or deployment_results.get("updated", []):
-                deployed_count = len(deployment_results['deployed'])
-                updated_count = len(deployment_results.get('updated', []))
-                skipped_count = len(deployment_results.get('skipped', []))
-                
-                if deployed_count > 0:
-                    print(f"✓ Built and deployed {deployed_count} native agents to {deployment_results['target_dir']}")
-                if updated_count > 0:
-                    print(f"✓ Updated {updated_count} outdated agents")
-                if skipped_count > 0:
-                    print(f"✓ {skipped_count} agents already up to date")
-                    
-                if args.logging != LogLevel.OFF.value:
-                    for agent in deployment_results["deployed"]:
-                        logger.info(f"  - Deployed: {agent['name']}")
-                    for agent in deployment_results.get("updated", []):
-                        logger.info(f"  - Updated: {agent['name']}")
-            
-            if deployment_results["errors"]:
-                for error in deployment_results["errors"]:
-                    logger.warning(f"Agent deployment warning: {error}")
-            
-            # Set Claude environment variables
-            env_vars = deployment_service.set_claude_environment()
-            if args.logging != LogLevel.OFF.value:
-                logger.info(f"Set Claude environment: {env_vars}")
-            
-        except Exception as e:
-            logger.warning(f"Native agent deployment failed: {e}, continuing without native agents")
-            print(f"⚠️  Native agent deployment failed: {e}")
+    try:
+        from .core.simple_runner import SimpleClaudeRunner, create_simple_context
+    except ImportError:
+        from core.simple_runner import SimpleClaudeRunner, create_simple_context
     
-    # Create configuration for factory
-    config = {
-        "framework_path": args.framework_path,
-        "agents_dir": getattr(args, 'agents_dir', None),
-        "log_level": args.logging,
-        "log_dir": args.log_dir,
-        "hook_manager": hook_manager,
-        "no_tickets": args.no_tickets,
-        "enable_todo_hijacking": getattr(args, 'todo_hijack', False)
-    }
+    # Skip native agents if disabled
+    if getattr(args, 'no_native_agents', False):
+        print("Native agents disabled")
     
-    # Create orchestrator using factory
-    factory = OrchestratorFactory()
-    orchestrator = factory.create_orchestrator(config=config)
+    # Create simple runner
+    enable_tickets = not args.no_tickets
+    runner = SimpleClaudeRunner(enable_tickets=enable_tickets, log_level=args.logging)
+    
+    # Create basic context
+    context = create_simple_context()
     
     # Run session based on mode
     if args.non_interactive or args.input:
         user_input = _get_user_input(args, logger)
-        
-        # Run non-interactive session
-        orchestrator.run_non_interactive(user_input)
+        success = runner.run_oneshot(user_input, context)
+        if not success:
+            logger.error("Session failed")
     else:
         # Run interactive session
-        orchestrator.run_interactive()
-    
-    # Show session summary
-    _show_session_summary(orchestrator)
+        runner.run_interactive(context)
 
 
 def list_tickets(args):

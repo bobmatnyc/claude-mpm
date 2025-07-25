@@ -1,0 +1,20 @@
+[
+  {
+    "content": "Investigate the invalid-command error",
+    "status": "completed",
+    "priority": "high",
+    "id": "1"
+  },
+  {
+    "content": "Check current shell context and command history",
+    "status": "completed",
+    "priority": "high",
+    "id": "2"
+  },
+  {
+    "content": "Provide solution or guidance",
+    "status": "completed",
+    "priority": "medium",
+    "id": "3"
+  }
+]

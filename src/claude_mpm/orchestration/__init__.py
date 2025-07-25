@@ -1,10 +1,6 @@
-"""Orchestration components for Claude MPM."""
+"""Orchestration components for Claude MPM (legacy)."""
 
-# Delay imports to avoid circular dependencies
-__all__ = [
-    "MPMOrchestrator",
-    "TicketExtractor",
-    "AgentDelegator",
-    "OrchestratorFactory",
-    "OrchestratorMode",
-]
+# Most orchestration components have been simplified and moved to core.simple_runner
+# This module is kept for backwards compatibility
+
+__all__ = []
