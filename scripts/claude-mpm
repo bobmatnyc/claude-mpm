@@ -115,11 +115,15 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
     cd "$PROJECT_ROOT"
     
     # Transform --mpm: prefixed flags to regular flags for Python
+    # Special handling for --mpm:ui to keep it as a single argument
     ARGS=()
     for arg in "$@"; do
-        if [[ "$arg" == "--mpm:"* ]]; then
-            # Remove --mpm: prefix
-            ARGS+=("--${arg#--mpm:}")
+        if [[ "$arg" == "--mpm:ui" ]]; then
+            # Keep --mpm:ui as is for proper subparser handling
+            ARGS+=("--mpm:ui")
+        elif [[ "$arg" == "--mpm:"* ]]; then
+            # Transform other --mpm: prefixed commands
+            ARGS+=("--mpm:${arg#--mpm:}")
         elif [[ "$arg" == "-mpm:"* ]]; then
             # Remove -mpm: prefix
             ARGS+=("-${arg#-mpm:}")
@@ -127,6 +131,11 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
             ARGS+=("$arg")
         fi
     done
+    
+    # Debug: Print the command
+    if [[ "$CLAUDE_MPM_DEBUG" == "1" ]]; then
+        print_info "Running: python -m claude_mpm ${ARGS[*]}"
+    fi
     
     exec python -m claude_mpm "${ARGS[@]}"
 else
