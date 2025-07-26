@@ -1,18 +1,21 @@
 """Simplified Claude runner replacing the complex orchestrator system."""
 
+import json
 import subprocess
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 try:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
-    from claude_mpm.core.logger import get_logger
+    from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 except ImportError:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
-    from claude_mpm.core.logger import get_logger
+    from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 
 
 class SimpleClaudeRunner:
@@ -29,11 +32,27 @@ class SimpleClaudeRunner:
     def __init__(
         self,
         enable_tickets: bool = True,
-        log_level: str = "OFF"
+        log_level: str = "OFF",
+        claude_args: Optional[list] = None
     ):
         """Initialize the simple runner."""
         self.enable_tickets = enable_tickets
+        self.log_level = log_level
         self.logger = get_logger("simple_runner")
+        self.claude_args = claude_args or []
+        
+        # Initialize project logger for session logging
+        self.project_logger = None
+        if log_level != "OFF":
+            try:
+                self.project_logger = get_project_logger(log_level)
+                self.project_logger.log_system(
+                    "Initializing SimpleClaudeRunner",
+                    level="INFO",
+                    component="runner"
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize project logger: {e}")
         
         # Initialize services
         self.deployment_service = AgentDeploymentService()
@@ -47,10 +66,32 @@ class SimpleClaudeRunner:
         
         # Load system instructions
         self.system_instructions = self._load_system_instructions()
+        
+        # Track if we need to create session logs
+        self.session_log_file = None
+        if self.project_logger and log_level != "OFF":
+            try:
+                # Create a system.jsonl file in the session directory
+                self.session_log_file = self.project_logger.session_dir / "system.jsonl"
+                self._log_session_event({
+                    "event": "session_start",
+                    "runner": "SimpleClaudeRunner",
+                    "enable_tickets": enable_tickets,
+                    "log_level": log_level
+                })
+            except Exception as e:
+                self.logger.debug(f"Failed to create session log file: {e}")
     
     def setup_agents(self) -> bool:
         """Deploy native agents to .claude/agents/."""
         try:
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "Starting agent deployment",
+                    level="INFO",
+                    component="deployment"
+                )
+            
             results = self.deployment_service.deploy_agents()
             
             if results["deployed"] or results.get("updated", []):
@@ -61,23 +102,49 @@ class SimpleClaudeRunner:
                     print(f"✓ Deployed {deployed_count} native agents")
                 if updated_count > 0:
                     print(f"✓ Updated {updated_count} agents")
+                
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        f"Agent deployment successful: {deployed_count} deployed, {updated_count} updated",
+                        level="INFO",
+                        component="deployment"
+                    )
                     
                 # Set Claude environment
                 self.deployment_service.set_claude_environment()
                 return True
             else:
                 self.logger.info("All agents already up to date")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "All agents already up to date",
+                        level="INFO",
+                        component="deployment"
+                    )
                 return True
                 
         except Exception as e:
             self.logger.error(f"Agent deployment failed: {e}")
             print(f"⚠️  Agent deployment failed: {e}")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Agent deployment failed: {e}",
+                    level="ERROR",
+                    component="deployment"
+                )
             return False
     
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode."""
         print("Claude MPM - Interactive Session")
         print("-" * 40)
+        
+        if self.project_logger:
+            self.project_logger.log_system(
+                "Starting interactive session",
+                level="INFO",
+                component="session"
+            )
         
         # Setup agents
         if not self.setup_agents():
@@ -112,6 +179,10 @@ class SimpleClaudeRunner:
             "--dangerously-skip-permissions"
         ]
         
+        # Add any custom Claude arguments
+        if self.claude_args:
+            cmd.extend(self.claude_args)
+        
         # Add system instructions if available
         system_prompt = self._create_system_prompt()
         if system_prompt and system_prompt != create_simple_context():
@@ -134,19 +205,71 @@ class SimpleClaudeRunner:
             
             print("Launching Claude...")
             
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "Launching Claude interactive mode",
+                    level="INFO",
+                    component="session"
+                )
+                self._log_session_event({
+                    "event": "launching_claude_interactive",
+                    "command": " ".join(cmd)
+                })
+            
             # Replace current process with Claude
             os.execvpe(cmd[0], cmd, clean_env)
             
         except Exception as e:
             print(f"Failed to launch Claude: {e}")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Failed to launch Claude: {e}",
+                    level="ERROR",
+                    component="session"
+                )
+                self._log_session_event({
+                    "event": "interactive_launch_failed",
+                    "error": str(e),
+                    "exception_type": type(e).__name__
+                })
             # Fallback to subprocess
             try:
                 subprocess.run(cmd, stdin=None, stdout=None, stderr=None)
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "Interactive session completed (subprocess fallback)",
+                        level="INFO",
+                        component="session"
+                    )
+                    self._log_session_event({
+                        "event": "interactive_session_complete",
+                        "fallback": True
+                    })
             except Exception as fallback_error:
                 print(f"Fallback also failed: {fallback_error}")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        f"Fallback launch failed: {fallback_error}",
+                        level="ERROR",
+                        component="session"
+                    )
+                    self._log_session_event({
+                        "event": "interactive_fallback_failed",
+                        "error": str(fallback_error),
+                        "exception_type": type(fallback_error).__name__
+                    })
     
     def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
         """Run Claude with a single prompt and return success status."""
+        start_time = time.time()
+        
+        if self.project_logger:
+            self.project_logger.log_system(
+                f"Starting non-interactive session with prompt: {prompt[:100]}",
+                level="INFO",
+                component="session"
+            )
+        
         # Setup agents
         if not self.setup_agents():
             print("Continuing without native agents...")
@@ -160,25 +283,68 @@ class SimpleClaudeRunner:
         cmd = [
             "claude",
             "--model", "opus",
-            "--dangerously-skip-permissions", 
-            "--print",
-            full_prompt
+            "--dangerously-skip-permissions"
         ]
+        
+        # Add any custom Claude arguments
+        if self.claude_args:
+            cmd.extend(self.claude_args)
+        
+        # Add print and prompt
+        cmd.extend(["--print", full_prompt])
         
         # Add system instructions if available
         system_prompt = self._create_system_prompt()
         if system_prompt and system_prompt != create_simple_context():
             # Insert system prompt before the user prompt
-            cmd.insert(-1, "--append-system-prompt")
-            cmd.insert(-1, system_prompt)
+            cmd.insert(-2, "--append-system-prompt")
+            cmd.insert(-2, system_prompt)
         
         try:
             # Run Claude
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "Executing Claude subprocess",
+                    level="INFO",
+                    component="session"
+                )
+            
             result = subprocess.run(cmd, capture_output=True, text=True)
+            execution_time = time.time() - start_time
             
             if result.returncode == 0:
                 response = result.stdout.strip()
                 print(response)
+                
+                if self.project_logger:
+                    # Log successful completion
+                    self.project_logger.log_system(
+                        f"Non-interactive session completed successfully in {execution_time:.2f}s",
+                        level="INFO",
+                        component="session"
+                    )
+                    
+                    # Log session event
+                    self._log_session_event({
+                        "event": "session_complete",
+                        "success": True,
+                        "execution_time": execution_time,
+                        "response_length": len(response)
+                    })
+                    
+                    # Log agent invocation if we detect delegation patterns
+                    if self._contains_delegation(response):
+                        self.project_logger.log_system(
+                            "Detected potential agent delegation in response",
+                            level="INFO",
+                            component="delegation"
+                        )
+                        self._log_session_event({
+                            "event": "delegation_detected",
+                            "prompt": prompt[:200],
+                            "indicators": [p for p in ["Task(", "subagent_type=", "engineer agent", "qa agent"] 
+                                          if p.lower() in response.lower()]
+                        })
                 
                 # Extract tickets if enabled
                 if self.enable_tickets and self.ticket_manager and response:
@@ -186,12 +352,54 @@ class SimpleClaudeRunner:
                 
                 return True
             else:
-                print(f"Error: {result.stderr}")
+                error_msg = result.stderr or "Unknown error"
+                print(f"Error: {error_msg}")
+                
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        f"Non-interactive session failed: {error_msg}",
+                        level="ERROR",
+                        component="session"
+                    )
+                    self._log_session_event({
+                        "event": "session_failed",
+                        "success": False,
+                        "error": error_msg,
+                        "return_code": result.returncode
+                    })
+                
                 return False
                 
         except Exception as e:
             print(f"Error: {e}")
+            
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Exception during non-interactive session: {e}",
+                    level="ERROR",
+                    component="session"
+                )
+                self._log_session_event({
+                    "event": "session_exception",
+                    "success": False,
+                    "exception": str(e),
+                    "exception_type": type(e).__name__
+                })
+            
             return False
+        finally:
+            # Ensure logs are flushed
+            if self.project_logger:
+                try:
+                    # Log session summary
+                    summary = self.project_logger.get_session_summary()
+                    self.project_logger.log_system(
+                        f"Session {summary['session_id']} completed",
+                        level="INFO",
+                        component="session"
+                    )
+                except Exception as e:
+                    self.logger.debug(f"Failed to log session summary: {e}")
     
     def _extract_tickets(self, text: str):
         """Extract tickets from Claude's response."""
@@ -239,6 +447,41 @@ class SimpleClaudeRunner:
         else:
             # Fallback to basic context
             return create_simple_context()
+    
+    def _contains_delegation(self, text: str) -> bool:
+        """Check if text contains signs of agent delegation."""
+        # Look for common delegation patterns
+        delegation_patterns = [
+            "Task(",
+            "subagent_type=",
+            "delegating to",
+            "asking the",
+            "engineer agent",
+            "qa agent",
+            "documentation agent",
+            "research agent",
+            "security agent",
+            "ops agent",
+            "version_control agent",
+            "data_engineer agent"
+        ]
+        
+        text_lower = text.lower()
+        return any(pattern.lower() in text_lower for pattern in delegation_patterns)
+    
+    def _log_session_event(self, event_data: dict):
+        """Log an event to the session log file."""
+        if self.session_log_file:
+            try:
+                log_entry = {
+                    "timestamp": datetime.now().isoformat(),
+                    **event_data
+                }
+                
+                with open(self.session_log_file, 'a') as f:
+                    f.write(json.dumps(log_entry) + '\n')
+            except Exception as e:
+                self.logger.debug(f"Failed to log session event: {e}")
 
 
 def create_simple_context() -> str:
