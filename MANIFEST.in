@@ -24,6 +24,9 @@ include ticket
 # Include configuration examples
 recursive-include src/claude_mpm/config *.py
 
+# Include hook files (including shell scripts)
+recursive-include src/claude_mpm/hooks *.py *.sh
+
 # Exclude test and cache files
 global-exclude __pycache__
 global-exclude *.py[co]

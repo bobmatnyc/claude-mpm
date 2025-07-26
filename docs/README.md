@@ -1,11 +1,21 @@
 # Claude MPM Documentation
 
-Welcome to the Claude MPM documentation. This directory contains comprehensive guides for users and developers.
+Welcome to the Claude MPM documentation. This comprehensive guide helps users and developers understand, use, and extend Claude MPM effectively.
 
-## Documentation Structure
+## Core Documentation
+
+Essential documentation for all users:
+
+- 📋 **[STRUCTURE.md](STRUCTURE.md)** - Project file organization and structure
+- 🧪 **[QA.md](QA.md)** - Testing procedures and quality assurance
+- 🚀 **[DEPLOY.md](DEPLOY.md)** - Deployment and release process
+- 📊 **[LOGGING.md](LOGGING.md)** - Comprehensive logging guide
+- 🔢 **[VERSIONING.md](VERSIONING.md)** - Version management and conventions
+
+## Documentation by Role
 
 ### 📚 [User Documentation](user/)
-Complete user guides organized by topic:
+Everything you need to use Claude MPM effectively:
 - **[01. Getting Started](user/01-getting-started/)** - Installation, first run, core concepts
 - **[02. Guides](user/02-guides/)** - Step-by-step guides for common workflows
 - **[03. Features](user/03-features/)** - Deep dives into Claude MPM features
@@ -13,7 +23,7 @@ Complete user guides organized by topic:
 - **[05. Migration](user/05-migration/)** - Migration from claude-multiagent-pm
 
 ### 🔧 [Developer Documentation](developer/)
-Technical documentation for developers:
+Technical documentation for contributors and developers:
 - **[01. Architecture](developer/01-architecture/)** - System design and patterns
 - **[02. Core Components](developer/02-core-components/)** - Component deep dives
 - **[03. Development](developer/03-development/)** - Setup, coding standards, testing
@@ -22,90 +32,68 @@ Technical documentation for developers:
 - **[06. Internals](developer/06-internals/)** - Implementation details
 
 ### 🎨 [Design Documentation](design/)
-Architecture and design decisions
-- [Design Overview](design/README.md)
-- [Subprocess Orchestration](design/subprocess-orchestration.md)
-- [TODO Hijacking System](design/todo_hijacking.md)
+Architecture decisions and technical designs:
+- [Hook System Design](design/comprehensive-hooks-guide.md)
+- [Claude Code Integration](design/claude-code-hooks-technical-impelmentatin-guide.md)
+- [MPM Command Interception](design/MPM_COMMAND_INTERCEPTION.md)
+- [Slash Commands Design](design/slash_command_python_design.md)
 
 ### 📋 [Miscellaneous](misc/)
-Additional project information
+Additional project information:
 - [Project Summary](misc/SUMMARY.md)
-- [Hook Integration](misc/HOOK_INTEGRATION_SUMMARY.md)
-- [Agent Roles](misc/agent_roles_summary.md)
+- [Hook Integration Summary](misc/HOOK_INTEGRATION_SUMMARY.md)
+- [Agent Roles Summary](misc/agent_roles_summary.md)
 
 ### 📦 [Archive](archive/)
-Historical and deprecated documentation
+Historical and deprecated documentation:
 - [Archive Index](archive/README.md)
+- [Test Results](archive/test-results/)
 
-## Quick Links
+## Quick Start Guide
 
-### For New Users
-1. Start with the [User Guide](user/README.md)
-2. Learn about [Interactive Mode](user/README_INTERACTIVE_MODE.md)
-3. Explore [Ticket Management](user/ticket_wrapper.md)
+### 🚀 New Users
+1. **Install Claude MPM**: Follow the [Installation Guide](user/01-getting-started/installation.md)
+2. **First Run**: Learn the basics with [First Run Guide](user/01-getting-started/first-run.md)
+3. **Core Concepts**: Understand [Key Concepts](user/01-getting-started/concepts.md)
+4. **Basic Usage**: Try [Basic Commands](user/02-guides/basic-usage.md)
 
-### For Developers
-1. Read the [Developer Guide](developer/README.md)
-2. Understand the [Project Structure](developer/STRUCTURE.md)
-3. Review [Testing Procedures](developer/QA.md)
+### 💻 Developers
+1. **Setup**: Start with [Development Setup](developer/03-development/setup.md)
+2. **Architecture**: Review [Architecture Overview](developer/01-architecture/README.md)
+3. **Testing**: Follow [Testing Guidelines](QA.md)
+4. **Contributing**: Check [Coding Standards](developer/03-development/coding-standards.md)
 
-### For Contributors
-1. Check [Design Documents](design/)
-2. Follow [Development Setup](developer/README.md#development-setup)
-3. Read [Contributing Guidelines](developer/README.md#contributing)
+### 🔍 Finding What You Need
 
-## Finding Information
+**By Task:**
+- **Installing**: [User Installation](user/01-getting-started/installation.md) | [Dev Setup](developer/03-development/setup.md)
+- **Using Claude MPM**: [Basic Usage](user/02-guides/basic-usage.md) | [Interactive Mode](user/02-guides/interactive-mode.md)
+- **Troubleshooting**: [Troubleshooting Guide](user/04-reference/troubleshooting.md) | [Debugging](developer/03-development/debugging.md)
+- **Extending**: [Custom Hooks](developer/05-extending/custom-hooks.md) | [Plugins](developer/05-extending/plugins.md)
 
-### By Topic
+**By Topic:**
+- **Commands**: [CLI Reference](user/04-reference/cli-commands.md)
+- **Configuration**: [Configuration Guide](user/04-reference/configuration.md)
+- **APIs**: [API Reference](developer/04-api-reference/README.md)
+- **Testing**: [QA Guide](QA.md) | [Testing Guide](developer/03-development/testing.md)
+- **Deployment**: [Deployment Process](DEPLOY.md)
+- **Logging**: [Logging System](LOGGING.md)
 
-**Installation & Setup**
-- [Installation Guide](user/README.md#installation-guide)
-- [Development Setup](developer/README.md#development-setup)
+## Documentation Standards
 
-**Usage & Features**
-- [Basic Usage](user/README.md#basic-usage)
-- [Advanced Features](user/README.md#advanced-features)
-- [Command Reference](user/README.md#command-reference)
-
-**Architecture & Design**
-- [Architecture Overview](developer/README.md#architecture-overview)
-- [Design Principles](design/README.md#design-principles)
-- [Core Components](developer/README.md#core-components)
-
-**Testing & Quality**
-- [Testing Guide](developer/QA.md)
-- [E2E Testing](developer/QA.md#e2e-testing)
-- [Code Style](developer/README.md#code-style)
-
-**Troubleshooting**
-- [Common Issues](user/README.md#troubleshooting)
-- [Debug Mode](user/README.md#debug-mode)
-- [Log Analysis](developer/README.md#debugging)
-
-## Documentation Maintenance
-
-### Updating Documentation
-When making changes:
-1. Keep documentation in sync with code
-2. Update relevant sections across all categories
-3. Move outdated content to archive
-4. Maintain consistent formatting
-
-### Documentation Standards
-- Use Markdown for all documentation
-- Include code examples where helpful
-- Keep sections concise and focused
+When contributing to documentation:
+- Keep documentation synchronized with code changes
+- Use clear, concise language appropriate for the target audience
+- Include practical examples and code snippets
 - Cross-reference related documents
+- Move outdated content to the [archive](archive/) directory
 
-## Getting Help
+## Additional Resources
 
-If you can't find what you need:
-1. Check the [FAQ](user/README.md#faq)
-2. Search existing [GitHub Issues](https://github.com/yourusername/claude-mpm/issues)
-3. Ask in [Discussions](https://github.com/yourusername/claude-mpm/discussions)
-4. Contact maintainers
+- **Project Repository**: [GitHub](https://github.com/yourusername/claude-mpm)
+- **Issue Tracker**: [GitHub Issues](https://github.com/yourusername/claude-mpm/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/claude-mpm/discussions)
 
 ---
 
-*Last updated: [Current Date]*
-*Documentation version: 1.0*
+*Documentation for Claude MPM v1.0.1*

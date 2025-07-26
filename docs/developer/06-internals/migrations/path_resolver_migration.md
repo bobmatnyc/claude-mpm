@@ -55,11 +55,10 @@ def _get_framework_agent_roles_dir() -> Path:
 
 **After:**
 ```python
-def _get_framework_agent_roles_dir() -> Path:
+def _get_agent_templates_dir() -> Path:
+    # Get the agent templates directory directly
     agents_dir = PathResolver.get_agents_dir()
-    # If you need the framework/agent-roles specifically:
-    framework_root = PathResolver.get_framework_root()
-    return framework_root / "framework" / "agent-roles"
+    return agents_dir / "templates"
 ```
 
 ### 3. Finding Project Root

@@ -43,12 +43,13 @@ claude-mpm/
 │   ├── cli_main.py                   # CLI main entry point
 │   │
 │   ├── agents/                       # Agent system
-│   │   ├── templates/                # Agent templates
-│   │   │   ├── documentation_agent.md
-│   │   │   ├── engineer_agent.md
-│   │   │   ├── qa_agent.md
-│   │   │   └── ...
-│   │   └── base_agent.md             # Base agent template
+│   │   └── templates/                # Agent templates (JSON format)
+│   │       ├── documentation_agent.json
+│   │       ├── engineer_agent.json
+│   │       ├── qa_agent.json
+│   │       ├── research_agent.json
+│   │       ├── security_agent.json
+│   │       └── ...                  # Other agent templates
 │   │
 │   ├── config/                       # Configuration module
 │   │   └── hook_config.py            # Hook configuration
@@ -60,11 +61,7 @@ claude-mpm/
 │   │   ├── framework_loader.py       # Framework loading
 │   │   └── ...
 │   │
-│   ├── framework/                    # Framework files
-│   │   ├── INSTRUCTIONS.md           # Main framework instructions (legacy: CLAUDE.md)
-│   │   ├── agent-roles/              # Agent role definitions
-│   │   └── ...
-│   │
+│
 │   ├── hooks/                        # Hook system
 │   │   ├── base_hook.py              # Base hook class
 │   │   ├── hook_client.py            # Hook client implementation
@@ -99,8 +96,8 @@ The main Python package following the src layout pattern. All source code lives 
 - **framework_loader.py**: Loads INSTRUCTIONS.md (or legacy CLAUDE.md) and framework instructions
 
 ### `/src/claude_mpm/agents/` - Agent System
-- **templates/**: Pre-defined agent templates (documentation, engineer, QA, etc.)
-- **base_agent.md**: Base template for all agents
+- **templates/**: Pre-defined agent templates in JSON format (documentation, engineer, QA, research, security, etc.)
+- Agent templates are dynamically discovered and loaded by the agent registry
 
 
 ### `/src/claude_mpm/services/` - Service Layer
@@ -136,7 +133,7 @@ All executable scripts and command-line utilities should be placed here:
 When creating new files, follow these guidelines:
 
 1. **Python modules**: Place in appropriate subdirectory under `/src/claude_mpm/`
-2. **Agent templates**: Place in `/src/claude_mpm/agents/templates/`
+2. **Agent templates**: Place in `/src/claude_mpm/agents/templates/` (as JSON files)
 3. **Service classes**: Place in `/src/claude_mpm/services/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
 6. **Tests**: Place in `/tests/` with `test_` prefix
@@ -161,7 +158,7 @@ When creating new files, follow these guidelines:
    - `/scripts/claude-mpm` (bash script)
    - `/src/claude_mpm/cli_main.py` (Python entry point)
 4. Configuration files use YAML format
-5. Agent templates use Markdown format
+5. Agent templates use JSON format
 
 ## Recent Additions
 

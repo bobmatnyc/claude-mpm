@@ -4,8 +4,8 @@ Claude PM Framework Agents Package
 System-level agent implementations with Task Tool integration.
 These agents provide specialized prompts and capabilities for PM orchestration.
 
-Uses unified agent loader to load prompts from framework/agent-roles/*.md files
-with fallback to Python constants for backward compatibility.
+Uses unified agent loader to load prompts from JSON templates in agents/templates/
+for better structure and maintainability.
 """
 
 # Import from unified agent loader

@@ -1,0 +1,83 @@
+# Agent Profile Template Configuration
+# Inspired by awesome-claude-code's template system
+
+profile:
+  name: "{{AGENT_NAME}}"
+  version: "{{VERSION}}"
+  description: "{{DESCRIPTION}}"
+  author: "{{AUTHOR}}"
+  created: "{{CREATED_DATE}}"
+  
+  # Categories for organizing agents
+  categories:
+    - id: analysis
+      title: "Code Analysis Agents"
+      description: |
+        > Agents specialized in analyzing codebases, identifying patterns, and providing insights
+      icon: "🔍"
+    
+    - id: implementation
+      title: "Implementation Agents"
+      description: |
+        > Agents focused on writing and modifying code
+      icon: "🛠️"
+    
+    - id: testing
+      title: "Testing & QA Agents"
+      description: |
+        > Agents dedicated to testing, quality assurance, and validation
+      icon: "🧪"
+    
+    - id: security
+      title: "Security Agents"
+      description: |
+        > Agents specialized in security analysis and vulnerability detection
+      icon: "🔒"
+
+agents:
+  - name: "{{AGENT_ID}}"
+    category: "{{CATEGORY}}"
+    role: "{{ROLE}}"
+    description: "{{AGENT_DESCRIPTION}}"
+    
+    capabilities:
+      - "{{CAPABILITY_1}}"
+      - "{{CAPABILITY_2}}"
+      - "{{CAPABILITY_3}}"
+    
+    constraints:
+      - "{{CONSTRAINT_1}}"
+      - "{{CONSTRAINT_2}}"
+    
+    tools:
+      - name: "{{TOOL_NAME}}"
+        description: "{{TOOL_DESCRIPTION}}"
+        required: true
+    
+    prompt_template: |
+      You are a {{ROLE}} agent specializing in {{SPECIALIZATION}}.
+      
+      ## Your Capabilities:
+      {{CAPABILITIES_LIST}}
+      
+      ## Your Constraints:
+      {{CONSTRAINTS_LIST}}
+      
+      ## Context:
+      {context}
+      
+      ## Task:
+      {task}
+      
+      ## Additional Instructions:
+      {{ADDITIONAL_INSTRUCTIONS}}
+    
+    examples:
+      - scenario: "{{EXAMPLE_SCENARIO}}"
+        input: "{{EXAMPLE_INPUT}}"
+        expected_output: "{{EXAMPLE_OUTPUT}}"
+    
+    best_practices:
+      - "{{BEST_PRACTICE_1}}"
+      - "{{BEST_PRACTICE_2}}"
+      - "{{BEST_PRACTICE_3}}"

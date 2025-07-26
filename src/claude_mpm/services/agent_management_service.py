@@ -40,15 +40,15 @@ class AgentManager:
         Initialize AgentManager.
         
         Args:
-            framework_dir: Path to framework agent-roles directory
+            framework_dir: Path to agents templates directory
             project_dir: Path to project-specific agents directory
         """
         # Use PathResolver for consistent path discovery
         if framework_dir is None:
             try:
-                framework_root = PathResolver.get_framework_root()
-                self.framework_dir = framework_root / "framework" / "agent-roles"
-            except FileNotFoundError:
+                # Use agents templates directory
+                self.framework_dir = Path(__file__).parent.parent / "agents" / "templates"
+            except Exception:
                 # Fallback to agents directory
                 self.framework_dir = PathResolver.get_agents_dir()
         else:
