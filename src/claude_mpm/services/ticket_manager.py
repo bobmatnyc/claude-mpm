@@ -56,10 +56,8 @@ class TicketManager:
                 config.save()
                 self.logger.info("Created .trackdown.yaml configuration")
             
-            # Initialize project (which uses the config)
-            project = Project(self.project_path)
-            
-            # Now create TaskManager with the configured project
+            # Initialize TaskManager directly with the project path
+            # TaskManager will handle project initialization internally
             task_manager = TaskManager(self.project_path)
             
             # Verify it's using the right directory

@@ -64,8 +64,7 @@ class AITrackdownAdapter(ITaskManagerAdapter):
                 config.save()
                 self.logger.info("Created .trackdown.yaml configuration")
             
-            # Initialize project and task manager
-            project = Project(self.project_path)
+            # Initialize task manager directly
             return TaskManager(self.project_path)
             
         except ImportError:
