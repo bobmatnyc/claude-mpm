@@ -3,8 +3,8 @@ name: research
 description: "Tree-sitter codebase analysis and hierarchical summary generation"
 version: "0002-0005"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.667763Z"
-updated: "2025-07-25T18:06:45.667764Z"
+created: "2025-07-26T00:30:41.808572Z"
+updated: "2025-07-26T00:30:41.808573Z"
 tags: ['research', 'tree-sitter', 'codebase-analysis', 'ast', 'patterns']
 ---
 

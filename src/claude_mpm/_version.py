@@ -6,10 +6,10 @@ try:
     try:
         __version__ = version("claude-mpm")
     except PackageNotFoundError:
-        __version__ = "0.5.0"
+        __version__ = "1.0.0"
 except ImportError:
     # Fallback for older Python versions
-    __version__ = "0.5.0"
+    __version__ = "1.0.0"
 
 # This file may be overwritten by setuptools-scm during build
 # The try/except ensures we always have a version available
@@ -20,11 +20,12 @@ def get_version_tuple():
     try:
         return tuple(int(p) for p in parts if p.isdigit())
     except:
-        return (0, 5, 0)
+        return (1, 0, 0)
 
 __version_info__ = get_version_tuple()
 
 # Version history
+# 1.0.0 - BREAKING: Architecture simplification, TodoWrite hooks, enhanced CLI, terminal UI
 # 0.5.0 - Comprehensive deployment support for PyPI, npm, and local installation
 # 0.3.0 - Added hook service architecture for context filtering and ticket automation
 # 0.2.0 - Initial interactive subprocess orchestration with pexpect

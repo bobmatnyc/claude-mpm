@@ -78,7 +78,7 @@ disallow_untyped_defs = true
 write_to = "src/claude_mpm/_version.py"
 version_scheme = "post-release"
 local_scheme = "dirty-tag"
-fallback_version = "0.5.0"
+fallback_version = "1.0.0"
 
 [tool.setuptools.dynamic]
 version = {attr = "claude_mpm._version.__version__"}

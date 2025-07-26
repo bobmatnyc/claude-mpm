@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Tree-sitter codebase analysis and hierarchical summary generation",
     "tags": ["research", "tree-sitter", "codebase-analysis", "ast", "patterns"],
-    "tools": ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch", "TodoWrite", "Bash"],
+    "tools": ["Read", "Grep", "Glob", "LS", "WebSearch", "WebFetch", "Bash"],
     "temperature": 0.2,
     "timeout": 900,
     "max_tokens": 12288,

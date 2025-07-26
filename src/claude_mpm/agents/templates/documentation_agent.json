@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Documentation creation and maintenance",
     "tags": ["documentation", "writing", "api-docs", "guides"],
-    "tools": ["Read", "Write", "Edit", "MultiEdit", "Grep", "Glob", "LS", "WebSearch", "TodoWrite"],
+    "tools": ["Read", "Write", "Edit", "MultiEdit", "Grep", "Glob", "LS", "WebSearch"],
     "temperature": 0.2,
     "timeout": 600,
     "max_tokens": 8192,

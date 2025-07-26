@@ -31,8 +31,19 @@ from typing import Optional, Dict, Any, Tuple, Union
 
 from ..services.shared_prompt_cache import SharedPromptCache
 from .base_agent_loader import prepend_base_instructions
-from ..services.task_complexity_analyzer import TaskComplexityAnalyzer, ComplexityLevel, ModelType
+# from ..services.task_complexity_analyzer import TaskComplexityAnalyzer, ComplexityLevel, ModelType
 from ..utils.paths import PathResolver
+
+# Temporary placeholders for missing module
+class ComplexityLevel:
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+class ModelType:
+    HAIKU = "haiku"
+    SONNET = "sonnet"
+    OPUS = "opus"
 
 # Module-level logger
 logger = logging.getLogger(__name__)
@@ -195,47 +206,15 @@ def _analyze_task_complexity(task_description: str, context_size: int = 0, **kwa
     Returns:
         Dictionary containing complexity analysis results
     """
-    try:
-        analyzer = TaskComplexityAnalyzer()
-        
-        # Extract additional parameters from kwargs
-        file_count = kwargs.get('file_count', 0)
-        integration_points = kwargs.get('integration_points', 0)
-        requires_research = kwargs.get('requires_research', False)
-        requires_testing = kwargs.get('requires_testing', False)
-        requires_documentation = kwargs.get('requires_documentation', False)
-        technical_depth = kwargs.get('technical_depth', None)
-        
-        # Analyze task complexity
-        result = analyzer.analyze_task(
-            task_description=task_description,
-            context_size=context_size,
-            file_count=file_count,
-            integration_points=integration_points,
-            requires_research=requires_research,
-            requires_testing=requires_testing,
-            requires_documentation=requires_documentation,
-            technical_depth=technical_depth
-        )
-        
-        return {
-            "complexity_score": result.complexity_score,
-            "complexity_level": result.complexity_level,
-            "recommended_model": result.recommended_model,
-            "optimal_prompt_size": result.optimal_prompt_size,
-            "scoring_breakdown": result.scoring_breakdown,
-            "analysis_details": result.analysis_details
-        }
-        
-    except Exception as e:
-        logger.warning(f"Failed to analyze task complexity: {e}")
-        return {
-            "complexity_score": 50,
-            "complexity_level": ComplexityLevel.MEDIUM,
-            "recommended_model": ModelType.SONNET,
-            "optimal_prompt_size": (700, 1000),
-            "error": str(e)
-        }
+    # Temporary implementation until TaskComplexityAnalyzer is available
+    logger.warning("TaskComplexityAnalyzer not available, using default values")
+    return {
+        "complexity_score": 50,
+        "complexity_level": ComplexityLevel.MEDIUM,
+        "recommended_model": ModelType.SONNET,
+        "optimal_prompt_size": (700, 1000),
+        "error": "TaskComplexityAnalyzer module not available"
+    }
 
 
 def _get_model_config(agent_name: str, complexity_analysis: Optional[Dict[str, Any]] = None) -> Tuple[str, Dict[str, Any]]:

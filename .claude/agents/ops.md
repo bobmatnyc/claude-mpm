@@ -3,8 +3,8 @@ name: ops
 description: "Operations, deployment, and infrastructure"
 version: "0002-0003"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.667288Z"
-updated: "2025-07-25T18:06:45.667290Z"
+created: "2025-07-26T00:30:41.808080Z"
+updated: "2025-07-26T00:30:41.808083Z"
 tags: ['ops', 'deployment', 'docker', 'infrastructure']
 ---
 

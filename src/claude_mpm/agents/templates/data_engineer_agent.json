@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514", 
     "description": "Data engineering and AI API integrations",
     "tags": ["data", "ai-apis", "database", "pipelines"],
-    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS", "WebSearch", "TodoWrite"],
+    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS", "WebSearch"],
     "temperature": 0.1,
     "timeout": 600,
     "max_tokens": 8192,

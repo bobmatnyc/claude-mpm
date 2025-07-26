@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Research-guided code implementation with pattern adherence",
     "tags": ["engineering", "implementation", "research-guided", "pattern-adherence", "integration"],
-    "tools": ["Read", "Write", "Edit", "MultiEdit", "Bash", "Grep", "Glob", "LS", "WebSearch", "TodoWrite"],
+    "tools": ["Read", "Write", "Edit", "MultiEdit", "Bash", "Grep", "Glob", "LS", "WebSearch"],
     "temperature": 0.05,
     "timeout": 1200,
     "max_tokens": 12288,

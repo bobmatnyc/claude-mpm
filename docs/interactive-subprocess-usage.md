@@ -43,7 +43,7 @@ claude-mpm --interactive-subprocess --no-parallel -i "Debug this code"
 ### Options
 
 - `--interactive-subprocess`: Enable interactive subprocess orchestration
-- `--logging [OFF|INFO|DEBUG]`: Set logging level (default: OFF)
+- `--logging [OFF|INFO|DEBUG]`: Set logging level (default: INFO)
 - `--no-parallel`: Disable parallel execution of delegations
 - `--no-tickets`: Disable automatic ticket creation
 - `-i, --input`: Provide input prompt (required for orchestration mode)

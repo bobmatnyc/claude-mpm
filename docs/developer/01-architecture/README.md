@@ -68,7 +68,6 @@ Multiple orchestrator implementations:
 Business logic services:
 - **HookService**: Manages extensibility hooks
 - **AgentService**: Agent lifecycle management
-- **TicketExtractor**: Pattern detection and ticket creation
 - **SessionLogger**: Comprehensive logging
 
 ### 4. Agent System

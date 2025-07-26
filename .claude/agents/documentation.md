@@ -3,8 +3,8 @@ name: documentation
 description: "Documentation creation and maintenance"
 version: "0002-0003"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.666916Z"
-updated: "2025-07-25T18:06:45.666918Z"
+created: "2025-07-26T00:30:41.807841Z"
+updated: "2025-07-26T00:30:41.807843Z"
 tags: ['documentation', 'writing', 'api-docs', 'guides']
 ---
 

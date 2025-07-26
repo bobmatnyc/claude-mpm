@@ -102,12 +102,10 @@ orchestrator = SubprocessOrchestrator(
 
 # 3. Initialize feature services
 hook_service = HookService()
-ticket_extractor = TicketExtractor()
 session_logger = SessionLogger()
 
 # 4. Wire everything together
 orchestrator.add_service(hook_service)
-orchestrator.add_service(ticket_extractor)
 orchestrator.add_service(session_logger)
 
 # 5. Start the system
@@ -253,17 +251,10 @@ def test_component_integration():
     # Create components
     launcher = ClaudeLauncher(test_config)
     orchestrator = SubprocessOrchestrator(launcher)
-    extractor = TicketExtractor()
-    
-    # Wire together
-    orchestrator.add_pattern_handler(extractor)
     
     # Test flow
     orchestrator.start()
     orchestrator.send_message("TODO: Test integration")
-    
-    # Verify ticket created
-    tickets = extractor.get_tickets()
     assert len(tickets) == 1
     assert tickets[0].type == "TODO"
 ```

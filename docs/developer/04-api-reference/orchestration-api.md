@@ -259,58 +259,6 @@ def interact(self)
 
 ---
 
-## Ticket Extractor
-
-Component for extracting ticket information from Claude's output.
-
-### Location
-`src/claude_mpm/orchestration/ticket_extractor.py`
-
-### TicketExtractor Class
-
-```python
-class TicketExtractor:
-    """Extract tickets from Claude output."""
-```
-
-### Key Methods
-
-#### extract_from_line()
-
-```python
-def extract_from_line(self, line: str) -> List[Dict[str, Any]]
-```
-
-Extract tickets from a single line of output.
-
-**Returns:** List of ticket dictionaries with structure:
-```python
-{
-    'type': 'TASK',  # or 'BUG', 'FEATURE', etc.
-    'title': 'Ticket title',
-    'description': 'Optional description'
-}
-```
-
-#### get_all_tickets()
-
-```python
-def get_all_tickets(self) -> List[Dict[str, Any]]
-```
-
-Get all tickets extracted during the session.
-
-### Supported Patterns
-
-The ticket extractor recognizes patterns like:
-- `[TASK] Description`
-- `[BUG] Issue description`
-- `[FEATURE] New feature`
-- `TODO: Task description`
-- `FIXME: Bug description`
-
----
-
 ## Agent Delegator
 
 Component for detecting and handling agent delegations.

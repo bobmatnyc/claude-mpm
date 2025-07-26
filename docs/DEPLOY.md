@@ -97,8 +97,12 @@ npm dist-tag add claude-mpm@$(cat VERSION) latest
 
 ### Local Installation
 
+#### Project-Specific Installation
+
+For installing Claude MPM within a specific project's virtual environment:
+
 ```bash
-# Development install
+# Development install (editable mode)
 pip install -e .
 
 # Production install from source
@@ -106,6 +110,90 @@ pip install .
 
 # Install from PyPI
 pip install claude-mpm
+
+# Install specific version
+pip install claude-mpm==0.5.0
+```
+
+#### Global Installation for All Projects
+
+For system-wide availability across all projects, use pipx or the provided Makefile:
+
+**Using pipx (Recommended for Users):**
+```bash
+# Install pipx if not already installed
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install Claude MPM globally from PyPI
+pipx install claude-mpm
+
+# Or install from local source
+pipx install .
+```
+
+**Using Makefile (Automated Setup):**
+
+For developers working on claude-mpm:
+```bash
+# Development installation (RECOMMENDED FOR DEVELOPERS)
+make install-dev
+
+# This will:
+# - Create a virtual environment in ~/.claude-mpm/
+# - Install Claude MPM in editable mode (pip install -e .)
+# - Set up the shell wrapper function
+# - Configure PATH and shell integration
+# - Your local code changes will be reflected immediately
+```
+
+For users who want the stable PyPI version:
+```bash
+# Production installation from PyPI
+make install
+
+# This will:
+# - Create a virtual environment in ~/.claude-mpm/
+# - Install Claude MPM from PyPI (latest stable version)
+# - Set up the shell wrapper function
+# - Configure PATH and shell integration
+```
+
+**Important Note for Developers:**
+- Use `make install-dev` to work with your local code changes
+- Changes to your source code will be immediately available without reinstalling
+- Use `make install` only if you specifically want the published PyPI version
+
+**Manual Shell Wrapper Setup:**
+
+Add this function to your shell configuration (`~/.bashrc`, `~/.zshrc`, etc.):
+
+```bash
+claude-mpm() {
+    if [ -f "$HOME/.claude-mpm/venv/bin/activate" ]; then
+        source "$HOME/.claude-mpm/venv/bin/activate"
+        command claude-mpm "$@"
+        deactivate
+    else
+        echo "Claude MPM not found. Run 'make install' from the project directory."
+        return 1
+    fi
+}
+```
+
+**Benefits of Global Installation:**
+- Available in any directory without activation
+- Isolated from project dependencies
+- Automatic virtual environment management
+- Clean PATH with single entry point
+- Easy updates via `pipx upgrade claude-mpm`
+
+**Quick Start After Global Installation:**
+```bash
+# From any directory
+claude-mpm --help
+claude-mpm agents list
+claude-mpm run -i "Your task here" --non-interactive
 ```
 
 ### GitHub Release
