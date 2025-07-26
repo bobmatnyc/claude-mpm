@@ -7,7 +7,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from claude_mpm.core.agent_registry import AgentRegistry
+from claude_mpm.core.agent_registry import AgentRegistryAdapter
 
 
 def test_agent_registry():
@@ -16,7 +16,7 @@ def test_agent_registry():
     
     # Initialize registry
     print("\n1. Initializing Agent Registry...")
-    registry = AgentRegistry()
+    registry = AgentRegistryAdapter()
     
     # List all agents
     print("\n2. Listing all agents:")
@@ -40,15 +40,9 @@ def test_agent_registry():
     for tier, agent_list in hierarchy.items():
         print(f"   {tier.capitalize()}: {len(agent_list)} agents - {', '.join(agent_list)}")
     
-    # Test health check
+    # Test health check - not available in adapter
     print("\n5. Registry Health Check:")
-    health = registry.health_check()
-    print(f"   Healthy: {health['healthy']}")
-    print(f"   Message: {health['message']}")
-    print(f"   Total Agents: {health['agents_count']}")
-    print(f"   Core Agents Found: {health['core_agents_found']}/{health['core_agents_expected']}")
-    if health.get('missing_core_agents'):
-        print(f"   Missing Core Agents: {', '.join(health['missing_core_agents'])}")
+    print("   Health check not available in adapter")
     
     # Test agent selection
     print("\n6. Agent Selection Tests:")
@@ -75,7 +69,10 @@ def test_agent_registry():
         "Implement JWT authentication",
         "Use best practices for security"
     )
-    print(formatted)
+    if formatted:
+        print(formatted)
+    else:
+        print("   No formatting available")
     
     # Test mapping between JSON keys and file names
     print("\n8. Agent ID Mapping Verification:")

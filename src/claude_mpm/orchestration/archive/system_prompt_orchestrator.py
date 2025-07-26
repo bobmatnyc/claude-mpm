@@ -10,14 +10,14 @@ import tempfile
 try:
     from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
-    from .ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
     # Hook client removed - will use JSON-RPC client from hook manager
 except ImportError:
     from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
-    from orchestration.ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
     # Hook client removed - will use JSON-RPC client from hook manager
@@ -52,7 +52,7 @@ class SystemPromptOrchestrator:
         
         # Components
         self.framework_loader = FrameworkLoader(framework_path, agents_dir)
-        self.ticket_extractor = TicketExtractor()
+        # TicketExtractor removed from project
         self.agent_delegator = AgentDelegator(self.framework_loader.agent_registry)
         
         # Initialize hook client if available
@@ -73,7 +73,7 @@ class SystemPromptOrchestrator:
         
         # State
         self.session_start = datetime.now()
-        self.ticket_creation_enabled = True
+        # Ticket creation removed from project
         
         # Initialize subprocess runner
         self.subprocess_runner = SubprocessRunner(logger=self.logger)
@@ -167,11 +167,7 @@ class SystemPromptOrchestrator:
                     if hook_results:
                         self.logger.info(f"Post-session hook executed: {len(hook_results)} hooks processed")
                         # Extract any tickets from hook results
-                        tickets = self.hook_client.get_extracted_tickets(hook_results)
-                        if tickets:
-                            self.logger.info(f"Extracted {len(tickets)} tickets from hooks")
-                            for ticket in tickets:
-                                self.ticket_extractor.add_ticket(ticket)
+                        # Ticket extraction removed from project
                 except Exception as e:
                     self.logger.warning(f"Post-session hook error: {e}")
             
@@ -182,49 +178,9 @@ class SystemPromptOrchestrator:
             except:
                 pass
             
-            # Create tickets from any logged interactions
-            self._create_tickets()
+            # Ticket creation removed from project
     
-    def _create_tickets(self):
-        """Create tickets using ai-trackdown-pytools."""
-        if not self.ticket_creation_enabled:
-            self.logger.info("Ticket creation disabled")
-            return
-            
-        tickets = self.ticket_extractor.get_all_tickets()
-        if not tickets:
-            self.logger.info("No tickets to create")
-            return
-        
-        try:
-            try:
-                from ..services.ticket_manager import TicketManager
-            except ImportError:
-                from services.ticket_manager import TicketManager
-            ticket_manager = TicketManager()
-            
-            created_count = 0
-            for ticket in tickets:
-                try:
-                    ticket_id = ticket_manager.create_ticket(
-                        title=ticket['title'],
-                        ticket_type=ticket['type'],
-                        description=ticket.get('description', ''),
-                        source='claude-mpm'
-                    )
-                    created_count += 1
-                    if self.log_level != "OFF":
-                        self.logger.info(f"Created ticket: {ticket_id} - {ticket['title']}")
-                except Exception as e:
-                    self.logger.error(f"Failed to create ticket '{ticket['title']}': {e}")
-            
-            if self.log_level != "OFF":
-                self.logger.info(f"Created {created_count}/{len(tickets)} tickets")
-                
-        except ImportError:
-            self.logger.warning("TicketManager not available, skipping ticket creation")
-        except Exception as e:
-            self.logger.error(f"Error creating tickets: {e}")
+    # _create_tickets method removed - TicketExtractor functionality removed from project
     
     def run_non_interactive(self, user_input: str):
         """Run a non-interactive session using print mode."""
@@ -279,11 +235,7 @@ class SystemPromptOrchestrator:
                 # Process output for tickets and delegations
                 delegations_detected = []
                 for line in result.stdout.split('\n'):
-                    # Extract tickets
-                    tickets = self.ticket_extractor.extract_from_line(line)
-                    for ticket in tickets:
-                        if self.log_level != "OFF":
-                            self.logger.info(f"Extracted ticket: {ticket['type']} - {ticket['title']}")
+                    # Ticket extraction removed from project
                     
                     # Extract delegations (for logging, not actual interception)
                     delegations = self.agent_delegator.extract_delegations(line)
@@ -310,12 +262,7 @@ class SystemPromptOrchestrator:
                         )
                         if hook_results:
                             self.logger.info(f"Post-delegation hook executed: {len(hook_results)} hooks processed")
-                            # Extract any tickets from hook results
-                            tickets = self.hook_client.get_extracted_tickets(hook_results)
-                            if tickets:
-                                self.logger.info(f"Extracted {len(tickets)} tickets from hooks")
-                                for ticket in tickets:
-                                    self.ticket_extractor.add_ticket(ticket)
+                            # Ticket extraction removed from project
                     except Exception as e:
                         self.logger.warning(f"Post-delegation hook error: {e}")
             else:
@@ -324,8 +271,7 @@ class SystemPromptOrchestrator:
                 else:
                     print(f"Error: {result.stderr}")
                 
-            # Create tickets
-            self._create_tickets()
+            # Ticket creation removed from project
                 
         except Exception as e:
             print(f"Error: {e}")

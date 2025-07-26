@@ -13,22 +13,26 @@ import re
 try:
     from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
-    from .ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from ..core.framework_loader import FrameworkLoader
     from ..core.claude_launcher import ClaudeLauncher, LaunchMode
     from .agent_delegator import AgentDelegator
     from ..hooks.hook_client import HookServiceClient
     from .todo_hijacker import TodoHijacker
     from ..core.logger import get_project_logger
+    from ..core.tool_access_control import tool_access_control
+    from ..core.agent_name_normalizer import agent_name_normalizer
 except ImportError:
     from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
-    from orchestration.ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from core.framework_loader import FrameworkLoader
     from core.claude_launcher import ClaudeLauncher, LaunchMode
     from orchestration.agent_delegator import AgentDelegator
     from orchestration.todo_hijacker import TodoHijacker
     from core.logger import get_project_logger
+    from core.tool_access_control import tool_access_control
+    from core.agent_name_normalizer import agent_name_normalizer
     try:
         from hooks.hook_client import HookServiceClient
     except ImportError:
@@ -71,7 +75,7 @@ class SubprocessOrchestrator:
         
         # Components
         self.framework_loader = FrameworkLoader(framework_path, agents_dir)
-        self.ticket_extractor = TicketExtractor()
+        # TicketExtractor removed from project
         self.agent_delegator = AgentDelegator(self.framework_loader.agent_registry)
         
         # Initialize TODO hijacker if enabled
@@ -105,7 +109,7 @@ class SubprocessOrchestrator:
         
         # State
         self.session_start = datetime.now()
-        self.ticket_creation_enabled = True
+        # Ticket creation removed from project
         self._pending_todo_delegations = []
         
         # Initialize subprocess runner
@@ -136,7 +140,7 @@ class SubprocessOrchestrator:
         # Pattern 1: **Agent Name**: task
         pattern1 = r'\*\*([^*]+)(?:\s+Agent)?\*\*:\s*(.+?)(?=\n\n|\n\*\*|$)'
         for match in re.finditer(pattern1, response, re.MULTILINE | re.DOTALL):
-            agent = match.group(1).strip()
+            agent = agent_name_normalizer.normalize(match.group(1).strip())
             task = match.group(2).strip()
             delegations.append({
                 'agent': agent,
@@ -165,6 +169,12 @@ class SubprocessOrchestrator:
     
     def _extract_agent_from_task(self, task: str) -> str:
         """Extract agent name from task description."""
+        # Try to extract from TODO format first
+        agent = agent_name_normalizer.extract_from_todo(task)
+        if agent:
+            return agent
+        
+        # Otherwise, look for agent mentions in the task
         task_lower = task.lower()
         
         # Check for explicit agent names
@@ -173,11 +183,11 @@ class SubprocessOrchestrator:
         
         for agent in agents:
             if agent in task_lower:
-                return agent.title()
+                return agent_name_normalizer.normalize(agent)
         
         # Use agent delegator to suggest based on task
         suggested = self.agent_delegator.suggest_agent_for_task(task)
-        return suggested or "Engineer"
+        return agent_name_normalizer.normalize(suggested) if suggested else "Engineer"
     
     def create_agent_prompt(self, agent: str, task: str) -> str:
         """
@@ -190,27 +200,45 @@ class SubprocessOrchestrator:
         Returns:
             Complete prompt including agent-specific framework
         """
+        # Normalize agent name
+        normalized_agent = agent_name_normalizer.normalize(agent)
+        
         # Get agent-specific content
         agent_content = ""
-        agent_key = agent.lower().replace(' ', '_') + '_agent'
+        agent_key = agent_name_normalizer.to_key(normalized_agent) + '_agent'
         
         if agent_key in self.framework_loader.framework_content.get('agents', {}):
             agent_content = self.framework_loader.framework_content['agents'][agent_key]
         
+        # Get TODO guidance for this agent
+        todo_guidance = tool_access_control.get_todo_guidance(agent)
+        
         # Build focused agent prompt
-        prompt = f"""You are the {agent} Agent in the Claude PM Framework.
+        prompt = f"""You are the {normalized_agent} Agent in the Claude PM Framework.
 
 {agent_content}
+
+## Tool Access and Task Tracking
+{todo_guidance}
 
 ## Current Task
 {task}
 
 ## Response Format
 Provide a clear, structured response that:
-1. Confirms your role as {agent} Agent
+1. Confirms your role as {normalized_agent} Agent
 2. Completes the requested task
 3. Reports any issues or blockers
 4. Summarizes deliverables
+5. Lists any follow-up tasks using TODO format
+
+## TODO Reporting Format
+When identifying tasks for other agents, use this format:
+TODO (Priority): [Agent] Task description
+
+Example:
+TODO (High Priority): [Research] Analyze authentication patterns
+TODO (Medium Priority): [QA] Write tests for new endpoints
 
 Remember: You are an autonomous agent. Complete the task independently and report results."""
         
@@ -263,13 +291,35 @@ Remember: You are an autonomous agent. Complete the task independently and repor
         )
         
         try:
-            # Use unified launcher for one-shot execution
-            # Note: Agents get full tool access, only PM is restricted
-            stdout, stderr, returncode = self.launcher.launch_oneshot(
-                message=prompt,
-                use_stdin=True,
-                timeout=60
+            # Normalize agent name for consistent tool access
+            normalized_agent = agent_name_normalizer.normalize(agent)
+            
+            # Get allowed tools for this agent type
+            allowed_tools = tool_access_control.format_allowed_tools_arg(normalized_agent, is_parent=False)
+            
+            if self.log_level != "OFF":
+                self.logger.info(f"Applying tool restrictions for {normalized_agent}: {allowed_tools}")
+            
+            # Create command with tool restrictions
+            cmd = [self.launcher.claude_path, "--dangerously-skip-permissions"]
+            if self.launcher.model:
+                cmd.extend(["--model", self.launcher.model])
+            
+            # Apply tool restrictions for the agent
+            cmd.extend(["--allowedTools", allowed_tools])
+            
+            # Use subprocess directly for more control
+            import subprocess
+            process = subprocess.Popen(
+                cmd,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True
             )
+            
+            stdout, stderr = process.communicate(input=prompt, timeout=60)
+            returncode = process.returncode
             
             execution_time = time.time() - start_time
             
@@ -293,12 +343,7 @@ Remember: You are an autonomous agent. Complete the task independently and repor
                         )
                         if hook_results:
                             self.logger.info(f"Post-delegation hook executed: {len(hook_results)} hooks")
-                            # Extract any tickets from hooks
-                            hook_tickets = self.hook_client.get_extracted_tickets(hook_results)
-                            if hook_tickets:
-                                self.logger.info(f"Extracted {len(hook_tickets)} tickets from hooks")
-                                for ticket in hook_tickets:
-                                    self.ticket_extractor.add_ticket(ticket)
+                            # Ticket extraction removed from project
                     except Exception as e:
                         self.logger.warning(f"Post-delegation hook error: {e}")
                 
@@ -474,7 +519,9 @@ Remember: You are an autonomous agent. Complete the task independently and repor
         output.append("## Agent Responses\n")
         
         for result in results:
-            output.append(f"### {result['agent']} Agent")
+            # Use colorized agent name for display
+            agent_display = agent_name_normalizer.colorize(result['agent'], f"{agent_name_normalizer.normalize(result['agent'])} Agent")
+            output.append(f"### {agent_display}")
             output.append(result['response'])
             output.append("")
         
@@ -538,7 +585,12 @@ Example:
             
             if self.log_level != "OFF":
                 self.logger.info("Running PM with user input")
-                self.logger.info("Applying tool restrictions: Task, TodoWrite, WebSearch, WebFetch only")
+                
+            # Get allowed tools for PM
+            pm_allowed_tools = tool_access_control.format_allowed_tools_arg("pm", is_parent=True)
+            
+            if self.log_level != "OFF":
+                self.logger.info(f"Applying PM tool restrictions: {pm_allowed_tools}")
             
             # Use unified launcher for PM execution with tool restrictions
             # Create command with tool restrictions for PM
@@ -547,7 +599,7 @@ Example:
                 cmd.extend(["--model", self.launcher.model])
             
             # Restrict PM to only delegation and tracking tools
-            cmd.extend(["--allowedTools", "Task,TodoWrite,WebSearch,WebFetch"])
+            cmd.extend(["--allowedTools", pm_allowed_tools])
             
             # Use subprocess directly for more control
             import subprocess
@@ -607,13 +659,7 @@ Example:
                 formatted_results = self.format_results(results)
                 print(formatted_results)
                 
-                # Extract tickets from all responses
-                all_responses = pm_response + "\n".join([r['response'] for r in results])
-                for line in all_responses.split('\n'):
-                    tickets = self.ticket_extractor.extract_from_line(line)
-                    for ticket in tickets:
-                        if self.log_level != "OFF":
-                            self.logger.info(f"Extracted ticket: {ticket['type']} - {ticket['title']}")
+                # Ticket extraction removed from project
             else:
                 print("\nNo delegations detected in PM response.")
             
@@ -629,8 +675,7 @@ Example:
                     formatted_todo_results = self.format_results(todo_results)
                     print(formatted_todo_results)
                 
-            # Create tickets
-            self._create_tickets()
+            # Ticket creation removed from project
             
             # Create session report
             self.project_logger.create_session_report()
@@ -719,8 +764,11 @@ Example:
             # Add the framework as system prompt
             cmd.extend(["--append-system-prompt", framework])
             
+            # Get PM tool restrictions
+            pm_allowed_tools = tool_access_control.format_allowed_tools_arg("pm", is_parent=True)
+            
             # Restrict PM to only delegation and tracking tools
-            cmd.extend(["--allowedTools", "Task,TodoWrite,WebSearch,WebFetch"])
+            cmd.extend(["--allowedTools", pm_allowed_tools])
             
             if self.log_level != "OFF":
                 self.logger.debug(f"Launching Claude with command: {' '.join(cmd[:4])}... (framework omitted)")
@@ -750,43 +798,4 @@ Example:
             if self.log_level != "OFF":
                 self.logger.error(f"Interactive error: {e}")
     
-    def _create_tickets(self):
-        """Create tickets using ai-trackdown-pytools."""
-        if not self.ticket_creation_enabled:
-            self.logger.info("Ticket creation disabled")
-            return
-            
-        tickets = self.ticket_extractor.get_all_tickets()
-        if not tickets:
-            self.logger.info("No tickets to create")
-            return
-        
-        try:
-            try:
-                from ..services.ticket_manager import TicketManager
-            except ImportError:
-                from services.ticket_manager import TicketManager
-            ticket_manager = TicketManager()
-            
-            created_count = 0
-            for ticket in tickets:
-                try:
-                    ticket_id = ticket_manager.create_ticket(
-                        title=ticket['title'],
-                        ticket_type=ticket['type'],
-                        description=ticket.get('description', ''),
-                        source='claude-mpm'
-                    )
-                    created_count += 1
-                    if self.log_level != "OFF":
-                        self.logger.info(f"Created ticket: {ticket_id} - {ticket['title']}")
-                except Exception as e:
-                    self.logger.error(f"Failed to create ticket '{ticket['title']}': {e}")
-            
-            if self.log_level != "OFF":
-                self.logger.info(f"Created {created_count}/{len(tickets)} tickets")
-                
-        except ImportError:
-            self.logger.warning("TicketManager not available, skipping ticket creation")
-        except Exception as e:
-            self.logger.error(f"Error creating tickets: {e}")
+    # _create_tickets method removed - TicketExtractor functionality removed from project

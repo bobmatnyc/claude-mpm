@@ -403,22 +403,17 @@ class TestJSONRPCHookClient(unittest.TestCase):
         
     def test_execute_specific_hook(self):
         """Test executing a specific hook."""
-        with patch.object(self.client.executor, 'execute_hook') as mock_execute:
-            mock_execute.return_value = {
-                "hook_name": "test_hook",
-                "success": True,
-                "data": {"result": "ok"}
-            }
-            
-            results = self.client.execute_hook(
-                hook_type=HookType.SUBMIT,
-                context_data={"prompt": "test"},
-                specific_hook="test_hook"
-            )
-            
-            self.assertEqual(len(results), 1)
-            self.assertTrue(results[0]["success"])
-            mock_execute.assert_called_once()
+        # Use an existing hook for the test
+        results = self.client.execute_hook(
+            hook_type=HookType.SUBMIT,
+            context_data={"prompt": "test"},
+            specific_hook="ticket_detection"
+        )
+        
+        # Should get results for ticket_detection hook
+        self.assertEqual(len(results), 1)
+        self.assertTrue(results[0]["success"])
+        self.assertEqual(results[0]["hook_name"], "ticket_detection")
             
     def test_execute_all_hooks_of_type(self):
         """Test executing all hooks of a type."""
@@ -582,7 +577,7 @@ class TestIntegration(unittest.TestCase):
             client = HookServiceClient()
         
         # Check warning message
-        self.assertIn("HookServiceClient is deprecated", str(cm.warning.message))
+        self.assertIn("HookServiceClient is deprecated", str(cm.warnings[0].message))
 
 
 if __name__ == '__main__':

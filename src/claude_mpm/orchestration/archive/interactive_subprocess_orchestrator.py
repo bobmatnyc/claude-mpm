@@ -25,12 +25,12 @@ import re
 
 try:
     from ..core.logger import get_logger, setup_logging
-    from .ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     from core.logger import get_logger, setup_logging
-    from orchestration.ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
 
@@ -385,13 +385,13 @@ class InteractiveSubprocessOrchestrator:
         
         # Components
         self.framework_loader = FrameworkLoader(framework_path, agents_dir)
-        self.ticket_extractor = TicketExtractor()
+        # TicketExtractor removed from project
         self.agent_delegator = AgentDelegator(self.framework_loader.agent_registry)
         self.process_manager = ProcessManager()
         
         # State
         self.session_start = datetime.now()
-        self.ticket_creation_enabled = True
+        # Ticket creation removed from project
         self.parallel_execution_enabled = True
         self.max_parallel_processes = 8
         
@@ -545,13 +545,8 @@ Remember: You are an autonomous agent. Complete the task independently and repor
             
             execution_time = time.time() - start_time
             
-            # Extract tickets from response
-            tickets = []
-            for line in response.split('\n'):
-                extracted = self.ticket_extractor.extract_from_line(line)
-                tickets.extend(extracted)
-            
-            ticket_ids = [f"TICKET-{uuid.uuid4().hex[:8]}" for _ in tickets]
+            # Ticket extraction removed from project
+            ticket_ids = []
             
             return AgentExecutionResult(
                 success=True,
@@ -794,8 +789,7 @@ Remember: You are an autonomous agent. Complete the task independently and repor
             "active_processes": self.process_manager.get_active_processes(),
             "parallel_execution_enabled": self.parallel_execution_enabled,
             "max_parallel_processes": self.max_parallel_processes,
-            "ticket_creation_enabled": self.ticket_creation_enabled,
-            "extracted_tickets": self.ticket_extractor.get_all_tickets()
+            # Ticket extraction removed from project
         }
 
 
