@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""Unified hook handler for Claude Code integration."""
+"""Unified hook handler for Claude Code integration.
+
+This script is called by hook_wrapper.sh, which is the shell script
+that gets installed in ~/.claude/settings.json. The wrapper handles
+environment setup and then executes this Python handler.
+"""
 
 import json
 import sys
 import os
 import re
+import logging
 from datetime import datetime
 from pathlib import Path
 
@@ -12,9 +18,10 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.parent
 sys.path.insert(0, str(project_root / 'src'))
 
-from claude_mpm.core.logger import get_logger, LogLevel
+from claude_mpm.core.logger import get_logger, setup_logging, LogLevel
 
-logger = get_logger(__name__)
+# Don't initialize global logging here - we'll do it per-project
+logger = None
 
 
 class ClaudeHookHandler:
@@ -34,6 +41,7 @@ class ClaudeHookHandler:
         
     def handle(self):
         """Main entry point for hook handling."""
+        global logger
         try:
             # Quick debug log to file
             with open('/tmp/claude-mpm-hook.log', 'a') as f:
@@ -43,6 +51,36 @@ class ClaudeHookHandler:
             event_data = sys.stdin.read()
             self.event = json.loads(event_data)
             self.hook_type = self.event.get('hook_event_name', 'unknown')
+            
+            # Get the working directory from the event
+            cwd = self.event.get('cwd', os.getcwd())
+            project_dir = Path(cwd)
+            
+            # Initialize project-specific logging
+            log_dir = project_dir / '.claude-mpm' / 'logs'
+            log_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Set up logging for this specific project
+            # Use a single log file per day per project
+            log_level = os.environ.get('CLAUDE_MPM_LOG_LEVEL', 'INFO')
+            log_file = log_dir / f"hooks_{datetime.now().strftime('%Y%m%d')}.log"
+            
+            # Only set up logging if we haven't already for this project
+            logger_name = f"claude_mpm_hooks_{project_dir.name}"
+            if not logging.getLogger(logger_name).handlers:
+                logger = setup_logging(
+                    name=logger_name,
+                    level=log_level,
+                    log_dir=log_dir,
+                    log_file=log_file
+                )
+            else:
+                logger = logging.getLogger(logger_name)
+            
+            # Log more details about the hook type
+            with open('/tmp/claude-mpm-hook.log', 'a') as f:
+                f.write(f"[{datetime.now().isoformat()}] Hook type: {self.hook_type}\n")
+                f.write(f"[{datetime.now().isoformat()}] Project: {project_dir}\n")
             
             # Log the prompt if it's UserPromptSubmit
             if self.hook_type == 'UserPromptSubmit':
@@ -62,6 +100,10 @@ class ClaudeHookHandler:
                 return self._handle_pre_tool_use()
             elif self.hook_type == 'PostToolUse':
                 return self._handle_post_tool_use()
+            elif self.hook_type == 'Stop':
+                return self._handle_stop()
+            elif self.hook_type == 'SubagentStop':
+                return self._handle_subagent_stop()
             else:
                 logger.debug(f"Unknown hook type: {self.hook_type}")
                 return self._continue()
@@ -71,45 +113,69 @@ class ClaudeHookHandler:
                 f.write(f"[{datetime.now().isoformat()}] Hook handler error: {e}\n")
                 import traceback
                 f.write(traceback.format_exc())
-            logger.error(f"Hook handler error: {e}")
+            if logger:
+                logger.error(f"Hook handler error: {e}")
             return self._continue()
     
     def _log_event(self):
         """Log the event details if DEBUG logging is enabled."""
+        global logger
+        if not logger:
+            return
+            
         # Check if DEBUG logging is enabled
         # logger.level might be an int or LogLevel enum
         try:
             if hasattr(logger.level, 'value'):
                 debug_enabled = logger.level.value <= LogLevel.DEBUG.value
             else:
-                debug_enabled = logger.level <= LogLevel.DEBUG.value
+                # It's an int, compare with the DEBUG level value (10)
+                debug_enabled = logger.level <= 10
         except:
             # If comparison fails, assume debug is disabled
             debug_enabled = False
             
+        # Always log hook events at INFO level so they appear in the logs
+        session_id = self.event.get('session_id', 'unknown')
+        cwd = self.event.get('cwd', 'unknown')
+        
+        logger.info(f"Claude Code hook event: {self.hook_type} (session: {session_id[:8] if session_id != 'unknown' else 'unknown'})")
+        
         if debug_enabled:
-            # Get session info to identify the agent/caller
-            session_id = self.event.get('session_id', 'unknown')
-            cwd = self.event.get('cwd', 'unknown')
-            
-            logger.debug(f"Hook event received: {self.hook_type} (session: {session_id[:8]}... in {cwd})")
+            logger.debug(f"Event in directory: {cwd}")
             logger.debug(f"Event data: {json.dumps(self.event, indent=2)}")
             
-            # Log specific details based on hook type
-            if self.hook_type == 'UserPromptSubmit':
-                prompt = self.event.get('prompt', '')
-                logger.debug(f"User prompt: {prompt[:100]}..." if len(prompt) > 100 else f"User prompt: {prompt}")
-            elif self.hook_type == 'PreToolUse':
-                tool_name = self.event.get('tool_name', '')
+        # Log specific details based on hook type
+        if self.hook_type == 'UserPromptSubmit':
+            prompt = self.event.get('prompt', '')
+            # Don't log full agent system prompts
+            if prompt.startswith('You are Claude Code running in Claude MPM'):
+                logger.info("UserPromptSubmit: System prompt for agent delegation")
+            else:
+                logger.info(f"UserPromptSubmit: {prompt[:100]}..." if len(prompt) > 100 else f"UserPromptSubmit: {prompt}")
+        elif self.hook_type == 'PreToolUse':
+            tool_name = self.event.get('tool_name', '')
+            logger.info(f"PreToolUse: {tool_name}")
+            if debug_enabled:
                 tool_input = self.event.get('tool_input', {})
-                logger.debug(f"PreToolUse - Tool: {tool_name}")
                 logger.debug(f"Tool input: {json.dumps(tool_input, indent=2)}")
-            elif self.hook_type == 'PostToolUse':
-                tool_name = self.event.get('tool_name', '')
+        elif self.hook_type == 'PostToolUse':
+            tool_name = self.event.get('tool_name', '')
+            exit_code = self.event.get('exit_code', 'N/A')
+            logger.info(f"PostToolUse: {tool_name} (exit code: {exit_code})")
+            if debug_enabled:
                 tool_output = self.event.get('tool_output', '')
-                exit_code = self.event.get('exit_code', 'N/A')
-                logger.debug(f"PostToolUse - Tool: {tool_name} (exit code: {exit_code})")
                 logger.debug(f"Tool output: {tool_output[:200]}..." if len(str(tool_output)) > 200 else f"Tool output: {tool_output}")
+        elif self.hook_type == 'Stop':
+            reason = self.event.get('reason', 'unknown')
+            timestamp = datetime.now().isoformat()
+            logger.info(f"Stop event: reason={reason} at {timestamp}")
+        elif self.hook_type == 'SubagentStop':
+            agent_type = self.event.get('agent_type', 'unknown')
+            agent_id = self.event.get('agent_id', 'unknown')
+            reason = self.event.get('reason', 'unknown')
+            timestamp = datetime.now().isoformat()
+            logger.info(f"SubagentStop: agent_type={agent_type}, agent_id={agent_id}, reason={reason} at {timestamp}")
     
     def _handle_user_prompt_submit(self):
         """Handle UserPromptSubmit events."""
@@ -155,6 +221,16 @@ class ClaudeHookHandler:
     def _handle_post_tool_use(self):
         """Handle PostToolUse events."""
         # For now, just log and continue
+        return self._continue()
+    
+    def _handle_stop(self):
+        """Handle Stop events."""
+        # Log the stop event and continue
+        return self._continue()
+    
+    def _handle_subagent_stop(self):
+        """Handle SubagentStop events."""
+        # Log the subagent stop event and continue
         return self._continue()
     
     def _handle_mpm_status(self, args=None):

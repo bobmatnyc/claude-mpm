@@ -13,8 +13,9 @@ echo ""
 # Copy npm package files
 cp -r "$OLDPWD/package.json" .
 cp -r "$OLDPWD/npm-bin" .
-cp -r "$OLDPWD/scripts/postinstall.js" scripts/
-cp -r "$OLDPWD/README.npm.md" .
+mkdir -p scripts
+cp "$OLDPWD/scripts/postinstall.js" scripts/
+cp "$OLDPWD/README.npm.md" .
 
 # Mock claude command
 mkdir -p bin

@@ -9,6 +9,22 @@ const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const readline = require('readline');
+
+// Helper function to ask yes/no questions
+function askYesNo(question) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  return new Promise((resolve) => {
+    rl.question(`${question} (y/n): `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y');
+    });
+  });
+}
 
 // Colors for output
 const colors = {
@@ -45,6 +61,16 @@ function warn(message) {
 function commandExists(cmd) {
   try {
     execSync(`which ${cmd}`, { stdio: 'ignore' });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Check if claude-mpm is installed via UV
+function isClaudeMpmInstalledUv() {
+  try {
+    execSync('uv pip show claude-mpm', { stdio: 'ignore' });
     return true;
   } catch (e) {
     return false;
@@ -122,6 +148,32 @@ async function installPipx() {
   }
 }
 
+// Install UV if needed
+async function installUv() {
+  info('Installing UV for fast Python package management...');
+  
+  try {
+    if (process.platform === 'darwin' && commandExists('brew')) {
+      execSync('brew install uv', { stdio: 'inherit' });
+      success('UV installed successfully!');
+      return true;
+    } else {
+      // Use the official UV installer
+      execSync('curl -LsSf https://astral.sh/uv/install.sh | sh', { stdio: 'inherit', shell: true });
+      success('UV installed successfully!');
+      info('You may need to restart your terminal for UV to be available in PATH');
+      return true;
+    }
+  } catch (e) {
+    error('Failed to install UV automatically.');
+    console.log('\nPlease install UV manually:');
+    console.log('  curl -LsSf https://astral.sh/uv/install.sh | sh');
+    console.log('  or');
+    console.log('  brew install uv (macOS)');
+    return false;
+  }
+}
+
 // Install claude-mpm
 async function installClaudeMpm() {
   info('Installing claude-mpm Python package...');
@@ -130,6 +182,33 @@ async function installClaudeMpm() {
   if (!python) {
     error('Python is not installed. Please install Python 3.8 or later.');
     process.exit(1);
+  }
+
+  // Try UV first (recommended)
+  if (commandExists('uv')) {
+    info('Using UV for installation (recommended)...');
+    try {
+      execSync('uv pip install claude-mpm', { stdio: 'inherit' });
+      success('claude-mpm installed successfully via UV!');
+      return;
+    } catch (e) {
+      warn('Failed to install via UV, trying other methods...');
+    }
+  } else {
+    info('UV is the recommended installer for claude-mpm.');
+    const answer = process.env.CI ? 'n' : await askYesNo('Would you like to install UV first? (recommended)');
+    if (answer) {
+      const installed = await installUv();
+      if (installed && commandExists('uv')) {
+        try {
+          execSync('uv pip install claude-mpm', { stdio: 'inherit' });
+          success('claude-mpm installed successfully via UV!');
+          return;
+        } catch (e) {
+          warn('Failed to install via UV, trying other methods...');
+        }
+      }
+    }
   }
 
   // Check if environment is externally managed
@@ -256,7 +335,7 @@ async function main() {
   // Check if claude-mpm is installed
   let claudeMpmCommand = findClaudeMpmCommand();
   
-  if (!claudeMpmCommand && !isClaudeMpmInstalledPip() && !isClaudeMpmInstalledPipx()) {
+  if (!claudeMpmCommand && !isClaudeMpmInstalledUv() && !isClaudeMpmInstalledPip() && !isClaudeMpmInstalledPipx()) {
     await installClaudeMpm();
     claudeMpmCommand = findClaudeMpmCommand();
     

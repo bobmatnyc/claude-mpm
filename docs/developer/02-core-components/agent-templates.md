@@ -164,6 +164,10 @@ Place custom agent templates in:
 - **User-wide**: `~/.claude-mpm/agents/`
 - **System-wide**: `$CLAUDE_MPM_PATH/agents/templates/`
 
+### Agent Template Generation
+
+The framework includes a meta-template (`src/claude_mpm/agents/agent-template.yaml`) for generating new agent profiles. This YAML template provides the structure and schema for creating consistent agent templates across the system.
+
 ## Agent Selection and Delegation
 
 ### PM Agent's Selection Strategy

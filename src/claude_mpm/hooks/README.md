@@ -1,243 +1,97 @@
-# Claude MPM Hook System
+# Claude Code Hooks System
 
-The Claude MPM hook system provides extensibility points for customizing behavior at key stages of execution.
-
-## Current Implementation (v0.5.0+)
-
-As of version 0.5.0, the hook system uses JSON-RPC for all hook executions. The previous HTTP-based implementation is deprecated and will be removed in a future release.
+This directory contains the Claude Code hook integration for claude-mpm.
 
 ## Overview
 
-The hook system allows you to intercept and modify behavior at various points in the orchestration workflow:
+The hook system allows claude-mpm to intercept and handle commands typed in Claude Code, particularly the `/mpm` commands.
 
-- **Submit Hooks**: Process user prompts before orchestration
-- **Pre-Delegation Hooks**: Filter/enhance context before delegating to agents  
-- **Post-Delegation Hooks**: Validate/process results from agents
-- **Ticket Extraction Hooks**: Automatically extract and create tickets from conversations
-
-## Architecture
+## Structure
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Orchestrator  │────▶│ JSON-RPC Client  │────▶│   Hook Types    │
-│                 │     │                  │     ├─────────────────┤
-│ - Process prompt│     │ - No server req. │     │ - SubmitHook    │
-│ - Delegate work │     │ - Direct exec    │     │ - PreDelegation │
-│ - Create tickets│     │ - Auto discovery │     │ - PostDelegation│
-└─────────────────┘     └──────────────────┘     │ - TicketExtract │
-                                                  └─────────────────┘
+hooks/
+├── claude_hooks/              # Claude Code hook implementation
+│   ├── hook_handler.py       # Main Python handler that processes events
+│   └── hook_wrapper.sh       # Shell wrapper script (this is what gets installed in ~/.claude/settings.json)
+└── builtin/                  # Legacy internal hooks (deprecated)
 ```
 
-## Usage
+## Claude Code Hooks
 
-### Basic Client Usage
-```python
-from claude_mpm.hooks.json_rpc_hook_client import JSONRPCHookClient
+The Claude Code hooks are the primary integration point between claude-mpm and Claude Code. They allow:
 
-# Create client
-client = JSONRPCHookClient()
+- Intercepting `/mpm` commands before they reach the LLM
+- Providing custom responses and actions
+- Blocking LLM processing when appropriate
 
-# Check system health
-health = client.health_check()
-print(f"Status: {health['status']}")
-print(f"Hooks available: {health['hook_count']}")
+### Installation
 
-# List available hooks
-hooks = client.list_hooks()
-for hook_type, hook_list in hooks.items():
-    print(f"{hook_type}: {len(hook_list)} hooks")
+To install the Claude Code hooks:
+
+```bash
+python scripts/install_hooks.py
 ```
 
-### Executing Hooks
-```python
-# Execute submit hooks
-results = client.execute_submit_hook(
-    prompt="URGENT: Fix the login bug",
-    user_id="user123"
-)
+This will:
+1. Create/update `~/.claude/settings.json` with hook configuration
+2. Point to the `hook_wrapper.sh` script
+3. Copy any custom commands to `~/.claude/commands/`
 
-# Get modified data
-modified_data = client.get_modified_data(results)
-if modified_data.get('priority') == 'high':
-    print("High priority task detected!")
+### How It Works
 
-# Execute pre-delegation hooks
-results = client.execute_pre_delegation_hook(
-    agent="engineer",
-    context={"task": "implement feature"}
-)
+1. When you type in Claude Code, it triggers hook events
+2. Claude Code calls `hook_wrapper.sh` (the path in `~/.claude/settings.json`)
+3. The wrapper script:
+   - Detects if it's running from a local dev environment, npm, or PyPI installation
+   - Activates the appropriate Python environment
+   - Runs `hook_handler.py` with the event data
+4. The handler processes various event types:
+   - **UserPromptSubmit**: Checks if the prompt starts with `/mpm` and handles commands
+   - **PreToolUse**: Logs tool usage before execution
+   - **PostToolUse**: Logs tool results after execution
+   - **Stop**: Logs when a session or task stops
+   - **SubagentStop**: Logs when a subagent completes with agent type and ID
+5. For `/mpm` commands, it returns exit code 2 to block LLM processing
+6. All events are logged to project-specific log files in `.claude-mpm/logs/`
 
-# Execute ticket extraction
-results = client.execute_ticket_extraction_hook(
-    content="TODO: Add tests\nFIXME: Memory leak"
-)
-tickets = client.get_extracted_tickets(results)
+### Available Commands
+
+- `/mpm` - Show help and available commands
+- `/mpm status` - Show claude-mpm status and environment
+- `/mpm help` - Show detailed help
+
+### Debugging
+
+To enable debug logging for hooks:
+
+```bash
+export CLAUDE_MPM_LOG_LEVEL=DEBUG
 ```
 
-## Hook Types
+Then run Claude Code from that terminal. Hook events will be logged to `~/.claude-mpm/logs/`.
 
-### 1. Submit Hooks
-Process user prompts before they're sent to the orchestrator:
-```python
-from claude_mpm.hooks.base_hook import SubmitHook, HookContext, HookResult
+## Legacy Hook System (Deprecated)
 
-class TicketDetectionSubmitHook(SubmitHook):
-    name = "ticket_detection"
-    priority = 10
-    
-    def execute(self, context: HookContext) -> HookResult:
-        prompt = context.data.get('prompt', '')
-        # Detect ticket references like TSK-001
-        tickets = self.ticket_pattern.findall(prompt)
-        return HookResult(
-            success=True,
-            data={'tickets': tickets},
-            modified=True
-        )
-```
+The `builtin/` directory contains the old internal hook system that was designed for JSON-RPC based hooks. This system is deprecated and will be removed in a future version. All hook functionality is now handled through the Claude Code hooks.
 
-### 2. Pre-Delegation Hooks
-Modify agent context before delegation:
-```python
-from claude_mpm.hooks.base_hook import PreDelegationHook
+## Development
 
-class ContextFilterHook(PreDelegationHook):
-    name = "context_filter"
-    priority = 20
-    
-    def execute(self, context: HookContext) -> HookResult:
-        # Filter sensitive information
-        filtered_context = self._filter_sensitive(context.data['context'])
-        return HookResult(
-            success=True,
-            data={'context': filtered_context},
-            modified=True
-        )
-```
+To add new `/mpm` commands:
 
-### 3. Post-Delegation Hooks
-Process agent results:
-```python
-from claude_mpm.hooks.base_hook import PostDelegationHook
+1. Edit `hook_handler.py` to handle the new command
+2. Update the help text in the `handle_mpm_help()` function
+3. Test by running Claude Code with the new command
 
-class ResultValidatorHook(PostDelegationHook):
-    name = "result_validator"
-    priority = 30
-    
-    def execute(self, context: HookContext) -> HookResult:
-        result = context.data.get('result', {})
-        # Validate result quality
-        issues = self._validate_result(result)
-        return HookResult(
-            success=True,
-            data={'validation_issues': issues},
-            modified=bool(issues)
-        )
-```
+## Exit Codes
 
-### 4. Ticket Extraction Hooks
-Extract actionable items from conversations:
-```python
-from claude_mpm.hooks.base_hook import TicketExtractionHook
+The hook system uses specific exit codes:
 
-class AutoTicketExtractionHook(TicketExtractionHook):
-    name = "auto_ticket_extraction"
-    priority = 40
-    
-    def execute(self, context: HookContext) -> HookResult:
-        content = context.data.get('content', '')
-        # Extract TODO, FIXME, etc.
-        tickets = self._extract_tickets(content)
-        return HookResult(
-            success=True,
-            data={'tickets': tickets},
-            modified=True
-        )
-```
+- `0` - Success, continue normal processing
+- `2` - Block LLM processing (command was handled)
+- Other - Error occurred
 
-## Creating Custom Hooks
+## Environment Variables
 
-### 1. Create Hook File
-Create a new Python file in the `builtin/` directory:
-
-```python
-# builtin/my_custom_hook.py
-from claude_mpm.hooks.base_hook import SubmitHook, HookContext, HookResult
-
-class MyCustomHook(SubmitHook):
-    name = "my_custom_hook"
-    priority = 25  # 0-100, lower executes first
-    
-    def execute(self, context: HookContext) -> HookResult:
-        # Your hook logic here
-        prompt = context.data.get('prompt', '')
-        
-        # Process prompt
-        processed = self._process(prompt)
-        
-        return HookResult(
-            success=True,
-            data={'prompt': processed},
-            modified=True
-        )
-    
-    def _process(self, prompt: str) -> str:
-        # Your processing logic
-        return prompt.upper()
-```
-
-### 2. Hook Discovery
-Hooks are automatically discovered from the `builtin/` directory when the client is initialized. No manual registration required!
-
-### 3. Hook Priority
-Hooks execute in priority order (0-100, lower first):
-- 0-20: Critical preprocessing (security, validation)
-- 21-40: Data transformation
-- 41-60: Enhancement and enrichment
-- 61-80: Analytics and metrics
-- 81-100: Low priority post-processing
-
-## Migration from HTTP-based Hooks
-
-If you're migrating from the old HTTP-based hook system, see `/docs/hook_system_migration_guide.md` for detailed instructions.
-
-Key changes:
-- No server startup required
-- Import from `json_rpc_hook_client` instead of `hook_client`
-- Automatic hook discovery from `builtin/` directory
-- Better error handling and performance
-
-## Best Practices
-
-1. **Keep Hooks Fast**: Hooks run synchronously, so keep execution time minimal
-2. **Handle Errors Gracefully**: Always return a HookResult, even on failure
-3. **Use Appropriate Priority**: Consider hook dependencies when setting priority
-4. **Validate Input**: Always validate context data before processing
-5. **Log Important Events**: Use logging for debugging and monitoring
-6. **Make Hooks Idempotent**: Hooks should produce same result if run multiple times
-
-## Troubleshooting
-
-### Hooks Not Discovered
-- Verify hook file is in `builtin/` directory
-- Check file has `.py` extension
-- Ensure hook class inherits from correct base type
-- Check for Python syntax errors
-
-### Hook Execution Errors
-- Enable debug logging to see detailed errors
-- Check hook's execute method returns HookResult
-- Verify context data structure matches expectations
-
-### Performance Issues
-- Check hook execution times in results
-- Consider caching expensive operations
-- Profile hooks with `cProfile` if needed
-
-## Examples
-
-See the `builtin/` directory for example implementations:
-- `submit_hook_example.py`: Ticket and priority detection
-- `pre_delegation_hook_example.py`: Context filtering and enhancement  
-- `post_delegation_hook_example.py`: Result validation and metrics
-- `ticket_extraction_hook_example.py`: Automatic ticket extraction
+- `CLAUDE_MPM_LOG_LEVEL` - Set to DEBUG for detailed logging
+- `HOOK_EVENT_TYPE` - Set by Claude Code (UserPromptSubmit, PreToolUse, PostToolUse)
+- `HOOK_DATA` - JSON data from Claude Code with event details

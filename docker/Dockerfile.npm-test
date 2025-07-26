@@ -1,0 +1,53 @@
+# Test Dockerfile for npm installation verification
+FROM node:18-slim
+
+# Install Python and dependencies
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create test directory
+WORKDIR /test
+
+# Copy npm package files
+COPY package.json .
+COPY npm-bin ./npm-bin
+COPY scripts/postinstall.js ./scripts/postinstall.js
+COPY README.npm.md .
+
+# Create a mock claude command
+RUN echo '#!/bin/bash\necho "1.0.60"' > /usr/local/bin/claude && \
+    chmod +x /usr/local/bin/claude
+
+# Install the npm package globally
+RUN npm install -g .
+
+# Check npm installation
+RUN echo "=== NPM Installation Check ===" && \
+    echo "1. NPM global packages:" && \
+    npm list -g --depth=0 && \
+    echo "" && \
+    echo "2. Check claude-mpm command:" && \
+    which claude-mpm && \
+    ls -la $(which claude-mpm) && \
+    echo "" && \
+    echo "3. Check npm package contents:" && \
+    ls -la /usr/local/lib/node_modules/@bobmatnyc/claude-mpm/
+
+# Test the wrapper (but don't let it hang on Python install)
+RUN echo "=== Testing claude-mpm wrapper ===" && \
+    timeout 5s claude-mpm --version || echo "Command timed out or failed (expected during Python install)"
+
+# Manually install Python package to test hooks
+RUN pip3 install --break-system-packages claude-mpm
+
+# Check Python installation and hooks
+RUN echo "=== Python Package Check ===" && \
+    pip3 show claude-mpm && \
+    echo "" && \
+    echo "=== Hook Files Check ===" && \
+    python3 -c "import claude_mpm; import os; pkg_dir = os.path.dirname(claude_mpm.__file__); hook_dir = os.path.join(pkg_dir, 'hooks', 'claude_hooks'); print('Package dir:', pkg_dir); print('Hook dir:', hook_dir); print('Hook dir exists:', os.path.exists(hook_dir)); print('Hook files:', os.listdir(hook_dir) if os.path.exists(hook_dir) else 'Not found'); wrapper = os.path.join(hook_dir, 'hook_wrapper.sh') if os.path.exists(hook_dir) else None; print('Hook wrapper:', wrapper); print('Wrapper exists:', os.path.exists(wrapper) if wrapper else False); print('Wrapper executable:', os.access(wrapper, os.X_OK) if wrapper and os.path.exists(wrapper) else False)"
+
+CMD ["/bin/bash"]

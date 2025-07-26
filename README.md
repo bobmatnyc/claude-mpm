@@ -75,17 +75,52 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 
 ## Installation
 
-### From Source
+### Quick Install Options
+
+#### Option 1: Using UV (Recommended - Fast)
+UV is a lightning-fast Python package manager written in Rust, offering 10-100x speed improvements over pip.
+
+```bash
+# Install UV (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install claude-mpm with UV
+uv pip install claude-mpm
+
+# Or install from git
+uv pip install git+https://github.com/bobmatnyc/claude-mpm.git
+```
+
+#### Option 2: Using pip (Traditional)
+```bash
+# Install from PyPI
+pip install claude-mpm
+
+# Or install from git
+pip install git+https://github.com/bobmatnyc/claude-mpm.git
+```
+
+#### Option 3: Using npm (Wrapper)
+**Note**: This installs a wrapper that still requires Python. It's provided for convenience but the Python package is the primary distribution method.
+
+```bash
+npm install -g @bobmatnyc/claude-mpm
+```
+
+### From Source (Development)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/claude-mpm.git
+git clone https://github.com/bobmatnyc/claude-mpm.git
 cd claude-mpm
 
-# Run development installation script
-./install_dev.sh
+# Option A: Using UV (Recommended - Much faster)
+uv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+uv pip install -e .
 
-# Activate virtual environment
+# Option B: Traditional approach
+./install_dev.sh
 source venv/bin/activate
 ```
 
@@ -93,7 +128,7 @@ source venv/bin/activate
 
 #### Core Requirements
 - Python 3.8+
-- Claude CLI (must be installed and in PATH)
+- Claude Code CLI 1.0.60+ (must be installed and in PATH)
 
 #### Automatically Installed
 - tree-sitter & language packs (for code analysis)

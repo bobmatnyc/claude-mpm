@@ -43,6 +43,7 @@ claude-mpm/
 │   ├── cli_main.py                   # CLI main entry point
 │   │
 │   ├── agents/                       # Agent system
+│   │   ├── agent-template.yaml       # Meta-template for generating agents
 │   │   └── templates/                # Agent templates (JSON format)
 │   │       ├── documentation_agent.json
 │   │       ├── engineer_agent.json
@@ -68,8 +69,8 @@ claude-mpm/
 │   │   └── builtin/                  # Built-in hooks
 │   │
 │   ├── services/                     # Service layer
-│   │   ├── hook_service.py           # Hook service
-│   │   ├── hook_service_manager.py   # Hook service manager
+│   │   ├── ticket_manager.py         # Ticket management service
+│   │   ├── agent_deployment.py       # Agent deployment service
 │   │   └── ...
 │   │
 │   └── utils/                        # Utilities
@@ -96,6 +97,7 @@ The main Python package following the src layout pattern. All source code lives 
 - **framework_loader.py**: Loads INSTRUCTIONS.md (or legacy CLAUDE.md) and framework instructions
 
 ### `/src/claude_mpm/agents/` - Agent System
+- **agent-template.yaml**: Meta-template for generating new agent profiles
 - **templates/**: Pre-defined agent templates in JSON format (documentation, engineer, QA, research, security, etc.)
 - Agent templates are dynamically discovered and loaded by the agent registry
 

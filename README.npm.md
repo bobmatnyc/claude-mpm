@@ -4,19 +4,31 @@
 
 Claude Multi-Agent Project Manager - NPM wrapper for the Python package.
 
-This package provides a convenient way to install and run claude-mpm without manually installing the Python package.
+## Important: Python Requirement
+
+**This npm package is a wrapper that requires Python 3.8+ to be installed on your system.** The actual claude-mpm implementation is written in Python, and this npm package provides a convenient installer and launcher.
 
 ## Requirements
 
 - **Claude Code** 1.0.60 or later
-- **Python** 3.8 or later  
-- **pip** (Python package manager)
+- **Python** 3.8 or later (REQUIRED)
+- **Package Manager**: UV (recommended), pip, or pipx
 
 ## Installation
 
 ```bash
 npm install -g @bobmatnyc/claude-mpm
 ```
+
+On first run, the wrapper will automatically install the Python package using available package managers.
+
+## What This Package Does
+
+This npm package:
+1. Checks for Python and Claude Code prerequisites
+2. Automatically installs the Python `claude-mpm` package on first run
+3. Provides a convenient `claude-mpm` command that runs the Python implementation
+4. Handles UV, pipx, or pip installation based on your system
 
 ## Usage
 
@@ -27,18 +39,39 @@ After installation, you can run claude-mpm from any directory:
 claude-mpm
 
 # Non-interactive mode
-claude-mpm -i "Your prompt here"
+claude-mpm run -i "Your prompt here" --non-interactive
 
 # With specific options
 claude-mpm --help
 ```
 
-## How it Works
+## Alternative Installation Methods
 
-This npm package is a wrapper that:
-1. Checks for Python and Claude Code prerequisites
-2. Automatically installs the Python `claude-mpm` package via pip on first run
-3. Runs the Python package with your provided arguments
+If you prefer to install the Python package directly:
+
+### Using UV (Recommended)
+```bash
+# Install UV
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install claude-mpm
+uv pip install claude-mpm
+```
+
+### Using pip
+```bash
+# Create virtual environment
+python -m venv claude-mpm-env
+source claude-mpm-env/bin/activate
+
+# Install claude-mpm
+pip install claude-mpm
+```
+
+### Using pipx
+```bash
+pipx install claude-mpm
+```
 
 ## Features
 
@@ -46,10 +79,28 @@ This npm package is a wrapper that:
 - **Native Claude Code Integration**: Works seamlessly with Claude Code's agent system
 - **System Instruction Loading**: Automatically loads PM framework instructions
 - **Agent Deployment**: Deploys specialized agents (engineer, qa, research, etc.)
+- **Hook System**: Extensible architecture for custom functionality
+- **Ticket Management**: Built-in issue tracking system
 
 ## Documentation
 
 For full documentation, visit: https://github.com/bobmatnyc/claude-mpm
+
+## Troubleshooting
+
+### Python Not Found
+
+If you see "Python not found" errors, install Python 3.8+:
+- macOS: `brew install python@3.11`
+- Ubuntu/Debian: `sudo apt install python3.11`
+- Windows: Download from https://python.org
+
+### Installation Fails
+
+If automatic installation fails, install the Python package manually:
+```bash
+uv pip install claude-mpm  # or pip install claude-mpm
+```
 
 ## License
 
