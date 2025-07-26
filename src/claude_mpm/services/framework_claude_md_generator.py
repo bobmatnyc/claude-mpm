@@ -240,6 +240,12 @@ Use the TodoWrite tool to manage task lists and track progress:
 - Organize multi-step operations
 - Demonstrate thoroughness to users
 
+**CRITICAL TodoWrite Requirement**: 
+- **ALWAYS** prefix each todo item with [Agent] to indicate delegation target
+- Examples: [Research], [Engineer], [QA], [Security], [Documentation], [Ops], [Version Control]
+- This ensures proper task attribution and tracking across the multi-agent system
+- The system will automatically validate and enforce this requirement
+
 ### Task Tool (Subprocess Execution)
 The Task tool enables subprocess delegation:
 - Execute specialized agent tasks
@@ -248,10 +254,10 @@ The Task tool enables subprocess delegation:
 - Handle long-running operations
 
 ### Usage Guidelines:
-1. Use TodoWrite for task planning and tracking
+1. Use TodoWrite for task planning and tracking with [Agent] prefixes
 2. Use Task tool for actual agent delegation
 3. Update todo items as tasks complete
-4. Maintain clear task descriptions
+4. Maintain clear task descriptions with proper agent attribution
 """
 
     @staticmethod
