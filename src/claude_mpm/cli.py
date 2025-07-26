@@ -10,13 +10,11 @@ try:
     # Try relative imports first (when used as package)
     from ._version import __version__
     from .core.logger import get_logger, setup_logging
-    from .services.json_rpc_hook_manager import JSONRPCHookManager
     from .constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 except ImportError:
     # Fall back to absolute imports (when run directly)
     from claude_mpm._version import __version__
     from core.logger import get_logger, setup_logging
-    from services.json_rpc_hook_manager import JSONRPCHookManager
     from constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 
 
@@ -256,31 +254,10 @@ def main(argv: Optional[list] = None):
         logger = logging.getLogger("cli")
         logger.setLevel(logging.WARNING)
     
-    # Initialize hook service manager (unless disabled)
-    hook_manager = None
-    if not getattr(args, 'no_hooks', False):
-        try:
-            # Check if hooks are enabled via config
-            try:
-                from .config.hook_config import HookConfig
-            except ImportError:
-                from config.hook_config import HookConfig
-            if HookConfig.is_hooks_enabled():
-                hook_manager = JSONRPCHookManager(log_dir=args.log_dir)
-                if hook_manager.start_service():
-                    logger.info("JSON-RPC hook system initialized")
-                    if args.logging != LogLevel.OFF.value:
-                        print("✓ JSON-RPC hook system initialized")
-                else:
-                    logger.warning("Failed to initialize JSON-RPC hooks, continuing without hooks")
-                    if args.logging != LogLevel.OFF.value:
-                        print("⚠️  Failed to initialize JSON-RPC hooks, continuing without hooks")
-                    hook_manager = None
-            else:
-                logger.info("Hooks disabled via configuration")
-        except Exception as e:
-            logger.warning(f"Hook service initialization failed: {e}, continuing without hooks")
-            hook_manager = None
+    # Hook system note: Claude Code hooks are handled externally via the
+    # hook_handler.py script installed in ~/.claude/settings.json
+    # The --no-hooks flag is kept for backward compatibility but doesn't affect
+    # Claude Code hooks which are configured separately.
     
     # Default to run command
     if not args.command:
@@ -301,11 +278,11 @@ def main(argv: Optional[list] = None):
     
     try:
         if command in [CLICommands.RUN.value, None]:
-            run_session(args, hook_manager)
+            run_session(args)
         elif command == CLICommands.TICKETS.value:
             list_tickets(args)
         elif command == CLICommands.INFO.value:
-            show_info(args, hook_manager)
+            show_info(args)
         elif command == CLICommands.AGENTS.value:
             manage_agents(args)
         elif command == CLICommands.UI.value:
@@ -323,9 +300,8 @@ def main(argv: Optional[list] = None):
             traceback.print_exc()
         return 1
     finally:
-        # Clean up hook service
-        if hook_manager:
-            hook_manager.stop_service()
+        # Cleanup handled by individual components
+        pass
     
     return 0
 
@@ -349,7 +325,7 @@ def _get_user_input(args, logger):
 
 
 
-def run_session(args, hook_manager=None):
+def run_session(args):
     """Run a simplified Claude session."""
     logger = get_logger("cli")
     if args.logging != LogLevel.OFF.value:
@@ -601,7 +577,7 @@ def run_terminal_ui(args):
     return 0
 
 
-def show_info(args, hook_manager=None):
+def show_info(args):
     """Show framework and configuration information."""
     try:
         from .core.framework_loader import FrameworkLoader
@@ -658,19 +634,15 @@ def show_info(args, hook_manager=None):
     except ImportError:
         print("  ✗ ai-trackdown-pytools: Not installed")
     
-    # Check hook service
-    if hook_manager:
-        info = hook_manager.get_service_info()
-        if info['running']:
-            print(f"  ✓ Hook System: JSON-RPC ({info.get('hook_count', 0)} hooks)")
-            if 'discovered_hooks' in info and info['discovered_hooks']:
-                print(f"     Hooks: {', '.join(info['discovered_hooks'][:5])}")
-                if len(info['discovered_hooks']) > 5:
-                    print(f"     ... and {len(info['discovered_hooks']) - 5} more")
-        else:
-            print("  ✗ Hook System: Not running")
+    # Check Claude Code hooks
+    from pathlib import Path
+    claude_settings = Path.home() / ".claude" / "settings.json"
+    if claude_settings.exists():
+        print("  ✓ Claude Code Hooks: Installed")
+        print("     Use /mpm commands in Claude Code")
     else:
-        print("  ✗ Hook System: Disabled (--no-hooks)")
+        print("  ✗ Claude Code Hooks: Not installed")
+        print("     Run: python scripts/install_hooks.py")
 
 
 if __name__ == "__main__":

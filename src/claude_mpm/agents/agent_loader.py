@@ -149,11 +149,18 @@ def load_agent_prompt_from_md(agent_name: str, force_reload: bool = False) -> Op
             data = json.load(f)
         
         # Extract prompt content from JSON
-        # The JSON templates have a 'content' field with the prompt
-        content = data.get('content', '')
+        # Check multiple possible locations for instructions/content
+        # Following the same pattern as AgentDeploymentService
+        content = (
+            data.get('instructions') or
+            data.get('narrative_fields', {}).get('instructions') or
+            data.get('content') or
+            ''
+        )
         
         if not content:
-            logger.warning(f"No content found in JSON template: {json_path}")
+            logger.warning(f"No content/instructions found in JSON template: {json_path}")
+            logger.debug(f"Checked fields: instructions, narrative_fields.instructions, content")
             return None
         
         # Cache the content with 1 hour TTL

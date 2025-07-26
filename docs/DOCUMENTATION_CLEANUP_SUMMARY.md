@@ -27,6 +27,7 @@ The current agent system structure is:
 ```
 src/claude_mpm/
 └── agents/
+    ├── agent-template.yaml     # Meta-template for generating agents
     └── templates/              # Agent templates (JSON format)
         ├── documentation_agent.json
         ├── engineer_agent.json

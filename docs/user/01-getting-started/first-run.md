@@ -5,9 +5,14 @@ Welcome! This tutorial will walk you through your first experience with Claude M
 ## Before You Begin
 
 Make sure you've completed the [installation](installation.md) and have:
-- Claude MPM installed
-- Virtual environment activated
-- Claude CLI working
+- Claude MPM installed (via UV, pip, or npm)
+- Claude Code installed and working
+- Python 3.8+ available
+
+If you used UV or npm, no virtual environment activation is needed. If you used pip with a venv, make sure it's activated:
+```bash
+source claude-mpm-env/bin/activate  # Only for pip users
+```
 
 ## Your First Command
 

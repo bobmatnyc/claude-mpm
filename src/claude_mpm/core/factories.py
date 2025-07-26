@@ -12,7 +12,6 @@ from typing import Any, Dict, Optional, Type, TypeVar
 from .container import DIContainer
 from .logger import get_logger
 from .config import Config
-from ..services.json_rpc_hook_manager import JSONRPCHookManager
 from ..services.agent_deployment import AgentDeploymentService
 from ..orchestration.factory import OrchestratorFactory
 from ..orchestration.base import BaseOrchestrator
@@ -31,47 +30,6 @@ class ServiceFactory(ABC):
         pass
 
 
-class HookManagerFactory(ServiceFactory):
-    """Factory for creating hook manager instances."""
-    
-    def create(
-        self,
-        container: DIContainer,
-        log_dir: Optional[Path] = None,
-        enabled: bool = True
-    ) -> Optional[JSONRPCHookManager]:
-        """
-        Create a hook manager instance.
-        
-        Args:
-            container: DI container
-            log_dir: Log directory path
-            enabled: Whether hooks are enabled
-            
-        Returns:
-            Hook manager instance or None if disabled
-        """
-        config = container.resolve(Config)
-        
-        # Check if hooks are enabled
-        if not enabled or config.get('hooks.enabled', True) is False:
-            logger.info("Hooks are disabled")
-            return None
-            
-        # Get log directory from config if not provided
-        if log_dir is None:
-            log_dir = Path(config.get('log_dir', '.claude-mpm/logs'))
-            
-        # Create hook manager
-        hook_manager = JSONRPCHookManager(log_dir=log_dir)
-        
-        # Start the service
-        if hook_manager.start_service():
-            logger.info("Hook manager initialized successfully")
-            return hook_manager
-        else:
-            logger.warning("Failed to start hook manager")
-            return None
 
 
 class OrchestratorFactoryWrapper(ServiceFactory):
@@ -110,9 +68,7 @@ class OrchestratorFactoryWrapper(ServiceFactory):
         # Merge with provided kwargs
         orch_config.update(kwargs)
         
-        # Inject services into orchestrator config
-        if 'hook_manager' not in orch_config and container.is_registered(JSONRPCHookManager):
-            orch_config['hook_manager'] = container.resolve_optional(JSONRPCHookManager)
+        # No hook manager injection needed - Claude Code hooks are external
             
         # Create orchestrator
         orchestrator = self._factory.create_orchestrator(
@@ -248,7 +204,6 @@ class FactoryRegistry:
     def __init__(self):
         """Initialize factory registry."""
         self._factories: Dict[str, ServiceFactory] = {
-            'hook_manager': HookManagerFactory(),
             'orchestrator': OrchestratorFactoryWrapper(),
             'agent_service': AgentServiceFactory(),
             'session_manager': SessionManagerFactory(),

@@ -16,7 +16,7 @@ class AgentProfileGenerator:
     
     def __init__(self, template_path: Optional[Path] = None):
         """Initialize the generator with a template path."""
-        self.template_path = template_path or Path(__file__).parent.parent.parent / "templates" / "agent-template.yaml"
+        self.template_path = template_path or Path(__file__).parent.parent / "agents" / "agent-template.yaml"
         self.template = self._load_template()
     
     def _load_template(self) -> Dict[str, Any]:

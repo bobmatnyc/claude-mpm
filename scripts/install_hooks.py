@@ -8,29 +8,74 @@ import sys
 from pathlib import Path
 
 
-def find_hook_files():
-    """Find the hook files in the installed package."""
-    # Try different possible locations
-    locations = [
-        # Development environment
-        Path(__file__).parent.parent / "src/claude_mpm/hooks/claude_hooks",
-        # Installed package - site-packages
-        Path(sys.prefix) / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages" / "claude_mpm" / "hooks" / "claude_hooks",
-        # Installed package - alternative location
-        Path(sys.prefix) / "claude_mpm" / "hooks" / "claude_hooks",
-    ]
+def detect_package_origin():
+    """Detect how claude-mpm was installed."""
+    # Check if we're in development mode (running from source)
+    script_path = Path(__file__).resolve()
+    if (script_path.parent.parent / "src" / "claude_mpm").exists():
+        return "local", script_path.parent.parent
     
-    # Also check if claude_mpm is importable
+    # Check for npm installation (node_modules)
+    node_modules_markers = [
+        Path.cwd() / "node_modules" / "claude-mpm",
+        Path.home() / "node_modules" / "claude-mpm",
+        Path("/usr/local/lib/node_modules/claude-mpm"),
+    ]
+    for marker in node_modules_markers:
+        if marker.exists():
+            return "npm", marker
+    
+    # Check for PyPI installation
     try:
         import claude_mpm
-        package_dir = Path(claude_mpm.__file__).parent
-        locations.append(package_dir / "hooks" / "claude_hooks")
+        package_path = Path(claude_mpm.__file__).parent
+        # PyPI packages are typically in site-packages
+        if "site-packages" in str(package_path):
+            return "pypi", package_path
+        else:
+            return "unknown", package_path
     except ImportError:
         pass
     
-    for location in locations:
-        if location.exists() and (location / "hook_handler.py").exists():
-            return location
+    return "unknown", None
+
+
+def find_hook_files():
+    """Find the hook files based on installation type."""
+    origin, base_path = detect_package_origin()
+    
+    if origin == "local":
+        # Development environment
+        hook_dir = base_path / "src" / "claude_mpm" / "hooks" / "claude_hooks"
+        print(f"📦 Package origin: Local development")
+    elif origin == "npm":
+        # npm installation
+        hook_dir = base_path / "dist" / "claude_mpm" / "hooks" / "claude_hooks"
+        if not hook_dir.exists():
+            # Try alternative npm structure
+            hook_dir = base_path / "src" / "claude_mpm" / "hooks" / "claude_hooks"
+        print(f"📦 Package origin: npm")
+    elif origin == "pypi":
+        # PyPI installation
+        hook_dir = base_path / "hooks" / "claude_hooks"
+        print(f"📦 Package origin: PyPI")
+    else:
+        # Unknown, try to find it
+        print(f"📦 Package origin: Unknown, searching...")
+        possible_locations = [
+            Path(sys.prefix) / "lib" / f"python{sys.version_info.major}.{sys.version_info.minor}" / "site-packages" / "claude_mpm" / "hooks" / "claude_hooks",
+            Path(sys.prefix) / "claude_mpm" / "hooks" / "claude_hooks",
+        ]
+        for loc in possible_locations:
+            if loc.exists() and (loc / "hook_handler.py").exists():
+                hook_dir = loc
+                break
+        else:
+            return None
+    
+    # Verify the hook files exist
+    if hook_dir and hook_dir.exists() and (hook_dir / "hook_handler.py").exists():
+        return hook_dir
     
     return None
 
@@ -49,6 +94,14 @@ def install_hooks():
         return False
     
     print(f"✓ Found hook files at: {hook_dir}")
+    
+    # Make sure the wrapper script is executable
+    hook_wrapper = hook_dir / "hook_wrapper.sh"
+    if hook_wrapper.exists():
+        import stat
+        st = os.stat(hook_wrapper)
+        os.chmod(hook_wrapper, st.st_mode | stat.S_IEXEC)
+        print(f"✓ Made hook wrapper executable")
     
     # Get absolute path to hook wrapper
     hook_wrapper = hook_dir / "hook_wrapper.sh"
@@ -87,7 +140,7 @@ def install_hooks():
         settings["hooks"] = {}
     
     # Add hooks for all event types
-    for event_type in ["UserPromptSubmit", "PreToolUse", "PostToolUse"]:
+    for event_type in ["UserPromptSubmit", "PreToolUse", "PostToolUse", "Stop", "SubagentStop"]:
         settings["hooks"][event_type] = [hook_config]
     
     # Write settings
