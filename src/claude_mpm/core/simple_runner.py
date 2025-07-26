@@ -491,6 +491,13 @@ You have access to native subagents via the Task tool with subagent_type paramet
 
 Use these agents by calling: Task(description="task description", subagent_type="agent_name")
 
+IMPORTANT: The Task tool accepts both naming formats:
+- Capitalized format: "Research", "Engineer", "QA", "Version Control", "Data Engineer"
+- Lowercase format: "research", "engineer", "qa", "version-control", "data-engineer"
+
+Both formats work correctly. When you see capitalized names (matching TodoWrite prefixes), 
+automatically normalize them to lowercase-hyphenated format for the Task tool.
+
 Work efficiently and delegate appropriately to subagents when needed."""
 
 

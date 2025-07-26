@@ -141,10 +141,11 @@ class TodoAgentPrefixHook(BaseHook):
     
     def _has_agent_prefix(self, content: str) -> bool:
         """Check if content already has an agent prefix."""
+        import re
         content = content.strip()
-        # Check if content has a valid agent prefix
-        agent = agent_name_normalizer.extract_from_todo(content)
-        return agent is not None
+        # Only check for [Agent] prefix at the beginning, not agent mentions in content
+        match = re.match(r'^\[([^\]]+)\]', content)
+        return match is not None
     
     def _suggest_agent(self, content: str) -> Optional[str]:
         """Suggest an appropriate agent based on content analysis."""
@@ -158,13 +159,13 @@ class TodoAgentPrefixHook(BaseHook):
         
         # Default suggestions based on common keywords
         if any(word in content_lower for word in ['code', 'implement', 'fix', 'bug']):
-            return 'engineer'
+            return agent_name_normalizer.normalize('engineer')
         elif any(word in content_lower for word in ['test', 'validate', 'check']):
-            return 'qa'
+            return agent_name_normalizer.normalize('qa')
         elif any(word in content_lower for word in ['doc', 'readme', 'guide']):
-            return 'documentation'
+            return agent_name_normalizer.normalize('documentation')
         elif any(word in content_lower for word in ['research', 'investigate']):
-            return 'research'
+            return agent_name_normalizer.normalize('research')
         
         return None
     

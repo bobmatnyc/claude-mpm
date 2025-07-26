@@ -242,6 +242,55 @@ class AgentNameNormalizer:
             return False, f"Unknown agent '{agent}'. Valid agents: {', '.join(cls.CANONICAL_NAMES.values())}"
         
         return True, None
+    
+    @classmethod
+    def to_task_format(cls, agent_name: str) -> str:
+        """
+        Convert agent name from TodoWrite format to Task tool format.
+        
+        Args:
+            agent_name: The agent name in TodoWrite format (e.g., "Research", "Version Control")
+            
+        Returns:
+            The agent name in Task tool format (e.g., "research", "version-control")
+            
+        Examples:
+            "Research" → "research"
+            "Version Control" → "version-control" 
+            "Data Engineer" → "data-engineer"
+            "QA" → "qa"
+        """
+        # First normalize to canonical form
+        normalized = cls.normalize(agent_name)
+        # Convert to lowercase and replace spaces with hyphens
+        return normalized.lower().replace(" ", "-")
+    
+    @classmethod
+    def from_task_format(cls, task_format: str) -> str:
+        """
+        Convert agent name from Task tool format to TodoWrite format.
+        
+        Args:
+            task_format: The agent name in Task tool format (e.g., "research", "version-control")
+            
+        Returns:
+            The agent name in TodoWrite format (e.g., "Research", "Version Control")
+            
+        Examples:
+            "research" → "Research"
+            "version-control" → "Version Control"
+            "data-engineer" → "Data Engineer"
+            "qa" → "QA"
+        """
+        # Replace hyphens with underscores for lookup
+        lookup_key = task_format.replace("-", "_")
+        
+        # Check if it's a valid canonical key
+        if lookup_key in cls.CANONICAL_NAMES:
+            return cls.CANONICAL_NAMES[lookup_key]
+        
+        # Try normalizing as-is
+        return cls.normalize(task_format)
 
 
 # Global instance for easy access

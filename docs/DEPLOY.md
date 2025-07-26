@@ -112,7 +112,7 @@ pip install .
 pip install claude-mpm
 
 # Install specific version
-pip install claude-mpm==0.5.0
+pip install claude-mpm==1.0.0
 ```
 
 #### Global Installation for All Projects
@@ -200,8 +200,8 @@ claude-mpm run -i "Your task here" --non-interactive
 
 1. Go to [GitHub Releases](https://github.com/yourusername/claude-mpm/releases)
 2. Click "Draft a new release"
-3. Select the version tag (e.g., `v0.5.0`)
-4. Title: `Claude MPM v0.5.0`
+3. Select the version tag (e.g., `v1.0.0`)
+4. Title: `Claude MPM v1.0.0`
 5. Copy changelog entry for description
 6. Attach distribution files from `dist/`
 7. Publish release
@@ -265,7 +265,7 @@ If issues are discovered after deployment:
 ```bash
 # Cannot delete, but can yank a release
 pip install twine
-twine yank claude-mpm==0.5.0
+twine yank claude-mpm==1.0.0
 
 # Upload fixed version with higher number
 ./scripts/manage_version.py bump --bump-type patch
@@ -277,7 +277,7 @@ twine upload dist/*
 
 ```bash
 # Deprecate broken version
-npm deprecate claude-mpm@0.5.0 "Critical bug, use 0.5.1"
+npm deprecate claude-mpm@1.0.0 "Critical bug, use 1.0.1"
 
 # Publish fixed version
 npm version patch

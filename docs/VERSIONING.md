@@ -5,8 +5,8 @@ Claude MPM uses automated semantic versioning based on git tags and conventional
 ## Overview
 
 The project uses `setuptools-scm` for automatic version detection from git, which means:
-- Version is derived from git tags (format: `v0.5.0`)
-- Between releases, versions include commit count: `0.5.0.post2+g1234567`
+- Version is derived from git tags (format: `v1.0.0`)
+- Between releases, versions include commit count: `1.0.0.post2+g1234567`
 - Dirty working directories add `.dirty` suffix
 - No manual version updates needed in code
 
@@ -78,13 +78,13 @@ Other types (docs, style, refactor, test, build, ci, chore) don't trigger versio
 
 ### Examples
 ```bash
-# Minor version bump (0.5.0 → 0.6.0)
+# Minor version bump (1.0.0 → 1.1.0)
 git commit -m "feat(agents): add new data analysis agent"
 
-# Patch version bump (0.5.0 → 0.5.1)
+# Patch version bump (1.0.0 → 1.0.1)
 git commit -m "fix(logging): correct session duration calculation"
 
-# Major version bump (0.5.0 → 1.0.0)
+# Major version bump (1.0.0 → 2.0.0)
 git commit -m "feat!: redesign agent communication protocol
 
 BREAKING CHANGE: Agent API has changed, update all custom agents"
@@ -169,7 +169,7 @@ Version is shown in multiple places:
 - Commit or stash changes for clean version
 
 ### Tag Not Recognized
-- Ensure tag format is `v0.5.0` (with 'v' prefix)
+- Ensure tag format is `v1.0.0` (with 'v' prefix)
 - Push tags to remote: `git push --tags`
 
 ### Different Versions in Different Places
