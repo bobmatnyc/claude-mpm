@@ -21,11 +21,54 @@ Claude MPM uses automated semantic versioning based on git tags. See [VERSIONING
 
 ## Release Process
 
-### 1. Prepare Release
+### Unified Release Script (Recommended)
+
+The easiest way to release Claude MPM is using the unified release script that handles all aspects of the release:
+
+```bash
+# Dry run to see what will happen
+./scripts/release.py patch --dry-run
+
+# Release a patch version
+./scripts/release.py patch
+
+# Release a minor version
+./scripts/release.py minor
+
+# Release a major version
+./scripts/release.py major
+
+# Test with TestPyPI first
+./scripts/release.py patch --test-pypi
+
+# Skip tests (emergency release only)
+./scripts/release.py patch --skip-tests
+```
+
+The unified release script will:
+1. Run pre-release checks (clean working directory, correct branch)
+2. Run the test suite
+3. Bump the version using semantic versioning
+4. Update package.json to match Python version
+5. Commit and tag the changes
+6. Build Python distributions
+7. Publish to PyPI (or TestPyPI)
+8. Publish to npm
+9. Create a GitHub release
+10. Verify package availability
+
+### Manual Release Process
+
+If you need to release manually, follow these steps:
+
+#### 1. Prepare Release
 
 ```bash
 # Ensure clean working directory
 git status
+
+# Check version synchronization
+./scripts/check_version_sync.py
 
 # Run tests
 ./scripts/run_all_tests.sh
@@ -33,12 +76,15 @@ git status
 # Update version and changelog
 ./scripts/manage_version.py auto
 
+# Update package.json version to match
+npm version $(cat VERSION) --no-git-tag-version
+
 # Review changes
 git show HEAD
 cat CHANGELOG.md
 ```
 
-### 2. Push Release
+#### 2. Push Release
 
 ```bash
 # Push commits and tags
@@ -46,7 +92,7 @@ git push origin main
 git push origin --tags
 ```
 
-### 3. Build Distributions
+#### 3. Build Distributions
 
 ```bash
 # Clean previous builds
@@ -245,16 +291,21 @@ claude-mpm agents list
 
 ## Deployment Checklist
 
+When using the unified release script (`./scripts/release.py`), all items are handled automatically:
+
 - [ ] All tests passing (`./scripts/run_all_tests.sh`)
 - [ ] Version bumped (`./scripts/manage_version.py auto`)
+- [ ] package.json version synchronized
 - [ ] CHANGELOG.md updated
 - [ ] Git tag created and pushed
 - [ ] Python package built (`python -m build`)
 - [ ] PyPI deployment successful
-- [ ] npm deployment successful (if applicable)
+- [ ] npm deployment successful
 - [ ] GitHub release created
 - [ ] Post-deployment verification completed
 - [ ] Documentation updated if needed
+
+For manual releases, check each item individually.
 
 ## Rollback Procedure
 
