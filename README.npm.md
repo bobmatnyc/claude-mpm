@@ -1,5 +1,7 @@
 # @bobmatnyc/claude-mpm
 
+> **Note**: This project is a fork of [claude-multiagent-pm](https://github.com/kfsone/claude-multiagent-pm), enhanced to integrate with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) v1.0.60+'s native agent system. This integration enables seamless orchestration of Claude Code's built-in agents (research, engineer, qa, documentation, security, ops, version_control, data_engineer) through a unified project management interface.
+
 Claude Multi-Agent Project Manager - NPM wrapper for the Python package.
 
 This package provides a convenient way to install and run claude-mpm without manually installing the Python package.
