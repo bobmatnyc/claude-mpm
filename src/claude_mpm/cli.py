@@ -19,6 +19,25 @@ except ImportError:
     from constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 
 
+
+def _preprocess_args(argv: Optional[list] = None) -> list:
+    """Preprocess arguments to handle --mpm: prefix commands."""
+    if argv is None:
+        argv = sys.argv[1:]
+    
+    # Convert --mpm:command to command for argparse compatibility
+    processed_args = []
+    for i, arg in enumerate(argv):
+        if arg.startswith(CLIPrefix.MPM.value):
+            # Extract command after prefix
+            command = arg[len(CLIPrefix.MPM.value):]
+            processed_args.append(command)
+        else:
+            processed_args.append(arg)
+    
+    return processed_args
+
+
 def main(argv: Optional[list] = None):
     """Main CLI entry point."""
     # Ensure directories are initialized on first run
@@ -32,7 +51,7 @@ def main(argv: Optional[list] = None):
     parser = argparse.ArgumentParser(
         prog="claude-mpm",
         description=f"Claude Multi-Agent Project Manager v{__version__} - Orchestrate Claude with agent delegation and ticket tracking",
-        epilog="By default, runs an orchestrated Claude session. Use 'claude-mpm' for interactive mode or 'claude-mpm -i \"prompt\"' for non-interactive mode."
+        epilog="By default, runs an orchestrated Claude session. Use 'claude-mpm' for interactive mode or 'claude-mpm -i \"prompt\"' for non-interactive mode.\n\nTo pass arguments to Claude CLI, use -- separator: claude-mpm run -- --model sonnet --temperature 0.1"
     )
     
     # Version
@@ -52,8 +71,8 @@ def main(argv: Optional[list] = None):
     parser.add_argument(
         "--logging",
         choices=[level.value for level in LogLevel],
-        default=LogLevel.OFF.value,
-        help="Logging level (default: OFF)"
+        default=LogLevel.INFO.value,
+        help="Logging level (default: INFO)"
     )
     
     parser.add_argument(
@@ -102,11 +121,14 @@ def main(argv: Optional[list] = None):
         help="Disable deployment of Claude Code native agents"
     )
     
-    # Commands (prefixed with --mpm:)
+    # Don't add claude_args at top level - it conflicts with subcommands
+    
+    # Commands (only non-prefixed for argparse, but we preprocess to support both)
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
     
-    # Run command (default) - duplicate args for explicit 'run' command
-    run_parser = subparsers.add_parser(CLICommands.RUN.with_prefix(), help="Run orchestrated Claude session (default)")
+    # Run command (default)
+    run_parser = subparsers.add_parser(CLICommands.RUN.value, help="Run orchestrated Claude session (default)")
+    
     run_parser.add_argument(
         "--no-hooks",
         action="store_true",
@@ -132,9 +154,14 @@ def main(argv: Optional[list] = None):
         action="store_true",
         help="Disable deployment of Claude Code native agents"
     )
+    run_parser.add_argument(
+        "claude_args",
+        nargs=argparse.REMAINDER,
+        help="Additional arguments to pass to Claude CLI (use -- before Claude args)"
+    )
     
     # List tickets command
-    list_parser = subparsers.add_parser(CLICommands.TICKETS.with_prefix(), help="List recent tickets")
+    list_parser = subparsers.add_parser(CLICommands.TICKETS.value, help="List recent tickets")
     list_parser.add_argument(
         "-n", "--limit",
         type=int,
@@ -143,10 +170,10 @@ def main(argv: Optional[list] = None):
     )
     
     # Info command
-    info_parser = subparsers.add_parser(CLICommands.INFO.with_prefix(), help="Show framework and configuration info")
+    info_parser = subparsers.add_parser(CLICommands.INFO.value, help="Show framework and configuration info")
     
     # UI command
-    ui_parser = subparsers.add_parser(CLICommands.UI.with_prefix(), help="Launch terminal UI with multiple panes")
+    ui_parser = subparsers.add_parser(CLICommands.UI.value, help="Launch terminal UI with multiple panes")
     ui_parser.add_argument(
         "--mode",
         choices=["terminal", "curses"],
@@ -155,7 +182,7 @@ def main(argv: Optional[list] = None):
     )
     
     # Agent management commands
-    agents_parser = subparsers.add_parser(CLICommands.AGENTS.with_prefix(), help="Manage Claude Code native agents")
+    agents_parser = subparsers.add_parser(CLICommands.AGENTS.value, help="Manage Claude Code native agents")
     agents_subparsers = agents_parser.add_subparsers(dest="agents_command", help="Agent commands")
     
     # List agents
@@ -195,8 +222,9 @@ def main(argv: Optional[list] = None):
         help="Target directory (default: .claude/)"
     )
     
-    # Parse arguments
-    args = parser.parse_args(argv)
+    # Preprocess and parse arguments
+    processed_argv = _preprocess_args(argv)
+    args = parser.parse_args(processed_argv)
     
     # Debug: Print parsed args
     if hasattr(args, 'debug') and args.debug:
@@ -204,7 +232,7 @@ def main(argv: Optional[list] = None):
     
     # Set up logging first
     # Handle deprecated --debug flag
-    if args.debug and args.logging == LogLevel.OFF.value:
+    if args.debug and args.logging == LogLevel.INFO.value:
         args.logging = LogLevel.DEBUG.value
     
     # Only setup logging if not OFF
@@ -244,28 +272,31 @@ def main(argv: Optional[list] = None):
     
     # Default to run command
     if not args.command:
-        args.command = CLICommands.RUN.with_prefix()
+        args.command = CLICommands.RUN.value
         # Also set default arguments for run command when no subcommand specified
         args.no_tickets = getattr(args, 'no_tickets', False)
         args.no_hooks = getattr(args, 'no_hooks', False)
         args.input = getattr(args, 'input', None)
         args.non_interactive = getattr(args, 'non_interactive', False)
+        args.claude_args = getattr(args, 'claude_args', [])
     
     # Debug output
     logger.debug(f"Command: {args.command}")
     logger.debug(f"Arguments: {args}")
     
-    # Execute command
+    # Execute command (we've already preprocessed prefixes)
+    command = args.command
+    
     try:
-        if args.command == CLICommands.RUN.with_prefix():
+        if command in [CLICommands.RUN.value, None]:
             run_session(args, hook_manager)
-        elif args.command == CLICommands.TICKETS.with_prefix():
+        elif command == CLICommands.TICKETS.value:
             list_tickets(args)
-        elif args.command == CLICommands.INFO.with_prefix():
+        elif command == CLICommands.INFO.value:
             show_info(args, hook_manager)
-        elif args.command == CLICommands.AGENTS.with_prefix():
+        elif command == CLICommands.AGENTS.value:
             manage_agents(args)
-        elif args.command == CLICommands.UI.with_prefix():
+        elif command == CLICommands.UI.value:
             run_terminal_ui(args)
         else:
             parser.print_help()
@@ -323,7 +354,8 @@ def run_session(args, hook_manager=None):
     
     # Create simple runner
     enable_tickets = not args.no_tickets
-    runner = SimpleClaudeRunner(enable_tickets=enable_tickets, log_level=args.logging)
+    claude_args = getattr(args, 'claude_args', []) or []
+    runner = SimpleClaudeRunner(enable_tickets=enable_tickets, log_level=args.logging, claude_args=claude_args)
     
     # Create basic context
     context = create_simple_context()
