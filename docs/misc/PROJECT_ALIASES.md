@@ -49,7 +49,7 @@ These project-level scripts:
 ## Testing
 
 Both scripts have been tested and confirmed working:
-- `./claude-mpm --version` returns: claude-mpm 0.3.0
+- `./claude-mpm --version` returns: claude-mpm 1.0.0
 - `./ticket help` displays the full help menu
 - Virtual environment activation is handled automatically
 - No need to manually activate venv before using these commands

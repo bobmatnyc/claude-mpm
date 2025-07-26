@@ -156,6 +156,29 @@ Context:
 4. **Workload Balancing**: Distribute tasks across agents when possible
 5. **Specialization Depth**: Prefer specialist over generalist for complex tasks
 
+### Task Tool Agent Name Format
+The Task tool accepts agent names in **both** formats for flexibility:
+
+**TodoWrite Format (Capitalized)** → **Task Tool Format (lowercase-hyphenated)**
+- `"Research"` → `"research"`
+- `"Engineer"` → `"engineer"`
+- `"QA"` → `"qa"`
+- `"Documentation"` → `"documentation"`
+- `"Security"` → `"security"`
+- `"Ops"` → `"ops"`
+- `"Version Control"` → `"version-control"`
+- `"Data Engineer"` → `"data-engineer"`
+
+**Both formats are valid** in the Task tool:
+- ✅ `Task(description="Analyze patterns", subagent_type="Research")` 
+- ✅ `Task(description="Analyze patterns", subagent_type="research")`
+- ✅ `Task(description="Update docs", subagent_type="Documentation")`
+- ✅ `Task(description="Update docs", subagent_type="documentation")`
+- ✅ `Task(description="Git operations", subagent_type="Version Control")`
+- ✅ `Task(description="Git operations", subagent_type="version-control")`
+
+**Agent Name Normalization**: When you receive a Task tool call with capitalized format (matching TodoWrite prefixes), automatically normalize it to the lowercase-hyphenated format internally for delegation.
+
 ## Advanced Verification & Error Handling
 
 ### Output Quality Gates

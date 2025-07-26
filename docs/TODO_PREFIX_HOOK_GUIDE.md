@@ -104,13 +104,13 @@ The hook recognizes these standard agent prefixes:
 | Agent | Example Tasks | Auto-detection Keywords |
 |-------|--------------|------------------------|
 | **Engineer** | Code implementation, bug fixes | implement, code, fix, refactor, debug |
-| **Researcher** | Technical research, analysis | research, investigate, analyze, evaluate |
-| **Documentater** | Documentation, guides | document, readme, changelog, guide |
+| **Research** | Technical research, analysis | research, investigate, analyze, evaluate |
+| **Documentation** | Documentation, guides | document, readme, changelog, guide |
 | **QA** | Testing, validation | test, validate, verify, check, lint |
 | **Security** | Security audits, protection | security, vulnerability, encrypt, audit |
 | **Ops** | Deployment, infrastructure | deploy, configure, setup, pipeline |
 | **Data Engineer** | Data pipelines, databases | data pipeline, etl, database, schema |
-| **Versioner** | Version control, releases | version, release, tag, branch, git |
+| **Version Control** | Version control, releases | version, release, tag, branch, git |
 
 ## Usage Examples
 
@@ -125,8 +125,8 @@ todos = [
 
 # After hook processing
 todos = [
-    {'content': 'Engineer: implement user authentication', ...},
-    {'content': 'QA: write tests for auth module', ...}
+    {'content': '[Engineer] implement user authentication', ...},
+    {'content': '[QA] write tests for auth module', ...}
 ]
 ```
 
@@ -139,7 +139,7 @@ todos = [
 ]
 
 # Result: Tool call blocked with error:
-# "Todo #1 missing required agent prefix. Please use format: '[Agent]: [task description]'"
+# "Todo #1 missing required agent prefix. Please use format: '[Agent] task description'"
 ```
 
 ### Example 3: Mixed Content
@@ -147,14 +147,14 @@ todos = [
 ```python
 # Some with prefixes, some without
 todos = [
-    {'content': 'Engineer: fix login bug', ...},  # Already has prefix - unchanged
+    {'content': '[Engineer] fix login bug', ...},  # Already has prefix - unchanged
     {'content': 'research OAuth2 implementation', ...}  # Auto-prefixed
 ]
 
 # After processing
 todos = [
-    {'content': 'Engineer: fix login bug', ...},
-    {'content': 'Researcher: research OAuth2 implementation', ...}
+    {'content': '[Engineer] fix login bug', ...},
+    {'content': '[Research] investigate OAuth2 implementation', ...}
 ]
 ```
 

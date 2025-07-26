@@ -33,7 +33,7 @@ def demo_auto_prefix_enforcement():
                 {'content': 'implement user authentication', 'status': 'pending', 'priority': 'high', 'id': '1'},
                 {'content': 'write unit tests for auth module', 'status': 'pending', 'priority': 'medium', 'id': '2'},
                 {'content': 'research best practices for JWT', 'status': 'pending', 'priority': 'low', 'id': '3'},
-                {'content': 'Engineer: fix login bug', 'status': 'pending', 'priority': 'high', 'id': '4'},  # Already has prefix
+                {'content': '[Engineer] fix login bug', 'status': 'pending', 'priority': 'high', 'id': '4'},  # Already has prefix
             ]
         }
     ]
@@ -74,9 +74,9 @@ def demo_validation_only():
             'name': 'Valid todos with proper prefixes',
             'params': {
                 'todos': [
-                    {'content': 'Engineer: implement user authentication', 'status': 'pending', 'priority': 'high', 'id': '1'},
-                    {'content': 'QA: write unit tests for auth module', 'status': 'pending', 'priority': 'medium', 'id': '2'},
-                    {'content': 'Researcher: investigate OAuth2 best practices', 'status': 'pending', 'priority': 'low', 'id': '3'},
+                    {'content': '[Engineer] implement user authentication', 'status': 'pending', 'priority': 'high', 'id': '1'},
+                    {'content': '[QA] write unit tests for auth module', 'status': 'pending', 'priority': 'medium', 'id': '2'},
+                    {'content': '[Research] investigate OAuth2 best practices', 'status': 'pending', 'priority': 'low', 'id': '3'},
                 ]
             }
         },
@@ -93,9 +93,9 @@ def demo_validation_only():
             'name': 'Mixed valid and invalid',
             'params': {
                 'todos': [
-                    {'content': 'Security: audit authentication system', 'status': 'pending', 'priority': 'high', 'id': '1'},
+                    {'content': '[Security] audit authentication system', 'status': 'pending', 'priority': 'high', 'id': '1'},
                     {'content': 'update documentation', 'status': 'pending', 'priority': 'low', 'id': '2'},  # Missing prefix
-                    {'content': 'Ops: configure CI/CD pipeline', 'status': 'pending', 'priority': 'medium', 'id': '3'},
+                    {'content': '[Ops] configure CI/CD pipeline', 'status': 'pending', 'priority': 'medium', 'id': '3'},
                 ]
             }
         }
