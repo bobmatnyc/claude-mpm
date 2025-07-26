@@ -10,13 +10,13 @@ import tempfile
 try:
     from ..core.logger import get_logger, setup_logging
     from ..utils.subprocess_runner import SubprocessRunner
-    from .ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from ..core.framework_loader import FrameworkLoader
     from .agent_delegator import AgentDelegator
 except ImportError:
     from core.logger import get_logger, setup_logging
     from utils.subprocess_runner import SubprocessRunner
-    from orchestration.ticket_extractor import TicketExtractor
+    # TicketExtractor removed from project
     from core.framework_loader import FrameworkLoader
     from orchestration.agent_delegator import AgentDelegator
 
@@ -46,12 +46,12 @@ class DirectOrchestrator:
         
         # Components
         self.framework_loader = FrameworkLoader(framework_path, agents_dir)
-        self.ticket_extractor = TicketExtractor()
+        # TicketExtractor removed from project
         self.agent_delegator = AgentDelegator(self.framework_loader.agent_registry)
         
         # State
         self.session_start = datetime.now()
-        self.ticket_creation_enabled = True
+        # Ticket creation removed from project
         
         # Initialize subprocess runner
         self.subprocess_runner = SubprocessRunner(logger=self.logger)
@@ -158,49 +158,9 @@ class DirectOrchestrator:
             except:
                 pass
             
-            # Create tickets from any logged interactions
-            self._create_tickets()
+            # Ticket creation removed from project
     
-    def _create_tickets(self):
-        """Create tickets using ai-trackdown-pytools."""
-        if not self.ticket_creation_enabled:
-            self.logger.info("Ticket creation disabled")
-            return
-            
-        tickets = self.ticket_extractor.get_all_tickets()
-        if not tickets:
-            self.logger.info("No tickets to create")
-            return
-        
-        try:
-            try:
-                from ..services.ticket_manager import TicketManager
-            except ImportError:
-                from services.ticket_manager import TicketManager
-            ticket_manager = TicketManager()
-            
-            created_count = 0
-            for ticket in tickets:
-                try:
-                    ticket_id = ticket_manager.create_ticket(
-                        title=ticket['title'],
-                        ticket_type=ticket['type'],
-                        description=ticket.get('description', ''),
-                        source='claude-mpm'
-                    )
-                    created_count += 1
-                    if self.log_level != "OFF":
-                        self.logger.info(f"Created ticket: {ticket_id} - {ticket['title']}")
-                except Exception as e:
-                    self.logger.error(f"Failed to create ticket '{ticket['title']}': {e}")
-            
-            if self.log_level != "OFF":
-                self.logger.info(f"Created {created_count}/{len(tickets)} tickets")
-                
-        except ImportError:
-            self.logger.warning("TicketManager not available, skipping ticket creation")
-        except Exception as e:
-            self.logger.error(f"Error creating tickets: {e}")
+    # _create_tickets method removed - TicketExtractor functionality removed from project
     
     def run_non_interactive(self, user_input: str):
         """Run a non-interactive session using print mode."""
@@ -224,17 +184,11 @@ class DirectOrchestrator:
             if result.success:
                 print(result.stdout)
                 
-                # Process output for tickets
-                for line in result.stdout.split('\n'):
-                    tickets = self.ticket_extractor.extract_from_line(line)
-                    for ticket in tickets:
-                        if self.log_level != "OFF":
-                            self.logger.info(f"Extracted ticket: {ticket['type']} - {ticket['title']}")
+                # Ticket extraction removed from project
             else:
                 print(f"Error: {result.stderr}")
                 
-            # Create tickets
-            self._create_tickets()
+            # Ticket creation removed from project
                 
         except Exception as e:
             print(f"Error: {e}")
