@@ -4,6 +4,100 @@
 
 A framework for Claude that enables multi-agent workflows and extensible capabilities through a modular architecture.
 
+## Quick Start
+
+### Why Interactive Mode?
+**Interactive mode is significantly more performant** than non-interactive commands. It maintains context between requests and avoids the overhead of repeatedly launching Claude, making your development workflow much faster and more efficient.
+
+### Installation
+
+```bash
+# Install globally via npm (recommended)
+npm install -g @bobmatnyc/claude-mpm
+
+# Or use npx for one-time usage
+npx @bobmatnyc/claude-mpm
+```
+
+### Three Essential Use Cases
+
+#### 1. 🔍 **Understand Your Codebase**
+Start with codebase exploration - perfect for onboarding or getting oriented:
+
+```bash
+# Launch interactive mode
+claude-mpm
+
+# Then ask:
+> Explain the codebase structure. What are the main components, how do they interact, and what architectural patterns are used?
+```
+
+#### 2. 🚀 **Build a New Project** 
+For greenfield development, use detailed, AI-generated prompts for best results:
+
+```bash
+claude-mpm
+
+# Example detailed prompt (AI-generated prompts work best):
+> Create a modern web application with the following requirements:
+> - Next.js 14 with TypeScript and Tailwind CSS
+> - Authentication using NextAuth.js with GitHub provider
+> - PostgreSQL database with Prisma ORM
+> - User dashboard with CRUD operations for "projects"
+> - API routes following REST conventions
+> - Responsive design with dark/light mode toggle
+> - Form validation using react-hook-form and zod
+> - Include proper error handling and loading states
+> - Set up ESLint, Prettier, and basic testing with Jest
+> - Generate a complete project structure with all necessary files
+```
+
+#### 3. 🔧 **Enhance Existing Code**
+For working on your current codebase, provide rich context:
+
+```bash
+claude-mpm
+
+# Example detailed enhancement prompt:
+> I need to add real-time notifications to my existing Next.js application. Current tech stack:
+> - Next.js 13 with app router
+> - TypeScript
+> - Tailwind CSS
+> - PostgreSQL with Prisma
+> - User authentication already implemented
+> 
+> Requirements:
+> - WebSocket-based real-time notifications
+> - Toast notifications in the UI
+> - Database table to store notification history
+> - Mark as read/unread functionality
+> - Different notification types (info, warning, success, error)
+> - Admin panel to send system-wide notifications
+> - Email fallback for offline users
+> 
+> Please analyze my current codebase structure and implement this feature following my existing patterns and conventions.
+```
+
+### 💡 Pro Tips for Better Results
+
+1. **Use AI to generate your prompts**: Ask ChatGPT or Claude to help you create detailed, specific prompts for your use case
+2. **Provide context**: Include your tech stack, requirements, and any constraints
+3. **Stay interactive**: Keep the conversation going to refine and iterate on solutions
+4. **Ask for explanations**: Request explanations of architectural decisions and trade-offs
+
+### Alternative: Non-Interactive Mode
+For automation or simple one-off tasks:
+
+```bash
+# Quick analysis
+claude-mpm run -i "What testing frameworks are used in this project?" --non-interactive
+
+# With subprocess orchestration for complex tasks
+claude-mpm run --subprocess -i "Audit this codebase for security vulnerabilities" --non-interactive
+```
+
+**Note**: Non-interactive mode has higher overhead and is less efficient for multi-step development workflows.
+
 
 ## 📚 Documentation
 
@@ -75,9 +169,9 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 
 ## Installation
 
-### Quick Install Options
+### Other Installation Methods
 
-#### Option 1: Using UV (Recommended - Fast)
+#### Using UV (Recommended - Fast)
 UV is a lightning-fast Python package manager written in Rust, offering 10-100x speed improvements over pip.
 
 ```bash
@@ -91,20 +185,13 @@ uv pip install claude-mpm
 uv pip install git+https://github.com/bobmatnyc/claude-mpm.git
 ```
 
-#### Option 2: Using pip (Traditional)
+#### Using pip (Traditional)
 ```bash
 # Install from PyPI
 pip install claude-mpm
 
 # Or install from git
 pip install git+https://github.com/bobmatnyc/claude-mpm.git
-```
-
-#### Option 3: Using npm (Wrapper)
-**Note**: This installs a wrapper that still requires Python. It's provided for convenience but the Python package is the primary distribution method.
-
-```bash
-npm install -g @bobmatnyc/claude-mpm
 ```
 
 ### From Source (Development)
@@ -174,21 +261,6 @@ Commands:
   info                 Show framework and configuration info
 ```
 
-## Quick Start
-
-```bash
-# 1. Clone and install
-git clone https://github.com/yourusername/claude-mpm.git
-cd claude-mpm
-./install_dev.sh
-source venv/bin/activate
-
-# 2. Run interactive session
-claude-mpm
-
-# 3. Or run a single command
-claude-mpm run -i "Explain the codebase structure" --non-interactive
-```
 
 
 ## Architecture
