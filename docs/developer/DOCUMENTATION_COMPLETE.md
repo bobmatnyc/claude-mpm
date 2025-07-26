@@ -14,7 +14,7 @@ This document summarizes the completion of the Claude MPM developer documentatio
 ✅ **orchestration-api.md** - Full documentation of:
 - Base MPMOrchestrator class
 - All orchestrator implementations (Subprocess, Interactive, SystemPrompt, PTY, Pexpect, etc.)
-- TicketExtractor and AgentDelegator
+- AgentDelegator
 - Orchestrator Factory
 - Advanced usage patterns and examples
 

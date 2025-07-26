@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Operations, deployment, and infrastructure",
     "tags": ["ops", "deployment", "docker", "infrastructure"],
-    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS", "TodoWrite"],
+    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS"],
     "temperature": 0.1,
     "timeout": 600,
     "max_tokens": 8192,

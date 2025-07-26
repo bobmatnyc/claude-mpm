@@ -3,8 +3,8 @@ name: data_engineer
 description: "Data engineering and AI API integrations"
 version: "0002-0003"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.667988Z"
-updated: "2025-07-25T18:06:45.667989Z"
+created: "2025-07-26T00:30:41.809015Z"
+updated: "2025-07-26T00:30:41.809017Z"
 tags: ['data', 'ai-apis', 'database', 'pipelines']
 ---
 

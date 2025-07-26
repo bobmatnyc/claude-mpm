@@ -3,8 +3,8 @@ name: version_control
 description: "Git operations and version management"
 version: "0002-0003"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.667875Z"
-updated: "2025-07-25T18:06:45.667876Z"
+created: "2025-07-26T00:30:41.808785Z"
+updated: "2025-07-26T00:30:41.808787Z"
 tags: ['git', 'versioning', 'releases', 'branches']
 ---
 

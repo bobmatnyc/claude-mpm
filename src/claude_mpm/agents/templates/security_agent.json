@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Security analysis and vulnerability assessment",
     "tags": ["security", "vulnerability", "compliance", "protection"],
-    "tools": ["Read", "Grep", "Glob", "LS", "Bash", "WebSearch", "TodoWrite"],
+    "tools": ["Read", "Grep", "Glob", "LS", "Bash", "WebSearch"],
     "temperature": 0.05,
     "timeout": 600,
     "max_tokens": 8192,

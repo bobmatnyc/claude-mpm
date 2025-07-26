@@ -3,8 +3,8 @@ name: security
 description: "Security analysis and vulnerability assessment"
 version: "0002-0003"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-25T18:06:45.668104Z"
-updated: "2025-07-25T18:06:45.668104Z"
+created: "2025-07-26T00:30:41.809238Z"
+updated: "2025-07-26T00:30:41.809239Z"
 tags: ['security', 'vulnerability', 'compliance', 'protection']
 ---
 

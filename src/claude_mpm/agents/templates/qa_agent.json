@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Quality assurance and testing validation",
     "tags": ["qa", "testing", "quality", "validation"],
-    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS", "TodoWrite"],
+    "tools": ["Read", "Write", "Edit", "Bash", "Grep", "Glob", "LS"],
     "temperature": 0.05,
     "timeout": 600,
     "max_tokens": 8192,

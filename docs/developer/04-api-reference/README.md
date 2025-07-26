@@ -23,7 +23,6 @@ Classes for managing Claude subprocess orchestration:
 ### [Services API](services-api.md)
 Service layer components:
 - `HookService` - Hook system management
-- `TicketExtractor` - Pattern detection and ticket creation
 - `SessionLogger` - Session logging and history
 - `AgentService` - Agent lifecycle management
 
@@ -233,22 +232,6 @@ hook_service.register_hook('pre_message', MyHook())
 # Hooks execute automatically
 ```
 
-### Ticket Extraction
-
-```python
-from claude_mpm.services import TicketExtractor
-
-# Create extractor
-extractor = TicketExtractor()
-
-# Process output
-text = "TODO: Fix authentication bug"
-tickets = extractor.extract_tickets(text)
-
-# Access tickets
-for ticket in tickets:
-    print(f"{ticket.type}: {ticket.title}")
-```
 
 ## API Documentation Format
 

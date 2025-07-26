@@ -29,7 +29,7 @@
     "model": "claude-4-sonnet-20250514",
     "description": "Git operations and version management",
     "tags": ["git", "versioning", "releases", "branches"],
-    "tools": ["Read", "Bash", "Grep", "Glob", "LS", "TodoWrite"],
+    "tools": ["Read", "Bash", "Grep", "Glob", "LS"],
     "temperature": 0.05,
     "timeout": 600,
     "max_tokens": 8192,

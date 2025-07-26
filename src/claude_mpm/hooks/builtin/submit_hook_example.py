@@ -14,7 +14,7 @@ class TicketDetectionSubmitHook(SubmitHook):
     
     def __init__(self):
         super().__init__(name="ticket_detection", priority=10)
-        self.ticket_pattern = re.compile(r'\b(TSK|BUG|FEAT)-\d+\b', re.IGNORECASE)
+        self.ticket_pattern = re.compile(r'\b(?:TSK|BUG|FEAT)-\d+\b', re.IGNORECASE)
         
     def execute(self, context: HookContext) -> HookResult:
         """Detect and extract ticket references from prompt."""

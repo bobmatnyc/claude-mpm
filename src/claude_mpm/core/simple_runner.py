@@ -1,6 +1,7 @@
 """Simplified Claude runner replacing the complex orchestrator system."""
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -136,8 +137,21 @@ class SimpleClaudeRunner:
     
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode."""
-        print("Claude MPM - Interactive Session")
-        print("-" * 40)
+        # Get version
+        try:
+            from claude_mpm import __version__
+            version_str = f"v{__version__}"
+        except:
+            version_str = "v0.0.0"
+        
+        # Print styled welcome box
+        print("\033[32m╭───────────────────────────────────────────────────╮\033[0m")
+        print("\033[32m│\033[0m ✻ Claude MPM - Interactive Session                \033[32m│\033[0m")
+        print(f"\033[32m│\033[0m   Version {version_str:<40}\033[32m│\033[0m")
+        print("\033[32m│                                                   │\033[0m")
+        print("\033[32m│\033[0m   Type '/agents' to see available agents          \033[32m│\033[0m")
+        print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
+        print("")  # Add blank line after box
         
         if self.project_logger:
             self.project_logger.log_system(
@@ -149,28 +163,6 @@ class SimpleClaudeRunner:
         # Setup agents
         if not self.setup_agents():
             print("Continuing without native agents...")
-        
-        if initial_context:
-            print("🚀 Claude MPM Framework Ready!")
-            print("")
-            print("📋 Specialized Agents Deployed:")
-            print("  - engineer: Coding, implementation, technical tasks")
-            print("  - qa: Testing, validation, quality assurance")  
-            print("  - documentation: Docs, guides, explanations")
-            print("  - research: Investigation and analysis")
-            print("  - security: Security-related tasks")
-            print("  - ops: Deployment and infrastructure")
-            print("  - version_control: Git and version management")
-            print("  - data_engineer: Data processing and APIs")
-            print("")
-            print("💡 Usage:")
-            print("  • Type '/agents' to see all available agents") 
-            print("  • Use 'Task(description=\"task here\", subagent_type=\"agent_name\")'")
-            print("  • Or delegate naturally: 'Please have the engineer review this code'")
-            print("")
-            print("Starting Claude...")
-        
-        print("-" * 40)
         
         # Build command with system instructions
         cmd = [
@@ -192,7 +184,6 @@ class SimpleClaudeRunner:
         try:
             # Use execvp to replace the current process with Claude
             # This should avoid any subprocess issues
-            import os
             
             # Clean environment
             clean_env = os.environ.copy()
