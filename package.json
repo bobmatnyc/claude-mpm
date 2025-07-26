@@ -23,7 +23,7 @@
   "license": "MIT",
   "author": "Bob Matsuoka <bob@matsuoka.com>",
   "bin": {
-    "claude-mpm": "./npm-bin/claude-mpm.js"
+    "claude-mpm": "npm-bin/claude-mpm.js"
   },
   "files": [
     "npm-bin/",
