@@ -3,11 +3,11 @@
 Unified Agent Loader System
 ==========================
 
-Provides unified loading of agent prompts from framework markdown files.
+Provides unified loading of agent prompts from JSON template files.
 Integrates with SharedPromptCache for performance optimization.
 
 Key Features:
-- Loads agent prompts from framework/agent-roles/*.md files
+- Loads agent prompts from src/claude_mpm/agents/templates/*.json files
 - Handles base_agent.md prepending
 - Provides backward-compatible get_*_agent_prompt() functions
 - Uses SharedPromptCache for performance
@@ -20,7 +20,7 @@ For advanced agent management features (CRUD, versioning, section updates), use:
 Usage:
     from claude_pm.agents.agent_loader import get_documentation_agent_prompt
     
-    # Get agent prompt from MD file
+    # Get agent prompt from JSON template
     prompt = get_documentation_agent_prompt()
 """
 
@@ -49,64 +49,29 @@ class ModelType:
 logger = logging.getLogger(__name__)
 
 
-def _get_framework_agent_roles_dir() -> Path:
-    """Get the framework agent-roles directory dynamically."""
-    # Use PathResolver for consistent path discovery
-    try:
-        framework_root = PathResolver.get_framework_root()
-        
-        # Check if we're running from a wheel installation
-        try:
-            import claude_pm
-            package_path = Path(claude_pm.__file__).parent
-            path_str = str(package_path.resolve())
-            if 'site-packages' in path_str or 'dist-packages' in path_str:
-                # For wheel installations, check data directory
-                data_agent_roles = package_path / "data" / "framework" / "agent-roles"
-                if data_agent_roles.exists():
-                    logger.debug(f"Using wheel installation agent-roles: {data_agent_roles}")
-                    return data_agent_roles
-        except Exception:
-            pass
-        
-        # Check framework structure
-        agent_roles_dir = framework_root / "framework" / "agent-roles"
-        if agent_roles_dir.exists():
-            logger.debug(f"Using framework agent-roles: {agent_roles_dir}")
-            return agent_roles_dir
-        
-        # Try agents directory as fallback
-        agents_dir = PathResolver.get_agents_dir()
-        logger.debug(f"Using agents directory: {agents_dir}")
-        return agents_dir
-        
-    except FileNotFoundError as e:
-        # Ultimate fallback
-        logger.warning(f"PathResolver could not find framework root: {e}")
-        fallback = Path(__file__).parent.parent.parent / "framework" / "agent-roles"
-        logger.warning(f"Using fallback agent-roles path: {fallback}")
-        return fallback
+def _get_agent_templates_dir() -> Path:
+    """Get the agent templates directory."""
+    # Agent templates are now in the agents/templates directory
+    return Path(__file__).parent / "templates"
 
 
-# Framework agent-roles directory (dynamically determined)
-FRAMEWORK_AGENT_ROLES_DIR = _get_framework_agent_roles_dir()
+# Agent templates directory
+AGENT_TEMPLATES_DIR = _get_agent_templates_dir()
 
 # Cache prefix for agent prompts
 AGENT_CACHE_PREFIX = "agent_prompt:"
 
-# Agent name mappings (agent name -> MD file name)
+# Agent name mappings (agent name -> JSON file name)
 AGENT_MAPPINGS = {
-    "documentation": "documentation-agent.md",
-    "version_control": "version-control-agent.md",
-    "qa": "qa-agent.md",
-    "research": "research-agent.md",
-    "ops": "ops-agent.md",
-    "security": "security-agent.md",
-    "engineer": "engineer-agent.md",
-    "data_engineer": "data-agent.md",  # Note: data-agent.md maps to data_engineer
-    "pm": "pm-orchestrator-agent.md",
-    "orchestrator": "pm-orchestrator-agent.md",
-    "pm_orchestrator": "pm-orchestrator-agent.md"
+    "documentation": "documentation_agent.json",
+    "version_control": "version_control_agent.json",
+    "qa": "qa_agent.json",
+    "research": "research_agent.json",
+    "ops": "ops_agent.json",
+    "security": "security_agent.json",
+    "engineer": "engineer_agent.json",
+    "data_engineer": "data_engineer_agent.json"
+    # Note: pm, orchestrator, and pm_orchestrator agents are handled separately
 }
 
 # Model configuration thresholds
@@ -142,19 +107,19 @@ MODEL_NAME_MAPPINGS = {
 
 def load_agent_prompt_from_md(agent_name: str, force_reload: bool = False) -> Optional[str]:
     """
-    Load agent prompt from framework markdown file.
+    Load agent prompt from JSON template file.
     
     Args:
         agent_name: Agent name (e.g., 'documentation', 'ticketing')
         force_reload: Force reload from file, bypassing cache
         
     Returns:
-        str: Agent prompt content from MD file, or None if not found
+        str: Agent prompt content from JSON template, or None if not found
     """
     try:
         # Get cache instance
         cache = SharedPromptCache.get_instance()
-        cache_key = f"{AGENT_CACHE_PREFIX}{agent_name}:md"
+        cache_key = f"{AGENT_CACHE_PREFIX}{agent_name}:json"
         
         # Check cache first (unless force reload)
         if not force_reload:
@@ -163,23 +128,33 @@ def load_agent_prompt_from_md(agent_name: str, force_reload: bool = False) -> Op
                 logger.debug(f"Agent prompt for '{agent_name}' loaded from cache")
                 return str(cached_content)
         
-        # Get MD file path
-        md_filename = AGENT_MAPPINGS.get(agent_name)
-        if not md_filename:
-            logger.warning(f"No MD file mapping found for agent: {agent_name}")
+        # Get JSON file path
+        json_filename = AGENT_MAPPINGS.get(agent_name)
+        if not json_filename:
+            logger.warning(f"No JSON file mapping found for agent: {agent_name}")
             return None
         
-        # Always get fresh framework directory path to ensure we're using the right location
-        framework_agent_roles_dir = _get_framework_agent_roles_dir()
-        md_path = framework_agent_roles_dir / md_filename
+        json_path = AGENT_TEMPLATES_DIR / json_filename
         
         # Check if file exists
-        if not md_path.exists():
-            logger.warning(f"Agent MD file not found: {md_path}")
+        if not json_path.exists():
+            logger.warning(f"Agent JSON file not found: {json_path}")
             return None
             
-        logger.debug(f"Loading agent prompt from: {md_path}")
-        content = md_path.read_text(encoding='utf-8')
+        logger.debug(f"Loading agent prompt from: {json_path}")
+        
+        # Load and parse JSON
+        import json
+        with open(json_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        
+        # Extract prompt content from JSON
+        # The JSON templates have a 'content' field with the prompt
+        content = data.get('content', '')
+        
+        if not content:
+            logger.warning(f"No content found in JSON template: {json_path}")
+            return None
         
         # Cache the content with 1 hour TTL
         cache.set(cache_key, content, ttl=3600)
@@ -188,7 +163,7 @@ def load_agent_prompt_from_md(agent_name: str, force_reload: bool = False) -> Op
         return content
         
     except Exception as e:
-        logger.error(f"Error loading agent prompt from MD for '{agent_name}': {e}")
+        logger.error(f"Error loading agent prompt from JSON for '{agent_name}': {e}")
         return None
 
 
@@ -289,7 +264,7 @@ def _get_model_config(agent_name: str, complexity_analysis: Optional[Dict[str, A
 
 def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_info: bool = False, **kwargs: Any) -> Union[str, Tuple[str, str, Dict[str, Any]]]:
     """
-    Get agent prompt from MD file with optional dynamic model selection.
+    Get agent prompt from JSON template with optional dynamic model selection.
     
     Args:
         agent_name: Agent name (e.g., 'documentation', 'ticketing')
@@ -305,11 +280,11 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
         str or tuple: Complete agent prompt with base instructions prepended,
                       or tuple of (prompt, selected_model, model_config) if return_model_info=True
     """
-    # Load from MD file
+    # Load from JSON template
     prompt = load_agent_prompt_from_md(agent_name, force_reload)
     
     if prompt is None:
-        raise ValueError(f"No agent prompt MD file found for: {agent_name}")
+        raise ValueError(f"No agent prompt JSON template found for: {agent_name}")
     
     # Analyze task complexity if task description is provided
     complexity_analysis = None
@@ -452,20 +427,17 @@ def list_available_agents() -> Dict[str, Dict[str, Any]]:
     List all available agents with their sources.
     
     Returns:
-        dict: Agent information including MD file path
+        dict: Agent information including JSON template path
     """
     agents = {}
     
-    # Get fresh framework directory path
-    framework_agent_roles_dir = _get_framework_agent_roles_dir()
-    
-    for agent_name, md_filename in AGENT_MAPPINGS.items():
-        md_path = framework_agent_roles_dir / md_filename
+    for agent_name, json_filename in AGENT_MAPPINGS.items():
+        json_path = AGENT_TEMPLATES_DIR / json_filename
         
         agents[agent_name] = {
-            "md_file": md_filename if md_path.exists() else None,
-            "md_path": str(md_path) if md_path.exists() else None,
-            "has_md": md_path.exists(),
+            "json_file": json_filename if json_path.exists() else None,
+            "json_path": str(json_path) if json_path.exists() else None,
+            "has_template": json_path.exists(),
             "default_model": DEFAULT_AGENT_MODELS.get(agent_name, 'claude-sonnet-4-20250514')
         }
     
@@ -483,13 +455,13 @@ def clear_agent_cache(agent_name: Optional[str] = None) -> None:
         cache = SharedPromptCache.get_instance()
         
         if agent_name:
-            cache_key = f"{AGENT_CACHE_PREFIX}{agent_name}:md"
+            cache_key = f"{AGENT_CACHE_PREFIX}{agent_name}:json"
             cache.invalidate(cache_key)
             logger.debug(f"Cache cleared for agent: {agent_name}")
         else:
             # Clear all agent caches
             for name in AGENT_MAPPINGS:
-                cache_key = f"{AGENT_CACHE_PREFIX}{name}:md"
+                cache_key = f"{AGENT_CACHE_PREFIX}{name}:json"
                 cache.invalidate(cache_key)
             logger.debug("All agent caches cleared")
             
@@ -506,14 +478,11 @@ def validate_agent_files() -> Dict[str, Dict[str, Any]]:
     """
     results = {}
     
-    # Get fresh framework directory path
-    framework_agent_roles_dir = _get_framework_agent_roles_dir()
-    
-    for agent_name, md_filename in AGENT_MAPPINGS.items():
-        md_path = framework_agent_roles_dir / md_filename
+    for agent_name, json_filename in AGENT_MAPPINGS.items():
+        json_path = AGENT_TEMPLATES_DIR / json_filename
         results[agent_name] = {
-            "md_exists": md_path.exists(),
-            "md_path": str(md_path)
+            "template_exists": json_path.exists(),
+            "template_path": str(json_path)
         }
     
     return results

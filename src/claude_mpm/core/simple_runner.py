@@ -254,6 +254,10 @@ class SimpleClaudeRunner:
         """Run Claude with a single prompt and return success status."""
         start_time = time.time()
         
+        # Check for /mpm: commands
+        if prompt.strip().startswith("/mpm:"):
+            return self._handle_mpm_command(prompt.strip())
+        
         if self.project_logger:
             self.project_logger.log_system(
                 f"Starting non-interactive session with prompt: {prompt[:100]}",
@@ -459,6 +463,45 @@ class SimpleClaudeRunner:
         
         text_lower = text.lower()
         return any(pattern.lower() in text_lower for pattern in delegation_patterns)
+    
+    def _handle_mpm_command(self, prompt: str) -> bool:
+        """Handle /mpm: commands directly without going to Claude."""
+        try:
+            # Extract command and arguments
+            command_line = prompt[5:].strip()  # Remove "/mpm:"
+            parts = command_line.split()
+            
+            if not parts:
+                print("No command specified. Available commands: test")
+                return True
+            
+            command = parts[0]
+            args = parts[1:]
+            
+            # Handle commands
+            if command == "test":
+                print("Hello World")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "Executed /mpm:test command",
+                        level="INFO",
+                        component="command"
+                    )
+                return True
+            else:
+                print(f"Unknown command: {command}")
+                print("Available commands: test")
+                return True
+                
+        except Exception as e:
+            print(f"Error executing command: {e}")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Failed to execute /mpm: command: {e}",
+                    level="ERROR",
+                    component="command"
+                )
+            return False
     
     def _log_session_event(self, event_data: dict):
         """Log an event to the session log file."""

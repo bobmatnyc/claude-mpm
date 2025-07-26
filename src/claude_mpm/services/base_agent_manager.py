@@ -64,10 +64,10 @@ class BaseAgentStructure:
 class BaseAgentManager:
     """Manages base_agent.md with structured updates and validation."""
     
-    def __init__(self, framework_dir: Optional[Path] = None):
+    def __init__(self, agents_dir: Optional[Path] = None):
         """Initialize BaseAgentManager."""
-        self.framework_dir = framework_dir or Path(__file__).parent.parent.parent / "framework" / "agent-roles"
-        self.base_agent_path = self.framework_dir / "base_agent.md"
+        self.agents_dir = agents_dir or Path(__file__).parent.parent / "agents"
+        self.base_agent_path = self.agents_dir / "BASE_AGENT_TEMPLATE.md"
         self.cache = SharedPromptCache.get_instance()
         
     def read_base_agent(self) -> Optional[BaseAgentStructure]:

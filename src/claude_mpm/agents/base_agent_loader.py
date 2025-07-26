@@ -36,7 +36,7 @@ logger = logging.getLogger(__name__)
 BASE_AGENT_CACHE_KEY = "base_agent:instructions"
 
 def _get_base_agent_file() -> Path:
-    """Get the base agent file path dynamically."""
+    """Get the base agent file path."""
     # Check if we're running from a wheel installation
     try:
         import claude_pm
@@ -44,27 +44,22 @@ def _get_base_agent_file() -> Path:
         path_str = str(package_path.resolve())
         if 'site-packages' in path_str or 'dist-packages' in path_str:
             # For wheel installations, check data directory
-            data_base_agent = package_path / "data" / "framework" / "agent-roles" / "base_agent.md"
+            data_base_agent = package_path / "data" / "agents" / "BASE_AGENT_TEMPLATE.md"
             if data_base_agent.exists():
                 logger.debug(f"Using wheel installation base_agent: {data_base_agent}")
                 return data_base_agent
     except Exception:
         pass
     
-    # For development, find framework directory
-    current = Path.cwd()
+    # Use the BASE_AGENT_TEMPLATE.md in the agents directory
+    base_agent_path = Path(__file__).parent / "BASE_AGENT_TEMPLATE.md"
+    if base_agent_path.exists():
+        logger.debug(f"Using base agent template: {base_agent_path}")
+        return base_agent_path
     
-    # Check current directory and parents
-    for path in [current] + list(current.parents):
-        framework_base_agent = path / "framework" / "agent-roles" / "base_agent.md"
-        if framework_base_agent.exists():
-            logger.debug(f"Using development base_agent: {framework_base_agent}")
-            return framework_base_agent
-    
-    # Fallback to old behavior (though this shouldn't happen)
-    fallback = Path(__file__).parent.parent.parent / "framework" / "agent-roles" / "base_agent.md"
-    logger.warning(f"Using fallback base_agent path: {fallback}")
-    return fallback
+    # Fallback error
+    logger.error("Base agent template file not found")
+    raise FileNotFoundError("BASE_AGENT_TEMPLATE.md not found in agents directory")
 
 
 # Base agent file path (dynamically determined)

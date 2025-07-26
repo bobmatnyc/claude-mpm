@@ -118,7 +118,7 @@ class AgentProfileLoader(BaseService):
         self.tier_paths = {
             ProfileTier.PROJECT: self.working_directory / 'agents',
             ProfileTier.USER: self.user_home / '.claude-pm' / 'agents',
-            ProfileTier.SYSTEM: self.framework_path / 'agent-roles' if self.framework_path else None
+            ProfileTier.SYSTEM: Path(__file__).parent.parent / 'agents' / 'templates'
         }
         
         # Remove None values

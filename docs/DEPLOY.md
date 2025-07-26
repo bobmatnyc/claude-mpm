@@ -4,7 +4,11 @@ This guide covers versioning, building, and deploying Claude MPM to various dist
 
 ## Local Development Deployment
 
-For local development and testing, use the enhanced deployment script:
+This section covers setting up claude-mpm for local development, making it accessible from anywhere on your system.
+
+### Quick Start with Enhanced Deployment Script
+
+The recommended way to set up claude-mpm for local development is using the enhanced deployment script:
 
 ```bash
 # Basic installation
@@ -25,31 +29,182 @@ The enhanced deployment script provides:
 - **Comprehensive verification** - Tests all imports and commands after installation
 - **Multi-shell support** - Works with bash and zsh, detects shell type automatically
 
-### Quick Start After Installation
+### Running Claude MPM After Installation
 
+Once installed, you have several ways to run claude-mpm:
+
+#### 1. Using the Project Wrapper (Recommended for Development)
 ```bash
-# Using the wrapper (recommended - auto-activates venv)
+# From the project directory - auto-activates venv
 ./claude-mpm                      # Interactive mode
 ./claude-mpm run -i "Your prompt" # Non-interactive mode
+./claude-mpm agents list          # List available agents
+```
 
-# Using global command (if PATH is set up)
+#### 2. Using Global Command (After PATH Setup)
+```bash
+# From anywhere on your system
+claude-mpm                        # Interactive mode
 claude-mpm agents                 # List available agents
 claude-mpm --debug run -i "Test"  # Run with debug output
+claude-mpm --logging INFO         # Run with specific log level
+```
 
-# Using aliases (if configured)
+#### 3. Using Shell Aliases (If Configured)
+```bash
+# Short aliases for common commands
 mpm                              # Short for claude-mpm
 mpm-run -i "Your prompt"         # Run command
 mpm-debug                        # Run with debug enabled
+mpm-agents                       # List agents
 ```
 
-### Alternative: Basic Installation
+### Manual Installation Steps
 
-If you prefer a simpler installation without the enhanced features:
+If you prefer manual installation or need to understand what the script does:
+
+#### Step 1: Create and Activate Virtual Environment
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate it (bash/zsh)
+source venv/bin/activate
+
+# Activate it (fish shell)
+source venv/bin/activate.fish
+
+# Activate it (Windows PowerShell)
+venv\Scripts\Activate.ps1
+```
+
+#### Step 2: Install Claude MPM
+```bash
+# Development install (editable mode - recommended for developers)
+pip install -e .
+
+# Or production install
+pip install .
+```
+
+#### Step 3: Configure PATH (Optional but Recommended)
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+export PATH="$HOME/.local/bin:$PATH"
+
+# For fish shell (~/.config/fish/config.fish)
+set -gx PATH $HOME/.local/bin $PATH
+
+# Reload shell configuration
+source ~/.bashrc  # or ~/.zshrc
+```
+
+#### Step 4: Create Shell Aliases (Optional)
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias mpm='claude-mpm'
+alias mpm-run='claude-mpm run'
+alias mpm-debug='claude-mpm --debug'
+alias mpm-agents='claude-mpm agents list'
+
+# Reload shell configuration
+source ~/.bashrc  # or ~/.zshrc
+```
+
+### Virtual Environment Activation for Different Shells
+
+When working with the project directly, you'll need to activate the virtual environment:
+
+#### Bash/Zsh
+```bash
+source venv/bin/activate
+# To deactivate
+deactivate
+```
+
+#### Fish Shell
+```fish
+source venv/bin/activate.fish
+# To deactivate
+deactivate
+```
+
+#### Windows Command Prompt
+```cmd
+venv\Scripts\activate.bat
+# To deactivate
+deactivate
+```
+
+#### Windows PowerShell
+```powershell
+venv\Scripts\Activate.ps1
+# To deactivate
+deactivate
+```
+
+### Troubleshooting Common Issues
+
+#### "command not found" Error
+```bash
+# Check if claude-mpm is in PATH
+which claude-mpm
+
+# If not found, ensure PATH is set correctly
+echo $PATH | grep -q "$HOME/.local/bin" || echo "PATH not configured"
+
+# Quick fix - add to current session
+export PATH="$HOME/.local/bin:$PATH"
+
+# Permanent fix - add to shell config
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Virtual Environment Issues
+```bash
+# Check if venv exists and is activated
+echo $VIRTUAL_ENV
+
+# Recreate venv if corrupted
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -e .
+```
+
+#### Import Errors
+```bash
+# Ensure proper installation
+pip show claude-mpm
+
+# Reinstall if needed
+pip uninstall claude-mpm -y
+pip install -e .
+
+# Verify PYTHONPATH includes src/
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+```
+
+#### Permission Errors
+```bash
+# If installing globally without sudo
+pip install --user claude-mpm
+
+# Or use pipx for isolated global install
+pipx install claude-mpm
+```
+
+### Alternative: Basic Installation Script
+
+For a simpler installation without the enhanced features:
 
 ```bash
 # Use the basic install script
 ./install.sh
 ```
+
+This script performs a minimal installation without PATH configuration or shell aliases.
 
 ## Version Management
 

@@ -1,6 +1,7 @@
 """Command-line interface for Claude MPM."""
 
 import argparse
+import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
@@ -99,6 +100,12 @@ def main(argv: Optional[list] = None):
         help="Disable hook service (runs without hooks)"
     )
     
+    parser.add_argument(
+        "--intercept-commands",
+        action="store_true",
+        help="Enable command interception in interactive mode (intercepts /mpm: commands)"
+    )
+    
     # Add run-specific arguments at top level (for default behavior)
     parser.add_argument(
         "--no-tickets",
@@ -138,6 +145,11 @@ def main(argv: Optional[list] = None):
         "--no-tickets",
         action="store_true",
         help="Disable automatic ticket creation"
+    )
+    run_parser.add_argument(
+        "--intercept-commands",
+        action="store_true",
+        help="Enable command interception in interactive mode (intercepts /mpm: commands)"
     )
     run_parser.add_argument(
         "-i", "--input",
@@ -368,7 +380,17 @@ def run_session(args, hook_manager=None):
             logger.error("Session failed")
     else:
         # Run interactive session
-        runner.run_interactive(context)
+        if getattr(args, 'intercept_commands', False):
+            # Use the interactive wrapper for command interception
+            wrapper_path = Path(__file__).parent.parent.parent / "scripts" / "interactive_wrapper.py"
+            if wrapper_path.exists():
+                print("Starting interactive session with command interception...")
+                subprocess.run([sys.executable, str(wrapper_path)])
+            else:
+                logger.warning("Interactive wrapper not found, falling back to normal mode")
+                runner.run_interactive(context)
+        else:
+            runner.run_interactive(context)
 
 
 def list_tickets(args):

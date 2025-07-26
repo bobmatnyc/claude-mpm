@@ -1,0 +1,32 @@
+{
+  "hooks": {
+    "userPromptSubmit": [
+      {
+        "name": "mpm-command-interceptor",
+        "enabled": true,
+        "priority": 100,
+        "conditions": {
+          "promptPatterns": ["/mpm:", "Hello World"]
+        },
+        "handler": "/Users/masa/Projects/claude-mpm/.claude/hooks/mpm_intercept_hook.js"
+      },
+      {
+        "name": "helloworld-command",
+        "enabled": true,
+        "priority": 90,
+        "conditions": {
+          "promptPatterns": ["/helloworld"]
+        },
+        "handler": "/Users/masa/Projects/claude-mpm/.claude/hooks/helloworld_hook.js"
+      }
+    ]
+  },
+  "global": {
+    "timeoutMs": 5000,
+    "retryCount": 3,
+    "logging": {
+      "level": "info",
+      "destination": "/Users/masa/Projects/claude-mpm/.claude/logs/hooks.log"
+    }
+  }
+}

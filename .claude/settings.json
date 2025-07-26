@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/hooks/claude_hooks/hook_wrapper.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/hooks/claude_hooks/hook_wrapper.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/masa/Projects/claude-mpm/src/claude_mpm/hooks/claude_hooks/hook_wrapper.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

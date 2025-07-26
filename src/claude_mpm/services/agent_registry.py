@@ -155,7 +155,6 @@ class AgentRegistry:
         # System-level agents - multiple possible locations
         system_paths = [
             Path(__file__).parent.parent / 'agents' / 'templates',
-            Path(__file__).parent.parent / 'framework' / 'agent-roles',
             Path('/opt/claude-pm/agents'),
             Path('/usr/local/claude-pm/agents')
         ]
