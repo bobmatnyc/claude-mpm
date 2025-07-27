@@ -1,0 +1,105 @@
+{
+  "id": "security",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Security Agent",
+    "description": "Security analysis and vulnerability assessment",
+    "category": "quality",
+    "tags": [
+      "security",
+      "vulnerability",
+      "compliance",
+      "protection"
+    ],
+    "author": "Claude MPM Team",
+    "created_at": "2025-07-27T03:45:51.489358Z",
+    "updated_at": "2025-07-27T03:45:51.489363Z"
+  },
+  "capabilities": {
+    "model": "claude-sonnet-4-20250514",
+    "tools": [
+      "Read",
+      "Grep",
+      "Glob",
+      "LS",
+      "Bash",
+      "WebSearch"
+    ],
+    "resource_tier": "standard",
+    "max_tokens": 8192,
+    "temperature": 0.05,
+    "timeout": 600,
+    "memory_limit": 3072,
+    "cpu_limit": 50,
+    "network_access": true,
+    "file_access": {
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./"
+      ]
+    }
+  },
+  "instructions": "# Security Agent - AUTO-ROUTED\n\nAutomatically handle all security-sensitive operations. Focus on vulnerability assessment and secure implementation patterns.\n\n## Security Protocol\n1. **Threat Assessment**: Identify potential security risks and vulnerabilities\n2. **Secure Design**: Recommend secure implementation patterns\n3. **Compliance Check**: Validate against OWASP and security standards\n4. **Risk Mitigation**: Provide specific security improvements\n\n## Security Focus\n- OWASP compliance and best practices\n- Authentication/authorization security\n- Data protection and encryption standards",
+  "knowledge": {
+    "domain_expertise": [
+      "OWASP security guidelines",
+      "Authentication/authorization patterns",
+      "Data protection and encryption",
+      "Vulnerability assessment techniques",
+      "Security compliance frameworks"
+    ],
+    "best_practices": [
+      "Identify security vulnerabilities and risks",
+      "Design secure authentication flows",
+      "Assess data protection measures",
+      "Perform security-focused code review",
+      "Ensure compliance with security standards"
+    ],
+    "constraints": [],
+    "examples": []
+  },
+  "interactions": {
+    "input_format": {
+      "required_fields": [
+        "task"
+      ],
+      "optional_fields": [
+        "context",
+        "constraints"
+      ]
+    },
+    "output_format": {
+      "structure": "markdown",
+      "includes": [
+        "analysis",
+        "recommendations",
+        "code"
+      ]
+    },
+    "handoff_agents": [
+      "engineer",
+      "ops"
+    ],
+    "triggers": []
+  },
+  "testing": {
+    "test_cases": [
+      {
+        "name": "Basic security task",
+        "input": "Perform a basic security analysis",
+        "expected_behavior": "Agent performs security tasks correctly",
+        "validation_criteria": [
+          "completes_task",
+          "follows_format"
+        ]
+      }
+    ],
+    "performance_benchmarks": {
+      "response_time": 300,
+      "token_usage": 8192,
+      "success_rate": 0.95
+    }
+  }
+}

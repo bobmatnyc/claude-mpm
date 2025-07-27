@@ -44,13 +44,12 @@ claude-mpm/
 │   │
 │   ├── agents/                       # Agent system
 │   │   ├── agent-template.yaml       # Meta-template for generating agents
-│   │   └── templates/                # Agent templates (JSON format)
-│   │       ├── documentation_agent.json
-│   │       ├── engineer_agent.json
-│   │       ├── qa_agent.json
-│   │       ├── research_agent.json
-│   │       ├── security_agent.json
-│   │       └── ...                  # Other agent templates
+│   │   ├── documentation.json        # Documentation agent (v2.0.0 format)
+│   │   ├── engineer.json             # Engineer agent (v2.0.0 format)
+│   │   ├── qa.json                   # QA agent (v2.0.0 format)
+│   │   ├── research.json             # Research agent (v2.0.0 format)
+│   │   ├── security.json             # Security agent (v2.0.0 format)
+│   │   └── ...                      # Other agent definitions
 │   │
 │   ├── config/                       # Configuration module
 │   │   └── hook_config.py            # Hook configuration
@@ -62,6 +61,13 @@ claude-mpm/
 │   │   ├── framework_loader.py       # Framework loading
 │   │   └── ...
 │   │
+│   ├── schemas/                      # JSON schemas for validation
+│   │   └── agent_schema.json         # Agent definition schema (v2.0.0)
+│   │
+│   ├── validation/                   # Validation framework
+│   │   ├── __init__.py
+│   │   ├── agent_validator.py        # Agent schema validator
+│   │   └── migration.py              # Migration utilities
 │
 │   ├── hooks/                        # Hook system
 │   │   ├── base_hook.py              # Base hook class
@@ -98,8 +104,21 @@ The main Python package following the src layout pattern. All source code lives 
 
 ### `/src/claude_mpm/agents/` - Agent System
 - **agent-template.yaml**: Meta-template for generating new agent profiles
-- **templates/**: Pre-defined agent templates in JSON format (documentation, engineer, QA, research, security, etc.)
+- **Agent JSON files**: Standardized agent definitions (v2.0.0 format)
+  - Uses clean IDs without `_agent` suffix (e.g., `research.json` not `research_agent.json`)
+  - All agents validated against `/src/claude_mpm/schemas/agent_schema.json`
+  - Includes resource tier assignments (intensive, standard, lightweight)
 - Agent templates are dynamically discovered and loaded by the agent registry
+
+### `/src/claude_mpm/schemas/` - Validation Schemas
+- **agent_schema.json**: JSON Schema for agent validation (v2.0.0)
+  - Enforces required fields: id, version, metadata, capabilities, instructions
+  - Validates resource tiers and tool assignments
+  - Ensures consistent agent behavior
+
+### `/src/claude_mpm/validation/` - Validation Framework
+- **agent_validator.py**: Validates agents against schema
+- **migration.py**: Utilities for migrating old agent formats
 
 
 ### `/src/claude_mpm/services/` - Service Layer
@@ -135,8 +154,9 @@ All executable scripts and command-line utilities should be placed here:
 When creating new files, follow these guidelines:
 
 1. **Python modules**: Place in appropriate subdirectory under `/src/claude_mpm/`
-2. **Agent templates**: Place in `/src/claude_mpm/agents/templates/` (as JSON files)
+2. **Agent definitions**: Place in `/src/claude_mpm/agents/` (as JSON files with clean IDs)
 3. **Service classes**: Place in `/src/claude_mpm/services/`
+4. **Validation schemas**: Place in `/src/claude_mpm/schemas/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
 6. **Tests**: Place in `/tests/` with `test_` prefix
    - Unit tests: `/tests/test_*.py`

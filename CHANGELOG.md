@@ -5,6 +5,61 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2025-07-27
+
+### BREAKING CHANGES
+- **Agent Schema Standardization**: Complete overhaul of agent definition format
+  - Agent IDs no longer use `_agent` suffix (e.g., `research_agent` → `research`)
+  - Migrated from YAML to JSON format with strict schema validation
+  - All agents must conform to new standardized schema at `src/claude_mpm/schemas/agent_schema.json`
+  - Resource allocation now uses predefined tiers (intensive, standard, lightweight)
+  - Model names standardized (e.g., `claude-sonnet-4-20250514` → `claude-4-sonnet-20250514`)
+
+### Added
+- **Comprehensive Schema Validation Framework**
+  - JSON Schema-based validation for all agent definitions
+  - Business rule validation for resource allocation consistency
+  - Automatic validation on agent load
+  - Migration tools for converting old format to new
+- **Resource Tier System**
+  - Three predefined tiers: intensive (900s/3072MB), standard (600s/2048MB), lightweight (300s/1024MB)
+  - Automatic resource allocation based on agent type
+  - Clear rationale for resource assignments
+- **Enhanced Agent Metadata**
+  - Required metadata fields: name, description, category, tags
+  - Optional fields: author, created_at, updated_at
+  - Improved agent discoverability through standardized tags
+- **Validation API**
+  - `AgentValidator` class for programmatic validation
+  - Detailed error and warning reporting
+  - Integration with CI/CD pipelines
+
+### Changed
+- **Agent Definition Format**
+  - Migrated from YAML to JSON for better schema validation
+  - Standardized field names and structure
+  - Added required version field using semantic versioning
+  - Instructions limited to 8000 characters for consistency
+- **Agent Loader Improvements**
+  - Backward compatibility for old agent IDs (both `research` and `research_agent` work)
+  - Performance improvements through caching (1.6x faster)
+  - Better error messages for validation failures
+- **Model Naming Convention**
+  - Standardized to `claude-{version}-{variant}-{date}` format
+  - Updated all agents to use consistent model names
+
+### Fixed
+- **Validation Issues**
+  - Inconsistent versioning across agents (was using integers, now semantic)
+  - Resource allocation inconsistencies
+  - Missing required fields in some agents
+  - Tool array inconsistencies
+
+### Migration Guide
+- See [Schema Standardization Migration Guide](docs/user/05-migration/schema-standardization-migration.md)
+- Use backward compatibility layer during transition
+- Run validation on all custom agents before deployment
+
 ## [1.1.0] - 2025-07-26
 
 ## [1.0.1] - 2025-07-26
