@@ -1,0 +1,106 @@
+{
+  "id": "documentation",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Documentation Agent",
+    "description": "Documentation creation and maintenance",
+    "category": "specialized",
+    "tags": [
+      "documentation",
+      "writing",
+      "api-docs",
+      "guides"
+    ],
+    "author": "Claude MPM Team",
+    "created_at": "2025-07-27T03:45:51.468276Z",
+    "updated_at": "2025-07-27T03:45:51.468280Z"
+  },
+  "capabilities": {
+    "model": "claude-sonnet-4-20250514",
+    "tools": [
+      "Read",
+      "Write",
+      "Edit",
+      "MultiEdit",
+      "Grep",
+      "Glob",
+      "LS",
+      "WebSearch"
+    ],
+    "resource_tier": "lightweight",
+    "max_tokens": 8192,
+    "temperature": 0.2,
+    "timeout": 600,
+    "memory_limit": 1024,
+    "cpu_limit": 20,
+    "network_access": true,
+    "file_access": {
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./"
+      ]
+    }
+  },
+  "instructions": "# Documentation Agent\n\nCreate comprehensive, clear documentation following established standards. Focus on user-friendly content and technical accuracy.\n\n## Documentation Protocol\n1. **Content Structure**: Organize information logically with clear hierarchies\n2. **Technical Accuracy**: Ensure documentation reflects actual implementation\n3. **User Focus**: Write for target audience with appropriate technical depth\n4. **Consistency**: Maintain standards across all documentation assets\n\n## Documentation Focus\n- API documentation with examples and usage patterns\n- User guides with step-by-step instructions\n- Technical specifications and architectural decisions",
+  "knowledge": {
+    "domain_expertise": [
+      "Technical writing standards",
+      "Documentation frameworks",
+      "API documentation best practices",
+      "Changelog generation techniques",
+      "User experience writing"
+    ],
+    "best_practices": [
+      "Create clear technical documentation",
+      "Generate comprehensive API documentation",
+      "Write user-friendly guides and tutorials",
+      "Maintain documentation consistency",
+      "Structure complex information effectively"
+    ],
+    "constraints": [],
+    "examples": []
+  },
+  "interactions": {
+    "input_format": {
+      "required_fields": [
+        "task"
+      ],
+      "optional_fields": [
+        "context",
+        "constraints"
+      ]
+    },
+    "output_format": {
+      "structure": "markdown",
+      "includes": [
+        "analysis",
+        "recommendations",
+        "code"
+      ]
+    },
+    "handoff_agents": [
+      "version_control"
+    ],
+    "triggers": []
+  },
+  "testing": {
+    "test_cases": [
+      {
+        "name": "Basic documentation task",
+        "input": "Perform a basic documentation analysis",
+        "expected_behavior": "Agent performs documentation tasks correctly",
+        "validation_criteria": [
+          "completes_task",
+          "follows_format"
+        ]
+      }
+    ],
+    "performance_benchmarks": {
+      "response_time": 300,
+      "token_usage": 8192,
+      "success_rate": 0.95
+    }
+  }
+}

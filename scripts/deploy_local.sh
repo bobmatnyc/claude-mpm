@@ -196,11 +196,11 @@ setup_path_and_scripts() {
     # Ensure ~/.local/bin exists
     mkdir -p "$HOME/.local/bin"
     
-    # Create symlink to main script
+    # Create symlink to the actual script (not the wrapper to avoid recursion)
     if [ -f "$HOME/.local/bin/claude-mpm" ]; then
         rm "$HOME/.local/bin/claude-mpm"
     fi
-    ln -s "$PROJECT_ROOT/claude-mpm" "$HOME/.local/bin/claude-mpm"
+    ln -s "$PROJECT_ROOT/scripts/claude-mpm" "$HOME/.local/bin/claude-mpm"
     chmod +x "$HOME/.local/bin/claude-mpm"
     print_success "Created claude-mpm command"
     
