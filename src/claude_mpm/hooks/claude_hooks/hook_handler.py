@@ -215,7 +215,80 @@ class ClaudeHookHandler:
     
     def _handle_pre_tool_use(self):
         """Handle PreToolUse events."""
-        # For now, just log and continue
+        tool_name = self.event.get('tool_name', '')
+        tool_input = self.event.get('tool_input', {})
+        
+        # List of tools that perform write operations
+        write_tools = ['Write', 'Edit', 'MultiEdit', 'NotebookEdit']
+        
+        # Check if this is a write operation
+        if tool_name in write_tools:
+            # Get the working directory from the event
+            working_dir = Path(self.event.get('cwd', os.getcwd())).resolve()
+            
+            # Extract file path based on tool type
+            file_path = None
+            if tool_name in ['Write', 'Edit', 'NotebookEdit']:
+                file_path = tool_input.get('file_path')
+                if tool_name == 'NotebookEdit':
+                    file_path = tool_input.get('notebook_path')
+            elif tool_name == 'MultiEdit':
+                file_path = tool_input.get('file_path')
+            
+            if file_path:
+                # First check for path traversal attempts before resolving
+                if '..' in str(file_path):
+                    if logger:
+                        logger.warning(f"Security: Potential path traversal attempt in {tool_name}: {file_path}")
+                    response = {
+                        "action": "block",
+                        "error": f"Security Policy: Path traversal attempts are not allowed.\n\n"
+                               f"The path '{file_path}' contains '..' which could be used to escape the working directory.\n"
+                               f"Please use absolute paths or paths relative to the working directory without '..'."
+                    }
+                    print(json.dumps(response))
+                    sys.exit(0)
+                    return
+                
+                try:
+                    # Resolve the file path to absolute path
+                    target_path = Path(file_path).resolve()
+                    
+                    # Check if the target path is within the working directory
+                    try:
+                        target_path.relative_to(working_dir)
+                    except ValueError:
+                        # Path is outside working directory
+                        if logger:
+                            logger.warning(f"Security: Blocked {tool_name} operation outside working directory: {file_path}")
+                        
+                        # Return block action with helpful error message
+                        response = {
+                            "action": "block",
+                            "error": f"Security Policy: Cannot write to files outside the working directory.\n\n"
+                                   f"Working directory: {working_dir}\n"
+                                   f"Attempted path: {file_path}\n\n"
+                                   f"Please ensure all file operations are within the project directory."
+                        }
+                        print(json.dumps(response))
+                        sys.exit(0)
+                        return
+                    
+                        
+                except Exception as e:
+                    if logger:
+                        logger.error(f"Error validating path in {tool_name}: {e}")
+                    # In case of error, err on the side of caution and block
+                    response = {
+                        "action": "block",
+                        "error": f"Error validating file path: {str(e)}\n\n"
+                               f"Please ensure the path is valid and accessible."
+                    }
+                    print(json.dumps(response))
+                    sys.exit(0)
+                    return
+        
+        # For read operations and other tools, continue normally
         return self._continue()
     
     def _handle_post_tool_use(self):
