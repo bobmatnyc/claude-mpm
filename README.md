@@ -169,6 +169,13 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 - Organized log structure
 - Performance monitoring
 
+### Security Features
+- **File System Protection**: Automatic sandboxing prevents file operations outside the working directory
+- **Path Traversal Prevention**: Blocks attempts to escape the project directory using `..` or symlinks
+- **Write Operation Control**: All write operations are validated while read operations remain unrestricted
+- **Transparent Security**: Zero-configuration security that works automatically in the background
+- **Comprehensive Logging**: All security events are logged for audit purposes
+
 ## Installation
 
 ### Other Installation Methods
