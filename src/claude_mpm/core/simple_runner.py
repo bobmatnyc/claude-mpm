@@ -194,6 +194,18 @@ class SimpleClaudeRunner:
             for var in claude_vars_to_remove:
                 clean_env.pop(var, None)
             
+            # Set the correct working directory for Claude Code
+            # If CLAUDE_MPM_USER_PWD is set, use that as the working directory
+            if 'CLAUDE_MPM_USER_PWD' in clean_env:
+                user_pwd = clean_env['CLAUDE_MPM_USER_PWD']
+                clean_env['CLAUDE_WORKSPACE'] = user_pwd
+                # Also change to that directory before launching Claude
+                try:
+                    os.chdir(user_pwd)
+                    self.logger.info(f"Changed working directory to: {user_pwd}")
+                except Exception as e:
+                    self.logger.warning(f"Could not change to user directory {user_pwd}: {e}")
+            
             print("Launching Claude...")
             
             if self.project_logger:
@@ -225,7 +237,8 @@ class SimpleClaudeRunner:
                 })
             # Fallback to subprocess
             try:
-                subprocess.run(cmd, stdin=None, stdout=None, stderr=None)
+                # Use the same clean_env we prepared earlier
+                subprocess.run(cmd, stdin=None, stdout=None, stderr=None, env=clean_env)
                 if self.project_logger:
                     self.project_logger.log_system(
                         "Interactive session completed (subprocess fallback)",
@@ -296,6 +309,24 @@ class SimpleClaudeRunner:
             cmd.insert(-2, system_prompt)
         
         try:
+            # Set up environment with correct working directory
+            env = os.environ.copy()
+            
+            # Set the correct working directory for Claude Code
+            if 'CLAUDE_MPM_USER_PWD' in env:
+                user_pwd = env['CLAUDE_MPM_USER_PWD']
+                env['CLAUDE_WORKSPACE'] = user_pwd
+                # Change to that directory before running Claude
+                try:
+                    original_cwd = os.getcwd()
+                    os.chdir(user_pwd)
+                    self.logger.info(f"Changed working directory to: {user_pwd}")
+                except Exception as e:
+                    self.logger.warning(f"Could not change to user directory {user_pwd}: {e}")
+                    original_cwd = None
+            else:
+                original_cwd = None
+            
             # Run Claude
             if self.project_logger:
                 self.project_logger.log_system(
@@ -304,7 +335,14 @@ class SimpleClaudeRunner:
                     component="session"
                 )
             
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+            
+            # Restore original directory if we changed it
+            if original_cwd:
+                try:
+                    os.chdir(original_cwd)
+                except Exception:
+                    pass
             execution_time = time.time() - start_time
             
             if result.returncode == 0:
