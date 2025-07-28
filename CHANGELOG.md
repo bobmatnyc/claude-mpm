@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.1.1] - 2025-07-28
 
+### Fixed
+- **Critical**: Fixed working directory enforcement in base_service.py
+  - All file write operations now correctly use absolute paths based on the working directory
+  - Prevents accidental writes to system directories outside the project
+  - Ensures consistent behavior across all services inheriting from BaseService
+
+### Security
+- Enhanced path resolution to always use absolute paths for file operations
+- Strengthened working directory boundaries to prevent unauthorized file access
+
 ## [3.1.0] - 2025-07-28
 
 
