@@ -58,6 +58,7 @@ Usage Examples:
 import json
 import logging
 import os
+import time
 import yaml
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple, Union, List
@@ -625,7 +626,7 @@ def _get_model_config(agent_name: str, complexity_analysis: Optional[Dict[str, A
         model_config = {
             "selection_method": "dynamic_complexity_based",
             "complexity_score": complexity_score,
-            "complexity_level": complexity_analysis.get('complexity_level', ComplexityLevel.MEDIUM).value,
+            "complexity_level": complexity_analysis.get('complexity_level', ComplexityLevel.MEDIUM),
             "optimal_prompt_size": complexity_analysis.get('optimal_prompt_size', (700, 1000)),
             "default_model": default_model
         }

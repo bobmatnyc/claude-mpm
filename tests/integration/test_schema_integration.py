@@ -10,8 +10,6 @@ import pytest
 
 from claude_mpm.services.agent_registry import AgentRegistry
 from claude_mpm.agents.agent_loader import AgentLoader
-from claude_mpm.services.agent_service import AgentService
-from claude_mpm.services.hook_service import HookService
 
 
 class TestSchemaIntegration:
@@ -23,32 +21,32 @@ class TestSchemaIntegration:
         return Path(__file__).parent.parent.parent / "src/claude_mpm/agents/templates"
     
     @pytest.fixture
-    def agent_service(self, agents_dir):
-        """Create an agent service instance."""
-        return AgentService(agents_dir=str(agents_dir))
+    def agent_loader(self, agents_dir):
+        """Create an agent loader instance."""
+        return AgentLoader()
     
     def test_all_agents_load_successfully(self, agents_dir):
         """Test that all agents load with the new schema."""
-        loader = AgentLoader(agents_dir=str(agents_dir))
-        agents = loader.load_agents()
+        loader = AgentLoader()
+        agents = loader.list_agents()
         
         # Should have at least 8 agents
         assert len(agents) >= 8
         
         # Verify each agent
         expected_agents = [
-            "engineer", "qa", "research", "documentation",
-            "ops", "security", "data_engineer", "version_control"
+            "engineer_agent", "qa_agent", "research_agent", "documentation_agent",
+            "ops_agent", "security_agent", "data_engineer_agent", "version_control_agent"
         ]
         
         loaded_ids = [agent["id"] for agent in agents]
         for expected_id in expected_agents:
             assert expected_id in loaded_ids, f"Agent {expected_id} not found"
     
-    def test_agent_deployment_with_new_format(self, agent_service):
+    def test_agent_deployment_with_new_format(self, agent_loader):
         """Test deploying agents with new format."""
         # Get engineer agent
-        agent = agent_service.get_agent("engineer")
+        agent = agent_loader.get_agent("engineer")
         assert agent is not None
         
         # Verify deployment format

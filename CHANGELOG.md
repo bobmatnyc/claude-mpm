@@ -7,9 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.1] - 2025-07-28
 
+### Fixed
+- Fixed JSON schema validation to properly handle optional fields
+- Improved test coverage for agent deployment validation
+- Fixed integration tests to handle schema validation errors correctly
+- Corrected agent loader backward compatibility handling
 
 ### Chores
-
 - update package.json version to 3.0.0 ([f38efbb])
 ## [3.0.0] - 2025-07-28
 
