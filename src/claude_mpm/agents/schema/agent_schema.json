@@ -1,156 +1,310 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.1.0",
   "title": "Claude MPM Agent Definition Schema",
-  "description": "Schema for defining Claude MPM agents matching the target YAML structure",
+  "description": "Schema for defining Claude MPM agent templates",
   "type": "object",
-  "required": ["version", "agent_type"],
+  "required": ["schema_version", "agent_id", "agent_version", "agent_type", "metadata", "capabilities", "instructions"],
   "properties": {
-    "version": {
-      "type": "integer",
-      "description": "Agent template version number",
-      "minimum": 1
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for the agent template format",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "agent_id": {
+      "type": "string",
+      "description": "Unique identifier for the agent",
+      "pattern": "^[a-z0-9_]+$"
+    },
+    "agent_version": {
+      "type": "string",
+      "description": "Version of the agent template",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
     "agent_type": {
       "type": "string",
-      "description": "Type of agent (base or specific agent name)",
+      "description": "Type of agent",
       "enum": ["base", "engineer", "qa", "documentation", "research", "security", "ops", "data_engineer", "version_control"]
     },
-    "narrative_fields": {
+    "metadata": {
       "type": "object",
-      "description": "Narrative content that gets combined between base and specific agents",
+      "description": "Agent metadata information",
+      "required": ["name", "description", "tags", "created_at", "updated_at"],
       "properties": {
-        "when_to_use": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of when to use this agent - maps to YAML when_to_use section"
-        },
-        "specialized_knowledge": {
-          "type": "array", 
-          "items": {
-            "type": "string"
-          },
-          "description": "List of specialized knowledge areas - maps to YAML rationale.specialized_knowledge"
-        },
-        "unique_capabilities": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of unique capabilities - maps to YAML rationale.unique_capabilities"
-        },
-        "instructions": {
+        "name": {
           "type": "string",
-          "description": "Additional markdown instructions for the agent - appears after YAML in system prompt"
-        }
-      },
-      "additionalProperties": false
-    },
-    "configuration_fields": {
-      "type": "object",
-      "description": "Configuration values where specific agent overrides base agent",
-      "properties": {
+          "description": "Human-readable name of the agent"
+        },
         "description": {
           "type": "string",
-          "description": "Agent description - maps to YAML description field"
+          "description": "Brief description of the agent's purpose"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category the agent belongs to"
         },
         "tags": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Agent tags - maps to YAML tags field"
+          "description": "Tags for categorizing and searching agents"
         },
-        "tools": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Available tools for the agent - maps to YAML tools field"
-        },
-        "temperature": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Model temperature setting - maps to YAML temperature field"
-        },
-        "timeout": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Timeout in seconds - maps to YAML timeout and execution_timeout fields"
-        },
-        "max_tokens": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Maximum tokens for responses - maps to YAML max_tokens field"
-        },
-        "memory_limit": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Memory limit in MB - maps to YAML memory_limit field"
-        },
-        "cpu_limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
-          "description": "CPU limit percentage - maps to YAML cpu_limit field"
-        },
-        "network_access": {
-          "type": "boolean",
-          "description": "Whether agent has network access - maps to YAML network_access field"
-        },
-        "primary_role": {
+        "author": {
           "type": "string",
-          "description": "Primary role of the agent - maps to YAML capabilities.primary_role field"
+          "description": "Author or team that created the agent"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "Creation timestamp in ISO 8601 format"
+        },
+        "updated_at": {
+          "type": "string",
+          "description": "Last update timestamp in ISO 8601 format"
         },
         "specializations": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "Agent specializations - maps to YAML capabilities.specializations field"
-        },
-        "authority": {
-          "type": "string",
-          "description": "Authority level of the agent - maps to YAML capabilities.authority field"
-        },
+          "description": "Agent specializations (used by some agents)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Agent capabilities and configuration",
+      "properties": {
         "model": {
           "type": "string",
-          "description": "Model to use - maps to YAML model field",
-          "default": "claude-3-5-sonnet-20241022"
+          "description": "AI model to use for this agent"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Available tools for the agent"
+        },
+        "resource_tier": {
+          "type": "string",
+          "description": "Resource tier for the agent",
+          "enum": ["basic", "standard", "intensive", "lightweight"]
+        },
+        "max_tokens": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum tokens for responses"
+        },
+        "temperature": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Model temperature setting"
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Timeout in seconds"
+        },
+        "memory_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Memory limit in MB"
+        },
+        "cpu_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "CPU limit percentage"
+        },
+        "network_access": {
+          "type": "boolean",
+          "description": "Whether agent has network access"
         },
         "file_access": {
-          "type": "string",
-          "description": "File access level - maps to YAML file_access field",
-          "enum": ["project", "limited", "none"],
-          "default": "project"
+          "type": "object",
+          "description": "File access permissions",
+          "properties": {
+            "read_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Paths the agent can read from"
+            },
+            "write_paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Paths the agent can write to"
+            }
+          }
         },
-        "dangerous_tools": {
-          "type": "boolean",
-          "description": "Whether dangerous tools are allowed - maps to YAML dangerous_tools field",
-          "default": false
+        "when_to_use": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of scenarios when to use this agent"
         },
-        "review_required": {
-          "type": "boolean",
-          "description": "Whether review is required - maps to YAML review_required field",
-          "default": false
+        "specialized_knowledge": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of specialized knowledge areas"
         },
-        "team": {
-          "type": "string",
-          "description": "Team name - maps to YAML team field",
-          "default": "mpm-framework"
+        "unique_capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of unique capabilities"
+        }
+      },
+      "additionalProperties": true
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Alternative configuration structure (used by some agents)",
+      "additionalProperties": true
+    },
+    "instructions": {
+      "type": "string",
+      "description": "Markdown instructions for the agent's behavior"
+    },
+    "knowledge": {
+      "type": "object",
+      "description": "Knowledge base for the agent",
+      "properties": {
+        "domain_expertise": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Areas of domain expertise"
         },
-        "project": {
-          "type": "string",
-          "description": "Project name - maps to YAML project field",
-          "default": "claude-mpm"
+        "best_practices": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Best practices the agent follows"
         },
-        "priority": {
-          "type": "string",
-          "description": "Priority level - maps to YAML priority field",
-          "enum": ["low", "medium", "high"],
-          "default": "high"
+        "constraints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Constraints on the agent's behavior"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Example scenarios or code"
+        }
+      },
+      "additionalProperties": false
+    },
+    "interactions": {
+      "type": "object",
+      "description": "Agent interaction configurations",
+      "properties": {
+        "input_format": {
+          "type": "object",
+          "properties": {
+            "required_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "optional_fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "output_format": {
+          "type": "object",
+          "properties": {
+            "structure": {
+              "type": "string"
+            },
+            "includes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "handoff_agents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Agents this agent can hand off to"
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Triggers for agent activation"
+        }
+      },
+      "additionalProperties": false
+    },
+    "testing": {
+      "type": "object",
+      "description": "Testing configuration for the agent",
+      "properties": {
+        "test_cases": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "input": {
+                "type": "string"
+              },
+              "expected_behavior": {
+                "type": "string"
+              },
+              "validation_criteria": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "performance_benchmarks": {
+          "type": "object",
+          "properties": {
+            "response_time": {
+              "type": "number"
+            },
+            "token_usage": {
+              "type": "integer"
+            },
+            "success_rate": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
         }
       },
       "additionalProperties": false

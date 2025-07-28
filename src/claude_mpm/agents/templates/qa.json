@@ -1,6 +1,8 @@
 {
-  "id": "qa",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "qa_agent",
+  "agent_version": "2.3.0",
+  "agent_type": "qa",
   "metadata": {
     "name": "Qa Agent",
     "description": "Quality assurance and testing validation",
@@ -24,11 +26,12 @@
       "Bash",
       "Grep",
       "Glob",
-      "LS"
+      "LS",
+      "TodoWrite"
     ],
     "resource_tier": "standard",
     "max_tokens": 8192,
-    "temperature": 0.05,
+    "temperature": 0.0,
     "timeout": 600,
     "memory_limit": 3072,
     "cpu_limit": 50,
@@ -38,7 +41,9 @@
         "./"
       ],
       "write_paths": [
-        "./"
+        "./tests/",
+        "./test/",
+        "./scripts/"
       ]
     }
   },

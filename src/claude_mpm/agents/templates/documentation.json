@@ -1,6 +1,8 @@
 {
-  "id": "documentation",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "documentation_agent",
+  "agent_version": "1.1.0",
+  "agent_type": "documentation",
   "metadata": {
     "name": "Documentation Agent",
     "description": "Documentation creation and maintenance",
@@ -25,7 +27,8 @@
       "Grep",
       "Glob",
       "LS",
-      "WebSearch"
+      "WebSearch",
+      "TodoWrite"
     ],
     "resource_tier": "lightweight",
     "max_tokens": 8192,

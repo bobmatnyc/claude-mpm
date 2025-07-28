@@ -1,4 +1,31 @@
-"""Unit tests for AgentCapabilitiesGenerator service."""
+"""Unit tests for AgentCapabilitiesGenerator service.
+
+This module tests the AgentCapabilitiesGenerator service which dynamically
+generates agent capability documentation for inclusion in system instructions.
+
+TEST SCENARIOS COVERED:
+1. Successful capability section generation with multiple agents
+2. Empty agent list handling
+3. Error handling with invalid agent data
+4. Agent grouping by source tier (system, project, user)
+5. Unknown tier handling with fallback behavior
+6. Core agent list generation with alphabetical sorting
+7. Detailed capability text generation with various fallback strategies
+8. Long text truncation for capability descriptions
+9. Fallback content generation when errors occur
+
+TEST FOCUS:
+- Validates proper template rendering and content generation
+- Ensures graceful handling of missing or invalid data
+- Tests tier-based agent organization
+- Verifies capability text extraction with multiple fallback options
+
+TEST COVERAGE GAPS:
+- No testing of template customization
+- No testing of internationalization/localization
+- No testing of capability filtering or search
+- No performance tests for large agent lists
+"""
 
 import pytest
 import logging
@@ -7,7 +34,11 @@ from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGe
 
 
 class TestAgentCapabilitiesGenerator:
-    """Test cases for AgentCapabilitiesGenerator service."""
+    """Test cases for AgentCapabilitiesGenerator service.
+    
+    Tests focus on the service's ability to generate dynamic documentation
+    from deployed agent metadata, with proper error handling and fallbacks.
+    """
     
     @pytest.fixture
     def generator(self):

@@ -15,22 +15,21 @@
       "enabledMcpjsonServers": [],
       "disabledMcpjsonServers": [],
       "hasTrustDialogAccepted": false,
-      "ignorePatterns": [],
       "projectOnboardingSeenCount": 0,
       "hasClaudeMdExternalIncludesApproved": false,
       "hasClaudeMdExternalIncludesWarningShown": false,
-      "lastCost": 93.97276084999996,
-      "lastAPIDuration": 7500313,
-      "lastDuration": 13535240,
-      "lastLinesAdded": 10842,
-      "lastLinesRemoved": 478,
-      "lastTotalInputTokens": 255030,
-      "lastTotalOutputTokens": 224888,
-      "lastTotalCacheCreationInputTokens": 1853407,
-      "lastTotalCacheReadInputTokens": 28777058,
       "lastTotalWebSearchRequests": 0,
-      "lastSessionId": "1060b0c4-2bf3-414f-bd75-d6f8dcad9eb5"
+      "exampleFiles": [
+        "cli.py",
+        "simple_runner.py",
+        "agent_loader.py",
+        "_version.py",
+        "INSTRUCTIONS.md"
+      ],
+      "exampleFilesGeneratedAt": 1753672460292
     }
   },
-  "userID": "383a95b8b162203b90ea3857e612516301e775203cbfc294a8d762290e958697"
+  "userID": "383a95b8b162203b90ea3857e612516301e775203cbfc294a8d762290e958697",
+  "firstStartTime": "2025-07-28T03:14:17.308Z",
+  "fallbackAvailableWarningThreshold": 0.5
 }

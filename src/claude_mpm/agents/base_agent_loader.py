@@ -21,6 +21,7 @@ Usage:
     full_prompt = prepend_base_instructions(get_documentation_agent_prompt())
 """
 
+import json
 import logging
 import os
 from pathlib import Path
@@ -39,27 +40,27 @@ def _get_base_agent_file() -> Path:
     """Get the base agent file path."""
     # Check if we're running from a wheel installation
     try:
-        import claude_pm
-        package_path = Path(claude_pm.__file__).parent
+        import claude_mpm
+        package_path = Path(claude_mpm.__file__).parent
         path_str = str(package_path.resolve())
         if 'site-packages' in path_str or 'dist-packages' in path_str:
             # For wheel installations, check data directory
-            data_base_agent = package_path / "data" / "agents" / "BASE_AGENT_TEMPLATE.md"
+            data_base_agent = package_path / "data" / "agents" / "base_agent.json"
             if data_base_agent.exists():
                 logger.debug(f"Using wheel installation base_agent: {data_base_agent}")
                 return data_base_agent
     except Exception:
         pass
     
-    # Use the BASE_AGENT_TEMPLATE.md in the agents directory
-    base_agent_path = Path(__file__).parent / "BASE_AGENT_TEMPLATE.md"
+    # Use the base_agent.json in the agents directory
+    base_agent_path = Path(__file__).parent / "base_agent.json"
     if base_agent_path.exists():
         logger.debug(f"Using base agent template: {base_agent_path}")
         return base_agent_path
     
     # Fallback error
     logger.error("Base agent template file not found")
-    raise FileNotFoundError("BASE_AGENT_TEMPLATE.md not found in agents directory")
+    raise FileNotFoundError("base_agent.json not found in agents directory")
 
 
 # Base agent file path (dynamically determined)
@@ -149,7 +150,7 @@ TEMPLATE_SECTIONS = {
 
 def load_base_agent_instructions(force_reload: bool = False) -> Optional[str]:
     """
-    Load base agent instructions from base_agent.md with caching.
+    Load base agent instructions from base_agent.json with caching.
     Conditionally includes test-mode instructions based on CLAUDE_PM_TEST_MODE.
     
     Args:
@@ -184,7 +185,21 @@ def load_base_agent_instructions(force_reload: bool = False) -> Optional[str]:
             return None
             
         logger.debug(f"Loading base agent instructions from: {base_agent_file}")
-        content = base_agent_file.read_text(encoding='utf-8')
+        
+        # Load JSON and extract instructions
+        with open(base_agent_file, 'r', encoding='utf-8') as f:
+            base_agent_data = json.load(f)
+        
+        # Extract instructions from the JSON structure
+        if 'narrative_fields' in base_agent_data and 'instructions' in base_agent_data['narrative_fields']:
+            content = base_agent_data['narrative_fields']['instructions']
+        else:
+            # Fallback for older format
+            content = base_agent_data.get('instructions', '')
+        
+        if not content:
+            logger.error("No instructions found in base agent JSON")
+            return None
         
         # If NOT in test mode, remove test-specific instructions to save context
         if not test_mode:

@@ -2,13 +2,76 @@
 """
 Unified release script for Claude MPM.
 
-This script ensures npm and PyPI versions stay synchronized and handles the
-complete release process including:
-- Pre-release checks
-- Version synchronization
-- Building and publishing to PyPI and npm
-- Creating GitHub releases
-- Post-release verification
+This script implements a comprehensive release automation system that ensures
+npm and PyPI versions stay synchronized and handles the complete release process.
+
+OPERATIONAL PURPOSE:
+Automated release pipeline ensuring consistent deployments across all distribution
+channels with minimal manual intervention and maximum reliability.
+
+RELEASE AUTOMATION STRATEGY:
+- Single command releases to multiple distribution channels
+- Automatic version synchronization between PyPI and npm
+- Pre-flight checks to prevent failed releases
+- Rollback guidance if issues occur
+- Post-release verification of package availability
+
+DISTRIBUTION CHANNELS:
+1. PyPI: Primary Python package repository
+2. npm: Node package manager (as @bobmatnyc/claude-mpm)
+3. GitHub: Release artifacts and changelog
+
+VERSION SYNCHRONIZATION:
+- Python version from VERSION file (managed by manage_version.py)
+- package.json automatically updated to match
+- Git tags as source of truth
+- All versions kept in perfect sync
+
+RELEASE WORKFLOW:
+1. Pre-release checks (clean working tree, correct branch, tests)
+2. Version bump using semantic versioning
+3. Update and sync package.json version
+4. Commit and tag changes
+5. Build distribution packages
+6. Publish to PyPI and npm
+7. Create GitHub release with artifacts
+8. Verify package availability on all channels
+
+SAFETY FEATURES:
+- Dry-run mode for testing
+- Test PyPI deployment option
+- Automatic rollback instructions
+- Version conflict detection
+- Build artifact verification
+
+DEPLOYMENT PREREQUISITES:
+- Clean git working directory
+- On main/master branch
+- All tests passing
+- PyPI credentials configured (~/.pypirc)
+- npm credentials configured (npm login)
+- GitHub CLI authenticated (gh auth login)
+
+MONITORING POINTS:
+- Pre-release test execution time
+- Package build success rate
+- Upload completion status
+- Post-release availability checks
+- Version propagation time
+
+TROUBLESHOOTING:
+- PyPI upload fails: Check credentials and network
+- npm publish fails: Verify npm login status
+- Version conflict: Run manage_version.py first
+- Test failures: Fix before releasing
+- GitHub release fails: Check gh CLI auth
+
+ROLLBACK PROCEDURES:
+1. PyPI: Cannot delete, but can yank version
+2. npm: npm unpublish @bobmatnyc/claude-mpm@VERSION
+3. Git: Delete tag with git tag -d vVERSION
+4. GitHub: Delete release via web UI or gh CLI
+5. Local: Reset VERSION file and package.json
 """
 
 import argparse
@@ -24,7 +87,26 @@ import time
 
 
 class ReleaseManager:
-    """Manages the release process for Claude MPM."""
+    """Manages the release process for Claude MPM.
+    
+    This class orchestrates the entire release workflow, ensuring all steps
+    are executed in the correct order with proper error handling.
+    
+    Key Responsibilities:
+    - Version management and synchronization
+    - Package building and distribution
+    - Multi-channel publishing (PyPI, npm, GitHub)
+    - Pre and post-release verification
+    - Error handling and rollback guidance
+    
+    Attributes:
+        dry_run: If True, simulates release without making changes
+        skip_tests: If True, skips test suite execution (not recommended)
+        project_root: Path to project root directory
+        scripts_dir: Path to scripts directory
+        manage_version_script: Path to version management script
+        cleanup_actions: List of actions taken for potential rollback
+    """
     
     def __init__(self, dry_run: bool = False, skip_tests: bool = False):
         self.dry_run = dry_run
@@ -34,6 +116,7 @@ class ReleaseManager:
         self.manage_version_script = self.scripts_dir / "manage_version.py"
         
         # Track what we've done for cleanup if needed
+        # This enables potential rollback or cleanup operations
         self.cleanup_actions = []
         
     def run_command(self, cmd: List[str], check: bool = True, capture_output: bool = True) -> subprocess.CompletedProcess:
@@ -77,10 +160,27 @@ class ReleaseManager:
         return True
     
     def check_version_sync(self) -> bool:
-        """Check if Python and npm versions are in sync."""
+        """Check if Python and npm versions are in sync.
+        
+        Version Synchronization Check:
+        - Compares VERSION file (Python) with package.json (npm)
+        - Detects version mismatches early in the release process
+        - Issues warnings but doesn't fail (auto-sync will fix)
+        
+        This check is crucial because:
+        - Users may install from either PyPI or npm
+        - Version mismatch causes confusion
+        - Both packages should always have identical versions
+        - Automated sync prevents manual errors
+        
+        Returns:
+            True: Always returns True (warnings only, no failures)
+                  Version sync is enforced during release
+        """
         print("\nChecking version synchronization...")
         
         # Get Python version from VERSION file
+        # This is the canonical version managed by manage_version.py
         version_file = self.project_root / "VERSION"
         if not version_file.exists():
             print("WARNING: VERSION file not found")
@@ -89,6 +189,7 @@ class ReleaseManager:
         python_version = version_file.read_text().strip()
         
         # Get npm version from package.json
+        # This should match Python version for consistency
         package_json_path = self.project_root / "package.json"
         if package_json_path.exists():
             with open(package_json_path, 'r') as f:
@@ -146,7 +247,37 @@ class ReleaseManager:
         return new_version
     
     def update_package_json(self, version: str) -> bool:
-        """Update package.json with the new version."""
+        """Update package.json with the new version.
+        
+        Package.json Version Update Process:
+        1. Validates version format (must be X.Y.Z)
+        2. Handles development versions in dry-run mode
+        3. Updates version field in package.json
+        4. Commits the change to git
+        5. Verifies the update was successful
+        
+        Version Format Handling:
+        - Production: Requires clean semantic version (1.2.3)
+        - Development: Allows .devN+gHASH format in dry-run
+        - Extracts base version from development versions
+        
+        npm Compatibility:
+        - npm requires strict semantic versioning
+        - No PEP 440 suffixes allowed (.post, .dev, etc)
+        - Version must match PyPI version exactly
+        
+        Error Handling:
+        - Invalid JSON detection
+        - Version format validation  
+        - Git commit failure handling
+        - Verification after update
+        
+        Args:
+            version: New version string to set
+            
+        Returns:
+            bool: True if successful, False on error
+        """
         package_json_path = self.project_root / "package.json"
         if not package_json_path.exists():
             print("WARNING: package.json not found, skipping npm version update")
@@ -227,10 +358,36 @@ class ReleaseManager:
         return True
     
     def build_python_package(self) -> bool:
-        """Build Python distribution packages."""
+        """Build Python distribution packages.
+        
+        Python Package Building Process:
+        1. Clean previous build artifacts
+        2. Run python -m build (PEP 517 compliant)
+        3. Generate both wheel and sdist
+        4. Verify artifacts were created
+        
+        Build Artifacts:
+        - Source distribution (.tar.gz): Contains source code
+        - Wheel (.whl): Pre-built distribution for faster installs
+        - Both uploaded to PyPI for maximum compatibility
+        
+        Build System:
+        - Uses setuptools with setup.cfg configuration
+        - setuptools-scm provides version from git
+        - pyproject.toml defines build requirements
+        
+        Clean Build Importance:
+        - Prevents old files in distributions
+        - Ensures reproducible builds
+        - Avoids version conflicts
+        
+        Returns:
+            bool: True if build successful, False on error
+        """
         print("\nBuilding Python package...")
         
-        # Clean previous builds
+        # Clean previous builds to ensure fresh artifacts
+        # This prevents accidentally including old files
         for dir_name in ["dist", "build"]:
             dir_path = self.project_root / dir_name
             if dir_path.exists():
@@ -240,13 +397,15 @@ class ReleaseManager:
                 else:
                     print(f"[DRY-RUN] Would clean {dir_name}/")
         
-        # Build the package
+        # Build the package using PEP 517 build frontend
+        # This is the modern way to build Python packages
         result = self.run_command(["python3", "-m", "build"], check=False)
         if result.returncode != 0:
             print("ERROR: Failed to build Python package")
             return False
             
-        # Verify build artifacts
+        # Verify build artifacts were created
+        # Should have both .tar.gz and .whl files
         dist_dir = self.project_root / "dist"
         if dist_dir.exists():
             artifacts = list(dist_dir.glob("*"))
@@ -526,16 +685,42 @@ class ReleaseManager:
         return True  # Don't fail the release for this
     
     def push_to_git(self) -> bool:
-        """Push commits and tags to git."""
+        """Push commits and tags to git remote.
+        
+        Git Push Strategy:
+        1. Push commits first (version bump, changelog, package.json)
+        2. Push tags separately (ensures tags are pushed)
+        3. Both pushes to 'origin' remote, 'main' branch
+        
+        Why Separate Push Commands:
+        - Some git configs don't push tags by default
+        - Explicit tag push ensures version tags reach remote
+        - Allows CI/CD to trigger on tag push
+        
+        Remote Repository Importance:
+        - Tags trigger CI/CD workflows
+        - GitHub uses tags for releases
+        - setuptools-scm needs tags for version detection
+        
+        Error Handling:
+        - Network connectivity issues
+        - Authentication failures
+        - Protected branch restrictions
+        
+        Returns:
+            bool: True if both pushes successful, False on error
+        """
         print("\nPushing to git...")
         
-        # Push commits
+        # Push commits first
+        # This includes version bump, changelog, and package.json updates
         result = self.run_command(["git", "push", "origin", "main"], check=False)
         if result.returncode != 0:
             print("ERROR: Failed to push commits")
             return False
         
-        # Push tags
+        # Push tags explicitly
+        # Tags don't push by default with git push
         result = self.run_command(["git", "push", "origin", "--tags"], check=False)
         if result.returncode != 0:
             print("ERROR: Failed to push tags")

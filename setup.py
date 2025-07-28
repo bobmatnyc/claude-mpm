@@ -95,7 +95,7 @@ setup(
     packages=find_packages(where="src"),
     include_package_data=True,
     install_requires=read_requirements() or [
-        "ai-trackdown-pytools>=1.2.0",
+        "ai-trackdown-pytools>=1.4.0",
         "pyyaml>=6.0",
         "python-dotenv>=0.19.0",
         "rich>=13.0.0",

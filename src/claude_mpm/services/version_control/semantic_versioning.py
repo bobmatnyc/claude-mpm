@@ -7,6 +7,34 @@ This module provides comprehensive semantic versioning management including:
 3. Changelog generation and management
 4. Tag creation and management
 5. Version metadata handling
+
+Semantic Versioning Strategy:
+- Follows semver.org specification 2.0.0
+- Format: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+- MAJOR: Incompatible API changes
+- MINOR: Backwards-compatible functionality additions
+- PATCH: Backwards-compatible bug fixes
+- PRERELEASE: Optional pre-release identifiers (alpha, beta, rc)
+- BUILD: Optional build metadata
+
+Agent Version Management:
+- Agents use semantic versioning for consistency
+- Version stored in agent template JSON files
+- Automatic migration from old formats (serial, integer)
+- Version comparison for deployment decisions
+- Base and agent version tracking
+
+Version Detection:
+- Multiple file format support (package.json, pyproject.toml, etc.)
+- Git tag integration for version history
+- Changelog parsing for version tracking
+- Fallback mechanisms for missing version info
+
+Change Analysis:
+- Conventional commit pattern matching
+- Breaking change detection
+- Feature and bug fix classification
+- Confidence scoring for version bump suggestions
 """
 
 import re
@@ -32,7 +60,23 @@ class VersionBumpType(Enum):
 
 @dataclass
 class SemanticVersion:
-    """Represents a semantic version."""
+    """Represents a semantic version following semver.org specification.
+    
+    This class encapsulates a semantic version with support for:
+    - Major, minor, and patch version numbers
+    - Pre-release identifiers (alpha, beta, rc, etc.)
+    - Build metadata
+    - Version comparison and sorting
+    - Version bumping operations
+    
+    The comparison logic follows semver precedence rules:
+    1. Compare major, minor, patch numerically
+    2. Pre-release versions have lower precedence than normal versions
+    3. Pre-release identifiers are compared alphanumerically
+    4. Build metadata is ignored in comparisons
+    
+    This is used for both project versioning and agent version management.
+    """
 
     major: int
     minor: int
@@ -41,7 +85,14 @@ class SemanticVersion:
     build: Optional[str] = None
 
     def __str__(self) -> str:
-        """String representation of version."""
+        """String representation of version in semver format.
+        
+        Examples:
+        - 1.2.3
+        - 1.2.3-alpha.1
+        - 1.2.3-beta.2+build.123
+        - 1.2.3+20230615
+        """
         version = f"{self.major}.{self.minor}.{self.patch}"
         if self.prerelease:
             version += f"-{self.prerelease}"
@@ -50,7 +101,20 @@ class SemanticVersion:
         return version
 
     def __lt__(self, other: "SemanticVersion") -> bool:
-        """Compare versions for sorting."""
+        """Compare versions for sorting according to semver precedence.
+        
+        Comparison Rules:
+        1. Version core (major.minor.patch) compared numerically
+        2. Version with pre-release < same version without pre-release
+        3. Pre-release versions compared alphanumerically
+        4. Build metadata ignored (1.0.0+build1 == 1.0.0+build2)
+        
+        This enables proper version sorting for:
+        - Determining latest version
+        - Agent deployment decisions
+        - Version history display
+        """
+        # Compare version core components
         if self.major != other.major:
             return self.major < other.major
         if self.minor != other.minor:
@@ -58,34 +122,68 @@ class SemanticVersion:
         if self.patch != other.patch:
             return self.patch < other.patch
 
-        # Handle prerelease comparison
+        # Handle prerelease comparison per semver spec
+        # No prerelease > with prerelease (1.0.0 > 1.0.0-alpha)
         if self.prerelease is None and other.prerelease is not None:
             return False
         if self.prerelease is not None and other.prerelease is None:
             return True
+        # Both have prerelease - compare alphanumerically
         if self.prerelease is not None and other.prerelease is not None:
             return self.prerelease < other.prerelease
 
         return False
 
     def bump(self, bump_type: VersionBumpType) -> "SemanticVersion":
-        """Create a new version with the specified bump applied."""
+        """Create a new version with the specified bump applied.
+        
+        Version Bump Rules:
+        - MAJOR: Increment major, reset minor and patch to 0
+        - MINOR: Increment minor, reset patch to 0
+        - PATCH: Increment patch only
+        - PRERELEASE: Handle pre-release progression
+        
+        Pre-release Progression:
+        - No prerelease -> alpha.1
+        - alpha.1 -> alpha.2
+        - beta.1 -> beta.2
+        - rc.1 -> rc.2
+        - custom -> custom.1
+        
+        Examples:
+        - 1.2.3 + MAJOR -> 2.0.0
+        - 1.2.3 + MINOR -> 1.3.0
+        - 1.2.3 + PATCH -> 1.2.4
+        - 1.2.3 + PRERELEASE -> 1.2.3-alpha.1
+        - 1.2.3-alpha.1 + PRERELEASE -> 1.2.3-alpha.2
+        
+        Args:
+            bump_type: Type of version bump to apply
+            
+        Returns:
+            New SemanticVersion instance with bump applied
+        """
         if bump_type == VersionBumpType.MAJOR:
+            # Breaking changes - reset minor and patch
             return SemanticVersion(self.major + 1, 0, 0)
         elif bump_type == VersionBumpType.MINOR:
+            # New features - reset patch only
             return SemanticVersion(self.major, self.minor + 1, 0)
         elif bump_type == VersionBumpType.PATCH:
+            # Bug fixes - increment patch only
             return SemanticVersion(self.major, self.minor, self.patch + 1)
         elif bump_type == VersionBumpType.PRERELEASE:
             if self.prerelease:
-                # Increment prerelease number
+                # Increment existing prerelease number
                 match = re.match(r"(.+?)(\d+)$", self.prerelease)
                 if match:
                     prefix, num = match.groups()
                     new_prerelease = f"{prefix}{int(num) + 1}"
                 else:
+                    # Add .1 if no number present
                     new_prerelease = f"{self.prerelease}.1"
             else:
+                # Start new prerelease series
                 new_prerelease = "alpha.1"
 
             return SemanticVersion(self.major, self.minor, self.patch, prerelease=new_prerelease)
@@ -182,6 +280,26 @@ class SemanticVersionManager:
         """
         Parse a version string into a SemanticVersion object.
 
+        Version String Formats Supported:
+        - 1.2.3 (basic semantic version)
+        - v1.2.3 (with 'v' prefix - common in git tags)
+        - 1.2.3-alpha (with prerelease)
+        - 1.2.3-alpha.1 (with prerelease and number)
+        - 1.2.3-beta.2+build.123 (full format)
+        - 1.2.3+20230615 (with build metadata only)
+        
+        The parser is flexible and handles:
+        - Optional 'v' prefix (stripped automatically)
+        - Whitespace trimming
+        - Full semver specification compliance
+        - Graceful failure for invalid formats
+        
+        This is used for:
+        - Parsing versions from files (package.json, etc.)
+        - Converting git tags to versions
+        - Agent version parsing and migration
+        - User input validation
+
         Args:
             version_string: Version string to parse
 
@@ -189,10 +307,11 @@ class SemanticVersionManager:
             SemanticVersion object or None if parsing fails
         """
         try:
-            # Clean up version string
+            # Clean up version string - handle common variations
             version_string = version_string.strip().lstrip("v")
 
-            # Regex pattern for semantic version
+            # Regex pattern for semantic version per semver.org spec
+            # Captures: major.minor.patch[-prerelease][+build]
             pattern = r"^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-\.]+))?(?:\+([a-zA-Z0-9\-\.]+))?$"
             match = re.match(pattern, version_string)
 
@@ -327,20 +446,50 @@ class SemanticVersionManager:
         """
         Analyze changes to suggest version bump type.
 
+        Change Analysis Process:
+        1. Scan each change description for patterns
+        2. Categorize changes (breaking, feature, fix)
+        3. Determine highest priority change type
+        4. Suggest appropriate version bump
+        5. Calculate confidence score
+        
+        Pattern Matching:
+        - Breaking: "breaking", "breaking change", "remove api", etc.
+        - Features: "add", "new feature", "implement", "enhance"
+        - Fixes: "fix", "bug fix", "resolve", "correct"
+        
+        Version Bump Priority:
+        1. Breaking changes -> MAJOR (highest priority)
+        2. New features -> MINOR
+        3. Bug fixes -> PATCH
+        4. Other changes -> PATCH (default)
+        
+        Confidence Scoring:
+        - 0.9: Clear breaking changes detected
+        - 0.8: Clear new features detected
+        - 0.7: Clear bug fixes detected
+        - 0.5: No clear patterns (default to patch)
+        
+        This analysis is used for:
+        - Conventional commit integration
+        - Automated version bumping
+        - Release note generation
+        - Agent version updates
+
         Args:
             changes: List of change descriptions (e.g., commit messages)
 
         Returns:
-            ChangeAnalysis with suggested version bump
+            ChangeAnalysis with suggested version bump and confidence
         """
         analysis = ChangeAnalysis()
         analysis.change_descriptions = changes
 
-        # Analyze each change
+        # Analyze each change against defined patterns
         for change in changes:
             change_lower = change.lower()
 
-            # Check for breaking changes
+            # Check for breaking changes (highest priority)
             if any(re.search(pattern, change_lower) for pattern in self.breaking_change_patterns):
                 analysis.has_breaking_changes = True
 
@@ -352,19 +501,19 @@ class SemanticVersionManager:
             elif any(re.search(pattern, change_lower) for pattern in self.bug_fix_patterns):
                 analysis.has_bug_fixes = True
 
-        # Determine suggested bump
+        # Determine suggested bump based on priority
         if analysis.has_breaking_changes:
             analysis.suggested_bump = VersionBumpType.MAJOR
-            analysis.confidence = 0.9
+            analysis.confidence = 0.9  # High confidence for breaking changes
         elif analysis.has_new_features:
             analysis.suggested_bump = VersionBumpType.MINOR
-            analysis.confidence = 0.8
+            analysis.confidence = 0.8  # Good confidence for features
         elif analysis.has_bug_fixes:
             analysis.suggested_bump = VersionBumpType.PATCH
-            analysis.confidence = 0.7
+            analysis.confidence = 0.7  # Moderate confidence for fixes
         else:
             analysis.suggested_bump = VersionBumpType.PATCH
-            analysis.confidence = 0.5
+            analysis.confidence = 0.5  # Low confidence, default to safe patch
 
         return analysis
 

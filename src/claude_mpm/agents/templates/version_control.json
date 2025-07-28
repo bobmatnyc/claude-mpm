@@ -1,6 +1,8 @@
 {
-  "id": "version_control",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "version_control_agent",
+  "agent_version": "1.1.0",
+  "agent_type": "version_control",
   "metadata": {
     "name": "Version Control Agent",
     "description": "Git operations and version management",
@@ -9,7 +11,8 @@
       "git",
       "versioning",
       "releases",
-      "branches"
+      "branches",
+      "todo-write"
     ],
     "author": "Claude MPM Team",
     "created_at": "2025-07-27T03:45:51.494064Z",
@@ -22,11 +25,12 @@
       "Bash",
       "Grep",
       "Glob",
-      "LS"
+      "LS",
+      "TodoWrite"
     ],
     "resource_tier": "lightweight",
     "max_tokens": 8192,
-    "temperature": 0.05,
+    "temperature": 0.0,
     "timeout": 600,
     "memory_limit": 1024,
     "cpu_limit": 20,

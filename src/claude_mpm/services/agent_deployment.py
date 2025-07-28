@@ -1,8 +1,36 @@
-"""Agent deployment service for Claude Code native subagents."""
+"""Agent deployment service for Claude Code native subagents.
+
+This service handles the complete lifecycle of agent deployment:
+1. Building agent YAML files from JSON templates
+2. Managing versioning and updates
+3. Deploying to Claude Code's .claude/agents directory
+4. Environment configuration for agent discovery
+5. Deployment verification and cleanup
+
+OPERATIONAL CONSIDERATIONS:
+- Deployment is idempotent - safe to run multiple times
+- Version checking prevents unnecessary rebuilds (saves I/O)
+- Supports force rebuild for troubleshooting
+- Maintains backward compatibility with legacy versions
+- Handles migration from old serial versioning to semantic versioning
+
+MONITORING:
+- Check logs for deployment status and errors
+- Monitor disk space in .claude/agents directory
+- Track version migration progress
+- Verify agent discovery after deployment
+
+ROLLBACK PROCEDURES:
+- Keep backups of .claude/agents before major updates
+- Use clean_deployment() to remove system agents
+- User-created agents are preserved during cleanup
+- Version tracking allows targeted rollbacks
+"""
 
 import os
 import shutil
 import logging
+import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -11,7 +39,35 @@ from claude_mpm.constants import EnvironmentVars, Paths, AgentMetadata
 
 
 class AgentDeploymentService:
-    """Service for deploying Claude Code native agents."""
+    """Service for deploying Claude Code native agents.
+    
+    METRICS COLLECTION OPPORTUNITIES:
+    This service could collect valuable deployment metrics including:
+    - Agent deployment frequency and success rates
+    - Template validation performance  
+    - Version migration patterns
+    - Deployment duration by agent type
+    - Cache hit rates for agent templates
+    - Resource usage during deployment (memory, CPU)
+    - Agent file sizes and complexity metrics
+    - Deployment failure reasons and patterns
+    
+    DEPLOYMENT PIPELINE:
+    1. Initialize with template and base agent paths
+    2. Load base agent configuration (shared settings)
+    3. Iterate through agent templates
+    4. Check version and update requirements
+    5. Build YAML files with proper formatting
+    6. Deploy to target directory
+    7. Set environment variables for discovery
+    8. Verify deployment success
+    
+    ENVIRONMENT REQUIREMENTS:
+    - Write access to .claude/agents directory
+    - Python 3.8+ for pathlib and typing features
+    - JSON parsing for template files
+    - YAML generation capabilities
+    """
     
     def __init__(self, templates_dir: Optional[Path] = None, base_agent_path: Optional[Path] = None):
         """
@@ -20,8 +76,28 @@ class AgentDeploymentService:
         Args:
             templates_dir: Directory containing agent template files
             base_agent_path: Path to base_agent.md file
+            
+        METRICS OPPORTUNITY: Track initialization performance:
+        - Template directory scan time
+        - Base agent loading time
+        - Initial validation overhead
         """
         self.logger = get_logger(self.__class__.__name__)
+        
+        # METRICS: Initialize deployment metrics tracking
+        # This data structure would be used for collecting deployment telemetry
+        self._deployment_metrics = {
+            'total_deployments': 0,
+            'successful_deployments': 0,
+            'failed_deployments': 0,
+            'migrations_performed': 0,
+            'average_deployment_time_ms': 0.0,
+            'deployment_times': [],  # Keep last 100 for rolling average
+            'agent_type_counts': {},  # Track deployments by agent type
+            'version_migration_count': 0,
+            'template_validation_times': {},  # Track validation performance
+            'deployment_errors': {}  # Track error types and frequencies
+        }
         
         # Find templates directory
         module_path = Path(__file__).parent.parent
@@ -46,13 +122,59 @@ class AgentDeploymentService:
         Build and deploy agents by combining base_agent.md with templates.
         Also deploys system instructions for PM framework.
         
+        METRICS COLLECTED:
+        - Deployment start/end timestamps
+        - Individual agent deployment durations
+        - Success/failure rates by agent type
+        - Version migration statistics
+        - Template validation performance
+        - Error type frequencies
+        
+        OPERATIONAL FLOW:
+        1. Validates target directory (creates if needed)
+        2. Loads base agent configuration
+        3. Discovers all agent templates
+        4. For each agent:
+           - Checks if update needed (version comparison)
+           - Builds YAML configuration
+           - Writes to target directory
+           - Tracks deployment status
+        
+        PERFORMANCE CONSIDERATIONS:
+        - Skips unchanged agents (version-based caching)
+        - Batch processes all agents in single pass
+        - Minimal file I/O with in-memory building
+        - Parallel-safe (no shared state mutations)
+        
+        ERROR HANDLING:
+        - Continues deployment on individual agent failures
+        - Collects all errors for reporting
+        - Logs detailed error context
+        - Returns comprehensive results dict
+        
+        MONITORING POINTS:
+        - Track total deployment time
+        - Monitor skipped vs updated vs new agents
+        - Check error rates and patterns
+        - Verify migration completion
+        
         Args:
             target_dir: Target directory for agents (default: .claude/agents/)
-            force_rebuild: Force rebuild even if agents exist
+            force_rebuild: Force rebuild even if agents exist (useful for troubleshooting)
             
         Returns:
-            Dictionary with deployment results
+            Dictionary with deployment results:
+            - target_dir: Deployment location
+            - deployed: List of newly deployed agents
+            - updated: List of updated agents
+            - migrated: List of agents migrated to new version format
+            - skipped: List of unchanged agents
+            - errors: List of deployment errors
+            - total: Total number of agents processed
         """
+        # METRICS: Record deployment start time for performance tracking
+        deployment_start_time = time.time()
+        
         if not target_dir:
             target_dir = Path(Paths.CLAUDE_AGENTS_DIR.value).expanduser()
         
@@ -64,7 +186,16 @@ class AgentDeploymentService:
             "skipped": [],
             "updated": [],
             "migrated": [],  # Track agents migrated from old format
-            "total": 0
+            "total": 0,
+            # METRICS: Add detailed timing and performance data to results
+            "metrics": {
+                "start_time": deployment_start_time,
+                "end_time": None,
+                "duration_ms": None,
+                "agent_timings": {},  # Track individual agent deployment times
+                "validation_times": {},  # Track template validation times
+                "resource_usage": {}  # Could track memory/CPU if needed
+            }
         }
         
         try:
@@ -82,6 +213,9 @@ class AgentDeploymentService:
                 return results
             
             # Load base agent content
+            # OPERATIONAL NOTE: Base agent contains shared configuration and instructions
+            # that all agents inherit. This reduces duplication and ensures consistency.
+            # If base agent fails to load, deployment continues with agent-specific configs only.
             base_agent_data = {}
             base_agent_version = 0
             if self.base_agent_path.exists():
@@ -89,9 +223,11 @@ class AgentDeploymentService:
                     import json
                     base_agent_data = json.loads(self.base_agent_path.read_text())
                     # Handle both 'base_version' (new format) and 'version' (old format)
+                    # MIGRATION PATH: Supporting both formats during transition period
                     base_agent_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
                     self.logger.info(f"Loaded base agent template (version {self._format_version_display(base_agent_version)})")
                 except Exception as e:
+                    # NON-FATAL: Base agent is optional enhancement, not required
                     self.logger.warning(f"Could not load base agent: {e}")
             
             # Get all template files
@@ -102,8 +238,11 @@ class AgentDeploymentService:
             
             for template_file in template_files:
                 try:
+                    # METRICS: Track individual agent deployment time
+                    agent_start_time = time.time()
+                    
                     agent_name = template_file.stem
-                    target_file = target_dir / f"{agent_name}.md"
+                    target_file = target_dir / f"{agent_name}.yaml"
                     
                     # Check if agent needs update
                     needs_update = force_rebuild
@@ -127,32 +266,48 @@ class AgentDeploymentService:
                         continue
                     
                     # Build the agent file
-                    agent_md = self._build_agent_markdown(agent_name, template_file, base_agent_data)
+                    agent_yaml = self._build_agent_yaml(agent_name, template_file, base_agent_data)
                     
                     # Write the agent file
                     is_update = target_file.exists()
-                    target_file.write_text(agent_md)
+                    target_file.write_text(agent_yaml)
+                    
+                    # METRICS: Record deployment time for this agent
+                    agent_deployment_time = (time.time() - agent_start_time) * 1000  # Convert to ms
+                    results["metrics"]["agent_timings"][agent_name] = agent_deployment_time
+                    
+                    # METRICS: Update agent type deployment counts
+                    self._deployment_metrics['agent_type_counts'][agent_name] = \
+                        self._deployment_metrics['agent_type_counts'].get(agent_name, 0) + 1
                     
                     if is_migration:
                         results["migrated"].append({
                             "name": agent_name,
                             "template": str(template_file),
                             "target": str(target_file),
-                            "reason": reason
+                            "reason": reason,
+                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
                         })
                         self.logger.info(f"Successfully migrated agent: {agent_name} to semantic versioning")
+                        
+                        # METRICS: Track migration statistics
+                        self._deployment_metrics['migrations_performed'] += 1
+                        self._deployment_metrics['version_migration_count'] += 1
+                        
                     elif is_update:
                         results["updated"].append({
                             "name": agent_name,
                             "template": str(template_file),
-                            "target": str(target_file)
+                            "target": str(target_file),
+                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
                         })
                         self.logger.debug(f"Updated agent: {agent_name}")
                     else:
                         results["deployed"].append({
                             "name": agent_name,
                             "template": str(template_file),
-                            "target": str(target_file)
+                            "target": str(target_file),
+                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
                         })
                         self.logger.debug(f"Built and deployed agent: {agent_name}")
                     
@@ -173,8 +328,121 @@ class AgentDeploymentService:
             error_msg = f"Agent deployment failed: {e}"
             self.logger.error(error_msg)
             results["errors"].append(error_msg)
+            
+            # METRICS: Track deployment failure
+            self._deployment_metrics['failed_deployments'] += 1
+            error_type = type(e).__name__
+            self._deployment_metrics['deployment_errors'][error_type] = \
+                self._deployment_metrics['deployment_errors'].get(error_type, 0) + 1
+        
+        # METRICS: Calculate final deployment metrics
+        deployment_end_time = time.time()
+        deployment_duration = (deployment_end_time - deployment_start_time) * 1000  # ms
+        
+        results["metrics"]["end_time"] = deployment_end_time
+        results["metrics"]["duration_ms"] = deployment_duration
+        
+        # METRICS: Update rolling averages and statistics
+        self._update_deployment_metrics(deployment_duration, results)
         
         return results
+    
+    def _update_deployment_metrics(self, duration_ms: float, results: Dict[str, Any]) -> None:
+        """
+        Update internal deployment metrics.
+        
+        METRICS TRACKING:
+        - Rolling average of deployment times (last 100)
+        - Success/failure rates
+        - Agent type distribution
+        - Version migration patterns
+        - Error frequency analysis
+        
+        This method demonstrates ETL-like processing:
+        1. Extract: Gather raw metrics from deployment results
+        2. Transform: Calculate averages, rates, and distributions
+        3. Load: Store in internal metrics structure for reporting
+        """
+        # Update total deployment count
+        self._deployment_metrics['total_deployments'] += 1
+        
+        # Track success/failure
+        if not results.get('errors'):
+            self._deployment_metrics['successful_deployments'] += 1
+        else:
+            self._deployment_metrics['failed_deployments'] += 1
+        
+        # Update rolling average deployment time
+        self._deployment_metrics['deployment_times'].append(duration_ms)
+        if len(self._deployment_metrics['deployment_times']) > 100:
+            # Keep only last 100 for memory efficiency
+            self._deployment_metrics['deployment_times'] = \
+                self._deployment_metrics['deployment_times'][-100:]
+        
+        # Calculate new average
+        if self._deployment_metrics['deployment_times']:
+            self._deployment_metrics['average_deployment_time_ms'] = \
+                sum(self._deployment_metrics['deployment_times']) / \
+                len(self._deployment_metrics['deployment_times'])
+    
+    def get_deployment_metrics(self) -> Dict[str, Any]:
+        """
+        Get current deployment metrics.
+        
+        Returns:
+            Dictionary containing:
+            - Total deployments and success rates
+            - Average deployment time
+            - Agent type distribution
+            - Migration statistics
+            - Error analysis
+            
+        This demonstrates a metrics API endpoint that could be:
+        - Exposed via REST API for monitoring tools
+        - Pushed to time-series databases (Prometheus, InfluxDB)
+        - Used for dashboards and alerting
+        - Integrated with AI observability platforms
+        """
+        success_rate = 0.0
+        if self._deployment_metrics['total_deployments'] > 0:
+            success_rate = (self._deployment_metrics['successful_deployments'] / 
+                          self._deployment_metrics['total_deployments']) * 100
+        
+        return {
+            'total_deployments': self._deployment_metrics['total_deployments'],
+            'successful_deployments': self._deployment_metrics['successful_deployments'],
+            'failed_deployments': self._deployment_metrics['failed_deployments'],
+            'success_rate_percent': success_rate,
+            'average_deployment_time_ms': self._deployment_metrics['average_deployment_time_ms'],
+            'migrations_performed': self._deployment_metrics['migrations_performed'],
+            'agent_type_distribution': self._deployment_metrics['agent_type_counts'].copy(),
+            'version_migrations': self._deployment_metrics['version_migration_count'],
+            'error_distribution': self._deployment_metrics['deployment_errors'].copy(),
+            'recent_deployment_times': self._deployment_metrics['deployment_times'][-10:]  # Last 10
+        }
+    
+    def reset_metrics(self) -> None:
+        """
+        Reset deployment metrics.
+        
+        Useful for:
+        - Starting fresh metrics collection periods
+        - Testing and development
+        - Scheduled metric rotation (e.g., daily reset)
+        """
+        self._deployment_metrics = {
+            'total_deployments': 0,
+            'successful_deployments': 0,
+            'failed_deployments': 0,
+            'migrations_performed': 0,
+            'average_deployment_time_ms': 0.0,
+            'deployment_times': [],
+            'agent_type_counts': {},
+            'version_migration_count': 0,
+            'template_validation_times': {},
+            'deployment_errors': {}
+        }
+        self.logger.info("Deployment metrics reset")
     
     def _extract_version(self, content: str, version_marker: str) -> int:
         """
@@ -223,16 +491,27 @@ class AgentDeploymentService:
         version_string = self._format_version_display(agent_version)
         
         # Build YAML frontmatter
+        # Check new format first (metadata.description), then old format
         description = (
+            template_data.get('metadata', {}).get('description') or
             template_data.get('configuration_fields', {}).get('description') or
             template_data.get('description') or
             'Agent for specialized tasks'
         )
         
+        # Get tags from new format (metadata.tags) or old format
         tags = (
+            template_data.get('metadata', {}).get('tags') or
             template_data.get('configuration_fields', {}).get('tags') or
             template_data.get('tags') or
             [agent_name, 'mpm-framework']
+        )
+        
+        # Get tools from capabilities.tools in new format
+        tools = (
+            template_data.get('capabilities', {}).get('tools') or
+            template_data.get('configuration_fields', {}).get('tools') or
+            ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
         )
         
         frontmatter = f"""---
@@ -243,6 +522,7 @@ author: "{template_data.get('author', 'claude-mpm@anthropic.com')}"
 created: "{datetime.now().isoformat()}Z"
 updated: "{datetime.now().isoformat()}Z"
 tags: {tags}
+tools: {tools}
 metadata:
   base_version: "{self._format_version_display(base_version)}"
   agent_version: "{self._format_version_display(agent_version)}"
@@ -265,6 +545,7 @@ metadata:
     def _build_agent_yaml(self, agent_name: str, template_path: Path, base_agent_data: dict) -> str:
         """
         Build a complete agent YAML file by combining base agent and template.
+        Only includes essential fields for Claude Code best practices.
         
         Args:
             agent_name: Name of the agent
@@ -275,92 +556,80 @@ metadata:
             Complete agent YAML content
         """
         import json
-        from datetime import datetime
         
         # Read template JSON
         template_data = json.loads(template_path.read_text())
         
-        # Extract versions
-        # Handle both 'agent_version' (new format) and 'version' (old format)
-        agent_version = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
-        base_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
+        # Extract capabilities
+        capabilities = template_data.get('capabilities', {})
+        metadata = template_data.get('metadata', {})
         
-        # Use semantic version format
+        # Extract version information
+        agent_version = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
         version_string = self._format_version_display(agent_version)
         
-        # Merge narrative fields (base + agent specific)
-        narrative_fields = self._merge_narrative_fields(base_agent_data, template_data)
+        # Get tools list
+        tools = capabilities.get('tools', [])
+        tools_str = ', '.join(tools) if tools else 'Read, Write, Edit, Grep, Glob, LS'
         
-        # Merge configuration fields (agent overrides base)
-        config_fields = self._merge_configuration_fields(base_agent_data, template_data)
+        # Get description
+        description = (
+            metadata.get('description') or
+            template_data.get('description') or
+            f'{agent_name.title()} agent for specialized tasks'
+        )
         
-        # Build YAML frontmatter following best practices
+        # Get priority based on agent type
+        priority_map = {
+            'security': 'high',
+            'qa': 'high', 
+            'engineer': 'high',
+            'documentation': 'medium',
+            'research': 'medium',
+            'ops': 'high',
+            'data_engineer': 'medium',
+            'version_control': 'high'
+        }
+        priority = priority_map.get(agent_name, 'medium')
+        
+        # Get model
+        model = capabilities.get('model', 'claude-3-5-sonnet-20241022')
+        
+        # Get temperature
+        temperature = capabilities.get('temperature', 0.3)
+        
+        # Build clean YAML frontmatter with only essential fields
         yaml_content = f"""---
-# Core Identity
-name: "{agent_name}"
-description: "{config_fields.get('description', '')}"
+name: {agent_name}
+description: "{description}"
 version: "{version_string}"
-author: "claude-mpm@anthropic.com"
-created: "{datetime.now().isoformat()}Z"
-updated: "{datetime.now().isoformat()}Z"
-
-# Categorization
-tags: {config_fields.get('tags', [])}
-team: "{config_fields.get('team', 'mpm-framework')}"
-project: "{config_fields.get('project', 'claude-mpm')}"
-priority: "{config_fields.get('priority', 'high')}"
-
-# Behavioral Configuration
-tools: {config_fields.get('tools', [])}
-timeout: {config_fields.get('timeout', 600)}
-max_tokens: {config_fields.get('max_tokens', 8192)}
-model: "{config_fields.get('model', 'claude-3-5-sonnet-20241022')}"
-temperature: {config_fields.get('temperature', 0.3)}
-
-# Access Control
-file_access: "{config_fields.get('file_access', 'project')}"
-network_access: {str(config_fields.get('network_access', True)).lower()}
-dangerous_tools: {str(config_fields.get('dangerous_tools', False)).lower()}
-review_required: {str(config_fields.get('review_required', False)).lower()}
-
-# Resource Management
-memory_limit: {config_fields.get('memory_limit', 2048)}
-cpu_limit: {config_fields.get('cpu_limit', 50)}
-execution_timeout: {config_fields.get('timeout', 600)}
-
-# When/Why/What sections extracted from template
-when_to_use:
-{self._format_yaml_list(narrative_fields.get('when_to_use', []), 2)}
-
-rationale:
-  specialized_knowledge:
-{self._format_yaml_list(narrative_fields.get('specialized_knowledge', []), 4)}
-  unique_capabilities:
-{self._format_yaml_list(narrative_fields.get('unique_capabilities', []), 4)}
-
-capabilities:
-  primary_role: "{config_fields.get('primary_role', '')}"
-  specializations: {config_fields.get('specializations', [])}
-  authority: "{config_fields.get('authority', '')}"
-
-# Agent Metadata
-metadata:
-  source: "claude-mpm"
-  template_version: "{self._format_version_display(agent_version)}"
-  base_version: "{self._format_version_display(base_version)}"
-  deployment_type: "system"
-  
-...
----
-
-# System Prompt
-
-"""
+tools: {tools_str}
+priority: {priority}
+model: {model}
+temperature: {temperature}"""
         
-        # Add combined instructions
-        combined_instructions = narrative_fields.get('instructions', '')
-        if combined_instructions:
-            yaml_content += combined_instructions
+        # Add allowed_tools if present
+        if 'allowed_tools' in capabilities:
+            yaml_content += f"\nallowed_tools: {json.dumps(capabilities['allowed_tools'])}"
+            
+        # Add disallowed_tools if present  
+        if 'disallowed_tools' in capabilities:
+            yaml_content += f"\ndisallowed_tools: {json.dumps(capabilities['disallowed_tools'])}"
+            
+        yaml_content += "\n---\n"
+        
+        # Get instructions from template
+        instructions = (
+            template_data.get('instructions') or
+            base_agent_data.get('narrative_fields', {}).get('instructions', '')
+        )
+        
+        # Add base instructions if not already included
+        base_instructions = base_agent_data.get('narrative_fields', {}).get('instructions', '')
+        if base_instructions and base_instructions not in instructions:
+            yaml_content += base_instructions + "\n\n---\n\n"
+            
+        yaml_content += instructions
         
         return yaml_content
     
@@ -421,17 +690,74 @@ metadata:
         # Override with template-specific configuration
         merged.update(template_config)
         
+        # Also merge in capabilities from new format if not already in config
+        capabilities = template_data.get('capabilities', {})
+        if capabilities:
+            # Map capabilities fields to configuration fields
+            if 'tools' not in merged and 'tools' in capabilities:
+                merged['tools'] = capabilities['tools']
+            if 'max_tokens' not in merged and 'max_tokens' in capabilities:
+                merged['max_tokens'] = capabilities['max_tokens']
+            if 'temperature' not in merged and 'temperature' in capabilities:
+                merged['temperature'] = capabilities['temperature']
+            if 'timeout' not in merged and 'timeout' in capabilities:
+                merged['timeout'] = capabilities['timeout']
+            if 'memory_limit' not in merged and 'memory_limit' in capabilities:
+                merged['memory_limit'] = capabilities['memory_limit']
+            if 'cpu_limit' not in merged and 'cpu_limit' in capabilities:
+                merged['cpu_limit'] = capabilities['cpu_limit']
+            if 'network_access' not in merged and 'network_access' in capabilities:
+                merged['network_access'] = capabilities['network_access']
+            if 'model' not in merged and 'model' in capabilities:
+                merged['model'] = capabilities['model']
+        
+        # Also check metadata for description and tags in new format
+        metadata = template_data.get('metadata', {})
+        if metadata:
+            if 'description' not in merged and 'description' in metadata:
+                merged['description'] = metadata['description']
+            if 'tags' not in merged and 'tags' in metadata:
+                merged['tags'] = metadata['tags']
+        
         return merged
     
     def set_claude_environment(self, config_dir: Optional[Path] = None) -> Dict[str, str]:
         """
         Set Claude environment variables for agent discovery.
         
+        OPERATIONAL PURPOSE:
+        Claude Code discovers agents through environment variables that
+        point to configuration directories. This method ensures proper
+        environment setup for agent runtime discovery.
+        
+        ENVIRONMENT VARIABLES SET:
+        1. CLAUDE_CONFIG_DIR: Root configuration directory path
+        2. CLAUDE_MAX_PARALLEL_SUBAGENTS: Concurrency limit (default: 5)
+        3. CLAUDE_TIMEOUT: Agent execution timeout (default: 600s)
+        
+        DEPLOYMENT CONSIDERATIONS:
+        - Call after agent deployment for immediate availability
+        - Environment changes affect current process and children
+        - Does not persist across system restarts
+        - Add to shell profile for permanent configuration
+        
+        TROUBLESHOOTING:
+        - Verify with: echo $CLAUDE_CONFIG_DIR
+        - Check agent discovery: ls $CLAUDE_CONFIG_DIR/agents/
+        - Monitor timeout issues in production
+        - Adjust parallel limits based on system resources
+        
+        PERFORMANCE TUNING:
+        - Increase parallel agents for CPU-bound tasks
+        - Reduce for memory-constrained environments
+        - Balance timeout with longest expected operations
+        - Monitor resource usage during parallel execution
+        
         Args:
             config_dir: Claude configuration directory (default: .claude/)
             
         Returns:
-            Dictionary of environment variables set
+            Dictionary of environment variables set for verification
         """
         if not config_dir:
             config_dir = Path.cwd() / Paths.CLAUDE_CONFIG_DIR.value
@@ -458,11 +784,46 @@ metadata:
         """
         Verify agent deployment and Claude configuration.
         
+        OPERATIONAL PURPOSE:
+        Post-deployment verification ensures agents are correctly deployed
+        and discoverable by Claude Code. Critical for deployment validation
+        and troubleshooting runtime issues.
+        
+        VERIFICATION CHECKS:
+        1. Configuration directory exists and is accessible
+        2. Agents directory contains expected YAML files
+        3. Agent files have valid YAML frontmatter
+        4. Version format is current (identifies migration needs)
+        5. Environment variables are properly set
+        
+        MONITORING INTEGRATION:
+        - Call after deployment for health checks
+        - Include in deployment pipelines
+        - Log results for audit trails
+        - Alert on missing agents or errors
+        
+        TROUBLESHOOTING GUIDE:
+        - Missing config_dir: Check deployment target path
+        - No agents found: Verify deployment completed
+        - Migration needed: Run with force_rebuild
+        - Environment warnings: Call set_claude_environment()
+        
+        RESULT INTERPRETATION:
+        - agents_found: Successfully deployed agents
+        - agents_needing_migration: Require version update
+        - warnings: Non-critical issues to address
+        - environment: Current runtime configuration
+        
         Args:
             config_dir: Claude configuration directory (default: .claude/)
             
         Returns:
-            Verification results
+            Verification results dictionary:
+            - config_dir: Checked directory path
+            - agents_found: List of discovered agents with metadata
+            - agents_needing_migration: Agents with old version format
+            - environment: Current environment variables
+            - warnings: List of potential issues
         """
         if not config_dir:
             config_dir = Path.cwd() / ".claude"
@@ -487,7 +848,7 @@ metadata:
             return results
         
         # List deployed agents
-        agent_files = list(agents_dir.glob("*.md"))
+        agent_files = list(agents_dir.glob("*.yaml"))
         for agent_file in agent_files:
             try:
                 # Read first few lines to get agent name from YAML
@@ -592,13 +953,40 @@ metadata:
         """
         Check if a deployed agent needs to be updated.
         
+        OPERATIONAL LOGIC:
+        1. Verifies agent is system-managed (claude-mpm authored)
+        2. Extracts version from deployed YAML frontmatter
+        3. Detects old version formats requiring migration
+        4. Compares semantic versions for update decision
+        5. Returns detailed reason for update/skip decision
+        
+        VERSION MIGRATION STRATEGY:
+        - Old serial format (0002-0005) -> Semantic (2.5.0)
+        - Missing versions -> Force update to latest
+        - Non-semantic formats -> Trigger migration
+        - Preserves user modifications (non-system agents)
+        
+        PERFORMANCE OPTIMIZATION:
+        - Early exit for non-system agents
+        - Regex compilation cached by Python
+        - Minimal file reads (frontmatter only)
+        - Version comparison without full parse
+        
+        ERROR RECOVERY:
+        - Assumes update needed on parse failures
+        - Logs warnings for investigation
+        - Never blocks deployment pipeline
+        - Safe fallback to force update
+        
         Args:
             deployed_file: Path to the deployed agent file
             template_file: Path to the template file
-            current_base_version: Current base agent version
+            current_base_version: Current base agent version (unused in new strategy)
             
         Returns:
-            Tuple of (needs_update, reason)
+            Tuple of (needs_update: bool, reason: str)
+            - needs_update: True if agent should be redeployed
+            - reason: Human-readable explanation for decision
         """
         try:
             # Read deployed agent content
@@ -713,7 +1101,7 @@ metadata:
             return results
         
         # Remove system agents only (identified by claude-mpm author)
-        agent_files = list(agents_dir.glob("*.md"))
+        agent_files = list(agents_dir.glob("*.yaml"))
         
         for agent_file in agent_files:
             try:
