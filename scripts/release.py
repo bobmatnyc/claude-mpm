@@ -14,6 +14,7 @@ complete release process including:
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -75,6 +76,33 @@ class ReleaseManager:
             return False
         return True
     
+    def check_version_sync(self) -> bool:
+        """Check if Python and npm versions are in sync."""
+        print("\nChecking version synchronization...")
+        
+        # Get Python version from VERSION file
+        version_file = self.project_root / "VERSION"
+        if not version_file.exists():
+            print("WARNING: VERSION file not found")
+            return True  # Don't fail, will be created during release
+            
+        python_version = version_file.read_text().strip()
+        
+        # Get npm version from package.json
+        package_json_path = self.project_root / "package.json"
+        if package_json_path.exists():
+            with open(package_json_path, 'r') as f:
+                package_data = json.load(f)
+                npm_version = package_data.get("version", "unknown")
+                
+            if python_version != npm_version:
+                print(f"WARNING: Version mismatch detected!")
+                print(f"  Python (VERSION): {python_version}")
+                print(f"  npm (package.json): {npm_version}")
+                print("  Versions will be synchronized during release.")
+                
+        return True
+    
     def check_branch(self) -> bool:
         """Ensure we're on the main branch."""
         result = self.run_command(["git", "branch", "--show-current"])
@@ -126,21 +154,73 @@ class ReleaseManager:
             
         print(f"\nUpdating package.json to version {version}...")
         
-        with open(package_json_path, 'r') as f:
-            package_data = json.load(f)
+        try:
+            # Read package.json with error handling
+            with open(package_json_path, 'r') as f:
+                content = f.read()
+                package_data = json.loads(content)
+        except json.JSONDecodeError as e:
+            print(f"ERROR: Invalid JSON in package.json: {e}")
+            return False
+        except Exception as e:
+            print(f"ERROR: Failed to read package.json: {e}")
+            return False
         
         old_version = package_data.get("version", "unknown")
+        
+        # Validate version format (allow dev versions during dry run)
+        if not re.match(r'^\d+\.\d+\.\d+$', version):
+            # Check if it's a development version
+            if re.match(r'^\d+\.\d+\.\d+\.dev\d+\+', version) and self.dry_run:
+                print(f"WARNING: Development version detected: {version}")
+                print("         Release process will use clean semantic version")
+                # Extract base version for comparison
+                base_version = re.match(r'^(\d+\.\d+\.\d+)', version).group(1)
+                version = base_version
+            else:
+                print(f"ERROR: Invalid version format: {version}. Expected: X.Y.Z")
+                return False
+            
+        # Check if version is already up to date
+        if old_version == version:
+            print(f"package.json is already at version {version}")
+            return True
+        
         package_data["version"] = version
         
         if not self.dry_run:
-            with open(package_json_path, 'w') as f:
-                json.dump(package_data, f, indent=2)
-                f.write('\n')  # Add newline at end of file
-            print(f"Updated package.json: {old_version} -> {version}")
-            
-            # Commit the package.json update
-            self.run_command(["git", "add", "package.json"])
-            self.run_command(["git", "commit", "-m", f"chore: update package.json version to {version}"])
+            try:
+                # Write with proper formatting to match npm standards
+                with open(package_json_path, 'w') as f:
+                    json.dump(package_data, f, indent=2, ensure_ascii=False)
+                    f.write('\n')  # Add newline at end of file
+                print(f"Updated package.json: {old_version} -> {version}")
+                
+                # Verify the update
+                with open(package_json_path, 'r') as f:
+                    verify_data = json.load(f)
+                    if verify_data.get("version") != version:
+                        print("ERROR: Failed to verify package.json update")
+                        return False
+                
+                # Commit the package.json update
+                self.run_command(["git", "add", "package.json"])
+                commit_result = self.run_command(
+                    ["git", "commit", "-m", f"chore: update package.json version to {version}"],
+                    check=False
+                )
+                
+                # Handle case where there's nothing to commit (already up to date)
+                if commit_result.returncode != 0:
+                    if "nothing to commit" in commit_result.stdout or "nothing to commit" in commit_result.stderr:
+                        print("No changes to commit (package.json already up to date)")
+                    else:
+                        print(f"ERROR: Failed to commit package.json update: {commit_result.stderr}")
+                        return False
+                        
+            except Exception as e:
+                print(f"ERROR: Failed to update package.json: {e}")
+                return False
         else:
             print(f"[DRY-RUN] Would update package.json: {old_version} -> {version}")
             
@@ -199,9 +279,73 @@ class ReleaseManager:
         print(f"Successfully published to {repo}")
         return True
     
+    def validate_npm_package(self) -> bool:
+        """Validate npm package before publishing."""
+        print("\nValidating npm package...")
+        
+        package_json_path = self.project_root / "package.json"
+        if not package_json_path.exists():
+            print("ERROR: package.json not found")
+            return False
+            
+        # Check required files mentioned in package.json
+        with open(package_json_path, 'r') as f:
+            package_data = json.load(f)
+            
+        # Check files array
+        files_to_check = package_data.get("files", [])
+        missing_files = []
+        for file_pattern in files_to_check:
+            # Simple check - doesn't handle glob patterns fully
+            file_path = self.project_root / file_pattern
+            if not file_path.exists() and not list(self.project_root.glob(file_pattern)):
+                missing_files.append(file_pattern)
+                
+        if missing_files:
+            print(f"ERROR: Missing files referenced in package.json: {', '.join(missing_files)}")
+            return False
+            
+        # Check bin entries
+        bin_entries = package_data.get("bin", {})
+        if isinstance(bin_entries, str):
+            bin_entries = {package_data.get("name", "unknown"): bin_entries}
+            
+        for name, path in bin_entries.items():
+            bin_path = self.project_root / path
+            if not bin_path.exists():
+                print(f"ERROR: Missing bin file '{path}' for command '{name}'")
+                return False
+            if not os.access(str(bin_path), os.X_OK):
+                print(f"WARNING: Bin file '{path}' is not executable")
+                
+        # Check scripts
+        if "scripts" in package_data:
+            for script_name, script_cmd in package_data["scripts"].items():
+                if script_name == "postinstall":
+                    # Check if postinstall script exists
+                    if "node " in script_cmd:
+                        script_file = script_cmd.replace("node ", "").strip()
+                        script_path = self.project_root / script_file
+                        if not script_path.exists():
+                            print(f"ERROR: Missing postinstall script: {script_file}")
+                            return False
+                            
+        print("✓ npm package validation passed")
+        return True
+    
     def publish_to_npm(self) -> bool:
         """Publish package to npm."""
         print("\nPublishing to npm...")
+        
+        # Validate package first
+        if not self.validate_npm_package():
+            return False
+        
+        # Check if npm is installed
+        npm_check = self.run_command(["which", "npm"], check=False)
+        if npm_check.returncode != 0:
+            print("ERROR: npm is not installed. Please install Node.js and npm.")
+            return False
         
         # Check if logged in to npm
         result = self.run_command(["npm", "whoami"], check=False)
@@ -209,13 +353,67 @@ class ReleaseManager:
             print("ERROR: Not logged in to npm. Please run 'npm login' first.")
             return False
         
+        npm_user = result.stdout.strip()
+        print(f"Logged in to npm as: {npm_user}")
+        
+        # Verify package.json exists
+        if not (self.project_root / "package.json").exists():
+            print("ERROR: package.json not found")
+            return False
+            
+        # Get package name and version from package.json
+        with open(self.project_root / "package.json", 'r') as f:
+            package_data = json.load(f)
+            package_name = package_data.get("name", "unknown")
+            package_version = package_data.get("version", "unknown")
+            
+        print(f"Publishing {package_name}@{package_version}...")
+        
+        # Check if this version already exists on npm
+        version_check = self.run_command(
+            ["npm", "view", package_name, "versions", "--json"], 
+            check=False
+        )
+        if version_check.returncode == 0:
+            try:
+                existing_versions = json.loads(version_check.stdout)
+                if package_version in existing_versions:
+                    print(f"WARNING: Version {package_version} already exists on npm")
+                    response = input("Continue anyway? [y/N]: ")
+                    if response.lower() != 'y':
+                        return False
+            except json.JSONDecodeError:
+                # Ignore JSON decode errors, proceed with publish
+                pass
+        
+        # Run npm pack first to verify the package
+        print("Creating npm package...")
+        pack_result = self.run_command(["npm", "pack", "--dry-run"], check=False)
+        if pack_result.returncode != 0:
+            print("ERROR: npm pack failed. Package may have issues.")
+            print(pack_result.stderr)
+            return False
+            
         # Publish the package
         result = self.run_command(["npm", "publish", "--access", "public"], check=False)
         if result.returncode != 0:
-            print("ERROR: Failed to publish to npm")
+            error_output = result.stderr or result.stdout
+            
+            # Check for common errors
+            if "You cannot publish over the previously published versions" in error_output:
+                print(f"ERROR: Version {package_version} is already published to npm")
+                print("Please bump the version and try again")
+            elif "E402" in error_output or "payment required" in error_output:
+                print("ERROR: npm account requires payment for private packages")
+                print("Make sure to use --access public flag")
+            elif "E403" in error_output or "forbidden" in error_output.lower():
+                print("ERROR: Permission denied. Check your npm account permissions")
+                print(f"Make sure you have publish rights for {package_name}")
+            else:
+                print(f"ERROR: Failed to publish to npm: {error_output}")
             return False
             
-        print("Successfully published to npm")
+        print(f"Successfully published {package_name}@{package_version} to npm")
         return True
     
     def create_github_release(self, version: str) -> bool:
@@ -293,17 +491,39 @@ class ReleaseManager:
         """Verify the package is available on npm."""
         print(f"\nVerifying npm package availability...")
         
-        # Wait a bit for npm to update
-        time.sleep(5)
-        
-        result = self.run_command(["npm", "view", "@bobmatnyc/claude-mpm", "version"], check=False)
-        if result.returncode == 0 and version in result.stdout:
-            print(f"✓ Version {version} is available on npm")
-            return True
+        # Get package name from package.json
+        package_json_path = self.project_root / "package.json"
+        if package_json_path.exists():
+            with open(package_json_path, 'r') as f:
+                package_data = json.load(f)
+                package_name = package_data.get("name", "@bobmatnyc/claude-mpm")
         else:
-            print(f"⚠ Could not verify version {version} on npm")
-            print("  This might be normal - npm can take a few minutes to update")
-            return True  # Don't fail the release for this
+            package_name = "@bobmatnyc/claude-mpm"
+        
+        # Wait a bit for npm to update
+        print("Waiting for npm registry to update...")
+        for attempt in range(3):
+            time.sleep(5 * (attempt + 1))  # Progressive delay: 5s, 10s, 15s
+            
+            result = self.run_command(
+                ["npm", "view", package_name, "version"], 
+                check=False
+            )
+            
+            if result.returncode == 0:
+                latest_version = result.stdout.strip()
+                if latest_version == version:
+                    print(f"✓ Version {version} is available on npm")
+                    return True
+                else:
+                    print(f"  Attempt {attempt + 1}/3: Latest version on npm is {latest_version}")
+            else:
+                print(f"  Attempt {attempt + 1}/3: Package not found on npm yet")
+        
+        print(f"⚠ Could not verify version {version} on npm after 3 attempts")
+        print("  This might be normal - npm can take several minutes to update")
+        print(f"  Check manually: https://www.npmjs.com/package/{package_name}")
+        return True  # Don't fail the release for this
     
     def push_to_git(self) -> bool:
         """Push commits and tags to git."""
@@ -335,6 +555,8 @@ class ReleaseManager:
             return False
         if not self.check_branch():
             return False
+        if not self.check_version_sync():
+            pass  # Just a warning, don't fail
         if not self.run_tests():
             return False
         
