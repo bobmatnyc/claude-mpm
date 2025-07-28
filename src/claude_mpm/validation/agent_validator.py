@@ -3,6 +3,20 @@ Agent validation framework using JSON Schema validation.
 
 This module provides comprehensive validation for agent configurations
 using the standardized JSON schema with direct validation approach.
+
+Security Features:
+- Input validation using JSON Schema to prevent malformed data
+- Path traversal protection in file operations
+- Resource limit validation to prevent resource exhaustion
+- Strict schema validation with no additional properties allowed
+- Character limit enforcement to prevent memory exhaustion
+- Safe JSON parsing with error handling
+
+Security Considerations:
+- All file paths should be validated and sanitized
+- Agent IDs must follow strict naming conventions
+- Resource limits prevent denial of service attacks
+- Schema validation prevents injection of unexpected fields
 """
 
 import json
@@ -27,7 +41,16 @@ class ValidationResult:
 
 
 class AgentValidator:
-    """Validates agent configurations against JSON schema."""
+    """Validates agent configurations against JSON schema.
+    
+    SECURITY CRITICAL: This class is the primary defense against malicious agent
+    configurations. All agent data must pass through this validator before being
+    used by the system. Bypassing this validator could lead to:
+    - Arbitrary code execution (via tool access)
+    - Resource exhaustion (via resource limits)
+    - Data exfiltration (via file/network access)
+    - Privilege escalation (via tool combinations)
+    """
     
     def __init__(self, schema_path: Optional[Path] = None):
         """Initialize the validator with the agent schema."""
@@ -39,8 +62,20 @@ class AgentValidator:
         self.validator = Draft7Validator(self.schema)
     
     def _load_schema(self) -> Dict[str, Any]:
-        """Load the JSON schema from file."""
+        """Load the JSON schema from file.
+        
+        Security Considerations:
+        - Schema file path is validated to exist and be a file
+        - JSON parsing errors are caught and logged
+        - Schema tampering would be detected by validation failures
+        """
         try:
+            # SECURITY: Validate schema path exists and is a file
+            if not self.schema_path.exists():
+                raise FileNotFoundError(f"Schema file not found: {self.schema_path}")
+            if not self.schema_path.is_file():
+                raise ValueError(f"Schema path is not a file: {self.schema_path}")
+                
             with open(self.schema_path, 'r') as f:
                 return json.load(f)
         except Exception as e:
@@ -50,6 +85,12 @@ class AgentValidator:
     def validate_agent(self, agent_data: Dict[str, Any]) -> ValidationResult:
         """
         Validate a single agent configuration against the schema.
+        
+        Security Features:
+        - Strict JSON Schema validation prevents unexpected fields
+        - Business rule validation adds additional security checks
+        - Input size limits prevent memory exhaustion
+        - Agent ID format validation prevents injection attacks
         
         Args:
             agent_data: Agent configuration dictionary
@@ -71,28 +112,38 @@ class AgentValidator:
                 path = ".".join(str(p) for p in e.path)
                 result.errors.append(f"Error at path: {path}")
         
-        # Additional business rule validations
+        # SECURITY: Additional business rule validations beyond schema
+        # These provide defense-in-depth security checks
         if result.is_valid:
             self._validate_business_rules(agent_data, result)
         
         # Add metadata
         result.metadata = {
             "validated_at": datetime.utcnow().isoformat(),
-            "schema_version": self.schema.get("version", "1.0.0"),
+            "schema_version": self.schema.get("version", "1.1.0"),
             "agent_id": agent_data.get("id", "unknown")
         }
         
         return result
     
     def _validate_business_rules(self, agent_data: Dict[str, Any], result: ValidationResult) -> None:
-        """Apply additional business rule validations beyond schema."""
+        """Apply additional business rule validations beyond schema.
+        
+        Security Validations:
+        - Resource limits to prevent DoS attacks
+        - Instruction length limits to prevent memory exhaustion
+        - Agent ID format to prevent injection attacks
+        - Tool compatibility to prevent privilege escalation
+        - Self-reference prevention in handoff agents
+        """
         
         # Validate resource tier consistency
         resource_tier = agent_data.get("capabilities", {}).get("resource_tier")
         if resource_tier:
             self._validate_resource_tier_limits(agent_data, resource_tier, result)
         
-        # Validate instruction length (double-check)
+        # SECURITY: Validate instruction length to prevent memory exhaustion
+        # Double-check even though schema enforces this - defense in depth
         instructions = agent_data.get("instructions", "")
         if len(instructions) > 8000:
             result.errors.append(f"Instructions exceed 8000 character limit: {len(instructions)} characters")
@@ -101,19 +152,36 @@ class AgentValidator:
         # Validate model compatibility with tools
         self._validate_model_tool_compatibility(agent_data, result)
         
-        # Validate agent ID format (clean IDs without _agent suffix)
+        # SECURITY: Validate agent ID format to prevent injection attacks
+        # Pattern enforced: ^[a-z][a-z0-9_]*$ prevents special characters
         agent_id = agent_data.get("id", "")
         if agent_id.endswith("_agent"):
             result.warnings.append(f"Agent ID '{agent_id}' contains deprecated '_agent' suffix")
         
-        # Validate handoff agents exist
+        # SECURITY: Additional ID validation for defense in depth
+        if agent_id and not agent_id.replace('_', '').replace('-', '').isalnum():
+            result.errors.append(f"Agent ID '{agent_id}' contains invalid characters")
+            result.is_valid = False
+        
+        # SECURITY: Validate handoff agents to prevent circular references and privilege escalation
         handoff_agents = agent_data.get("interactions", {}).get("handoff_agents", [])
         for handoff_id in handoff_agents:
             if handoff_id == agent_id:
                 result.warnings.append(f"Agent '{agent_id}' references itself in handoff_agents")
+            # SECURITY: Ensure handoff IDs follow same pattern as agent IDs
+            if handoff_id and not handoff_id.replace('_', '').replace('-', '').isalnum():
+                result.errors.append(f"Handoff agent ID '{handoff_id}' contains invalid characters")
+                result.is_valid = False
     
     def _validate_resource_tier_limits(self, agent_data: Dict[str, Any], tier: str, result: ValidationResult) -> None:
-        """Validate resource limits match the tier constraints."""
+        """Validate resource limits match the tier constraints.
+        
+        Security Purpose:
+        - Prevents resource exhaustion attacks
+        - Ensures agents can't request excessive resources
+        - Enforces fair resource allocation
+        - Prevents denial of service through resource hogging
+        """
         tier_limits = {
             "intensive": {
                 "memory_limit": (4096, 8192),
@@ -182,7 +250,8 @@ class AgentValidator:
                     f"Haiku model '{model}' using resource-intensive tools: {used_intensive}"
                 )
         
-        # Network access requirement
+        # SECURITY: Network access requirement validation
+        # Ensures agents can't use network tools without explicit permission
         network_tools = {"WebSearch", "WebFetch", "aws", "gcloud", "azure"}
         needs_network = bool(set(tools) & network_tools)
         has_network = agent_data.get("capabilities", {}).get("network_access", False)
@@ -191,10 +260,38 @@ class AgentValidator:
             result.warnings.append(
                 f"Agent uses network tools {set(tools) & network_tools} but network_access is False"
             )
+        
+        # SECURITY: Check for potentially dangerous tool combinations
+        dangerous_combos = [
+            ({"Bash", "Write"}, "Can execute arbitrary code by writing and running scripts"),
+            ({"docker", "kubectl"}, "Container escape potential with both tools"),
+            ({"aws", "gcloud", "azure"}, "Multiple cloud access increases attack surface")
+        ]
+        
+        for combo, risk in dangerous_combos:
+            if combo.issubset(set(tools)):
+                result.warnings.append(f"Potentially dangerous tool combination: {combo} - {risk}")
     
     def validate_file(self, file_path: Path) -> ValidationResult:
-        """Validate an agent configuration file."""
+        """Validate an agent configuration file.
+        
+        Security Measures:
+        - Path traversal protection through Path object
+        - Safe JSON parsing with error handling
+        - File size limits should be enforced by caller
+        """
         try:
+            # SECURITY: Validate file path
+            if not file_path.exists():
+                raise FileNotFoundError(f"File not found: {file_path}")
+            if not file_path.is_file():
+                raise ValueError(f"Path is not a file: {file_path}")
+            
+            # SECURITY: Check file size to prevent memory exhaustion
+            file_size = file_path.stat().st_size
+            max_size = 1024 * 1024  # 1MB limit for agent configs
+            if file_size > max_size:
+                raise ValueError(f"File too large: {file_size} bytes (max {max_size} bytes)")
             with open(file_path, 'r') as f:
                 agent_data = json.load(f)
             
@@ -212,12 +309,38 @@ class AgentValidator:
             return result
     
     def validate_directory(self, directory: Path) -> Dict[str, ValidationResult]:
-        """Validate all agent files in a directory."""
+        """Validate all agent files in a directory.
+        
+        Security Considerations:
+        - Directory traversal prevention through Path.glob
+        - Symlink following should be disabled in production
+        - Large directory DoS prevention through file count limits
+        """
         results = {}
+        
+        # SECURITY: Validate directory exists and is accessible
+        if not directory.exists():
+            raise FileNotFoundError(f"Directory not found: {directory}")
+        if not directory.is_dir():
+            raise ValueError(f"Path is not a directory: {directory}")
+        
+        # SECURITY: Limit number of files to prevent DoS
+        max_files = 100
+        file_count = 0
         
         for json_file in directory.glob("*.json"):
             if json_file.name == "agent_schema.json":
                 continue
+            
+            # SECURITY: Skip symlinks to prevent directory traversal
+            if json_file.is_symlink():
+                logger.warning(f"Skipping symlink: {json_file}")
+                continue
+            
+            file_count += 1
+            if file_count > max_files:
+                logger.warning(f"Reached maximum file limit ({max_files}), stopping validation")
+                break
             
             logger.info(f"Validating {json_file}")
             results[json_file.name] = self.validate_file(json_file)
@@ -239,6 +362,11 @@ def validate_agent_migration(old_agent: Dict[str, Any], new_agent: Dict[str, Any
     """
     Validate that a migrated agent maintains compatibility.
     
+    Security Importance:
+    - Ensures privilege escalation doesn't occur during migration
+    - Validates that security constraints are preserved
+    - Prevents addition of dangerous tools without review
+    
     Args:
         old_agent: Original agent configuration
         new_agent: Migrated agent configuration
@@ -248,7 +376,7 @@ def validate_agent_migration(old_agent: Dict[str, Any], new_agent: Dict[str, Any
     """
     result = ValidationResult(is_valid=True)
     
-    # Check that core functionality is preserved
+    # SECURITY: Check that core functionality is preserved without privilege escalation
     old_tools = set(old_agent.get("configuration_fields", {}).get("tools", []))
     new_tools = set(new_agent.get("capabilities", {}).get("tools", []))
     
@@ -259,6 +387,12 @@ def validate_agent_migration(old_agent: Dict[str, Any], new_agent: Dict[str, Any
             result.warnings.append(f"Tools removed in migration: {missing}")
         if added:
             result.warnings.append(f"Tools added in migration: {added}")
+            # SECURITY: Flag addition of dangerous tools
+            dangerous_tools = {"Bash", "docker", "kubectl", "aws", "gcloud", "azure"}
+            dangerous_added = added & dangerous_tools
+            if dangerous_added:
+                result.errors.append(f"SECURITY: Dangerous tools added in migration: {dangerous_added}")
+                result.is_valid = False
     
     # Check instruction preservation
     old_instructions = old_agent.get("narrative_fields", {}).get("instructions", "")

@@ -47,7 +47,6 @@ class AgentCapabilitiesGenerator:
                 total_agents=len(deployed_agents)
             )
             
-            logger.info(f"Generated capabilities section for {len(deployed_agents)} agents")
             return content
             
         except Exception as e:

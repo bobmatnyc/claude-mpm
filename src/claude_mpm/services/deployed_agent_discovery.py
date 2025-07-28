@@ -61,7 +61,6 @@ class DeployedAgentDiscovery:
                     logger.error(f"Failed to extract info from agent {agent}: {e}")
                     continue
             
-            logger.info(f"Discovered {len(deployed_agents)} deployable agents from registry ({filtered_count} templates/base agents filtered out)")
             return deployed_agents
             
         except Exception as e:

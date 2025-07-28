@@ -15,37 +15,75 @@ All agent and workflow creation is driven by user prompts to Claude Code's PM. U
 
 ## Architecture Overview
 
+### Modular Instructions System
+
+Claude MPM uses a **modular instructions architecture** where the complete INSTRUCTIONS.md is assembled from swappable modules at startup. Each module can be overridden at project or user level, allowing complete customization of the PM's behavior.
+
+#### Core Instruction Modules
+
+```yaml
+# Instruction modules that make up INSTRUCTIONS.md
+modules:
+  core: "{{core}}"        # PM identity: project manager, publisher, etc.
+  agents: "{{agents}}"    # Available agents (dynamic discovery)
+  workflow: "{{workflow}}" # Agent interaction patterns (TDD, waterfall, etc.)
+  ticketing: "{{ticketing}}" # Ticket system integration (GitHub, Linear, etc.)
+```
+
+#### Module Precedence System
+
+```
+Project Level (.claude-mpm/modules/)
+    ↓ overrides
+User Level (~/.claude-mpm/modules/)  
+    ↓ overrides
+System Level (framework/modules/)
+```
+
 ### User Interaction Flow
 
 ```
 User Prompt to Claude Code PM
     ↓
-"Create an agent that does X"
-"Build workflow based on document Y"
+"Make this PM work like a publisher for articles"
+"Use TDD workflow with Jest testing"
+"Switch to Linear for ticketing"
     ↓
-Claude Code PM analyzes requirements
+Claude Code PM analyzes module requirements
     ↓
-PM calls Claude MPM Internal API
+PM calls Claude MPM Module API
     ↓
-Claude MPM builds/modifies configuration
+Claude MPM builds/swaps instruction modules
     ↓
 PM starts new claude-mpm session
     ↓
-User sees startup sequence with new config
+User sees startup sequence with new modules:
+  "🔧 Core: Publisher (project override)"
+  "📋 Workflow: TDD with Jest (project)"
+  "🎫 Ticketing: Linear integration (user)"
     ↓
-Validation complete - agent/workflow ready
+Validation complete - new PM behavior active
 ```
 
-### Internal API Architecture
+### Module Examples
 
-Claude MPM exposes an internal API that Claude Code's PM can call to:
-- Create/modify agents from requirements
-- Build custom workflows from descriptions
-- Generate instruction templates
-- Manage agent availability
-- Rebuild configurations
+#### Core Module Variations
+- **Project Manager** (default): Multi-agent orchestration, delegation, QA workflows
+- **Publisher**: Content creation, editing, review workflows for articles/books
+- **Research Coordinator**: Academic research, citation management, peer review
+- **DevOps Orchestrator**: Infrastructure, deployment, monitoring workflows
 
-The PM validates results by launching a new claude-mpm interactive session and observing the startup sequence, which displays the active configuration.
+#### Workflow Module Variations  
+- **TDD Workflow**: Test-first development with automated testing
+- **Waterfall**: Sequential phases with approval gates
+- **Agile Sprint**: Sprint planning, daily standups, retrospectives
+- **Content Pipeline**: Draft → Review → Edit → Publish workflow
+
+#### Ticketing Module Variations
+- **GitHub Issues**: Native GitHub integration
+- **Linear**: Modern project management
+- **Jira**: Enterprise project tracking  
+- **Simple**: Basic markdown-based ticketing
 
 ## Current Architecture Analysis
 
@@ -66,59 +104,84 @@ Based on the codebase analysis, Claude MPM currently uses:
 
 ## Feature Requirements
 
-### A. Prompt-Driven Agent Creation
+### A. Swappable Core Identity Modules
 
 **User Experience:**
 ```
-User: "Create an agent specialized in API testing that knows REST, GraphQL, and pytest"
+User: "Change this PM to work like a publisher for content creation instead of software development"
 
-PM: I'll create an API testing agent for you.
-    [Calls Claude MPM API]
+PM: I'll reconfigure the core identity to publisher mode.
+    [Calls Claude MPM Module API]
+    [Swaps {{core}} module to publisher variant]
     Starting new session to validate...
     
     → New claude-mpm session starts
-    → Startup shows: "Loading custom agent: api_testing_agent"
-    → Agent available in workflow
+    → Startup shows: "🔧 Core: Publisher (project override)"
+    → PM now behaves as content publisher, not software PM
 
-User: ✅ Perfect! The agent is ready to use.
+User: ✅ Perfect! Now it focuses on writing workflows instead of code.
 ```
 
-**Alternative with Document Reference:**
-```
-User: "Create an agent based on the requirements in ./docs/agent-spec.md"
+**Core Module Examples:**
+- **project-manager**: Default multi-agent software development orchestration
+- **publisher**: Content creation, editing, review, publication workflows  
+- **research-coordinator**: Academic research, citation management, literature review
+- **devops-orchestrator**: Infrastructure, deployment, monitoring, incident response
 
-PM: Analyzing the specification document...
-    [Reads document, extracts requirements]
-    [Calls Claude MPM API with extracted requirements]
-    Starting new session to validate...
-    
-    → New claude-mpm session shows custom agent loaded
-```
-
-### B. Prompt-Driven Workflow Creation
+### B. Workflow Interaction Modules
 
 **User Experience:**
 ```
-User: "Create a workflow where we always do research first, then get approval, then implement"
+User: "Switch to TDD workflow where we always write tests first"
 
-PM: I'll create a custom workflow with approval gates.
-    [Calls Claude MPM API]
-    Starting new session to test...
+PM: I'll configure TDD workflow with test-first development.
+    [Swaps {{workflow}} module]
+    Starting new session to validate...
     
-    → New claude-mpm session starts
-    → Startup shows: "Using custom workflow: approval-based-development"
-    → PM behavior follows new workflow
+    → New claude-mpm session starts  
+    → Startup shows: "📋 Workflow: TDD Test-First (project)"
+    → PM now enforces test-first development pattern
 
-User: ✅ Great! The workflow is active.
+User: ✅ Great! Now all development follows TDD patterns.
 ```
 
-### C. Self-Validating Configuration
+**Workflow Module Examples:**
+- **standard-development**: Research → Engineer → QA → Documentation sequence
+- **tdd-workflow**: Test → Implement → Refactor with automated testing
+- **waterfall**: Sequential phases with approval gates between stages  
+- **agile-sprint**: Sprint planning, daily coordination, retrospectives
+- **content-pipeline**: Draft → Review → Edit → Publish sequence
 
-**Key Principle:** The PM can validate its own work by starting a fresh claude-mpm session and observing:
-- Startup messages showing loaded agents
-- Configuration display during initialization  
-- Active workflow behavior
-- Agent availability confirmation
+### C. Ticketing System Modules
+
+**User Experience:**
+```  
+User: "Use Linear for project management instead of basic ticketing"
+
+PM: I'll configure Linear integration for ticket management.
+    [Swaps {{ticketing}} module]
+    Starting new session to validate...
+    
+    → New claude-mpm session starts
+    → Startup shows: "🎫 Ticketing: Linear integration (project)"
+    → PM now creates/manages Linear tickets
+
+User: ✅ Excellent! Tickets now sync with our Linear workspace.
+```
+
+**Ticketing Module Examples:**
+- **basic-ticketing**: Simple markdown-based task tracking
+- **github-issues**: Native GitHub Issues integration
+- **linear**: Modern Linear project management
+- **jira**: Enterprise Jira integration
+- **notion**: Notion database ticketing
+
+### D. Agent Discovery Modules (Dynamic)
+
+**Current Implementation:**
+- **{{agents}}** module is dynamically generated from deployed agents
+- Automatically reflects project, user, and system agent availability
+- Updates when agents are added/removed without manual configuration
 
 ## Detailed Design
 
@@ -829,93 +892,217 @@ def status():
 - Users can see which agents/workflows are active
 - Configuration changes immediately visible in new sessions
 
-## Usage Examples
+## Usage Examples with Module System
 
-### Example 1: Creating a Custom Agent
+### Example 1: Changing PM Identity to Publisher
 
-**User:** "Create an agent that specializes in API testing and knows about REST, GraphQL, and pytest"
+**User:** "Change this PM to work like a publisher for content creation rather than software development"
 
-**PM Response:** I'll create an API testing agent for your project.
+**PM Response:** I'll reconfigure the core identity to publisher mode.
 
-*[PM calls Claude MPM internal API]*
+*[PM calls Claude MPM Module API to swap {{core}} module]*
 
 *[PM starts new claude-mpm session for validation]*
 
 **Startup Output:**
 ```
-🚀 Claude MPM Starting...
-📦 Loading agents:
-  ✅ research (system)
-  ✅ engineer (system)  
-  ✅ qa (system)
-  ✅ api_testing_agent (project) ← New custom agent
-📋 Ready for multi-agent coordination
+🔧 Claude MPM Module Configuration:
+
+  📋 Core Identity: Publisher (project)
+  🔄 Workflow: Content Pipeline (project)  
+  🎫 Ticketing: Basic Ticketing (system)
+  🤖 Agents: 8 active
+
+🚀 Ready for content creation workflows
 ```
 
-**PM:** ✅ Custom agent created successfully! The API testing agent is now available in your workflow.
+**PM:** ✅ Core identity changed to Publisher! I now focus on content creation, editing, and publication workflows instead of software development.
 
-**User:** Perfect! Now I can delegate API testing tasks to the specialized agent.
+**User:** Perfect! Now it will help with article writing instead of coding.
 
-### Example 2: Document-Based Agent Creation
+### Example 2: Switching to TDD Workflow  
 
-**User:** "Create an agent based on the requirements in ./docs/database-agent-spec.md"
+**User:** "Switch to TDD workflow where we always write tests first"
 
-**PM Response:** I'll analyze the specification document and create your database agent.
+**PM Response:** I'll configure TDD workflow with test-first development patterns.
 
-*[PM reads specification document]*
-*[PM extracts requirements and calls API]*
-*[PM validates with new session]*
+*[PM swaps {{workflow}} module to TDD variant]*
 
 **Startup Output:**
 ```
-🚀 Claude MPM Starting...
-📄 Custom agents from specifications:
-  ✅ db_optimization_agent (project) - Database performance specialist
-📋 Workflow ready with custom database expertise
+🔧 Claude MPM Module Configuration:
+
+  📋 Core Identity: Project Manager (system)
+  🔄 Workflow: TDD Test-First (project) ← Changed
+  🎫 Ticketing: Basic Ticketing (system)  
+  🤖 Agents: 8 active
+
+✅ TDD workflow active - Tests required before implementation
 ```
 
-**PM:** ✅ Database optimization agent created from your specification! It's now available for database-related tasks.
+**PM:** ✅ TDD workflow configured! All development now follows test-first patterns with automated testing requirements.
 
-### Example 3: Custom Workflow Creation
+### Example 3: Configuring Linear Integration
 
-**User:** "Create a workflow where we always do research first, then get approval before any implementation"
+**User:** "Use Linear for project management instead of basic ticketing"
 
-**PM Response:** I'll create an approval-based development workflow for your project.
+**PM Response:** I'll configure Linear integration for ticket management.
 
-*[PM analyzes workflow requirements]*
-*[PM generates custom instruction sections]*
-*[PM rebuilds INSTRUCTIONS.md]*
-*[PM validates with new session]*
+*[PM swaps {{ticketing}} module to Linear variant]*
 
 **Startup Output:**
 ```
-🚀 Claude MPM Starting...
-📋 Custom Workflow: Approval-Based Development
-  ✓ Research phase (always first)
-  ⏳ Approval gate (before implementation)
-  ✓ Implementation (after approval)
-✅ Ready with custom workflow protocol
+🔧 Claude MPM Module Configuration:
+
+  📋 Core Identity: Project Manager (system)
+  🔄 Workflow: Standard Development (system)
+  🎫 Ticketing: Linear Integration (project) ← Changed
+  🤖 Agents: 8 active
+
+✅ Linear integration active - Tickets sync with workspace  
 ```
 
-**PM:** ✅ Custom workflow active! All implementation tasks now require approval after research phase.
+**PM:** ✅ Linear integration configured! All tickets now create and sync with your Linear workspace.
 
-### Example 4: CLI Backup Access
+### Example 4: Complete Custom Configuration
+
+**User:** "I want a research coordinator that uses academic workflows and Notion for project management"
+
+**PM Response:** I'll configure a complete research setup with academic workflows and Notion integration.
+
+*[PM swaps multiple modules: {{core}} to research-coordinator, {{workflow}} to academic-research, {{ticketing}} to notion]*
+
+**Startup Output:**
+```
+🔧 Claude MPM Module Configuration:
+
+  📋 Core Identity: Research Coordinator (project) ← Changed
+  🔄 Workflow: Academic Research (project) ← Changed  
+  🎫 Ticketing: Notion Integration (project) ← Changed
+  🤖 Agents: 8 active
+
+✅ Academic research environment ready
+```
+
+**PM:** ✅ Complete research configuration active! I now coordinate academic research workflows with literature management and Notion project tracking.
+
+### Example 5: CLI Module Management
 
 ```bash
-# Users can also access functionality via CLI
+# Users can also manage modules via CLI
 # ⚠️ SUGGESTION ONLY - Must match existing CLI patterns
 
-# Create agent via CLI
-claude-mpm agent create "Testing specialist with Selenium knowledge"
+# List available module variants
+claude-mpm module list-variants core
+# Output:
+# 📋 Available Core Variants:
+#   ✅ project-manager (system) - Multi-agent software development  
+#   📝 publisher (system) - Content creation workflows
+#   🔬 research-coordinator (system) - Academic research management
 
-# Create workflow via CLI  
-claude-mpm workflow create "Agile sprint workflow with daily standups"
+# Swap modules directly
+claude-mpm module swap core publisher --scope project
+# ✅ Swapped core module to publisher (project scope)
 
-# List current configuration
-claude-mpm config status
+# Create custom module from requirements
+claude-mpm module create workflow "Kanban workflow with continuous deployment" --scope project
+# ✅ Created custom workflow module
 
-# Rebuild instructions
-claude-mpm config rebuild
+# View current module configuration
+claude-mpm module status
+# Output:
+# 🔧 Active Module Configuration:
+#   📋 Core: Publisher (project)
+#   🔄 Workflow: Custom Kanban-CD (project)  
+#   🎫 Ticketing: Basic (system)
+#   🤖 Agents: 8 active (3 custom, 5 system)
 ```
 
-This design creates a user-friendly system where Claude Code's PM handles all the complexity, and users simply describe what they want. The PM validates its work by starting fresh sessions, making the process transparent and self-verifying.
+### Module Template Examples
+
+#### Core Module: Publisher Identity
+
+```markdown
+# {{core}} Module: Publisher
+# ⚠️ SUGGESTION ONLY - Must match existing instruction patterns
+
+## Core Identity & Authority
+You are **Claude Content Publisher** - your **SOLE function** is **content orchestration and editorial management**. You are **FORBIDDEN** from technical implementation except:
+- **Task Tool** for delegation to editorial agents
+- **TodoWrite** for editorial tracking  
+- **WebSearch/WebFetch** for research and fact-checking
+- **Direct content** for editorial decisions and content strategy
+
+**ABSOLUTE RULE**: ALL content creation must be delegated to specialized editorial agents.
+
+## Content-Aware Agent Selection
+- **Content strategy questions**: Answer directly (only exception)
+- **Writing tasks**: Delegate to Writing Agent
+- **Research needs**: Delegate to Research Agent
+- **Editing tasks**: Delegate to Editorial Agent
+- **Publication tasks**: Delegate to Publishing Agent
+
+## Mandatory Editorial Workflow
+**STRICT SEQUENCE**:
+1. **Research** (ALWAYS FIRST) - fact-check, source validation
+2. **Draft** (ONLY after Research) - content creation
+3. **Editorial Review** (ONLY after Draft) - **MUST receive original brief + explicit sign-off required**
+4. **Publication** (ONLY after Editorial sign-off) - publication tasks
+
+**Editorial Sign-off Format**: "Editorial Complete: [Approved/Needs Revision] - [Details]"
+```
+
+#### Workflow Module: TDD Development
+
+```markdown  
+# {{workflow}} Module: TDD Test-First Development
+# ⚠️ SUGGESTION ONLY - Must match existing workflow patterns
+
+## TDD Workflow Protocol
+Test-Driven Development with strict test-first enforcement.
+
+### Mandatory TDD Sequence
+**STRICT ORDER - NO SKIPPING**:
+1. **Test Creation** (ALWAYS FIRST) - Write failing tests
+2. **Implementation** (ONLY after tests fail) - Minimum code to pass
+3. **Refactor** (ONLY after tests pass) - Improve without breaking tests
+4. **Validation** (ONLY after refactor) - All tests must pass
+
+### Quality Gates
+- **Red Phase**: Tests must fail before implementation
+- **Green Phase**: Tests must pass after implementation  
+- **Refactor Phase**: All tests remain passing during refactoring
+
+### Agent Interaction Patterns
+- **QA Agent**: Creates tests BEFORE Engineer Agent implements
+- **Engineer Agent**: Implements ONLY to make tests pass
+- **Research Agent**: Provides implementation guidance within TDD constraints
+```
+
+#### Ticketing Module: Linear Integration
+
+```markdown
+# {{ticketing}} Module: Linear Integration
+# ⚠️ SUGGESTION ONLY - Must match existing ticketing patterns
+
+## Linear Project Management Integration
+
+### Ticket Creation Protocol
+- All tasks automatically create Linear tickets
+- Tickets include agent assignments and dependencies
+- Status updates sync with Linear workflow states
+
+### Linear Workflow Mapping
+- **Backlog**: TodoWrite items before assignment
+- **In Progress**: Active agent delegations
+- **In Review**: QA validation phase
+- **Done**: Completed tasks with sign-off
+
+### Integration Features
+- Automatic project detection from Linear workspace
+- Team member assignment based on agent types
+- Priority mapping from task complexity analysis
+- Due date estimation from agent resource requirements
+```
+
+This modular system allows complete customization of the PM's behavior while maintaining the same underlying agent orchestration infrastructure. Users can swap between being a software development PM, content publisher, research coordinator, or any other role by simply changing modules.

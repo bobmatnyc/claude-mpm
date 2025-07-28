@@ -720,7 +720,67 @@ class BaseService(LoggerMixin, ABC):
         return None
 
     async def _collect_custom_metrics(self) -> None:
-        """Collect custom metrics. Override in subclasses."""
+        """Collect custom metrics. Override in subclasses.
+        
+        METRICS COLLECTION PATTERN:
+        This method is called periodically by the metrics task to collect
+        service-specific metrics. Subclasses should override this to:
+        
+        1. COLLECT OPERATIONAL METRICS:
+           - Request rates and latencies
+           - Queue depths and processing times
+           - Error rates by type
+           - Resource utilization
+        
+        2. COLLECT BUSINESS METRICS:
+           - Agent usage patterns
+           - Model selection distribution
+           - Task complexity trends
+           - Cost tracking metrics
+        
+        3. COLLECT PERFORMANCE METRICS:
+           - Cache hit rates
+           - Database query times
+           - API call latencies
+           - Memory usage patterns
+        
+        EXAMPLE IMPLEMENTATION:
+        ```python
+        async def _collect_custom_metrics(self) -> None:
+            # Collect agent-specific metrics
+            if hasattr(self, 'agent_loader'):
+                loader_metrics = self.agent_loader.get_metrics()
+                self.update_metrics(
+                    cache_hit_rate=loader_metrics['cache_hit_rate_percent'],
+                    top_agents=loader_metrics['top_agents_by_usage']
+                )
+            
+            # Collect deployment metrics
+            if hasattr(self, 'deployment_service'):
+                deploy_metrics = self.deployment_service.get_deployment_metrics()
+                self.update_metrics(
+                    deployment_success_rate=deploy_metrics['success_rate_percent'],
+                    avg_deployment_time=deploy_metrics['average_deployment_time_ms']
+                )
+            
+            # Collect resource metrics
+            import psutil
+            process = psutil.Process()
+            self.update_metrics(
+                cpu_percent=process.cpu_percent(),
+                memory_mb=process.memory_info().rss / 1024 / 1024,
+                open_files=len(process.open_files()),
+                thread_count=process.num_threads()
+            )
+        ```
+        
+        BEST PRACTICES:
+        - Keep collection fast (< 100ms)
+        - Handle errors gracefully
+        - Use sampling for expensive operations
+        - Store aggregated data, not raw events
+        - Consider metric cardinality
+        """
         pass
 
     # Utility methods

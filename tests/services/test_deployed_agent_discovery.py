@@ -1,4 +1,29 @@
-"""Unit tests for DeployedAgentDiscovery service."""
+"""Unit tests for DeployedAgentDiscovery service.
+
+This module tests the DeployedAgentDiscovery service which is responsible for
+discovering and listing deployed agents in the system.
+
+TEST SCENARIOS COVERED:
+1. Service initialization with default and custom project roots
+2. Agent discovery from registry with new and legacy schema formats
+3. Empty agent list handling
+4. Error handling during discovery
+5. Agent information extraction with missing attributes
+6. Source tier determination (system, project, user)
+7. Logging of errors during extraction
+
+TEST FOCUS:
+- Validates proper integration with AgentRegistryAdapter
+- Ensures backward compatibility with legacy agent formats
+- Tests error resilience and graceful degradation
+- Verifies source tier logic for agent prioritization
+
+TEST COVERAGE GAPS:
+- No testing of concurrent discovery operations
+- No testing of large-scale agent lists (performance)
+- No testing of filesystem-based discovery
+- No integration tests with actual registry
+"""
 
 import pytest
 from pathlib import Path
@@ -9,7 +34,11 @@ from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
 
 
 class TestDeployedAgentDiscovery:
-    """Test cases for DeployedAgentDiscovery service."""
+    """Test cases for DeployedAgentDiscovery service.
+    
+    This test class uses mocking to isolate the discovery service
+    from its dependencies (AgentRegistryAdapter, PathResolver).
+    """
     
     @pytest.fixture
     def mock_agent_registry(self):
@@ -43,7 +72,17 @@ class TestDeployedAgentDiscovery:
         mock_path_resolver.get_project_root.assert_not_called()
     
     def test_discover_deployed_agents_success(self, discovery_service):
-        """Test successful agent discovery."""
+        """Test successful agent discovery.
+        
+        This test validates that the discovery service can:
+        1. Handle agents with new schema format (metadata, capabilities objects)
+        2. Handle agents with legacy format (flat attributes)
+        3. Extract all required fields from both formats
+        4. Return properly formatted agent information
+        
+        The test uses mocked agents to ensure both schema formats
+        are properly supported for backward compatibility.
+        """
         # Create mock agents with new schema
         mock_agent1 = Mock()
         mock_agent1.agent_id = 'research'
@@ -111,7 +150,11 @@ class TestDeployedAgentDiscovery:
         assert result is None
     
     def test_determine_source_tier_with_explicit_tier(self, discovery_service):
-        """Test source tier determination with explicit attribute."""
+        """Test source tier determination with explicit attribute.
+        
+        Validates that when an agent has an explicit source_tier attribute,
+        it is used directly without any path-based inference.
+        """
         mock_agent = Mock()
         mock_agent.source_tier = 'project'
         
@@ -120,7 +163,16 @@ class TestDeployedAgentDiscovery:
         assert tier == 'project'
     
     def test_determine_source_tier_from_path(self, discovery_service):
-        """Test source tier determination from file path."""
+        """Test source tier determination from file path.
+        
+        This test validates the path-based tier inference logic:
+        - Agents in project's .claude/agents/ → 'project' tier
+        - Agents in user's home directory → 'user' tier
+        - Other locations → 'system' tier (default)
+        
+        This tier system helps prioritize agent selection when
+        multiple agents with the same ID exist.
+        """
         mock_agent = Mock()
         del mock_agent.source_tier  # No explicit tier
         

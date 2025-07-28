@@ -1,5 +1,32 @@
 #!/usr/bin/env python3
-"""Test agent deployment integration with the fixed agent loader."""
+"""Test agent deployment integration with the fixed agent loader.
+
+This script tests the integration between AgentDeploymentService and the
+agent loader functionality, ensuring that deployed agents can be properly
+loaded and used by the system.
+
+TEST SCENARIOS COVERED:
+1. AgentDeploymentService initialization
+2. Individual agent deployment with success/failure tracking
+3. Deployed agent content validation
+4. Comparison between direct loading and deployment service
+5. Model selection through deployment with complexity factors
+6. Integration with agent loader (get_agent_prompt)
+
+TEST FOCUS:
+- Validates that the deployment service produces agents compatible with the loader
+- Ensures deployment results include necessary metadata
+- Verifies that deployed agents have proper content
+- Tests advanced features like model selection based on complexity
+
+TEST COVERAGE GAPS:
+- No testing of concurrent deployments
+- No testing of partial deployment failures
+- No testing of deployment rollback scenarios
+- No testing of custom template directories
+- No testing of base agent merging logic
+- No testing of deployment to production directories
+"""
 
 import sys
 import os
@@ -12,7 +39,18 @@ from claude_mpm.services.agent_deployment import AgentDeploymentService
 
 
 def test_agent_deployment():
-    """Test that agent deployment works with the fixed loader."""
+    """Test that agent deployment works with the fixed loader.
+    
+    This comprehensive test validates:
+    1. Service initialization without errors
+    2. Deployment of multiple agent types (qa, research, engineer)
+    3. Verification that deployed agents have proper content
+    4. Consistency between direct loading and deployment methods
+    5. Model selection based on task complexity
+    
+    The test uses the deploy_agent method which is designed for
+    runtime agent deployment (not file-based deployment).
+    """
     print("=== Testing Agent Deployment Integration ===\n")
     
     # Test 1: Initialize deployment service

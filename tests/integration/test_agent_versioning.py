@@ -1,5 +1,20 @@
 #!/usr/bin/env python3
-"""Test agent versioning system."""
+"""Test agent versioning system.
+
+This integration test validates the agent versioning functionality,
+including version extraction, comparison, and update detection.
+
+TEST COVERAGE:
+- Base agent version extraction
+- Template version checking
+- Deployment with version-based update logic
+- Version reporting in deployment results
+
+TEST GAPS:
+- No testing of version format migration
+- No testing of version comparison edge cases
+- No testing of rollback to previous versions
+"""
 
 import sys
 from pathlib import Path
@@ -10,7 +25,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from claude_mpm.services.agent_deployment import AgentDeploymentService
 
 def test_versioning():
-    """Test the agent versioning system."""
+    """Test the agent versioning system.
+    
+    This test validates:
+    1. Base agent version extraction from base_agent.json
+    2. Template version extraction from agent templates
+    3. Deployment with version checking (not forcing rebuild)
+    4. Proper categorization of deployment results (deployed/updated/skipped)
+    
+    The test runs against the actual .claude/agents directory,
+    so it tests real deployment scenarios.
+    """
     print("Testing agent versioning system...")
     
     # Create deployment service

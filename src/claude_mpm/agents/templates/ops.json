@@ -1,6 +1,8 @@
 {
-  "id": "ops",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "ops_agent",
+  "agent_version": "1.1.0",
+  "agent_type": "ops",
   "metadata": {
     "name": "Ops Agent",
     "description": "Operations, deployment, and infrastructure",
@@ -24,7 +26,8 @@
       "Bash",
       "Grep",
       "Glob",
-      "LS"
+      "LS",
+      "TodoWrite"
     ],
     "resource_tier": "standard",
     "max_tokens": 8192,

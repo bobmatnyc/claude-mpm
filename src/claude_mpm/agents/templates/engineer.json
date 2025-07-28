@@ -1,6 +1,8 @@
 {
-  "id": "engineer",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "engineer_agent",
+  "agent_version": "1.1.0",
+  "agent_type": "engineer",
   "metadata": {
     "name": "Engineer Agent",
     "description": "Research-guided code implementation with pattern adherence",
@@ -27,11 +29,12 @@
       "Grep",
       "Glob",
       "LS",
-      "WebSearch"
+      "WebSearch",
+      "TodoWrite"
     ],
     "resource_tier": "intensive",
     "max_tokens": 12288,
-    "temperature": 0.05,
+    "temperature": 0.2,
     "timeout": 1200,
     "memory_limit": 6144,
     "cpu_limit": 80,

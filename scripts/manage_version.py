@@ -2,11 +2,55 @@
 """
 Version management script for Claude MPM.
 
-This script:
+This script implements a comprehensive version management system that:
 1. Uses setuptools-scm for version detection from git tags
-2. Updates VERSION file
-3. Generates/updates CHANGELOG.md from git commits
+2. Updates VERSION file to maintain version synchronization
+3. Generates/updates CHANGELOG.md from git commits automatically
 4. Supports semantic versioning with conventional commits
+
+OPERATIONAL PURPOSE:
+Central version management for consistent releases across all distribution channels.
+Automates version bumping, changelog generation, and release preparation.
+
+VERSION MANAGEMENT STRATEGY:
+- Primary source of truth: Git tags (format: v1.0.0)
+- setuptools-scm derives version from git state
+- VERSION file kept in sync for quick access
+- package.json synchronized via release.py script
+- Conventional commits determine version bump type automatically
+
+SEMANTIC VERSIONING IMPLEMENTATION:
+- MAJOR (X.0.0): Breaking changes (BREAKING CHANGE: or feat!)
+- MINOR (0.X.0): New features (feat:)
+- PATCH (0.0.X): Bug fixes (fix:) or performance improvements (perf:)
+- Development versions between releases: X.Y.Z.postN+gHASH[.dirty]
+
+VERSION COMPATIBILITY:
+- Backward compatible with manual version management
+- Forward compatible with CI/CD automation
+- Supports both manual and automatic version bumping
+- Handles migration from old version formats gracefully
+
+DEPLOYMENT PIPELINE INTEGRATION:
+1. Developer commits with conventional format
+2. CI runs manage_version.py to determine bump
+3. Version updated and changelog generated
+4. Git tag created for release
+5. PyPI and npm packages built and published
+
+MONITORING AND TROUBLESHOOTING:
+- Check git tags: git tag -l | sort -V
+- Verify VERSION file matches latest tag
+- Review CHANGELOG.md for missing commits
+- Ensure conventional commit format compliance
+- Monitor version sync across package files
+
+ROLLBACK PROCEDURES:
+- Delete incorrect git tag: git tag -d vX.Y.Z
+- Reset VERSION file to previous version
+- Revert CHANGELOG.md changes
+- Force push tag updates carefully
+- Coordinate with PyPI/npm for package yanking
 """
 
 import subprocess
@@ -19,28 +63,42 @@ import argparse
 
 
 # Conventional commit types and their changelog sections
+# These map commit types to human-readable changelog categories
+# Following the Conventional Commits specification v1.0.0
 COMMIT_TYPES = {
-    "feat": "Features",
-    "fix": "Bug Fixes", 
-    "docs": "Documentation",
-    "style": "Code Style",
-    "refactor": "Code Refactoring",
-    "perf": "Performance Improvements",
-    "test": "Tests",
-    "build": "Build System",
-    "ci": "Continuous Integration",
-    "chore": "Chores",
-    "revert": "Reverts"
+    "feat": "Features",              # New features
+    "fix": "Bug Fixes",              # Bug fixes
+    "docs": "Documentation",         # Documentation only changes
+    "style": "Code Style",           # Code style changes (formatting, etc)
+    "refactor": "Code Refactoring",  # Code changes that neither fix bugs nor add features
+    "perf": "Performance Improvements",  # Performance improvements
+    "test": "Tests",                 # Adding or updating tests
+    "build": "Build System",         # Build system or dependency changes
+    "ci": "Continuous Integration",  # CI configuration changes
+    "chore": "Chores",              # Other changes that don't modify src or test files
+    "revert": "Reverts"             # Reverting previous commits
 }
 
-# Types that trigger version bumps
-MAJOR_TYPES = ["breaking", "major"]  # in commit message
-MINOR_TYPES = ["feat"]
-PATCH_TYPES = ["fix", "perf"]
+# Types that trigger version bumps based on semantic versioning rules
+# These determine how the version number changes based on commit types
+MAJOR_TYPES = ["breaking", "major"]  # Keywords in commit message that trigger major bump
+MINOR_TYPES = ["feat"]               # Commit types that trigger minor version bump
+PATCH_TYPES = ["fix", "perf"]        # Commit types that trigger patch version bump
 
 
 def run_command(cmd: List[str]) -> str:
-    """Run a command and return its output."""
+    """Run a command and return its output.
+    
+    This is a utility function that executes shell commands safely and returns
+    their output. Used throughout the script for git operations.
+    
+    Args:
+        cmd: List of command arguments (e.g., ['git', 'tag', '-l'])
+        
+    Returns:
+        String output from the command, stripped of whitespace
+        Empty string if command fails
+    """
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return result.stdout.strip()
@@ -50,45 +108,99 @@ def run_command(cmd: List[str]) -> str:
 
 
 def get_current_version() -> str:
-    """Get current version from git tags or VERSION file."""
-    # Try setuptools-scm first
+    """Get current version from git tags or VERSION file.
+    
+    Version Detection Hierarchy:
+    1. setuptools-scm: Most accurate, uses git state and tags
+    2. git describe: Falls back to manual git tag detection
+    3. VERSION file: Static file fallback when git unavailable
+    4. Default: Returns 0.0.0 if all methods fail
+    
+    Version Format Examples:
+    - Clean tagged version: "1.2.3"
+    - Development version: "1.2.3.post4+g1234567"
+    - Dirty working tree: "1.2.3.post4+g1234567.dirty"
+    
+    The function handles various edge cases:
+    - Missing git tags (returns 0.0.0)
+    - Detached HEAD states
+    - Non-git directories (uses VERSION file)
+    - CI/CD environments without full git history
+    
+    Returns:
+        Current version string in PEP 440 format
+    """
+    # Try setuptools-scm first - this is the primary version source
+    # It provides the most accurate version based on git state
     try:
         from setuptools_scm import get_version
         return get_version(root="..")
     except:
         pass
     
-    # Try git describe
+    # Try git describe as fallback
+    # This works when setuptools-scm is not available
     version = run_command(["git", "describe", "--tags", "--always"])
     if version and not version.startswith("fatal"):
         # Clean up version (remove 'v' prefix if present)
         version = version.lstrip("v")
         # Handle versions like 0.5.0-2-g1234567
+        # Format: <tag>-<commits since>-g<short hash>
         parts = version.split("-")
         if len(parts) >= 3:
             base_version = parts[0]
             commits_since = parts[1]
+            # Convert to PEP 440 compatible format
             return f"{base_version}.post{commits_since}"
         return version
     
-    # Fallback to VERSION file
+    # Fallback to VERSION file for non-git environments
+    # This ensures version is available even without git
     version_file = Path("VERSION")
     if version_file.exists():
         return version_file.read_text().strip()
     
+    # Default version when no version information is available
     return "0.0.0"
 
 
 def parse_conventional_commit(message: str) -> Tuple[Optional[str], Optional[str], str, bool]:
-    """Parse a conventional commit message.
+    """Parse a conventional commit message following the Conventional Commits spec.
     
+    Conventional Commits Format:
+    <type>[optional scope]: <description>
+    
+    [optional body]
+    
+    [optional footer(s)]
+    
+    Examples:
+    - "feat: add new agent capabilities"
+    - "fix(logging): correct session duration calculation"
+    - "feat!: redesign agent API" (breaking change)
+    - "fix: typo\n\nBREAKING CHANGE: API renamed" (breaking in footer)
+    
+    Breaking Changes Detection:
+    1. Exclamation mark after type/scope: "feat!:" or "feat(api)!:"
+    2. "BREAKING CHANGE:" in commit body/footer
+    3. "BREAKING:" as shorthand in body/footer
+    
+    Args:
+        message: Full commit message including body
+        
     Returns:
-        Tuple of (type, scope, description, is_breaking)
+        Tuple of:
+        - type: Commit type (feat, fix, etc.) or None
+        - scope: Optional scope in parentheses or None
+        - description: Commit description (subject line)
+        - is_breaking: True if breaking change detected
     """
-    # Check for breaking change
+    # Check for breaking change indicators anywhere in the message
+    # This includes both the footer format and inline indicators
     is_breaking = "BREAKING CHANGE:" in message or "BREAKING:" in message
     
     # Parse conventional commit format: type(scope): description
+    # Also handles type!: for breaking changes
     pattern = r"^(\w+)(?:\(([^)]+)\))?: (.+)"
     match = re.match(pattern, message.split("\n")[0])
     
@@ -96,6 +208,7 @@ def parse_conventional_commit(message: str) -> Tuple[Optional[str], Optional[str
         commit_type, scope, description = match.groups()
         return commit_type, scope, description, is_breaking
     
+    # If not a conventional commit, return the first line as description
     return None, None, message.split("\n")[0], is_breaking
 
 
@@ -132,34 +245,97 @@ def get_commits_since_tag(tag: Optional[str] = None) -> List[dict]:
 
 
 def determine_version_bump(commits: List[dict]) -> str:
-    """Determine version bump type based on commits."""
+    """Determine version bump type based on commits using semantic versioning rules.
+    
+    Version Bump Logic (in priority order):
+    1. MAJOR: Any commit with breaking changes
+       - BREAKING CHANGE: in footer
+       - feat!: or fix!: syntax
+       - Resets minor and patch to 0
+       
+    2. MINOR: Any commit with new features (feat:)
+       - Only if no breaking changes
+       - Resets patch to 0
+       
+    3. PATCH: Any commit with fixes (fix:) or performance improvements (perf:)
+       - Only if no breaking changes or features
+       - Increments patch version
+       
+    4. DEFAULT: If no conventional commits found, defaults to patch
+       - Ensures version always increments
+       - Safe default for manual commits
+    
+    This implements the semantic versioning specification where:
+    - MAJOR version for incompatible API changes
+    - MINOR version for backwards-compatible functionality additions
+    - PATCH version for backwards-compatible bug fixes
+    
+    Args:
+        commits: List of parsed commit dictionaries
+        
+    Returns:
+        Version bump type: "major", "minor", or "patch"
+    """
+    # Check for breaking changes first (highest priority)
     has_breaking = any(c["breaking"] for c in commits)
+    # Check for new features
     has_minor = any(c["type"] in MINOR_TYPES for c in commits)
+    # Check for fixes or performance improvements  
     has_patch = any(c["type"] in PATCH_TYPES for c in commits)
     
+    # Apply semantic versioning rules in priority order
     if has_breaking:
         return "major"
     elif has_minor:
         return "minor"
     elif has_patch:
         return "patch"
-    return "patch"  # Default to patch
+    return "patch"  # Default to patch for safety
 
 
 def bump_version(current_version: str, bump_type: str) -> str:
-    """Bump version according to semver."""
-    # Clean version (remove .postN suffix)
+    """Bump version according to semantic versioning specification.
+    
+    Semantic Versioning Rules:
+    - MAJOR: Increment major, reset minor and patch to 0
+    - MINOR: Increment minor, reset patch to 0
+    - PATCH: Increment patch only
+    
+    Version Cleaning:
+    - Removes development suffixes (.postN, .dirty, +gHASH)
+    - Extracts base semantic version (X.Y.Z)
+    - Handles various version formats from setuptools-scm
+    
+    Examples:
+    - "1.2.3" + patch -> "1.2.4"
+    - "1.2.3.post4+g1234567" + minor -> "1.3.0"
+    - "1.2.3.dirty" + major -> "2.0.0"
+    
+    Args:
+        current_version: Current version string (may include suffixes)
+        bump_type: Type of bump ("major", "minor", or "patch")
+        
+    Returns:
+        New clean semantic version string (X.Y.Z format)
+    """
+    # Clean version by extracting base semantic version
+    # This removes any PEP 440 local version identifiers
     base_version = re.match(r"(\d+\.\d+\.\d+)", current_version)
     if base_version:
         current_version = base_version.group(1)
     
+    # Parse version components
     major, minor, patch = map(int, current_version.split("."))
     
+    # Apply semantic versioning rules
     if bump_type == "major":
+        # Breaking change: increment major, reset others
         return f"{major + 1}.0.0"
     elif bump_type == "minor":
+        # New feature: increment minor, reset patch
         return f"{major}.{minor + 1}.0"
     else:  # patch
+        # Bug fix: increment patch only
         return f"{major}.{minor}.{patch + 1}"
 
 
@@ -229,8 +405,28 @@ def update_version_file(version: str):
 
 
 def create_git_tag(version: str, message: str):
-    """Create a git tag for the version."""
+    """Create an annotated git tag for the version.
+    
+    Git Tag Strategy:
+    - Uses 'v' prefix convention (v1.2.3)
+    - Creates annotated tags (includes tagger info and message)
+    - Annotated tags are preferred for releases (shown in git describe)
+    - Tag message typically includes release title
+    
+    The 'v' prefix is a widely adopted convention that:
+    - Distinguishes version tags from other tags
+    - Works well with GitHub releases
+    - Compatible with most CI/CD systems
+    - Recognized by setuptools-scm
+    
+    Args:
+        version: Semantic version string (without 'v' prefix)
+        message: Tag annotation message
+    """
     tag = f"v{version}"
+    # Create annotated tag with message
+    # -a: Create annotated tag (not lightweight)
+    # -m: Provide message inline
     run_command(["git", "tag", "-a", tag, "-m", message])
     print(f"Created git tag: {tag}")
 

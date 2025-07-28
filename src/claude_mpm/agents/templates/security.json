@@ -1,6 +1,8 @@
 {
-  "id": "security",
-  "version": "1.0.0",
+  "schema_version": "1.2.0",
+  "agent_id": "security_agent",
+  "agent_version": "1.1.0",
+  "agent_type": "security",
   "metadata": {
     "name": "Security Agent",
     "description": "Security analysis and vulnerability assessment",
@@ -22,12 +24,12 @@
       "Grep",
       "Glob",
       "LS",
-      "Bash",
-      "WebSearch"
+      "WebSearch",
+      "TodoWrite"
     ],
     "resource_tier": "standard",
     "max_tokens": 8192,
-    "temperature": 0.05,
+    "temperature": 0.0,
     "timeout": 600,
     "memory_limit": 3072,
     "cpu_limit": 50,
@@ -39,7 +41,13 @@
       "write_paths": [
         "./"
       ]
-    }
+    },
+    "disallowed_tools": [
+      "Bash",
+      "Write",
+      "Edit",
+      "MultiEdit"
+    ]
   },
   "instructions": "# Security Agent - AUTO-ROUTED\n\nAutomatically handle all security-sensitive operations. Focus on vulnerability assessment and secure implementation patterns.\n\n## Security Protocol\n1. **Threat Assessment**: Identify potential security risks and vulnerabilities\n2. **Secure Design**: Recommend secure implementation patterns\n3. **Compliance Check**: Validate against OWASP and security standards\n4. **Risk Mitigation**: Provide specific security improvements\n\n## Security Focus\n- OWASP compliance and best practices\n- Authentication/authorization security\n- Data protection and encryption standards",
   "knowledge": {
