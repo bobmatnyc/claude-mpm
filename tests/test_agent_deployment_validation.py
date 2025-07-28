@@ -139,20 +139,20 @@ class TestAgentDeploymentValidation:
         parts = content.split("---", 2)
         frontmatter = yaml.safe_load(parts[1])
         
-        # Check allowed_tools
-        allowed_tools = frontmatter.get("allowed_tools", {})
-        assert isinstance(allowed_tools, dict), "allowed_tools should be a dictionary"
+        # Check tools
+        tools_str = frontmatter.get("tools", "")
+        tools = [t.strip() for t in tools_str.split(",")] if tools_str else []
         
-        # Check Edit permissions
-        edit_patterns = allowed_tools.get("Edit", [])
-        assert "tests/**" in edit_patterns, "QA agent should have Edit access to tests/**"
-        assert "test/**" in edit_patterns, "QA agent should have Edit access to test/**"
-        assert "**/test_*.py" in edit_patterns, "QA agent should have Edit access to test files"
+        # QA agent should have Edit and Write tools
+        assert "Edit" in tools, "QA agent should have Edit tool"
+        assert "Write" in tools, "QA agent should have Write tool"
+        assert "Read" in tools, "QA agent should have Read tool"
+        assert "Bash" in tools, "QA agent should have Bash tool for running tests"
         
-        # Check Write permissions
-        write_patterns = allowed_tools.get("Write", [])
-        assert "tests/**" in write_patterns, "QA agent should have Write access to tests/**"
-        assert "test/**" in write_patterns, "QA agent should have Write access to test/**"
+        # QA agent should not have disallowed_tools restricting test access
+        disallowed_tools = frontmatter.get("disallowed_tools", [])
+        assert "Edit" not in disallowed_tools, "QA agent should not have Edit disallowed"
+        assert "Write" not in disallowed_tools, "QA agent should not have Write disallowed"
         
         print("✓ QA agent has correct file access permissions")
     

@@ -12,7 +12,7 @@ import pytest
 
 from claude_mpm.agents.agent_loader import AgentLoader
 from claude_mpm.services.agent_registry import AgentRegistry  
-from claude_mpm.core.exceptions import ValidationError
+from claude_mpm.hooks.validation_hooks import ValidationError
 
 
 class TestSchemaStandardization:
@@ -53,17 +53,16 @@ class TestSchemaStandardization:
         with open(schema_path) as f:
             schema = json.load(f)
         
-        required_fields = ["id", "name", "description", "instructions", "model", "resource_tier"]
+        required_fields = ["schema_version", "agent_id", "agent_version", "agent_type", "metadata", "capabilities", "instructions"]
         assert set(schema["required"]) == set(required_fields)
         
         # Verify property definitions
         props = schema["properties"]
-        assert "id" in props
-        assert props["id"]["pattern"] == "^[a-z0-9_]+$"
-        assert "maxLength" not in props["id"]  # No _agent suffix needed
+        assert "agent_id" in props
+        assert props["agent_id"]["pattern"] == "^[a-z][a-z0-9_]*$"
         
         assert "instructions" in props
-        assert props["instructions"]["maxLength"] == 8000
+        assert "content" in props["instructions"]["properties"]
     
     def test_valid_agent_passes_validation(self, agent_loader):
         """Test that a valid agent passes validation."""
