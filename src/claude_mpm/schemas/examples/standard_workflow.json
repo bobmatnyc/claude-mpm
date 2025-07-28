@@ -1,0 +1,505 @@
+{
+  "schema_version": "1.0.0",
+  "workflow_id": "standard_workflow",
+  "workflow_version": "1.0.0",
+  "metadata": {
+    "name": "Standard Ticket Workflow",
+    "description": "Default workflow for general ticket management with clear status-resolution separation",
+    "workflow_type": "standard",
+    "author": "Claude MPM Team",
+    "created_at": "2025-01-28T00:00:00Z",
+    "updated_at": "2025-01-28T00:00:00Z",
+    "tags": ["default", "general", "support"]
+  },
+  "status_states": {
+    "states": [
+      {
+        "id": "open",
+        "name": "Open",
+        "description": "Ticket has been created but not yet assigned or started",
+        "category": "initial",
+        "is_default": true,
+        "color": "#9E9E9E",
+        "icon": "circle-o",
+        "sla_hours": 24
+      },
+      {
+        "id": "in_progress",
+        "name": "In Progress",
+        "description": "Ticket is actively being worked on by an assignee",
+        "category": "active",
+        "color": "#2196F3",
+        "icon": "spinner",
+        "sla_hours": 48
+      },
+      {
+        "id": "pending",
+        "name": "Pending",
+        "description": "Ticket is waiting for external input, dependencies, or customer response",
+        "category": "waiting",
+        "color": "#FF9800",
+        "icon": "clock-o"
+      },
+      {
+        "id": "resolved",
+        "name": "Resolved",
+        "description": "Work is complete and solution has been implemented",
+        "category": "terminal",
+        "color": "#4CAF50",
+        "icon": "check-circle"
+      },
+      {
+        "id": "closed",
+        "name": "Closed",
+        "description": "Ticket is closed and no further action is required",
+        "category": "terminal",
+        "color": "#607D8B",
+        "icon": "archive"
+      },
+      {
+        "id": "reopened",
+        "name": "Reopened",
+        "description": "Previously closed ticket has been reopened for additional work",
+        "category": "active",
+        "color": "#9C27B0",
+        "icon": "refresh"
+      },
+      {
+        "id": "on_hold",
+        "name": "On Hold",
+        "description": "Work is temporarily suspended due to blockers or priorities",
+        "category": "waiting",
+        "color": "#795548",
+        "icon": "pause-circle"
+      },
+      {
+        "id": "escalated",
+        "name": "Escalated",
+        "description": "Ticket has been escalated to higher priority or management attention",
+        "category": "active",
+        "color": "#F44336",
+        "icon": "exclamation-triangle",
+        "sla_hours": 4
+      },
+      {
+        "id": "canceled",
+        "name": "Canceled",
+        "description": "Ticket has been canceled before completion",
+        "category": "terminal",
+        "color": "#E91E63",
+        "icon": "times-circle"
+      }
+    ],
+    "default_status": "open"
+  },
+  "resolution_types": {
+    "types": [
+      {
+        "id": "fixed",
+        "name": "Fixed/Resolved",
+        "description": "Issue was successfully fixed or request was fulfilled",
+        "category": "successful",
+        "requires_comment": false,
+        "color": "#4CAF50",
+        "icon": "check"
+      },
+      {
+        "id": "wont_fix",
+        "name": "Won't Fix",
+        "description": "Deliberate decision made not to address the issue",
+        "category": "unsuccessful",
+        "requires_comment": true,
+        "color": "#F44336",
+        "icon": "ban"
+      },
+      {
+        "id": "duplicate",
+        "name": "Duplicate",
+        "description": "Issue is a duplicate of another existing ticket",
+        "category": "invalid",
+        "requires_comment": true,
+        "color": "#9E9E9E",
+        "icon": "copy"
+      },
+      {
+        "id": "cannot_reproduce",
+        "name": "Cannot Reproduce",
+        "description": "Issue cannot be reproduced or verified",
+        "category": "invalid",
+        "requires_comment": true,
+        "color": "#FF9800",
+        "icon": "question-circle"
+      },
+      {
+        "id": "works_as_designed",
+        "name": "Works as Designed",
+        "description": "Reported behavior is intentional and not a bug",
+        "category": "invalid",
+        "requires_comment": false,
+        "color": "#3F51B5",
+        "icon": "info-circle"
+      },
+      {
+        "id": "incomplete",
+        "name": "Incomplete",
+        "description": "Insufficient information provided to proceed",
+        "category": "unsuccessful",
+        "requires_comment": true,
+        "color": "#795548",
+        "icon": "file-text-o"
+      },
+      {
+        "id": "user_error",
+        "name": "User Error",
+        "description": "Issue was due to user error or misunderstanding",
+        "category": "invalid",
+        "requires_comment": true,
+        "color": "#607D8B",
+        "icon": "user-times"
+      },
+      {
+        "id": "configuration",
+        "name": "Configuration",
+        "description": "Issue was resolved through configuration changes only",
+        "category": "successful",
+        "requires_comment": false,
+        "color": "#00BCD4",
+        "icon": "cog"
+      },
+      {
+        "id": "workaround",
+        "name": "Workaround",
+        "description": "A workaround has been provided as an alternative solution",
+        "category": "successful",
+        "requires_comment": true,
+        "color": "#CDDC39",
+        "icon": "lightbulb-o"
+      },
+      {
+        "id": "documentation",
+        "name": "Documentation",
+        "description": "Issue was resolved by updating or providing documentation",
+        "category": "successful",
+        "requires_comment": false,
+        "color": "#009688",
+        "icon": "book"
+      }
+    ]
+  },
+  "transitions": {
+    "rules": [
+      {
+        "from_status": "open",
+        "to_status": "in_progress",
+        "name": "Start Work",
+        "description": "Begin working on the ticket",
+        "required_fields": ["assignee"],
+        "auto_assign": true
+      },
+      {
+        "from_status": "open",
+        "to_status": "escalated",
+        "name": "Escalate",
+        "description": "Escalate ticket for immediate attention",
+        "permissions": ["escalate_ticket"]
+      },
+      {
+        "from_status": "open",
+        "to_status": "canceled",
+        "name": "Cancel",
+        "description": "Cancel ticket without starting work",
+        "required_fields": ["resolution"]
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "pending",
+        "name": "Wait for Input",
+        "description": "Pause work to wait for external input"
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "on_hold",
+        "name": "Put on Hold",
+        "description": "Temporarily suspend work"
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "resolved",
+        "name": "Resolve",
+        "description": "Mark work as complete",
+        "required_fields": ["resolution"]
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "escalated",
+        "name": "Escalate",
+        "description": "Escalate active ticket",
+        "permissions": ["escalate_ticket"]
+      },
+      {
+        "from_status": "pending",
+        "to_status": "in_progress",
+        "name": "Resume Work",
+        "description": "Resume work after receiving input"
+      },
+      {
+        "from_status": "on_hold",
+        "to_status": "in_progress",
+        "name": "Resume Work",
+        "description": "Resume work from hold status"
+      },
+      {
+        "from_status": "resolved",
+        "to_status": "closed",
+        "name": "Close",
+        "description": "Close resolved ticket"
+      },
+      {
+        "from_status": "resolved",
+        "to_status": "reopened",
+        "name": "Reopen",
+        "description": "Reopen resolved ticket for additional work"
+      },
+      {
+        "from_status": "closed",
+        "to_status": "reopened",
+        "name": "Reopen",
+        "description": "Reopen closed ticket",
+        "permissions": ["reopen_ticket"]
+      },
+      {
+        "from_status": "reopened",
+        "to_status": "in_progress",
+        "name": "Start Rework",
+        "description": "Begin working on reopened ticket",
+        "required_fields": ["assignee"]
+      },
+      {
+        "from_status": "escalated",
+        "to_status": "in_progress",
+        "name": "De-escalate",
+        "description": "Return to normal priority",
+        "permissions": ["escalate_ticket"]
+      },
+      {
+        "from_status": "escalated",
+        "to_status": "resolved",
+        "name": "Resolve",
+        "description": "Resolve escalated ticket",
+        "required_fields": ["resolution"]
+      },
+      {
+        "from_status": "*",
+        "to_status": "canceled",
+        "name": "Force Cancel",
+        "description": "Cancel ticket from any state",
+        "permissions": ["admin_ticket"],
+        "required_fields": ["resolution"]
+      }
+    ],
+    "allow_self_transitions": false
+  },
+  "status_resolution_mapping": {
+    "mappings": [
+      {
+        "status_id": "resolved",
+        "allowed_resolutions": [
+          "fixed",
+          "configuration",
+          "workaround",
+          "documentation"
+        ],
+        "requires_resolution": true,
+        "default_resolution": "fixed"
+      },
+      {
+        "status_id": "closed",
+        "allowed_resolutions": [
+          "fixed",
+          "wont_fix",
+          "duplicate",
+          "cannot_reproduce",
+          "works_as_designed",
+          "incomplete",
+          "user_error",
+          "configuration",
+          "workaround",
+          "documentation"
+        ],
+        "requires_resolution": true
+      },
+      {
+        "status_id": "canceled",
+        "allowed_resolutions": [
+          "duplicate",
+          "wont_fix",
+          "incomplete",
+          "user_error",
+          "works_as_designed"
+        ],
+        "requires_resolution": true,
+        "default_resolution": "wont_fix"
+      },
+      {
+        "status_id": "open",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      },
+      {
+        "status_id": "in_progress",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      },
+      {
+        "status_id": "pending",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      },
+      {
+        "status_id": "on_hold",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      },
+      {
+        "status_id": "escalated",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      },
+      {
+        "status_id": "reopened",
+        "allowed_resolutions": [],
+        "requires_resolution": false
+      }
+    ]
+  },
+  "business_rules": {
+    "auto_close": {
+      "enabled": true,
+      "days_after_resolved": 7,
+      "excluded_resolutions": ["workaround"]
+    },
+    "reopen_rules": {
+      "allow_reopen": true,
+      "from_statuses": ["resolved", "closed"],
+      "max_reopen_count": 3,
+      "reopen_window_days": 30
+    },
+    "escalation_rules": [
+      {
+        "name": "High Priority SLA",
+        "condition": {
+          "status": "open",
+          "hours_in_status": 4,
+          "priority": "high"
+        },
+        "action": {
+          "change_status": "escalated",
+          "notify": ["manager", "on_call"]
+        }
+      },
+      {
+        "name": "Critical Priority SLA",
+        "condition": {
+          "status": "open",
+          "hours_in_status": 1,
+          "priority": "critical"
+        },
+        "action": {
+          "change_status": "escalated",
+          "change_priority": "critical",
+          "notify": ["director", "manager", "on_call"]
+        }
+      },
+      {
+        "name": "Stale In Progress",
+        "condition": {
+          "status": "in_progress",
+          "hours_in_status": 168
+        },
+        "action": {
+          "notify": ["assignee", "manager"]
+        }
+      }
+    ]
+  },
+  "ui_configuration": {
+    "status_display_order": [
+      "open",
+      "in_progress",
+      "pending",
+      "on_hold",
+      "escalated",
+      "reopened",
+      "resolved",
+      "closed",
+      "canceled"
+    ],
+    "resolution_display_order": [
+      "fixed",
+      "configuration",
+      "workaround",
+      "documentation",
+      "duplicate",
+      "cannot_reproduce",
+      "works_as_designed",
+      "user_error",
+      "incomplete",
+      "wont_fix"
+    ],
+    "quick_transitions": [
+      {
+        "from_status": "open",
+        "to_status": "in_progress",
+        "button_label": "Start Work",
+        "button_style": "primary"
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "resolved",
+        "button_label": "Resolve",
+        "button_style": "success"
+      },
+      {
+        "from_status": "in_progress",
+        "to_status": "pending",
+        "button_label": "Wait for Input",
+        "button_style": "warning"
+      },
+      {
+        "from_status": "resolved",
+        "to_status": "closed",
+        "button_label": "Close",
+        "button_style": "secondary"
+      },
+      {
+        "from_status": "resolved",
+        "to_status": "reopened",
+        "button_label": "Reopen",
+        "button_style": "danger"
+      }
+    ]
+  },
+  "metrics": {
+    "cycle_time_statuses": {
+      "start": ["in_progress", "reopened"],
+      "end": ["resolved", "closed", "canceled"]
+    },
+    "resolution_metrics": [
+      {
+        "name": "Success Rate",
+        "resolution_ids": ["fixed", "configuration", "workaround", "documentation"],
+        "metric_type": "success_rate"
+      },
+      {
+        "name": "Invalid Rate",
+        "resolution_ids": ["duplicate", "cannot_reproduce", "works_as_designed", "user_error"],
+        "metric_type": "invalid_rate"
+      },
+      {
+        "name": "Incomplete Rate",
+        "resolution_ids": ["incomplete", "wont_fix"],
+        "metric_type": "incomplete_rate"
+      }
+    ]
+  }
+}

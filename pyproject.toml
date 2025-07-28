@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel", "setuptools-scm>=7.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.uv]
@@ -15,6 +15,7 @@ dev-dependencies = [
 
 [project]
 name = "claude-mpm"
+# Version is now managed in VERSION file and read by setup.py
 dynamic = ["version"]
 description = "Claude Multi-agent Project Manager - Clean orchestration with ticket management"
 readme = "README.md"
@@ -84,11 +85,4 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
-[tool.setuptools_scm]
-# Automatic versioning from git tags
-write_to = "src/claude_mpm/_version.py"
-version_scheme = "post-release"
-local_scheme = "dirty-tag"
-fallback_version = "2.1.0"
-
-# Version is handled by setuptools_scm, not by reading from file
+# Version is read from VERSION file by setup.py

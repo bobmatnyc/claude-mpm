@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-07-28T11:28:17.790861",
+  "summary": {
+    "total_tests": 6,
+    "passed": 2,
+    "failed": 4,
+    "success_rate": 33.33333333333333
+  },
+  "results": [
+    {
+      "test": "Basic Workflow Implementation Tests",
+      "file": "test_workflow_implementation.py",
+      "success": true,
+      "stdout": "Testing STATUS and RESOLUTION Implementation\n==========================================\n\nTest 1: State Transition Validation\n=====================================\nOPEN -> IN_PROGRESS: True (OK)\nOPEN -> MERGED: False (Invalid transition from UnifiedStatus.OPEN to UnifiedStatus.MERGED)\nIN_PROGRESS -> RESOLVED (no resolution): False (Resolution required for transition to UnifiedStatus.RESOLVED)\nIN_PROGRESS -> RESOLVED (with resolution): True (OK)\n\nTest 2: Terminal States & Resolution Requirements\n=================================================\ncompleted: Terminal=True, Requires Resolution=False\nresolved: Terminal=True, Requires Resolution=True\nclosed: Terminal=True, Requires Resolution=True\ncancelled: Terminal=True, Requires Resolution=True\ndone: Terminal=True, Requires Resolution=False\n\nTest 3: Model Integration\n=========================\nCreated task with status: open (type: str)\nCan transition to in_progress: True\nCan transition to closed without resolution: False (Invalid transition from UnifiedStatus.IN_PROGRESS to UnifiedStatus.CLOSED)\n\nTest 4: Backward Compatibility\n==============================\nTaskStatus.OPEN -> UnifiedStatus.OPEN\nMERGED compatible with task: False\nMERGED compatible with PR: True\nUnifiedStatus.DRAFT -> PRStatus.DRAFT (type: PRStatus)\n\nTest 5: Resolution Tracking\n===========================\nBug status: UnifiedStatus.RESOLVED\nResolution: ResolutionType.FIXED\nResolution comment: Fixed in commit abc123\nResolved by: developer\nResolved at: 2025-07-28 11:28:17.569370\n\nAll tests completed!\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "test": "Edge Cases and Error Handling Tests",
+      "file": "test_edge_cases.py",
+      "success": true,
+      "stdout": "Testing Edge Cases and Error Handling\n====================================\n\nTest 1: Resolution Comment Requirements\n=======================================\nworkaround: Requires comment = True\nwont_fix: Requires comment = True\nincomplete: Requires comment = True\nduplicate: Requires comment = True\n\u2713 Correctly blocked: 1 validation error for IssueModel\n  Value error, Resolution wont_fix requires a comment [type=value_error, input_value={'id': 'ISS-001', 'title'...28, 11, 28, 17, 684927)}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/value_error\n\nTest 2: Invalid State Transitions\n=================================\nopen -> merged: False (Invalid transition from UnifiedStatus.OPEN to UnifiedStatus.MERGED)\ncompleted -> in_progress: False (Invalid transition from UnifiedStatus.COMPLETED to UnifiedStatus.IN_PROGRESS)\ncancelled -> open: False (Invalid transition from UnifiedStatus.CANCELLED to UnifiedStatus.OPEN)\nmerged -> draft: False (Invalid transition from UnifiedStatus.MERGED to UnifiedStatus.DRAFT)\n\nTest 3: Resolution Validation\n=============================\nOPEN -> CANCELLED allowed resolutions: ['duplicate', 'invalid', 'wont_fix', 'out_of_scope']\nIN_PROGRESS -> RESOLVED with DUPLICATE: False (Invalid resolution. Allowed: fixed, implemented, documented, configured, workaround)\n\nTest 4: Reopen Functionality\n============================\nCan reopen resolved bug: True\nBug reopened. Reopen count: 1\nResolution still present: True\n\nTest 5: Terminal State Enforcement\n==================================\ncompleted can transition to: ['closed', 'reopened']\ncancelled can transition to: []\nmerged can transition to: []\narchived can transition to: []\n\nTest 6: Schema Alignment Check\n==============================\nSupported states: 15/24\nUnsupported states: ['assigned', 'canceled', 'ready_for_engineering', 'ready_for_qa', 'ready_for_deployment', 'review_approved', \"won't_do\", 'duplicate', 'obsolete']\n\nSupported resolutions: 9/15\nUnsupported resolutions: ['resolved', \"won't_fix\", 'configuration', 'documentation', 'by_design', 'external_dependency']\n\nEdge case testing completed!\n",
+      "stderr": "",
+      "returncode": 0
+    },
+    {
+      "test": "Comment Status Inheritance",
+      "success": false,
+      "error": "1 validation error for CommentModel\nparent_type\n  Field required [type=missing, input_value={'id': 'COM-001', 'parent...28, 11, 28, 17, 786858)}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.11/v/missing"
+    },
+    {
+      "test": "E2E Workflow Transitions",
+      "success": false,
+      "error": "cannot import name 'FeatureModel' from 'ai_trackdown_pytools.core.models' (/Users/masa/Projects/managed/ai-trackdown-pytools/src/ai_trackdown_pytools/core/models.py)"
+    },
+    {
+      "test": "Edge Cases and Error Scenarios",
+      "success": false,
+      "error": "1 validation error for IssueModel\nid\n  String should match pattern '^ISS-[0-9]+$' [type=string_pattern_mismatch, input_value='ISS-TEST-1', input_type=str]\n    For further information visit https://errors.pydantic.dev/2.11/v/string_pattern_mismatch"
+    },
+    {
+      "test": "Regression Check",
+      "success": false,
+      "details": {
+        "imports": false,
+        "compatibility": true,
+        "model_creation": false
+      }
+    }
+  ]
+}

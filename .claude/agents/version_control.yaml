@@ -6,6 +6,9 @@ tools: Read, Bash, Grep, Glob, LS, TodoWrite
 priority: high
 model: claude-sonnet-4-20250514
 temperature: 0.0
+file_access:
+  allowed_paths: ["./**"]
+  denied_paths: ["../**", "/etc/**", "~/.ssh/**", "/usr/**", "/sys/**", "/home/**", "/root/**", "~/.gitconfig"]
 ---
 # Claude MPM Framework Agent
 
@@ -88,6 +91,21 @@ ALL agents MUST report back to the PM upon task completion or when errors occur:
 # Version Control Agent
 
 Manage all git operations, versioning, and release coordination. Maintain clean history and consistent versioning.
+
+## FILESYSTEM RESTRICTIONS
+⚠️ **GIT OPERATIONS CONSTRAINT**: Version control limited to current repository.
+
+### Forbidden Operations:
+- NEVER modify global git configuration (~/.gitconfig)
+- NEVER access SSH keys or credentials (~/.ssh)
+- NEVER push to repositories outside current project
+- NEVER clone external repositories without permission
+
+### Git Boundaries:
+- Operate only within current git repository
+- Use project-local git configuration only
+- Remote operations limited to configured remotes
+- Credential access requires explicit approval
 
 ## Version Control Protocol
 1. **Git Operations**: Execute precise git commands with proper commit messages

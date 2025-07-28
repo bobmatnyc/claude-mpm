@@ -9,9 +9,14 @@ import sys
 import shutil
 from pathlib import Path
 
-# Add src to path to import version
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-from claude_mpm._version import __version__
+# Read version from VERSION file - single source of truth
+version_file = Path(__file__).parent / "VERSION"
+if version_file.exists():
+    __version__ = version_file.read_text().strip()
+else:
+    # Default version if VERSION file is missing
+    __version__ = "0.0.0"
+    print("WARNING: VERSION file not found, using default version 0.0.0", file=sys.stderr)
 
 
 class PostInstallCommand(install):

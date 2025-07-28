@@ -112,7 +112,7 @@ Every agent configuration must include these seven required fields:
   - `memory_limit` - Memory in MB
   - `cpu_limit` - CPU percentage
   - `network_access` - Boolean for network
-  - `file_access` - Read/write path restrictions
+  - `file_access` - Read/write path restrictions (see File Access Configuration below)
 
 ```json
 "capabilities": {
@@ -185,6 +185,68 @@ Extensibility points for custom logic:
    ```
    Valid: `"code-analysis"`, `"testing"`
    Invalid: `"Code_Analysis"`, `"testing!"`
+
+### File Access Configuration
+
+The `file_access` field in capabilities allows fine-grained control over agent file system access:
+
+```json
+"file_access": {
+  "read_paths": [
+    "*",              // Allow reading from anywhere (default)
+    "/specific/path", // Allow reading from specific directory
+    "~/projects/**"   // Allow reading from all subdirectories
+  ],
+  "write_paths": [
+    ".",              // Current working directory only (default)
+    "./src/**",       // Allow writes to src and subdirectories
+    "./tests/**"      // Allow writes to tests directory
+  ],
+  "blocked_paths": [
+    "**/node_modules/**",  // Block access to node_modules
+    "**/.git/**",          // Block access to git internals
+    "**/secrets/**"        // Block access to sensitive data
+  ]
+}
+```
+
+#### File Access Rules:
+1. **Default Behavior**: If `file_access` is not specified:
+   - Read access: Allowed from anywhere
+   - Write access: Restricted to working directory only
+
+2. **Path Patterns**:
+   - `.` - Current working directory
+   - `*` - Any file in the directory (not subdirectories)
+   - `**` - Any file in any subdirectory (recursive)
+   - `~/` - User's home directory
+
+3. **Security Priority**:
+   - `blocked_paths` takes precedence over allow lists
+   - More specific paths override general patterns
+   - Path traversal (`..`) is always blocked
+
+4. **Agent Examples**:
+   ```json
+   // PM Agent - Can read everything, write only to working directory
+   "file_access": {
+     "read_paths": ["*"],
+     "write_paths": ["."]
+   }
+   
+   // Security Agent - Read-only access
+   "file_access": {
+     "read_paths": ["*"],
+     "write_paths": []
+   }
+   
+   // Engineer Agent - Full access within project
+   "file_access": {
+     "read_paths": ["*"],
+     "write_paths": ["./**"],
+     "blocked_paths": ["**/node_modules/**", "**/.env"]
+   }
+   ```
 
 ### Resource Tier Limits
 
@@ -347,3 +409,27 @@ The schema is designed for extensibility:
 - Additional tools can be included
 - New optional fields can extend functionality
 - Backward compatibility through versioning
+
+## Related Documentation
+
+### Additional Resources
+- **Agent Configuration Examples**: See `/docs/examples/agent_configurations.md` for extensive examples
+- **Schema Architecture**: See `/docs/developer/02-core-components/SCHEMA_ARCHITECTURE.md` for dual-schema system details
+- **Validation Script**: Use `/scripts/validate_agent_configuration.py` for testing configurations
+
+### Validation Script Usage
+```bash
+# Validate a single agent configuration
+python scripts/validate_agent_configuration.py path/to/agent.json
+
+# Validate all templates
+python scripts/validate_agent_configuration.py --all
+
+# Use custom schema
+python scripts/validate_agent_configuration.py agent.json --schema path/to/schema.json
+```
+
+### Schema Files
+- **Primary Schema**: `/src/claude_mpm/schemas/agent_schema.json` (v1.2.0)
+- **Legacy Schema**: `/src/claude_mpm/agents/schema/agent_schema.json` (v1.1.0)
+- **Enhanced Comments**: Both schemas include detailed inline documentation

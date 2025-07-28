@@ -108,59 +108,25 @@ def run_command(cmd: List[str]) -> str:
 
 
 def get_current_version() -> str:
-    """Get current version from git tags or VERSION file.
+    """Get current version from VERSION file.
     
-    Version Detection Hierarchy:
-    1. setuptools-scm: Most accurate, uses git state and tags
-    2. git describe: Falls back to manual git tag detection
-    3. VERSION file: Static file fallback when git unavailable
-    4. Default: Returns 0.0.0 if all methods fail
+    Version Detection:
+    1. VERSION file: Primary source of truth
+    2. Default: Returns 0.0.0 if VERSION file is missing
     
-    Version Format Examples:
-    - Clean tagged version: "1.2.3"
-    - Development version: "1.2.3.post4+g1234567"
-    - Dirty working tree: "1.2.3.post4+g1234567.dirty"
-    
-    The function handles various edge cases:
-    - Missing git tags (returns 0.0.0)
-    - Detached HEAD states
-    - Non-git directories (uses VERSION file)
-    - CI/CD environments without full git history
+    The VERSION file is the single source of truth for version information.
+    Git tags are used for releases, but VERSION file contains the current version.
     
     Returns:
-        Current version string in PEP 440 format
+        Current version string from VERSION file
     """
-    # Try setuptools-scm first - this is the primary version source
-    # It provides the most accurate version based on git state
-    try:
-        from setuptools_scm import get_version
-        return get_version(root="..")
-    except:
-        pass
-    
-    # Try git describe as fallback
-    # This works when setuptools-scm is not available
-    version = run_command(["git", "describe", "--tags", "--always"])
-    if version and not version.startswith("fatal"):
-        # Clean up version (remove 'v' prefix if present)
-        version = version.lstrip("v")
-        # Handle versions like 0.5.0-2-g1234567
-        # Format: <tag>-<commits since>-g<short hash>
-        parts = version.split("-")
-        if len(parts) >= 3:
-            base_version = parts[0]
-            commits_since = parts[1]
-            # Convert to PEP 440 compatible format
-            return f"{base_version}.post{commits_since}"
-        return version
-    
-    # Fallback to VERSION file for non-git environments
-    # This ensures version is available even without git
+    # Read from VERSION file - single source of truth
     version_file = Path("VERSION")
     if version_file.exists():
         return version_file.read_text().strip()
     
-    # Default version when no version information is available
+    # Default version when VERSION file is missing
+    print("WARNING: VERSION file not found, using default version 0.0.0", file=sys.stderr)
     return "0.0.0"
 
 

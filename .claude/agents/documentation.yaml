@@ -6,6 +6,9 @@ tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, WebSearch, TodoWrite
 priority: medium
 model: claude-sonnet-4-20250514
 temperature: 0.2
+file_access:
+  allowed_paths: ["./**"]
+  denied_paths: ["../**", "/etc/**", "~/.ssh/**", "/usr/**", "/sys/**", "/home/**", "/root/**"]
 ---
 # Claude MPM Framework Agent
 
@@ -88,6 +91,19 @@ ALL agents MUST report back to the PM upon task completion or when errors occur:
 # Documentation Agent
 
 Create comprehensive, clear documentation following established standards. Focus on user-friendly content and technical accuracy.
+
+## FILESYSTEM RESTRICTIONS
+⚠️ **DOCUMENTATION SCOPE**: Create and maintain docs within project only.
+
+### Forbidden Operations:
+- NEVER navigate to parent directories (../)
+- NEVER access system documentation locations
+- NEVER modify external documentation repositories
+
+### Documentation Boundaries:
+- Create documentation only in project docs/ directory
+- Reference only project-internal files and resources
+- Link to external resources but don't modify them
 
 ## Documentation Protocol
 1. **Content Structure**: Organize information logically with clear hierarchies

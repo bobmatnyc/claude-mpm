@@ -1,71 +1,46 @@
 #!/bin/bash
-# Pre-commit hook to update VERSION file with current git version
+# Pre-commit hook to sync VERSION file to package.json
 #
 # Purpose:
-# This hook ensures the VERSION file always reflects the current git-derived
-# version, maintaining synchronization between git state and the VERSION file.
-#
-# Version Synchronization Strategy:
-# - Git tags are the source of truth for versions
-# - setuptools-scm derives version from git state
-# - VERSION file provides quick access without git operations
-# - This hook keeps VERSION file in sync automatically
+# This hook ensures the package.json version stays in sync with the VERSION file.
+# The VERSION file is the single source of truth for version information.
 #
 # When This Runs:
 # - Before every git commit
 # - After staging files but before commit is created
-# - Can modify staged files (adds VERSION if changed)
-#
-# Version Detection Flow:
-# 1. Try setuptools-scm (most accurate, includes dev versions)
-# 2. Fall back to git describe (when setuptools-scm unavailable)
-# 3. Add .dirty suffix for uncommitted changes
-# 4. Default to 0.5.0 if all else fails
+# - Can modify staged files (adds package.json if changed)
 
 # Get the project root directory
 # This ensures the hook works regardless of where git command is run from
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-# Get current version from setuptools-scm
-# Only runs if python3 is available (handles CI environments gracefully)
-if command -v python3 &> /dev/null; then
-    # Use Python to get version, handling multiple scenarios
-    VERSION=$(cd "$PROJECT_ROOT" && python3 -c "
-# Version detection with multiple fallbacks
-try:
-    # Primary method: setuptools-scm
-    # This is the most accurate and matches package version
-    from setuptools_scm import get_version
-    print(get_version())
-except:
-    # Fallback: Manual git describe
-    # Used when setuptools-scm is not installed
-    import subprocess
-    result = subprocess.run(['git', 'describe', '--tags', '--always'], 
-                          capture_output=True, text=True)
-    if result.returncode == 0:
-        version = result.stdout.strip().lstrip('v')
-        # Handle dirty state - uncommitted changes
-        # This ensures VERSION file reflects actual state
-        if subprocess.run(['git', 'diff', '--quiet'], capture_output=True).returncode != 0:
-            version += '.dirty'
-        print(version)
-    else:
-        # Last resort: hardcoded version
-        # Used in fresh repos without any tags
-        print('0.5.0')
-" 2>/dev/null)
+# Read version from VERSION file
+VERSION_FILE="$PROJECT_ROOT/VERSION"
+PACKAGE_JSON="$PROJECT_ROOT/package.json"
 
-    # Update VERSION file if it differs from current version
-    # This maintains synchronization without unnecessary writes
-    if [ -n "$VERSION" ]; then
-        CURRENT_VERSION=$(cat "$PROJECT_ROOT/VERSION" 2>/dev/null || echo "")
-        if [ "$VERSION" != "$CURRENT_VERSION" ]; then
-            # Update VERSION file
-            echo "$VERSION" > "$PROJECT_ROOT/VERSION"
-            # Stage the change so it's included in this commit
-            git add "$PROJECT_ROOT/VERSION"
-            echo "Updated VERSION file to $VERSION"
+if [ -f "$VERSION_FILE" ]; then
+    # Read the version from VERSION file
+    VERSION=$(cat "$VERSION_FILE" | tr -d '\n')
+    
+    # Check if package.json exists
+    if [ -f "$PACKAGE_JSON" ]; then
+        # Get current version from package.json
+        CURRENT_PACKAGE_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$PACKAGE_JSON" | grep -o '"[^"]*"$' | tr -d '"')
+        
+        # Update package.json if versions differ
+        if [ "$VERSION" != "$CURRENT_PACKAGE_VERSION" ]; then
+            # Update version in package.json
+            if command -v jq &> /dev/null; then
+                # Use jq if available for proper JSON handling
+                jq --arg version "$VERSION" '.version = $version' "$PACKAGE_JSON" > "$PACKAGE_JSON.tmp" && mv "$PACKAGE_JSON.tmp" "$PACKAGE_JSON"
+            else
+                # Fallback to sed for simple replacement
+                sed -i.bak "s/\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON" && rm "$PACKAGE_JSON.bak"
+            fi
+            
+            # Stage the change
+            git add "$PACKAGE_JSON"
+            echo "Updated package.json version to $VERSION"
         fi
     fi
 fi

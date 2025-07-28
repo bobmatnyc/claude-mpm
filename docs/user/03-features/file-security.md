@@ -2,11 +2,27 @@
 
 ## Overview
 
-Claude MPM includes a built-in security feature that protects your system from unauthorized file modifications. This security hook automatically prevents any write operations outside your working directory, ensuring that agents can only modify files within the project they're working on.
+Claude MPM implements a comprehensive multi-layered security system that protects your filesystem from unauthorized modifications. With version 3.1.0, the security architecture has been enhanced with agent-level permissions and the new PM (Project Manager) agent for secure task orchestration.
+
+## Security Layers
+
+### 1. Working Directory Enforcement
+All write operations are restricted to your current working directory, preventing system-wide modifications.
+
+### 2. Agent-Level Permissions
+Each agent has specific file access permissions defined in their configuration, following the principle of least privilege.
+
+### 3. PM Agent Orchestration
+The new PM (Project Manager) agent coordinates complex tasks while ensuring all delegated agents operate within security boundaries.
 
 ## How It Works
 
-The file security hook intercepts all file write operations and validates them against your current working directory. This happens transparently in the background without requiring any configuration.
+The security system validates file operations through multiple checks:
+
+1. **Working Directory Validation**: Ensures writes stay within your project
+2. **Agent Permission Check**: Validates against the agent's `file_access` configuration
+3. **Path Security Check**: Blocks path traversal attempts and invalid paths
+4. **Audit Logging**: Records all security events for review
 
 ### Protected Operations
 
@@ -32,6 +48,30 @@ The security system blocks:
 - **Symlinks pointing outside**: Even if a symlink is within your project, writes are blocked if it points outside
 - **Invalid paths**: Paths with null bytes or other malicious characters
 
+## Agent Security Profiles
+
+Different agents have different security permissions based on their roles:
+
+### PM (Project Manager) Agent
+- **Read**: Can read from anywhere to understand context
+- **Write**: Limited to working directory only
+- **Purpose**: Orchestrates tasks without direct implementation
+
+### Engineer Agent
+- **Read**: Full read access
+- **Write**: Full project access except sensitive areas
+- **Blocked**: `node_modules/`, `.env`, `.git/`
+
+### Security Agent
+- **Read**: Everything (for security audits)
+- **Write**: None (read-only access)
+- **Purpose**: Analyzes without modifying
+
+### Documentation Agent
+- **Read**: Full read access
+- **Write**: Limited to `docs/`, `README.md`, `CHANGELOG.md`
+- **Blocked**: Sensitive configuration files
+
 ## Security Benefits
 
 ### 1. **Sandbox Protection**
@@ -45,6 +85,9 @@ Critical system files cannot be modified, ensuring your operating system remains
 
 ### 4. **Multi-Project Safety**
 When working on multiple projects, each project's files are isolated from others, preventing cross-contamination.
+
+### 5. **Principle of Least Privilege**
+Each agent has only the permissions necessary for its specific role, minimizing security risks.
 
 ## Example Scenarios
 
@@ -163,8 +206,13 @@ The file security is implemented as a Claude Code hook that:
 
 1. Intercepts `PreToolUse` events
 2. Checks if the tool performs write operations
-3. Validates the target path is within the working directory
+3. Validates the target path against working directory and agent permissions
 4. Blocks the operation if validation fails
 5. Logs all security-relevant events
 
-For more technical details, see the [Developer Documentation](/docs/developer/05-extending/file-security-hook.md).
+## Related Documentation
+
+- **[Filesystem Security Architecture](/docs/FILESYSTEM_SECURITY_ARCHITECTURE.md)**: Comprehensive technical overview of the security system
+- **[Security Configuration Guide](/docs/user/04-reference/security-configuration.md)**: Advanced configuration options
+- **[Developer Documentation](/docs/developer/05-extending/file-security-hook.md)**: Implementation details for developers
+- **[Agent Schema Guide](/docs/AGENT_SCHEMA_GUIDE.md#file-access-configuration)**: File access configuration reference

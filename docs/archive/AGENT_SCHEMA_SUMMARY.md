@@ -20,7 +20,7 @@ Extensive examples including:
 - Common validation patterns
 - Testing scripts and validation approaches
 
-### 3. **Schema Architecture** (`/docs/SCHEMA_ARCHITECTURE.md`)
+### 3. **Schema Architecture** (`/docs/developer/02-core-components/SCHEMA_ARCHITECTURE.md`)
 Explains the dual-schema system:
 - Differences between v1.1.0 and v1.2.0
 - Migration paths between versions
@@ -129,8 +129,8 @@ python scripts/validate_agent_configuration.py --example
 - **Documentation**:
   - `/docs/AGENT_SCHEMA_GUIDE.md`
   - `/docs/examples/agent_configurations.md`
-  - `/docs/SCHEMA_ARCHITECTURE.md`
-  - `/docs/AGENT_SCHEMA_SUMMARY.md` (this file)
+  - `/docs/developer/02-core-components/SCHEMA_ARCHITECTURE.md`
+  - `/docs/archive/AGENT_SCHEMA_SUMMARY.md` (this file)
 
 - **Scripts**:
   - `/scripts/validate_agent_configuration.py`
