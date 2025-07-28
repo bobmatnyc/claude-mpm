@@ -63,6 +63,7 @@ class AgentDeploymentService:
             "errors": [],
             "skipped": [],
             "updated": [],
+            "migrated": [],  # Track agents migrated from old format
             "total": 0
         }
         
@@ -87,28 +88,37 @@ class AgentDeploymentService:
                 try:
                     import json
                     base_agent_data = json.loads(self.base_agent_path.read_text())
-                    base_agent_version = base_agent_data.get('version', 0)
-                    self.logger.info(f"Loaded base agent template (version {base_agent_version})")
+                    # Handle both 'base_version' (new format) and 'version' (old format)
+                    base_agent_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
+                    self.logger.info(f"Loaded base agent template (version {self._format_version_display(base_agent_version)})")
                 except Exception as e:
                     self.logger.warning(f"Could not load base agent: {e}")
             
             # Get all template files
-            template_files = list(self.templates_dir.glob("*_agent.json"))
+            template_files = list(self.templates_dir.glob("*.json"))
+            # Filter out non-agent files
+            template_files = [f for f in template_files if f.stem != "__init__" and not f.stem.startswith(".")]
             results["total"] = len(template_files)
             
             for template_file in template_files:
                 try:
-                    agent_name = template_file.stem.replace("_agent", "")
+                    agent_name = template_file.stem
                     target_file = target_dir / f"{agent_name}.md"
                     
                     # Check if agent needs update
                     needs_update = force_rebuild
+                    is_migration = False
                     if not needs_update and target_file.exists():
                         needs_update, reason = self._check_agent_needs_update(
                             target_file, template_file, base_agent_version
                         )
                         if needs_update:
-                            self.logger.info(f"Agent {agent_name} needs update: {reason}")
+                            # Check if this is a migration from old format
+                            if "migration needed" in reason:
+                                is_migration = True
+                                self.logger.info(f"Migrating agent {agent_name}: {reason}")
+                            else:
+                                self.logger.info(f"Agent {agent_name} needs update: {reason}")
                     
                     # Skip if exists and doesn't need update
                     if target_file.exists() and not needs_update:
@@ -123,7 +133,15 @@ class AgentDeploymentService:
                     is_update = target_file.exists()
                     target_file.write_text(agent_md)
                     
-                    if is_update:
+                    if is_migration:
+                        results["migrated"].append({
+                            "name": agent_name,
+                            "template": str(template_file),
+                            "target": str(target_file),
+                            "reason": reason
+                        })
+                        self.logger.info(f"Successfully migrated agent: {agent_name} to semantic versioning")
+                    elif is_update:
                         results["updated"].append({
                             "name": agent_name,
                             "template": str(template_file),
@@ -146,6 +164,7 @@ class AgentDeploymentService:
             self.logger.info(
                 f"Deployed {len(results['deployed'])} agents, "
                 f"updated {len(results['updated'])}, "
+                f"migrated {len(results['migrated'])}, "
                 f"skipped {len(results['skipped'])}, "
                 f"errors: {len(results['errors'])}"
             )
@@ -194,9 +213,14 @@ class AgentDeploymentService:
         template_data = json.loads(template_path.read_text())
         
         # Extract basic info
-        agent_version = template_data.get('version', 0)
-        base_version = base_agent_data.get('version', 0)
-        version_string = f"{base_version:04d}-{agent_version:04d}"
+        # Handle both 'agent_version' (new format) and 'version' (old format)
+        agent_version = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
+        base_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
+        
+        # Format version string as semantic version
+        # Combine base and agent versions for a unified semantic version
+        # Use agent version as primary, with base version in metadata
+        version_string = self._format_version_display(agent_version)
         
         # Build YAML frontmatter
         description = (
@@ -219,6 +243,10 @@ author: "{template_data.get('author', 'claude-mpm@anthropic.com')}"
 created: "{datetime.now().isoformat()}Z"
 updated: "{datetime.now().isoformat()}Z"
 tags: {tags}
+metadata:
+  base_version: "{self._format_version_display(base_version)}"
+  agent_version: "{self._format_version_display(agent_version)}"
+  deployment_type: "system"
 ---
 
 """
@@ -253,11 +281,12 @@ tags: {tags}
         template_data = json.loads(template_path.read_text())
         
         # Extract versions
-        agent_version = template_data.get('version', 0)
-        base_version = base_agent_data.get('version', 0)
+        # Handle both 'agent_version' (new format) and 'version' (old format)
+        agent_version = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
+        base_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
         
-        # Create version string in XXXX-YYYY format
-        version_string = f"{base_version:04d}-{agent_version:04d}"
+        # Use semantic version format
+        version_string = self._format_version_display(agent_version)
         
         # Merge narrative fields (base + agent specific)
         narrative_fields = self._merge_narrative_fields(base_agent_data, template_data)
@@ -317,8 +346,8 @@ capabilities:
 # Agent Metadata
 metadata:
   source: "claude-mpm"
-  template_version: {agent_version}
-  base_version: {base_version}
+  template_version: "{self._format_version_display(agent_version)}"
+  base_version: "{self._format_version_display(base_version)}"
   deployment_type: "system"
   
 ...
@@ -441,6 +470,7 @@ metadata:
         results = {
             "config_dir": str(config_dir),
             "agents_found": [],
+            "agents_needing_migration": [],
             "environment": {},
             "warnings": []
         }
@@ -469,11 +499,19 @@ metadata:
                     "path": str(agent_file)
                 }
                 
-                # Extract name from YAML frontmatter
+                # Extract name and version from YAML frontmatter
+                version_str = None
                 for line in lines:
                     if line.startswith("name:"):
                         agent_info["name"] = line.split(":", 1)[1].strip().strip('"\'')
-                        break
+                    elif line.startswith("version:"):
+                        version_str = line.split(":", 1)[1].strip().strip('"\'')
+                        agent_info["version"] = version_str
+                
+                # Check if agent needs migration
+                if version_str and self._is_old_version_format(version_str):
+                    agent_info["needs_migration"] = True
+                    results["agents_needing_migration"].append(agent_info["name"])
                 
                 results["agents_found"].append(agent_info)
                 
@@ -504,11 +542,13 @@ metadata:
             self.logger.warning(f"Templates directory not found: {self.templates_dir}")
             return agents
         
-        template_files = sorted(self.templates_dir.glob("*_agent.json"))
+        template_files = sorted(self.templates_dir.glob("*.json"))
+        # Filter out non-agent files
+        template_files = [f for f in template_files if f.stem != "__init__" and not f.stem.startswith(".")]
         
         for template_file in template_files:
             try:
-                agent_name = template_file.stem.replace("_agent", "")
+                agent_name = template_file.stem
                 agent_info = {
                     "name": agent_name,
                     "file": template_file.name,
@@ -521,11 +561,22 @@ metadata:
                 try:
                     import json
                     template_data = json.loads(template_file.read_text())
-                    config_fields = template_data.get('configuration_fields', {})
                     
-                    agent_info["role"] = config_fields.get('primary_role', '')
-                    agent_info["description"] = config_fields.get('description', agent_info["description"])
-                    agent_info["version"] = template_data.get('version', 0)
+                    # Handle different schema formats
+                    if 'metadata' in template_data:
+                        # New schema format
+                        metadata = template_data.get('metadata', {})
+                        agent_info["description"] = metadata.get('description', agent_info["description"])
+                        agent_info["role"] = metadata.get('specializations', [''])[0] if metadata.get('specializations') else ''
+                    elif 'configuration_fields' in template_data:
+                        # Old schema format
+                        config_fields = template_data.get('configuration_fields', {})
+                        agent_info["role"] = config_fields.get('primary_role', '')
+                        agent_info["description"] = config_fields.get('description', agent_info["description"])
+                    
+                    # Handle both 'agent_version' (new format) and 'version' (old format)
+                    version_tuple = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
+                    agent_info["version"] = self._format_version_display(version_tuple)
                 
                 except Exception:
                     pass  # Use defaults if can't parse
@@ -537,7 +588,7 @@ metadata:
         
         return agents
     
-    def _check_agent_needs_update(self, deployed_file: Path, template_file: Path, current_base_version: int) -> tuple:
+    def _check_agent_needs_update(self, deployed_file: Path, template_file: Path, current_base_version: tuple) -> tuple:
         """
         Check if a deployed agent needs to be updated.
         
@@ -554,32 +605,82 @@ metadata:
             deployed_content = deployed_file.read_text()
             
             # Check if it's a system agent (authored by claude-mpm)
-            if "author: claude-mpm" not in deployed_content and "author: 'claude-mpm'" not in deployed_content:
+            if "claude-mpm" not in deployed_content:
                 return (False, "not a system agent")
             
             # Extract version info from YAML frontmatter
             import re
             
-            # Extract agent version from YAML
-            agent_version_match = re.search(r"^agent_version:\s*(\d+)", deployed_content, re.MULTILINE)
-            deployed_agent_version = int(agent_version_match.group(1)) if agent_version_match else 0
+            # Check if using old serial format first
+            is_old_format = False
+            old_version_str = None
             
-            # Extract base agent version from YAML
-            base_version_match = re.search(r"^base_agent_version:\s*(\d+)", deployed_content, re.MULTILINE)
-            deployed_base_version = int(base_version_match.group(1)) if base_version_match else 0
+            # Try legacy combined format (e.g., "0002-0005")
+            legacy_match = re.search(r'^version:\s*["\']?(\d+)-(\d+)["\']?', deployed_content, re.MULTILINE)
+            if legacy_match:
+                is_old_format = True
+                old_version_str = f"{legacy_match.group(1)}-{legacy_match.group(2)}"
+                # Convert legacy format to semantic version
+                # Treat the agent version (second number) as minor version
+                deployed_agent_version = (0, int(legacy_match.group(2)), 0)
+                self.logger.info(f"Detected old serial version format: {old_version_str}")
+            else:
+                # Try to extract semantic version format (e.g., "2.1.0")
+                version_match = re.search(r'^version:\s*["\']?v?(\d+)\.(\d+)\.(\d+)["\']?', deployed_content, re.MULTILINE)
+                if version_match:
+                    deployed_agent_version = (int(version_match.group(1)), int(version_match.group(2)), int(version_match.group(3)))
+                else:
+                    # Fallback: try separate fields (very old format)
+                    agent_version_match = re.search(r"^agent_version:\s*(\d+)", deployed_content, re.MULTILINE)
+                    if agent_version_match:
+                        is_old_format = True
+                        old_version_str = f"agent_version: {agent_version_match.group(1)}"
+                        deployed_agent_version = (0, int(agent_version_match.group(1)), 0)
+                        self.logger.info(f"Detected old separate version format: {old_version_str}")
+                    else:
+                        # Check for missing version field
+                        if "version:" not in deployed_content:
+                            is_old_format = True
+                            old_version_str = "missing"
+                            deployed_agent_version = (0, 0, 0)
+                            self.logger.info("Detected missing version field")
+                        else:
+                            deployed_agent_version = (0, 0, 0)
+            
+            # For base version, we don't need to extract from deployed file anymore
+            # as it's tracked in metadata
             
             # Read template to get current agent version
             import json
             template_data = json.loads(template_file.read_text())
-            current_agent_version = template_data.get('version', 0)
+            
+            # Extract agent version from template (handle both numeric and semantic versioning)
+            current_agent_version = self._parse_version(template_data.get('agent_version') or template_data.get('version', 0))
+            
+            # Compare semantic versions properly
+            # Semantic version comparison: compare major, then minor, then patch
+            def compare_versions(v1: tuple, v2: tuple) -> int:
+                """Compare two version tuples. Returns -1 if v1 < v2, 0 if equal, 1 if v1 > v2."""
+                for a, b in zip(v1, v2):
+                    if a < b:
+                        return -1
+                    elif a > b:
+                        return 1
+                return 0
+            
+            # If old format detected, always trigger update for migration
+            if is_old_format:
+                new_version_str = self._format_version_display(current_agent_version)
+                return (True, f"migration needed from old format ({old_version_str}) to semantic version ({new_version_str})")
             
             # Check if agent template version is newer
-            if current_agent_version > deployed_agent_version:
-                return (True, f"agent template updated (v{deployed_agent_version:04d} -> v{current_agent_version:04d})")
+            if compare_versions(current_agent_version, deployed_agent_version) > 0:
+                deployed_str = self._format_version_display(deployed_agent_version)
+                current_str = self._format_version_display(current_agent_version)
+                return (True, f"agent template updated ({deployed_str} -> {current_str})")
             
-            # Check if base agent version is newer
-            if current_base_version > deployed_base_version:
-                return (True, f"base agent updated (v{deployed_base_version:04d} -> v{current_base_version:04d})")
+            # Note: We no longer check base agent version separately since we're using
+            # a unified semantic version for the agent
             
             return (False, "up to date")
             
@@ -729,6 +830,96 @@ metadata:
         
         # Return specific tools or default set
         return agent_tools.get(agent_name, base_tools + ["Bash", "WebSearch"])
+    
+    def _format_version_display(self, version_tuple: tuple) -> str:
+        """
+        Format version tuple for display.
+        
+        Args:
+            version_tuple: Tuple of (major, minor, patch)
+            
+        Returns:
+            Formatted version string
+        """
+        if isinstance(version_tuple, tuple) and len(version_tuple) == 3:
+            major, minor, patch = version_tuple
+            return f"{major}.{minor}.{patch}"
+        else:
+            # Fallback for legacy format
+            return str(version_tuple)
+    
+    def _is_old_version_format(self, version_str: str) -> bool:
+        """
+        Check if a version string is in the old serial format.
+        
+        Old formats include:
+        - Serial format: "0002-0005" (contains hyphen, all digits)
+        - Missing version field
+        - Non-semantic version formats
+        
+        Args:
+            version_str: Version string to check
+            
+        Returns:
+            True if old format, False if semantic version
+        """
+        if not version_str:
+            return True
+            
+        import re
+        
+        # Check for serial format (e.g., "0002-0005")
+        if re.match(r'^\d+-\d+$', version_str):
+            return True
+            
+        # Check for semantic version format (e.g., "2.1.0")
+        if re.match(r'^v?\d+\.\d+\.\d+$', version_str):
+            return False
+            
+        # Any other format is considered old
+        return True
+    
+    def _parse_version(self, version_value: Any) -> tuple:
+        """
+        Parse version from various formats to semantic version tuple.
+        
+        Handles:
+        - Integer values: 5 -> (0, 5, 0)
+        - String integers: "5" -> (0, 5, 0)
+        - Semantic versions: "2.1.0" -> (2, 1, 0)
+        - Invalid formats: returns (0, 0, 0)
+        
+        Args:
+            version_value: Version in various formats
+            
+        Returns:
+            Tuple of (major, minor, patch) for comparison
+        """
+        if isinstance(version_value, int):
+            # Legacy integer version - treat as minor version
+            return (0, version_value, 0)
+            
+        if isinstance(version_value, str):
+            # Try to parse as simple integer
+            if version_value.isdigit():
+                return (0, int(version_value), 0)
+            
+            # Try to parse semantic version (e.g., "2.1.0" or "v2.1.0")
+            import re
+            sem_ver_match = re.match(r'^v?(\d+)\.(\d+)\.(\d+)', version_value)
+            if sem_ver_match:
+                major = int(sem_ver_match.group(1))
+                minor = int(sem_ver_match.group(2))
+                patch = int(sem_ver_match.group(3))
+                return (major, minor, patch)
+            
+            # Try to extract first number from string as minor version
+            num_match = re.search(r'(\d+)', version_value)
+            if num_match:
+                return (0, int(num_match.group(1)), 0)
+        
+        # Default to 0.0.0 for invalid formats
+        return (0, 0, 0)
     
     def _format_yaml_list(self, items: List[str], indent: int) -> str:
         """

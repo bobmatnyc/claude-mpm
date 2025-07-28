@@ -83,6 +83,24 @@ Extensibility through event-driven hooks.
 - Error hooks
 - Session lifecycle hooks
 
+### [Agent Versioning](agent-versioning.md)
+Semantic versioning system for agent templates.
+
+**Key Features**:
+- Semantic version format (major.minor.patch)
+- Automatic migration from legacy formats
+- Version comparison and update detection
+- Deployment tracking and reporting
+
+### [Dynamic Agent Capabilities](dynamic-agent-capabilities.md)
+Automatic generation of agent documentation from deployed agents.
+
+**Key Features**:
+- Real-time discovery of deployed agents
+- Dynamic content generation for INSTRUCTIONS.md
+- Support for both new and legacy agent formats
+- Zero-maintenance documentation updates
+
 ## Component Interactions
 
 ### Initialization Flow

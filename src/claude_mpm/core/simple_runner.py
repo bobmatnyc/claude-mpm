@@ -417,7 +417,11 @@ class SimpleClaudeRunner:
             self.logger.debug(f"Ticket extraction failed: {e}")
 
     def _load_system_instructions(self) -> Optional[str]:
-        """Load system instructions from agents/INSTRUCTIONS.md."""
+        """Load and process system instructions from agents/INSTRUCTIONS.md.
+        
+        WHY: Process template variables like {{capabilities-list}} to include
+        dynamic agent capabilities in the PM's system instructions.
+        """
         try:
             # Find the INSTRUCTIONS.md file
             module_path = Path(__file__).parent.parent
@@ -427,9 +431,22 @@ class SimpleClaudeRunner:
                 self.logger.warning(f"System instructions not found: {instructions_path}")
                 return None
             
-            instructions = instructions_path.read_text()
-            self.logger.info("Loaded PM framework system instructions")
-            return instructions
+            # Read raw instructions
+            raw_instructions = instructions_path.read_text()
+            
+            # Process template variables if ContentAssembler is available
+            try:
+                from claude_mpm.services.framework_claude_md_generator.content_assembler import ContentAssembler
+                assembler = ContentAssembler()
+                processed_instructions = assembler.apply_template_variables(raw_instructions)
+                self.logger.info("Loaded and processed PM framework system instructions with dynamic capabilities")
+                return processed_instructions
+            except ImportError:
+                self.logger.warning("ContentAssembler not available, using raw instructions")
+                return raw_instructions
+            except Exception as e:
+                self.logger.warning(f"Failed to process template variables: {e}, using raw instructions")
+                return raw_instructions
             
         except Exception as e:
             self.logger.error(f"Failed to load system instructions: {e}")
@@ -488,9 +505,32 @@ class SimpleClaudeRunner:
                         component="command"
                     )
                 return True
+            elif command == "agents":
+                # Handle agents command - display deployed agent versions
+                # WHY: This provides users with a quick way to check deployed agent versions
+                # directly from within Claude Code, maintaining consistency with CLI behavior
+                try:
+                    from claude_mpm.cli import _get_agent_versions_display
+                    agent_versions = _get_agent_versions_display()
+                    if agent_versions:
+                        print(agent_versions)
+                    else:
+                        print("No deployed agents found")
+                        print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
+                    
+                    if self.project_logger:
+                        self.project_logger.log_system(
+                            "Executed /mpm:agents command",
+                            level="INFO",
+                            component="command"
+                        )
+                    return True
+                except Exception as e:
+                    print(f"Error getting agent versions: {e}")
+                    return False
             else:
                 print(f"Unknown command: {command}")
-                print("Available commands: test")
+                print("Available commands: test, agents")
                 return True
                 
         except Exception as e:

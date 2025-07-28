@@ -184,3 +184,115 @@ Version is shown in multiple places:
 3. **Keep Changelog Updated**: Run version script to auto-generate entries
 4. **Review Before Release**: Use `--dry-run` to preview changes
 5. **Sync After Clone**: Run `git fetch --tags` to get all version tags
+
+## Agent Version Management
+
+Claude MPM uses semantic versioning for agent templates, providing a standardized and predictable versioning system.
+
+### Agent Version Format
+
+Agent versions follow semantic versioning (major.minor.patch):
+- **Format**: `2.1.0`
+- **Major**: Breaking changes to agent behavior or API
+- **Minor**: New capabilities or enhancements
+- **Patch**: Bug fixes or minor improvements
+
+### Version Storage
+
+Agent versions are stored in the template JSON files:
+```json
+{
+  "schema_version": "1.0.0",
+  "agent_id": "research_agent",
+  "agent_version": "2.1.0",  // Semantic version
+  "metadata": {
+    "name": "Research Agent",
+    "updated_at": "2025-07-27T10:30:00.000000Z"
+  }
+}
+```
+
+### Automatic Version Migration
+
+The agent deployment system automatically detects and migrates agents from old version formats:
+
+#### Old Formats Detected
+1. **Serial format**: `0002-0005` (base-agent versions)
+2. **Missing version**: No version field in YAML frontmatter
+3. **Integer format**: Simple integer versions like `5`
+4. **Separate fields**: `agent_version: 5` in metadata
+
+#### Migration Process
+When old formats are detected:
+1. System logs the detection of old format
+2. Converts to semantic version (e.g., `5` → `2.1.0`)
+3. Updates the deployed agent file automatically
+4. Reports migration in deployment results
+
+### Version Comparison
+
+The system uses tuple-based semantic version comparison:
+```python
+# Version comparison examples
+(2, 1, 0) > (2, 0, 0)  # True (newer minor version)
+(2, 1, 0) > (1, 9, 9)  # True (newer major version)
+(2, 1, 1) > (2, 1, 0)  # True (newer patch version)
+```
+
+### Deployment Behavior
+
+Agents are redeployed when:
+1. **Version increase**: Template version > deployed version
+2. **Format migration**: Old format detected (automatic migration)
+3. **Force flag**: `--force-rebuild` option used
+4. **Base version update**: Base agent template updated
+
+### Version Display
+
+Agent versions are shown in:
+- Deployed agent YAML frontmatter
+- `claude-mpm agents list` command output
+- Deployment verification reports
+- Agent metadata fields
+
+### Updating Agent Versions
+
+To update an agent version:
+
+1. **Edit template JSON**:
+   ```json
+   {
+     "agent_version": "2.2.0",  // Increment version
+     "metadata": {
+       "updated_at": "2025-07-27T12:00:00.000000Z"
+     }
+   }
+   ```
+
+2. **Deploy agents**:
+   ```bash
+   # Deploy with automatic migration
+   claude-mpm agents deploy
+   
+   # Force rebuild all agents
+   claude-mpm agents deploy --force-rebuild
+   ```
+
+3. **Verify deployment**:
+   ```bash
+   claude-mpm agents verify
+   ```
+
+### Migration Command
+
+To explicitly migrate agents to semantic versioning:
+```bash
+# Check for agents needing migration
+claude-mpm agents verify
+
+# Deploy (includes automatic migration)
+claude-mpm agents deploy
+
+# Force migration of all agents
+claude-mpm agents deploy --force-rebuild
+```

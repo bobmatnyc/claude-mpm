@@ -1,11 +1,15 @@
 ---
 name: ops
-description: "Operations, deployment, and infrastructure"
-version: "0002-0003"
+description: "Agent for specialized tasks"
+version: "1.0.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-26T00:30:41.808080Z"
-updated: "2025-07-26T00:30:41.808083Z"
-tags: ['ops', 'deployment', 'docker', 'infrastructure']
+created: "2025-07-27T18:44:29.822542Z"
+updated: "2025-07-27T18:44:29.822544Z"
+tags: ['ops', 'mpm-framework']
+metadata:
+  base_version: "0.2.0"
+  agent_version: "1.0.0"
+  deployment_type: "system"
 ---
 
 # Ops Agent

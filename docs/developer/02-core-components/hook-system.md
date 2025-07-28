@@ -253,27 +253,34 @@ class SecurityFilterHook(PreDelegationHook):
 
 The MPM framework includes several built-in hooks:
 
-### 1. MPM Command Hook (`mpm_command`)
+### 1. File Security Hook (Claude Code Integration)
+- **Priority:** N/A (runs at Claude Code level)
+- **Purpose:** Prevents file write operations outside the working directory
+- **Location:** `src/claude_mpm/hooks/claude_hooks/hook_handler.py`
+- **Type:** PreToolUse handler
+- **Security:** Blocks path traversal, validates all write operations
+
+### 2. MPM Command Hook (`mpm_command`)
 - **Priority:** 1 (highest)
 - **Purpose:** Intercepts `/mpm:` commands for direct execution
 - **Location:** `src/claude_mpm/hooks/builtin/mpm_command_hook.py`
 
-### 2. Context Filter Hook (`context_filter`)
+### 3. Context Filter Hook (`context_filter`)
 - **Priority:** 10
 - **Purpose:** Filters sensitive information from context
 - **Location:** `src/claude_mpm/hooks/builtin/pre_delegation_hook_example.py`
 
-### 3. Ticket Detection Hook (`ticket_detection`)
+### 4. Ticket Detection Hook (`ticket_detection`)
 - **Priority:** 10
 - **Purpose:** Detects ticket references (TSK-123, BUG-456, etc.)
 - **Location:** `src/claude_mpm/hooks/builtin/submit_hook_example.py`
 
-### 4. Priority Detection Hook (`priority_detection`)
+### 5. Priority Detection Hook (`priority_detection`)
 - **Priority:** 20
 - **Purpose:** Detects priority indicators in prompts
 - **Location:** `src/claude_mpm/hooks/builtin/submit_hook_example.py`
 
-### 5. TODO Agent Prefix Hook (`todo_agent_prefix`)
+### 6. TODO Agent Prefix Hook (`todo_agent_prefix`)
 - **Priority:** 30
 - **Purpose:** Prefixes TODO agent prompts with task list
 - **Location:** `src/claude_mpm/hooks/builtin/todo_agent_prefix_hook.py`

@@ -1,11 +1,15 @@
 ---
 name: security
-description: "Security analysis and vulnerability assessment"
-version: "0002-0003"
+description: "Agent for specialized tasks"
+version: "1.0.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-26T00:30:41.809238Z"
-updated: "2025-07-26T00:30:41.809239Z"
-tags: ['security', 'vulnerability', 'compliance', 'protection']
+created: "2025-07-27T18:44:29.821802Z"
+updated: "2025-07-27T18:44:29.821805Z"
+tags: ['security', 'mpm-framework']
+metadata:
+  base_version: "0.2.0"
+  agent_version: "1.0.0"
+  deployment_type: "system"
 ---
 
 # Security Agent - AUTO-ROUTED

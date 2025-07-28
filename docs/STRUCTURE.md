@@ -125,7 +125,11 @@ The main Python package following the src layout pattern. All source code lives 
 Business logic and service implementations:
 - **hook_service.py**: Hook service for extensibility
 - **Agent services**: Lifecycle, management, and profile loading
+  - **deployed_agent_discovery.py**: Discovers and analyzes deployed agents
+  - **agent_capabilities_generator.py**: Generates dynamic agent documentation
 - **Framework services**: INSTRUCTIONS.md/CLAUDE.md generation and management
+  - **content_assembler.py**: Assembles content with dynamic agent capabilities
+  - **deployment_manager.py**: Manages deployment with fresh capability generation
 - **agent_modification_tracker/**: Real-time agent modification tracking
   - Uses **tree-sitter** for AST-level code analysis
   - **TreeSitterAnalyzer** provides syntax-aware parsing for 41+ languages

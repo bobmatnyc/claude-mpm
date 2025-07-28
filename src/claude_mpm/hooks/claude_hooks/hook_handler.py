@@ -34,6 +34,7 @@ class ClaudeHookHandler:
         # Available MPM arguments
         self.mpm_args = {
             'status': 'Show claude-mpm system status',
+            'agents': 'Show deployed agent versions',
             # Add more arguments here as they're implemented
             # 'config': 'Configure claude-mpm settings',
             # 'debug': 'Toggle debug mode',
@@ -200,6 +201,9 @@ class ClaudeHookHandler:
                     # Extract status args if any
                     status_args = arg[6:].strip() if arg.startswith('status ') else ''
                     return self._handle_mpm_status(status_args)
+                elif arg == 'agents' or arg.startswith('agents '):
+                    # Handle agents command
+                    return self._handle_mpm_agents()
                 else:
                     # Show help for empty or unknown argument
                     return self._handle_mpm_help(arg)
@@ -422,6 +426,42 @@ class ClaudeHookHandler:
         
         return output
     
+    def _handle_mpm_agents(self):
+        """Handle the /mpm agents command to display deployed agent versions.
+        
+        WHY: This provides users with a quick way to check deployed agent versions
+        directly from within Claude Code, maintaining consistency with the CLI
+        and startup display functionality.
+        """
+        try:
+            # Import the agent version display function
+            from claude_mpm.cli import _get_agent_versions_display
+            
+            # Get the formatted agent versions
+            agent_versions = _get_agent_versions_display()
+            
+            if agent_versions:
+                # Display the agent versions
+                print(agent_versions, file=sys.stderr)
+            else:
+                # No agents found
+                output = "\nNo deployed agents found\n"
+                output += "\nTo deploy agents, run: claude-mpm --mpm:agents deploy\n"
+                print(output, file=sys.stderr)
+                
+        except Exception as e:
+            # Handle any errors gracefully
+            output = f"\nError getting agent versions: {e}\n"
+            output += "\nPlease check your claude-mpm installation.\n"
+            print(output, file=sys.stderr)
+            
+            # Log the error for debugging
+            if logger:
+                logger.error(f"Error in _handle_mpm_agents: {e}")
+        
+        # Block LLM processing since we've handled the command
+        sys.exit(2)
+    
     def _handle_mpm_help(self, unknown_arg=None):
         """Show help for MPM commands."""
         # ANSI colors
@@ -448,6 +488,7 @@ class ClaudeHookHandler:
         output += f"  /mpm         - Show this help\n"
         output += f"  /mpm status  - Show system status\n"
         output += f"  /mpm status --verbose - Show detailed status\n"
+        output += f"  /mpm agents  - Show deployed agent versions\n"
         
         output += f"\n{DIM}{'─' * 60}{RESET}"
         

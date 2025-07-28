@@ -89,6 +89,6 @@ disallow_untyped_defs = true
 write_to = "src/claude_mpm/_version.py"
 version_scheme = "post-release"
 local_scheme = "dirty-tag"
-fallback_version = "2.0.0"
+fallback_version = "2.1.0"
 
 # Version is handled by setuptools_scm, not by reading from file

@@ -1,0 +1,49 @@
+{
+  "name": "@bobmatnyc/claude-mpm",
+  "version": "2.0.0",
+  "description": "NPM wrapper for claude-mpm Python package - Requires Python 3.8+. Orchestrate Claude with agent delegation and ticket tracking",
+  "keywords": [
+    "claude",
+    "ai",
+    "orchestration",
+    "multi-agent",
+    "project-management",
+    "cli",
+    "claude-code",
+    "anthropic"
+  ],
+  "homepage": "https://github.com/bobmatnyc/claude-mpm",
+  "bugs": {
+    "url": "https://github.com/bobmatnyc/claude-mpm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bobmatnyc/claude-mpm.git"
+  },
+  "license": "MIT",
+  "author": "Bob Matsuoka <bob@matsuoka.com>",
+  "bin": {
+    "claude-mpm": "npm-bin/claude-mpm.js"
+  },
+  "files": [
+    "npm-bin/",
+    "README.npm.md",
+    "LICENSE",
+    "scripts/postinstall.js"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "preferGlobal": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
+}

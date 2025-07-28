@@ -323,6 +323,74 @@ def _get_user_input(args, logger):
         return sys.stdin.read()
 
 
+def _get_agent_versions_display():
+    """Get formatted agent versions display as a string.
+    
+    WHY: This function was created to provide a single source of truth for agent version
+    information that can be displayed both at startup and on-demand via the /mpm agents command.
+    This ensures consistency in how agent versions are presented to users.
+    
+    Returns:
+        str: Formatted string containing agent version information, or None if failed
+    """
+    try:
+        from .services.agent_deployment import AgentDeploymentService
+        deployment_service = AgentDeploymentService()
+        
+        # Get deployed agents
+        verification = deployment_service.verify_deployment()
+        if not verification.get("agents_found"):
+            return None
+            
+        output_lines = []
+        output_lines.append("\nDeployed Agent Versions:")
+        output_lines.append("-" * 40)
+        
+        # Sort agents by name for consistent display
+        agents = sorted(verification["agents_found"], key=lambda x: x.get('name', x.get('file', '')))
+        
+        for agent in agents:
+            name = agent.get('name', 'unknown')
+            version = agent.get('version', 'unknown')
+            # Format: name (version)
+            output_lines.append(f"  {name:<20} {version}")
+        
+        # Add base agent version info
+        try:
+            import json
+            base_agent_path = deployment_service.base_agent_path
+            if base_agent_path.exists():
+                base_data = json.loads(base_agent_path.read_text())
+                # Parse version the same way as AgentDeploymentService
+                raw_version = base_data.get('base_version') or base_data.get('version', 0)
+                base_version_tuple = deployment_service._parse_version(raw_version)
+                base_version_str = deployment_service._format_version_display(base_version_tuple)
+                output_lines.append(f"\n  Base Agent Version:  {base_version_str}")
+        except:
+            pass
+        
+        # Check for agents needing migration
+        if verification.get("agents_needing_migration"):
+            output_lines.append(f"\n  ⚠️  {len(verification['agents_needing_migration'])} agent(s) need migration to semantic versioning")
+            output_lines.append(f"     Run 'claude-mpm agents deploy' to update")
+            
+        output_lines.append("-" * 40)
+        return "\n".join(output_lines)
+    except Exception as e:
+        # Log error but don't fail
+        logger = get_logger("cli")
+        logger.debug(f"Failed to get agent versions: {e}")
+        return None
+
+
+def _list_agent_versions_at_startup():
+    """List deployed agent versions at startup."""
+    agent_versions = _get_agent_versions_display()
+    if agent_versions:
+        print(agent_versions)
+        print()  # Extra newline after the display
+
+
 
 
 def run_session(args):
@@ -339,6 +407,9 @@ def run_session(args):
     # Skip native agents if disabled
     if getattr(args, 'no_native_agents', False):
         print("Native agents disabled")
+    else:
+        # List deployed agent versions at startup
+        _list_agent_versions_at_startup()
     
     # Create simple runner
     enable_tickets = not args.no_tickets
@@ -420,17 +491,15 @@ def manage_agents(args):
         deployment_service = AgentDeploymentService()
         
         if not args.agents_command:
-            print("Error: No agent command specified")
-            print("\nUsage: claude-mpm --mpm:agents <command> [options]")
-            print("\nAvailable commands:")
-            print("  list          - List available agents")
-            print("  deploy        - Deploy system agents")
-            print("  force-deploy  - Force deploy all system agents")
-            print("  clean         - Remove deployed system agents")
-            print("\nExamples:")
-            print("  claude-mpm --mpm:agents list --system")
-            print("  claude-mpm --mpm:agents deploy")
-            print("  claude-mpm --mpm:agents force-deploy")
+            # When no subcommand is provided, display agent versions
+            # WHY: This provides a quick way for users to check deployed agent versions
+            # without needing to specify additional subcommands, matching the startup display
+            agent_versions = _get_agent_versions_display()
+            if agent_versions:
+                print(agent_versions)
+            else:
+                print("No deployed agents found")
+                print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
             return
         
         if args.agents_command == AgentCommands.LIST.value:

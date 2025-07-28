@@ -78,22 +78,7 @@ Context:
   Priority: <Matches dependent implementation priority>
 ```
 
-## Agent Names & Capabilities
-**Core Agents**: research, engineer, qa, documentation, security, ops, version-control, data-engineer
-
-**Agent Name Formats** (both valid):
-- Capitalized: "Research", "Engineer", "QA"  
-- Lowercase-hyphenated: "research", "engineer", "qa"
-
-**Agent Capabilities**:
-- **Research**: Codebase analysis, best practices, technical investigation
-- **Engineer**: Implementation, refactoring, debugging
-- **QA**: Testing, validation, quality assurance with sign-off authority
-- **Documentation**: Technical docs, API documentation, user guides
-- **Security**: Security review, vulnerability assessment, compliance
-- **Ops**: Deployment, CI/CD, infrastructure, monitoring
-- **Version Control**: Git operations, branching, merge conflict resolution
-- **Data Engineer**: Database design, ETL pipelines, data modeling
+{{capabilities-list}}
 
 ## TodoWrite Requirements
 **MANDATORY**: Always prefix tasks with [Agent]:

@@ -35,6 +35,11 @@ class DeploymentManager:
         """
         Deploy generated content to a parent directory.
         
+        WHY: Enhanced to ensure fresh agent capabilities generation on each deployment.
+        - Checks for template variables that need processing
+        - Re-processes content to get current deployed agents
+        - Ensures INSTRUCTIONS.md always reflects latest agent configuration
+        
         Args:
             content: Content to deploy
             parent_path: Path to parent directory
@@ -52,16 +57,33 @@ class DeploymentManager:
         target_file = parent_path / "INSTRUCTIONS.md"
         # TODO: Make this configurable via parameter
         
+        # Check if content contains template variables that need processing
+        if '{{capabilities-list}}' in content:
+            # Content needs processing - let ContentAssembler handle it
+            from .content_assembler import ContentAssembler
+            assembler = ContentAssembler()
+            
+            # Re-process content to get fresh agent data
+            # Pass content as a single section to preserve structure
+            processed_content = assembler.apply_template_variables(content)
+            content = processed_content
+        
         # Validate content before deployment
-        is_valid, issues = self.validator.validate_content(content)
-        if not is_valid:
-            return False, f"Validation failed: {'; '.join(issues)}"
+        # Skip validation for INSTRUCTIONS.md format (different from CLAUDE.md)
+        if "<!-- FRAMEWORK_VERSION:" in content and "# Claude Multi-Agent Project Manager Instructions" in content:
+            # This is INSTRUCTIONS.md format, skip CLAUDE.md validation
+            pass
+        else:
+            # This is CLAUDE.md format, validate normally
+            is_valid, issues = self.validator.validate_content(content)
+            if not is_valid:
+                return False, f"Validation failed: {'; '.join(issues)}"
         
         # Check if file exists and compare versions
         if target_file.exists() and not force:
             with open(target_file, 'r') as f:
                 existing_content = f.read()
-                existing_fw_ver, _ = self.version_manager.parse_current_version(existing_content)
+                existing_fw_ver = self.version_manager.parse_current_version(existing_content)
                 
             if existing_fw_ver == self.version_manager.framework_version:
                 return True, f"Version {existing_fw_ver} already deployed"
@@ -76,8 +98,8 @@ class DeploymentManager:
                 f.write(content)
             
             # Get version info for success message
-            fw_ver, serial = self.version_manager.parse_current_version(content)
-            version_str = f"{fw_ver}-{serial:03d}"
+            fw_ver = self.version_manager.parse_current_version(content)
+            version_str = fw_ver
             
             return True, f"Successfully deployed version {version_str}"
         except Exception as e:
@@ -101,7 +123,7 @@ class DeploymentManager:
         try:
             with open(target_file, 'r') as f:
                 existing_content = f.read()
-                existing_fw_ver, _ = self.version_manager.parse_current_version(existing_content)
+                existing_fw_ver = self.version_manager.parse_current_version(existing_content)
             
             if existing_fw_ver != self.version_manager.framework_version:
                 return True, f"Version mismatch: {existing_fw_ver} vs {self.version_manager.framework_version}"

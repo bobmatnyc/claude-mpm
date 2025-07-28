@@ -11,6 +11,13 @@ Comprehensive guide for migrating from the original claude-multiagent-pm project
 - Feature mapping
 - Common issues
 
+### [Agent Semantic Versioning](agent-semantic-versioning.md)
+Guide for understanding and migrating to semantic versioning for agents.
+- Version format changes (serial to semantic)
+- Automatic migration process
+- Version comparison behavior
+- Troubleshooting tips
+
 ## Quick Migration Overview
 
 ### From claude-multiagent-pm
