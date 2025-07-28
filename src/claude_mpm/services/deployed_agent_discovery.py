@@ -37,7 +37,6 @@ class DeployedAgentDiscovery:
         try:
             # Get effective agents (respects project > user > system precedence)
             agents = self.agent_registry.list_agents()
-            logger.info(f"Discovered {len(agents)} agents from registry")
             
             # Handle both dict and list formats
             if isinstance(agents, dict):
@@ -45,18 +44,24 @@ class DeployedAgentDiscovery:
             else:
                 agent_list = list(agents)
             
+            logger.debug(f"Found {len(agent_list)} entries in registry")
+            
             deployed_agents = []
+            filtered_count = 0
             for agent in agent_list:
                 try:
                     agent_info = self._extract_agent_info(agent)
                     if agent_info and self._is_valid_agent(agent_info):
                         deployed_agents.append(agent_info)
                         logger.debug(f"Extracted info for agent: {agent_info['id']}")
+                    elif agent_info:
+                        filtered_count += 1
+                        logger.debug(f"Filtered out non-deployable agent: {agent_info.get('id', 'unknown')}")
                 except Exception as e:
                     logger.error(f"Failed to extract info from agent {agent}: {e}")
                     continue
             
-            logger.info(f"Successfully extracted info for {len(deployed_agents)} agents")
+            logger.info(f"Discovered {len(deployed_agents)} deployable agents from registry ({filtered_count} templates/base agents filtered out)")
             return deployed_agents
             
         except Exception as e:
