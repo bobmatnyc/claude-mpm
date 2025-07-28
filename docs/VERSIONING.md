@@ -10,12 +10,15 @@ The project uses `setuptools-scm` for automatic version detection from git, whic
 - Dirty working directories add `.dirty` suffix
 - No manual version updates needed in code
 
+Claude MPM implements a sophisticated version management system that ensures consistency across multiple distribution channels (PyPI, npm, GitHub) while supporting both automated and manual release workflows.
+
 ## Version Sources
 
-1. **Primary**: Git tags (managed by setuptools-scm)
+1. **Primary**: Git tags (managed by setuptools-scm) - Ultimate source of truth
 2. **Canonical**: `VERSION` file (kept in sync via pre-commit hook)
 3. **Runtime**: `src/claude_mpm/_version.py` (auto-generated)
 4. **Package**: `pyproject.toml` uses dynamic versioning
+5. **npm Distribution**: `package.json` (synchronized during releases)
 
 ## Version Management Script
 
@@ -90,6 +93,26 @@ git commit -m "feat!: redesign agent communication protocol
 BREAKING CHANGE: Agent API has changed, update all custom agents"
 ```
 
+## Version Management Scripts
+
+### Core Scripts
+1. **manage_version.py**: Core version management script
+   - Uses setuptools-scm for git-based versioning
+   - Implements conventional commit parsing
+   - Handles changelog generation
+   - Supports automatic and manual version bumping
+
+2. **release.py**: Unified release automation
+   - Orchestrates complete release workflow
+   - Ensures PyPI/npm version synchronization
+   - Handles multi-channel distribution
+   - Provides rollback guidance
+
+3. **check_version_sync.py**: Version synchronization checker
+   - Verifies consistency across version files
+   - Used in CI/CD pipelines
+   - Prevents version mismatches
+
 ## Release Process
 
 ### 1. Ensure Clean Working Directory
@@ -125,13 +148,35 @@ git push origin main
 git push origin --tags
 ```
 
-### 5. Build and Publish (if needed)
+### 5. Build and Publish
+
+#### Automated Release (Recommended)
+```bash
+# Full release workflow with all checks
+./scripts/release.py
+
+# Dry run to preview changes
+./scripts/release.py --dry-run
+```
+
+The release script handles:
+- Pre-release validation
+- Version synchronization
+- Package building
+- PyPI and npm publishing
+- GitHub release creation
+- Post-release verification
+
+#### Manual Release
 ```bash
 # Build package
 python -m build
 
 # Publish to PyPI
 python -m twine upload dist/*
+
+# Publish to npm (if applicable)
+npm publish
 ```
 
 ## Pre-commit Hook
@@ -177,6 +222,40 @@ Version is shown in multiple places:
 - Ensure pre-commit hook is enabled
 - Manually sync with VERSION file if needed
 
+## Development Versions
+
+Between releases, versions include commit information:
+```
+1.2.3.post4+g1234567[.dirty]
+```
+- `.postN`: N commits since last tag
+- `+gHASH`: Git commit hash
+- `.dirty`: Uncommitted changes present
+
+## Release Automation Workflow
+
+### Pre-Release Phase
+1. **Working Directory Check**: Ensure clean git state
+2. **Branch Verification**: Confirm on main branch
+3. **Version Sync Check**: Verify PyPI/npm alignment
+4. **Test Suite Execution**: Run all tests
+
+### Version Update Phase
+1. **Analyze Commits**: Determine bump type from conventional commits
+2. **Bump Version**: Update version using semantic rules
+3. **Update VERSION File**: Maintain static version reference
+4. **Generate Changelog**: Create entry from commits
+5. **Update package.json**: Synchronize npm version
+6. **Commit Changes**: Stage and commit version updates
+7. **Create Git Tag**: Annotated tag with version
+
+### Distribution Phase
+1. **Build Packages**: Create wheel and source distributions
+2. **Publish to PyPI**: Upload Python packages
+3. **Publish to npm**: Upload npm wrapper package
+4. **Create GitHub Release**: Generate release with changelog
+5. **Verify Availability**: Check package accessibility
+
 ## Best Practices
 
 1. **Use Conventional Commits**: Enables automatic version determination
@@ -184,6 +263,8 @@ Version is shown in multiple places:
 3. **Keep Changelog Updated**: Run version script to auto-generate entries
 4. **Review Before Release**: Use `--dry-run` to preview changes
 5. **Sync After Clone**: Run `git fetch --tags` to get all version tags
+6. **Version Consistency**: Always use release.py for multi-channel releases
+7. **Pre-release Testing**: Run full test suite before releases
 
 ## Agent Version Management
 

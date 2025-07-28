@@ -123,9 +123,9 @@ Major cleanup and restructuring of project documentation:
 ## Documentation Updates
 
 ### New Documentation
-- `docs/DYNAMIC_AGENT_CAPABILITIES_IMPLEMENTATION.md` - Implementation guide
-- `docs/PHASE1_IMPLEMENTATION_SUMMARY.md` - Phase 1 development summary
-- `docs/MPM_AGENTS_COMMAND.md` - Command reference
+- `docs/archive/DYNAMIC_AGENT_CAPABILITIES_IMPLEMENTATION.md` - Implementation guide
+- `docs/archive/PHASE1_IMPLEMENTATION_SUMMARY.md` - Phase 1 development summary
+- `docs/user/04-reference/MPM_AGENTS_COMMAND.md` - Command reference
 - `docs/design/claude-mpm-dynamic-agent-capabilities-design.md` - Design specification
 - `docs/developer/02-core-components/dynamic-agent-capabilities.md` - Developer guide
 - `docs/user/03-features/dynamic-agent-capabilities.md` - User guide

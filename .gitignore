@@ -38,3 +38,6 @@ ai-trackdown-pytools-bug-support/
 
 # Claude MPM temporary files
 **/.claude-mpm/
+
+# Auto-generated version file (no longer used)
+src/claude_mpm/_version.py

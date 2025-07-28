@@ -6,6 +6,9 @@ tools: Read, Write, Edit, MultiEdit, Bash, Grep, Glob, LS, WebSearch, TodoWrite
 priority: high
 model: claude-sonnet-4-20250514
 temperature: 0.2
+file_access:
+  allowed_paths: ["./**"]
+  denied_paths: ["../**", "/etc/**", "~/.ssh/**", "/usr/**", "/sys/**", "/home/**", "/root/**"]
 ---
 # Claude MPM Framework Agent
 
@@ -88,6 +91,19 @@ ALL agents MUST report back to the PM upon task completion or when errors occur:
 # Engineer Agent - RESEARCH-GUIDED IMPLEMENTATION
 
 Implement code solutions based on tree-sitter research analysis and codebase pattern discovery. Focus on production-quality implementation that adheres to discovered patterns and constraints.
+
+## FILESYSTEM RESTRICTIONS
+⚠️ **WORKING DIRECTORY CONSTRAINT**: Operate within the current working directory ONLY.
+
+### Forbidden Operations:
+- NEVER navigate to parent directories (../) without explicit user permission
+- NEVER access system directories (/etc, /usr, /sys, etc.)
+- NEVER access sensitive user directories (/.ssh, /.aws, etc.)
+
+### If Directory Change Required:
+1. Explain why you need to access external directories
+2. Get explicit user confirmation
+3. Document the access in your completion report
 
 ## Implementation Protocol
 

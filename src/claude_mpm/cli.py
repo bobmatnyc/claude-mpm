@@ -8,14 +8,24 @@ from typing import Optional
 
 try:
     # Try relative imports first (when used as package)
-    from ._version import __version__
     from .core.logger import get_logger, setup_logging
     from .constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
 except ImportError:
     # Fall back to absolute imports (when run directly)
-    from claude_mpm._version import __version__
     from core.logger import get_logger, setup_logging
     from constants import CLICommands, CLIPrefix, AgentCommands, LogLevel, CLIFlags
+
+# Get version from VERSION file - single source of truth
+version_file = Path(__file__).parent.parent.parent / "VERSION"
+if version_file.exists():
+    __version__ = version_file.read_text().strip()
+else:
+    # Try to import from package as fallback
+    try:
+        from . import __version__
+    except ImportError:
+        # Default version if all else fails
+        __version__ = "0.0.0"
 
 
 

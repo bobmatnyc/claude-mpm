@@ -11,6 +11,8 @@ By default, the file security hook is:
 - **Enabled**: Automatically active for all Claude MPM sessions
 - **Working Directory**: Set to the directory where you run `claude-mpm`
 - **Scope**: Applies to all agents and operations
+- **Agent-Level Restrictions**: Each agent can have custom `file_access` configuration
+- **PM Agent Coordination**: The PM (Project Manager) agent ensures delegated agents respect boundaries
 - **Logging**: Security events logged to `.claude-mpm/logs/`
 
 ## Working Directory Detection
@@ -30,6 +32,87 @@ cd /Users/you/myproject
 # Working directory is set to: /Users/you/myproject
 # All file writes must be within this directory
 ```
+
+## Agent-Level File Access Configuration
+
+### Overview
+
+Each agent can define custom file access boundaries through the `file_access` configuration in their agent definition. This provides fine-grained control over what files each agent can read or write.
+
+### Configuration Structure
+
+```json
+"capabilities": {
+  "file_access": {
+    "read_paths": ["*"],           // Paths the agent can read from
+    "write_paths": ["."],          // Paths the agent can write to
+    "blocked_paths": ["**/.env"]   // Paths explicitly blocked
+  }
+}
+```
+
+### Path Pattern Syntax
+
+| Pattern | Description | Example |
+|---------|-------------|---------|
+| `.` | Current working directory | `"."` allows writes to working dir |
+| `*` | Any file in directory (not subdirs) | `"src/*"` matches files in src/ |
+| `**` | Any file recursively | `"src/**"` matches all in src tree |
+| `~/` | User's home directory | `"~/projects"` for home projects |
+
+### Agent Security Profiles
+
+#### PM (Project Manager) Agent
+```json
+"file_access": {
+  "read_paths": ["*"],    // Can read from anywhere
+  "write_paths": ["."],   // Can only write to working directory
+  "blocked_paths": []     // No additional blocks
+}
+```
+- Coordinates other agents but has limited write access
+- Ensures delegated tasks respect security boundaries
+
+#### Security Agent
+```json
+"file_access": {
+  "read_paths": ["*"],    // Can read everything for analysis
+  "write_paths": [],      // No write access
+  "blocked_paths": []     // Can read all for security audit
+}
+```
+- Read-only access for security analysis
+- Cannot modify any files
+
+#### Engineer Agent
+```json
+"file_access": {
+  "read_paths": ["*"],
+  "write_paths": ["./**"],
+  "blocked_paths": ["**/node_modules/**", "**/.env", "**/.git/**"]
+}
+```
+- Full project access for development
+- Blocked from sensitive areas
+
+#### Documentation Agent
+```json
+"file_access": {
+  "read_paths": ["*"],
+  "write_paths": ["./docs/**", "./README.md", "./CHANGELOG.md"],
+  "blocked_paths": ["**/.env", "**/secrets/**"]
+}
+```
+- Limited to documentation directories
+- Can update README and CHANGELOG
+
+### Security Priority Rules
+
+1. **Blocked paths always win**: If a path matches both allow and block lists, it's blocked
+2. **Most specific match**: More specific patterns override general ones
+3. **Default deny for writes**: If `write_paths` is empty or missing, no writes allowed
+4. **Default allow for reads**: If `read_paths` is empty or missing, all reads allowed
+5. **Working directory boundary**: Even with permissive rules, writes cannot escape working directory
 
 ## Security Policies
 

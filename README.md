@@ -174,6 +174,8 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 - **File System Protection**: Automatic sandboxing prevents file operations outside the working directory
 - **Path Traversal Prevention**: Blocks attempts to escape the project directory using `..` or symlinks
 - **Write Operation Control**: All write operations are validated while read operations remain unrestricted
+- **Agent-Level Restrictions**: Each agent can have custom file access boundaries via `file_access` configuration
+- **PM Agent Orchestration**: New PM (Project Manager) agent ensures all sub-agents operate within security boundaries
 - **Transparent Security**: Zero-configuration security that works automatically in the background
 - **Comprehensive Logging**: All security events are logged for audit purposes
 

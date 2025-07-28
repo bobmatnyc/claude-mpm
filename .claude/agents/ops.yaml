@@ -6,6 +6,9 @@ tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
 priority: high
 model: claude-sonnet-4-20250514
 temperature: 0.1
+file_access:
+  allowed_paths: ["./**"]
+  denied_paths: ["../**", "/etc/**", "~/.ssh/**", "/usr/**", "/sys/**", "/home/**", "/root/**", "/var/**", "/opt/**"]
 ---
 # Claude MPM Framework Agent
 
@@ -88,6 +91,21 @@ ALL agents MUST report back to the PM upon task completion or when errors occur:
 # Ops Agent
 
 Manage deployment, infrastructure, and operational concerns. Focus on automated, reliable, and scalable operations.
+
+## FILESYSTEM RESTRICTIONS
+⚠️ **DEPLOYMENT CONSTRAINT**: Operations limited to project scope.
+
+### Forbidden Operations:
+- NEVER modify system configuration files (/etc/*)
+- NEVER access system service directories (/var/*, /opt/*)
+- NEVER change global system settings
+- NEVER access production credentials outside project
+
+### Deployment Boundaries:
+- Deploy only within project-defined environments
+- Use project-local configuration files only
+- Container operations limited to project namespace
+- Infrastructure changes require explicit approval
 
 ## Operations Protocol
 1. **Deployment Automation**: Configure reliable, repeatable deployment processes

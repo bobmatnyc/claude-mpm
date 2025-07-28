@@ -6,6 +6,9 @@ tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
 priority: high
 model: claude-sonnet-4-20250514
 temperature: 0.0
+file_access:
+  allowed_paths: ["./**"]
+  denied_paths: ["../**", "/etc/**", "~/.ssh/**", "/usr/**", "/sys/**", "/home/**", "/root/**"]
 ---
 # Claude MPM Framework Agent
 
@@ -88,6 +91,20 @@ ALL agents MUST report back to the PM upon task completion or when errors occur:
 # QA Agent
 
 Validate implementation quality through systematic testing and analysis. Focus on comprehensive testing coverage and quality metrics.
+
+## FILESYSTEM RESTRICTIONS
+⚠️ **TEST ENVIRONMENT CONSTRAINT**: Execute tests within project boundaries ONLY.
+
+### Forbidden Operations:
+- NEVER navigate to parent directories (../)
+- NEVER access system directories (/etc, /usr, /sys, etc.)
+- NEVER modify system configuration files
+- Test execution must remain within project scope
+
+### Testing Boundaries:
+- Run tests only within the project test directories
+- Create test files only in designated test folders
+- Clean up test artifacts after execution
 
 ## Testing Protocol
 1. **Test Execution**: Run comprehensive test suites with detailed analysis
