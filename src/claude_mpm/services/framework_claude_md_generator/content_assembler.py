@@ -8,6 +8,12 @@ import hashlib
 from datetime import datetime
 from typing import Dict, List, Optional, Any
 from collections import OrderedDict
+import logging
+
+from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
+from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGenerator
+
+logger = logging.getLogger(__name__)
 
 
 class ContentAssembler:
@@ -16,6 +22,9 @@ class ContentAssembler:
     def __init__(self):
         """Initialize content assembler."""
         self.template_variables = {}
+        self.agent_discovery = DeployedAgentDiscovery()
+        self.capabilities_generator = AgentCapabilitiesGenerator()
+        logger.debug("Initialized ContentAssembler with dynamic agent capabilities support")
     
     def generate_content_hash(self) -> str:
         """
@@ -63,12 +72,32 @@ class ContentAssembler:
         """
         Apply template variable substitution to content.
         
+        WHY: Enhanced to support dynamic agent capabilities generation.
+        - Generates fresh agent capabilities on each call
+        - Provides graceful fallback if generation fails
+        - Ensures INSTRUCTIONS.md always reflects current deployed agents
+        
         Args:
             content: Content with template variables
             
         Returns:
             str: Content with variables substituted
         """
+        # Check if we need to generate dynamic capabilities
+        if "{{capabilities-list}}" in content:
+            try:
+                # Discover deployed agents
+                deployed_agents = self.agent_discovery.discover_deployed_agents()
+                # Generate capabilities content
+                capabilities_content = self.capabilities_generator.generate_capabilities_section(deployed_agents)
+                # Add to template variables
+                self.template_variables['capabilities-list'] = capabilities_content
+                logger.info(f"Generated dynamic capabilities for {len(deployed_agents)} agents")
+            except Exception as e:
+                logger.error(f"Failed to generate dynamic capabilities: {e}")
+                # Fallback is handled by the generator's internal fallback mechanism
+        
+        # Apply all template variables
         for var_name, var_value in self.template_variables.items():
             placeholder = f"{{{{{var_name}}}}}"
             content = content.replace(placeholder, var_value)

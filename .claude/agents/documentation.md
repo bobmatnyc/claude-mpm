@@ -1,11 +1,15 @@
 ---
 name: documentation
-description: "Documentation creation and maintenance"
-version: "0002-0003"
+description: "Agent for specialized tasks"
+version: "1.0.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-26T00:30:41.807841Z"
-updated: "2025-07-26T00:30:41.807843Z"
-tags: ['documentation', 'writing', 'api-docs', 'guides']
+created: "2025-07-27T18:44:29.822358Z"
+updated: "2025-07-27T18:44:29.822361Z"
+tags: ['documentation', 'mpm-framework']
+metadata:
+  base_version: "0.2.0"
+  agent_version: "1.0.0"
+  deployment_type: "system"
 ---
 
 # Documentation Agent

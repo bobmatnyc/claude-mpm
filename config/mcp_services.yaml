@@ -1,0 +1,117 @@
+# MCP Services Configuration
+# This file defines the configuration for all MCP services
+
+services:
+  eva-memory:
+    # Command to start the eva-memory service
+    command:
+      - "npx"
+      - "-y"
+      - "@modelcontextprotocol/server-memory"
+    
+    # Port configuration
+    port: 3001
+    
+    # Health check configuration
+    health_endpoint: "http://localhost:3001/health"
+    health_timeout: 5  # seconds
+    
+    # Startup configuration
+    startup_timeout: 30  # seconds to wait for service to become healthy
+    restart_delay: 5     # seconds to wait before restart
+    max_retries: 3       # maximum consecutive restart attempts
+    
+    # Logging
+    log_file: "eva-memory.log"
+    
+    # Environment variables
+    env_vars:
+      NODE_ENV: "production"
+      EVA_MEMORY_PORT: "3001"
+      EVA_MEMORY_HOST: "0.0.0.0"
+      
+  cloud-bridge:
+    # Command to start the cloud bridge service
+    command:
+      - "node"
+      - "/usr/local/lib/node_modules/@aws/mcp-server-aws"
+      - "--port"
+      - "3002"
+    
+    # Port configuration
+    port: 3002
+    
+    # Health check configuration
+    health_endpoint: "http://localhost:3002/health"
+    health_timeout: 10  # Cloud services may take longer
+    
+    # Startup configuration
+    startup_timeout: 45  # Cloud services need more time
+    restart_delay: 10    # Longer delay for cloud services
+    max_retries: 3
+    
+    # Logging
+    log_file: "cloud-bridge.log"
+    
+    # Environment variables
+    env_vars:
+      NODE_ENV: "production"
+      AWS_REGION: "${AWS_REGION:-us-east-1}"
+      AWS_PROFILE: "${AWS_PROFILE:-default}"
+      CLOUD_BRIDGE_PORT: "3002"
+      CLOUD_BRIDGE_HOST: "0.0.0.0"
+      # Add connection pooling for stability
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: "1"
+      
+  desktop-gateway:
+    # Command to start the desktop gateway service
+    command:
+      - "python"
+      - "-m"
+      - "mcp_server_desktop"
+      - "--port"
+      - "3003"
+    
+    # Port configuration  
+    port: 3003
+    
+    # Health check configuration
+    health_endpoint: "http://localhost:3003/health"
+    health_timeout: 5
+    
+    # Startup configuration
+    startup_timeout: 20
+    restart_delay: 5
+    max_retries: 3
+    
+    # Logging
+    log_file: "desktop-gateway.log"
+    
+    # Environment variables
+    env_vars:
+      PYTHONUNBUFFERED: "1"
+      DESKTOP_GATEWAY_PORT: "3003"
+      DESKTOP_GATEWAY_HOST: "0.0.0.0"
+      # Desktop-specific settings
+      DESKTOP_GATEWAY_SCREENSHOT_ENABLED: "true"
+      DESKTOP_GATEWAY_FILE_ACCESS_ENABLED: "true"
+      DESKTOP_GATEWAY_MAX_FILE_SIZE: "10485760"  # 10MB
+
+# Global configuration
+global:
+  # Health check intervals
+  health_check_interval: 10  # seconds between health checks
+  
+  # Resource limits
+  max_memory_mb: 512
+  max_cpu_percent: 80
+  
+  # Network configuration
+  bind_host: "0.0.0.0"
+  
+  # Graceful shutdown
+  shutdown_timeout: 30  # seconds to wait for graceful shutdown
+  
+  # Monitoring
+  metrics_enabled: true
+  metrics_port: 9090

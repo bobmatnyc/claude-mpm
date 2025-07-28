@@ -150,6 +150,7 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 - Dynamic agent discovery and registration
 - Template-based agent definitions
 - Extensible agent architecture
+- **Dynamic Capabilities**: Agent documentation automatically generated from deployed agents
 
 ### Hook System
 - Pre and post-processing hooks

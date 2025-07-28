@@ -32,6 +32,13 @@ Discover how Claude MPM helps manage context limits and prevents overflow.
 - Optimization strategies
 - Recovery methods
 
+### [Dynamic Agent Capabilities](dynamic-agent-capabilities.md)
+Learn how Claude MPM automatically generates agent documentation.
+- Automatic agent discovery
+- Real-time documentation updates
+- Project-specific customizations
+- Zero-maintenance operation
+
 ## Feature Comparison
 
 | Feature | Standard Claude | Claude MPM |
@@ -42,6 +49,7 @@ Discover how Claude MPM helps manage context limits and prevents overflow.
 | Context Management | ❌ Manual | ✅ Automated |
 | Process Control | ❌ | ✅ Full control |
 | Pattern Detection | ❌ | ✅ Real-time |
+| Agent Documentation | ❌ Static | ✅ Dynamic |
 
 ## How Features Work Together
 
@@ -99,3 +107,4 @@ Dive into each feature:
 2. Learn about [Agent Delegation](agent-delegation.md) for specialized help
 3. Explore [Session Logging](session-logging.md) for history
 4. Understand [Memory Protection](memory-protection.md) for reliability
+5. Discover [Dynamic Agent Capabilities](dynamic-agent-capabilities.md) for auto-documentation

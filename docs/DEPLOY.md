@@ -624,9 +624,45 @@ Version is automatically shown in:
 3. **GPG Signing**: Sign git tags for releases
 4. **SBOM**: Consider generating Software Bill of Materials
 
+## Agent Deployment and Versioning
+
+### Agent Version Management
+
+Claude MPM agents use semantic versioning (major.minor.patch) for consistent version tracking:
+
+```bash
+# Deploy agents (includes automatic version migration)
+claude-mpm agents deploy
+
+# Verify agent versions and check for updates
+claude-mpm agents verify
+
+# Force rebuild all agents (useful for version migrations)
+claude-mpm agents deploy --force-rebuild
+
+# List agents with version information
+claude-mpm agents list
+```
+
+### Agent Version Migration
+
+The deployment system automatically migrates agents from old version formats:
+- **Old format**: `0002-0005` (serial versioning)
+- **New format**: `2.1.0` (semantic versioning)
+
+Migration happens automatically during deployment when old formats are detected.
+
+### Agent Update Detection
+
+Agents are automatically updated when:
+1. Template version increases
+2. Old version format is detected
+3. Base agent version changes
+4. Force rebuild flag is used
+
 ## Related Documentation
 
-- [VERSIONING.md](./VERSIONING.md) - Detailed version management
+- [VERSIONING.md](./VERSIONING.md) - Detailed version management (includes agent versioning)
 - [CHANGELOG.md](../CHANGELOG.md) - Release history
 - [QA.md](./QA.md) - Testing procedures
 - [STRUCTURE.md](./STRUCTURE.md) - Project organization

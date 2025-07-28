@@ -1,11 +1,15 @@
 ---
 name: version_control
-description: "Git operations and version management"
-version: "0002-0003"
+description: "Agent for specialized tasks"
+version: "1.0.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-07-26T00:30:41.808785Z"
-updated: "2025-07-26T00:30:41.808787Z"
-tags: ['git', 'versioning', 'releases', 'branches']
+created: "2025-07-27T18:44:29.821130Z"
+updated: "2025-07-27T18:44:29.821135Z"
+tags: ['version_control', 'mpm-framework']
+metadata:
+  base_version: "0.2.0"
+  agent_version: "1.0.0"
+  deployment_type: "system"
 ---
 
 # Version Control Agent

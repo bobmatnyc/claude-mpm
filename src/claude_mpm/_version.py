@@ -6,10 +6,10 @@ try:
     try:
         __version__ = version("claude-mpm")
     except PackageNotFoundError:
-        __version__ = "2.0.0"
+        __version__ = "2.1.0"
 except ImportError:
     # Fallback for older Python versions
-    __version__ = "2.0.0"
+    __version__ = "2.1.0"
 
 # This file may be overwritten by setuptools-scm during build
 # The try/except ensures we always have a version available
