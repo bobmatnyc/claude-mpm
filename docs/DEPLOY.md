@@ -256,10 +256,12 @@ The unified release script will:
 4. **Automatically synchronize package.json version with Python version**
 5. Commit and tag the changes
 6. Build Python distributions
-7. Publish to PyPI (or TestPyPI)
-8. Publish to npm registry as @bobmatnyc/claude-mpm
+7. **Publish to PyPI** (or TestPyPI)
+8. **Publish to npm registry as @bobmatnyc/claude-mpm**
 9. Create a GitHub release with changelog
-10. Verify package availability on both PyPI and npm
+10. **Verify package availability on both PyPI and npm**
+
+The script ensures complete dual distribution with a single command, handling both PyPI and npm publishing automatically.
 
 **Important Notes:**
 - The script ensures npm and PyPI versions are always synchronized
@@ -317,6 +319,20 @@ ls -la dist/
 
 ## Distribution Channels
 
+Claude MPM is distributed via both PyPI and npm to provide flexible installation options for different user environments.
+
+### Dual Distribution Strategy
+
+Claude MPM follows a dual distribution strategy:
+- **PyPI**: Primary distribution channel for the Python package
+- **npm**: Secondary distribution channel providing a wrapper that installs the Python package
+
+The npm package (@bobmatnyc/claude-mpm) serves as a convenient wrapper that:
+- Ensures Python is available on the system
+- Installs the Python package from PyPI
+- Provides the same CLI interface as the pip installation
+- Maintains version synchronization with the PyPI package
+
 ### PyPI Deployment
 
 ```bash
@@ -340,6 +356,8 @@ password = pypi-TEST-TOKEN-HERE
 
 ### npm Deployment
 
+The npm package is published as **@bobmatnyc/claude-mpm**:
+
 ```bash
 # Update package.json version (automated via script)
 npm version $(cat VERSION)
@@ -348,12 +366,19 @@ npm version $(cat VERSION)
 npm publish
 
 # Tag as latest
-npm dist-tag add claude-mpm@$(cat VERSION) latest
+npm dist-tag add @bobmatnyc/claude-mpm@$(cat VERSION) latest
 ```
 
-### Local Installation
+**Important Notes:**
+- The npm package name is scoped: `@bobmatnyc/claude-mpm`
+- Version numbers are automatically synchronized between PyPI and npm
+- The release.py script handles both PyPI and npm publishing
 
-#### Project-Specific Installation
+### Installation Options
+
+Claude MPM can be installed via pip or npm, depending on your preference and environment:
+
+#### Installing via pip (Recommended for Python developers)
 
 For installing Claude MPM within a specific project's virtual environment:
 
@@ -370,6 +395,23 @@ pip install claude-mpm
 # Install specific version
 pip install claude-mpm==1.0.0
 ```
+
+#### Installing via npm (Alternative method)
+
+For users who prefer npm or want a system-wide installation:
+
+```bash
+# Install from npm registry
+npm install -g @bobmatnyc/claude-mpm
+
+# Install specific version
+npm install -g @bobmatnyc/claude-mpm@1.0.0
+
+# Install locally in a project
+npm install @bobmatnyc/claude-mpm
+```
+
+**Note**: The npm package automatically handles Python dependencies and provides the same `claude-mpm` command-line interface.
 
 #### Global Installation for All Projects
 
@@ -479,10 +521,10 @@ claude-mpm --version
 
 ```bash
 # Check npm page
-open https://www.npmjs.com/package/claude-mpm
+open https://www.npmjs.com/package/@bobmatnyc/claude-mpm
 
 # Test installation
-npm install -g claude-mpm
+npm install -g @bobmatnyc/claude-mpm
 claude-mpm --version
 ```
 
@@ -538,7 +580,7 @@ twine upload dist/*
 
 ```bash
 # Deprecate broken version
-npm deprecate claude-mpm@1.0.0 "Critical bug, use 1.0.1"
+npm deprecate @bobmatnyc/claude-mpm@1.0.0 "Critical bug, use 1.0.1"
 
 # Publish fixed version
 npm version patch
