@@ -46,7 +46,7 @@ The system orchestrates multiple specialized agents:
 ## System Layers
 
 ### 1. CLI Layer
-**Location**: `src/claude_mpm/cli.py`, `src/claude_mpm/cli_main.py`
+**Location**: `src/claude_mpm/cli/` (modular structure with commands)
 
 The entry point that:
 - Parses command-line arguments
@@ -221,3 +221,4 @@ Additional services for new functionality
 - See [Component Diagram](component-diagram.md) for visual architecture
 - Explore [Data Flow](data-flow.md) for detailed message routing
 - Study [Design Patterns](patterns.md) for pattern implementations
+- Read [Agent Management Integration](agent-management-integration.md) for the unified agent lifecycle architecture

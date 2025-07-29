@@ -43,10 +43,12 @@ from claude_mpm.services.agent_modification_tracker import (
 )
 from claude_mpm.services.agent_persistence_service import (
     AgentPersistenceService,
-    PersistenceRecord,
     PersistenceStrategy,
+    PersistenceRecord,
     PersistenceOperation
 )
+from claude_mpm.services.agent_management_service import AgentManager
+from claude_mpm.models.agent_definition import AgentDefinition, AgentType
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.utils.path_operations import path_ops
 from claude_mpm.utils.config_manager import ConfigurationManager
@@ -149,6 +151,7 @@ class AgentLifecycleManager(BaseService):
         self.agent_registry: Optional[AgentRegistry] = None
         self.modification_tracker: Optional[AgentModificationTracker] = None
         self.persistence_service: Optional[AgentPersistenceService] = None
+        self.agent_manager: Optional[AgentManager] = None
         
         # Lifecycle tracking
         self.agent_records: Dict[str, AgentLifecycleRecord] = {}
@@ -246,6 +249,9 @@ class AgentLifecycleManager(BaseService):
             self.persistence_service = AgentPersistenceService()
             await self.persistence_service.start()
             
+            # Initialize AgentManager
+            self.agent_manager = AgentManager()
+            
             self.logger.info("Core services initialized successfully")
             
         except Exception as e:
@@ -319,9 +325,9 @@ class AgentLifecycleManager(BaseService):
             if not self.agent_registry:
                 return
             
-            # Discover all agents via registry
-            await self.agent_registry.discover_agents()
-            all_agents = await self.agent_registry.list_agents()
+            # Discover all agents via registry (sync methods)
+            self.agent_registry.discover_agents()
+            all_agents = self.agent_registry.list_agents()
             
             # Update lifecycle records with registry data
             for agent_metadata in all_agents:
@@ -391,8 +397,32 @@ class AgentLifecycleManager(BaseService):
                         error_message="Agent already exists"
                     )
                 
-                # Determine file path
-                file_path = await self._determine_agent_file_path(agent_name, tier)
+                # Create agent definition
+                agent_def = await self._create_agent_definition(
+                    agent_name, agent_content, tier, agent_type, **kwargs
+                )
+                
+                # Determine location based on tier
+                location = "project" if tier == ModificationTier.PROJECT else "framework"
+                
+                # Create agent using AgentManager (sync call in executor)
+                try:
+                    if self.agent_manager:
+                        file_path = await self._run_sync_in_executor(
+                            self.agent_manager.create_agent,
+                            agent_name, agent_def, location
+                        )
+                    else:
+                        # Fallback to direct file creation if AgentManager not available
+                        file_path = await self._determine_agent_file_path(agent_name, tier)
+                        path_ops.ensure_dir(file_path.parent)
+                        path_ops.safe_write(file_path, agent_content)
+                except Exception as e:
+                    self.logger.error(f"AgentManager failed to create agent: {e}")
+                    # Fallback to direct file creation
+                    file_path = await self._determine_agent_file_path(agent_name, tier)
+                    path_ops.ensure_dir(file_path.parent)
+                    path_ops.safe_write(file_path, agent_content)
                 
                 # Track modification
                 modification = await self.modification_tracker.track_modification(
@@ -404,13 +434,18 @@ class AgentLifecycleManager(BaseService):
                     **kwargs
                 )
                 
-                # Persist agent
-                persistence_record = await self.persistence_service.persist_agent(
+                # Note: We don't use persistence_service for the actual write anymore
+                # since AgentManager handles that. We create a synthetic record for compatibility.
+                persistence_record = PersistenceRecord(
+                    operation_id=f"create_{agent_name}_{time.time()}",
+                    operation_type=PersistenceOperation.CREATE,
                     agent_name=agent_name,
-                    agent_content=agent_content,
                     source_tier=tier,
                     target_tier=tier,
-                    strategy=self.default_persistence_strategy
+                    strategy=self.default_persistence_strategy,
+                    success=True,
+                    timestamp=time.time(),
+                    file_path=str(file_path)
                 )
                 
                 # Create lifecycle record
@@ -512,6 +547,48 @@ class AgentLifecycleManager(BaseService):
                 
                 record = self.agent_records[agent_name]
                 
+                # Update agent using AgentManager
+                try:
+                    if self.agent_manager:
+                        # Read current agent to get full definition
+                        current_def = await self._run_sync_in_executor(
+                            self.agent_manager.read_agent, agent_name
+                        )
+                        
+                        if current_def:
+                            # Update raw content
+                            current_def.raw_content = agent_content
+                            
+                            # Apply any metadata updates from kwargs
+                            if 'model_preference' in kwargs:
+                                current_def.metadata.model_preference = kwargs['model_preference']
+                            if 'tags' in kwargs:
+                                current_def.metadata.tags = kwargs['tags']
+                            if 'specializations' in kwargs:
+                                current_def.metadata.specializations = kwargs['specializations']
+                            
+                            # Update via AgentManager
+                            updated_def = await self._run_sync_in_executor(
+                                self.agent_manager.update_agent,
+                                agent_name, {"raw_content": agent_content}, True
+                            )
+                            
+                            if not updated_def:
+                                raise Exception("AgentManager update failed")
+                        else:
+                            raise Exception("Could not read current agent definition")
+                    else:
+                        # Fallback to direct file update
+                        file_path = Path(record.file_path)
+                        if path_ops.validate_exists(file_path):
+                            path_ops.safe_write(file_path, agent_content)
+                except Exception as e:
+                    self.logger.error(f"AgentManager failed to update agent: {e}")
+                    # Fallback to direct file update
+                    file_path = Path(record.file_path)
+                    if path_ops.validate_exists(file_path):
+                        path_ops.safe_write(file_path, agent_content)
+                
                 # Track modification
                 modification = await self.modification_tracker.track_modification(
                     agent_name=agent_name,
@@ -521,12 +598,17 @@ class AgentLifecycleManager(BaseService):
                     **kwargs
                 )
                 
-                # Persist agent
-                persistence_record = await self.persistence_service.persist_agent(
+                # Create synthetic persistence record for compatibility
+                persistence_record = PersistenceRecord(
+                    operation_id=f"update_{agent_name}_{time.time()}",
+                    operation_type=PersistenceOperation.UPDATE,
                     agent_name=agent_name,
-                    agent_content=agent_content,
                     source_tier=record.tier,
-                    strategy=self.default_persistence_strategy
+                    target_tier=record.tier,
+                    strategy=self.default_persistence_strategy,
+                    success=True,
+                    timestamp=time.time(),
+                    file_path=record.file_path
                 )
                 
                 # Update lifecycle record
@@ -631,10 +713,28 @@ class AgentLifecycleManager(BaseService):
                     **kwargs
                 )
                 
-                # Delete file
-                file_path = Path(record.file_path)
-                if path_ops.validate_exists(file_path):
-                    path_ops.safe_delete(file_path)
+                # Delete agent using AgentManager
+                deletion_success = False
+                try:
+                    if self.agent_manager:
+                        deletion_success = await self._run_sync_in_executor(
+                            self.agent_manager.delete_agent, agent_name
+                        )
+                        if not deletion_success:
+                            raise Exception("AgentManager delete failed")
+                    else:
+                        # Fallback to direct file deletion
+                        file_path = Path(record.file_path)
+                        if path_ops.validate_exists(file_path):
+                            path_ops.safe_delete(file_path)
+                            deletion_success = True
+                except Exception as e:
+                    self.logger.error(f"AgentManager failed to delete agent: {e}")
+                    # Fallback to direct file deletion
+                    file_path = Path(record.file_path)
+                    if path_ops.validate_exists(file_path):
+                        path_ops.safe_delete(file_path)
+                        deletion_success = True
                 
                 # Update lifecycle record
                 record.current_state = LifecycleState.DELETED
@@ -749,8 +849,8 @@ class AgentLifecycleManager(BaseService):
             return False
         
         try:
-            # Refresh specific agent in registry
-            await self.agent_registry.refresh_agent(agent_name)
+            # Refresh registry (discover_agents is synchronous)
+            self.agent_registry.discover_agents()
             return True
             
         except Exception as e:
@@ -949,6 +1049,69 @@ class AgentLifecycleManager(BaseService):
         stats['recent_operations'] = len(recent_ops)
         
         return stats
+    
+    async def _create_agent_definition(self, agent_name: str, agent_content: str, 
+                                      tier: ModificationTier, agent_type: str, **kwargs) -> AgentDefinition:
+        """
+        Create an AgentDefinition from lifecycle parameters.
+        
+        WHY: This method bridges the gap between the lifecycle manager's parameters
+        and the AgentManager's expected AgentDefinition model.
+        
+        DESIGN DECISION: Creating a minimal AgentDefinition here because:
+        - The full markdown parsing happens in AgentManager
+        - We only need to provide the essential metadata
+        - This keeps the lifecycle manager focused on orchestration
+        """
+        # Map tier to AgentType
+        type_map = {
+            ModificationTier.USER: AgentType.CUSTOM,
+            ModificationTier.PROJECT: AgentType.PROJECT,
+            ModificationTier.SYSTEM: AgentType.SYSTEM
+        }
+        
+        # Create metadata
+        from claude_mpm.models.agent_definition import AgentMetadata, AgentPermissions
+        metadata = AgentMetadata(
+            type=type_map.get(tier, AgentType.CUSTOM),
+            model_preference=kwargs.get('model_preference', 'claude-3-sonnet'),
+            version="1.0.0",
+            author=kwargs.get('author', 'claude-mpm'),
+            tags=kwargs.get('tags', []),
+            specializations=kwargs.get('specializations', [])
+        )
+        
+        # Create minimal definition
+        definition = AgentDefinition(
+            name=agent_name,
+            title=agent_name.replace('-', ' ').title(),
+            file_path="",  # Will be set by AgentManager
+            metadata=metadata,
+            primary_role=kwargs.get('primary_role', f"{agent_name} agent"),
+            when_to_use={"select": [], "do_not_select": []},
+            capabilities=[],
+            authority=AgentPermissions(),
+            workflows=[],
+            escalation_triggers=[],
+            kpis=[],
+            dependencies=[],
+            tools_commands="",
+            raw_content=agent_content
+        )
+        
+        return definition
+    
+    async def _run_sync_in_executor(self, func, *args, **kwargs):
+        """
+        Run a synchronous function in an executor to avoid blocking.
+        
+        WHY: AgentManager has synchronous methods but AgentLifecycleManager is async.
+        This allows us to call sync methods without blocking the event loop.
+        
+        PERFORMANCE: Uses the default executor which manages a thread pool efficiently.
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func, *args, **kwargs)
     
     async def restore_agent(self, agent_name: str, backup_path: Optional[str] = None) -> LifecycleOperationResult:
         """Restore agent from backup."""

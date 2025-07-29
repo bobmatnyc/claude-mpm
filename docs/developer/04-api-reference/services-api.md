@@ -160,6 +160,9 @@ Execute hooks of a specific type.
 
 Manages agent lifecycle and orchestration.
 
+> **Note**: For the unified agent management interface, see [Agent Lifecycle Manager API](agent-lifecycle-api.md).
+> The AgentLifecycleManager provides a comprehensive async interface integrating AgentManager with lifecycle tracking.
+
 ### Location
 `src/claude_mpm/services/agent_management_service.py`
 

@@ -341,6 +341,14 @@ class AgentModificationTracker(BaseService):
             backup_path = await self._create_backup(file_path, modification_id)
         
         # Create modification record
+        # Only include valid AgentModification fields from file_metadata
+        valid_metadata_fields = {'file_hash_after', 'file_size_after'}
+        filtered_metadata = {k: v for k, v in file_metadata.items() if k in valid_metadata_fields}
+        
+        # Add other metadata to the metadata field
+        extra_metadata = {k: v for k, v in file_metadata.items() if k not in valid_metadata_fields}
+        extra_metadata.update(kwargs)
+        
         modification = AgentModification(
             modification_id=modification_id,
             agent_name=agent_name,
@@ -349,8 +357,8 @@ class AgentModificationTracker(BaseService):
             file_path=file_path,
             timestamp=time.time(),
             backup_path=backup_path,
-            **file_metadata,
-            **kwargs
+            metadata=extra_metadata,
+            **filtered_metadata
         )
         
         # Validate modification if enabled

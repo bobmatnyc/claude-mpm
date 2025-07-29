@@ -49,15 +49,20 @@ This document provides visual representations and detailed descriptions of Claud
 
 ### CLI Layer
 
-#### CLI Main (`cli_main.py`)
-- **Purpose**: Entry point for the application
+#### CLI Module (`cli/`)
+- **Purpose**: Modular CLI implementation
+- **Structure**:
+  - `__init__.py`: Main entry point and orchestration
+  - `parser.py`: Centralized argument parsing
+  - `utils.py`: Shared utility functions
+  - `commands/`: Individual command implementations
 - **Responsibilities**:
   - Parse command-line arguments
   - Initialize configuration
   - Create and launch orchestrator
   - Handle top-level exceptions
 
-#### Command Parser (`cli.py`)
+#### Command Parser (`cli/parser.py`)
 - **Purpose**: Command-line interface definition
 - **Responsibilities**:
   - Define available commands
