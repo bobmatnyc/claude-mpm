@@ -52,6 +52,11 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
    - Business logic layer
    - Hook service, agent management, etc.
 
+4. **CLI System** (`src/claude_mpm/cli/`)
+   - Modular command structure
+   - Centralized argument parsing
+   - See [CLI Architecture](src/claude_mpm/cli/README.md) for details
+
 ## Quick Start
 
 ```bash

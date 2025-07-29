@@ -114,10 +114,15 @@ def test_cli_availability():
     """Test CLI script availability."""
     print("\n4. Testing CLI Availability:")
     
-    # Check if cli.py exists
-    cli_path = Path(__file__).parent.parent / "src" / "claude_mpm" / "cli.py"
-    cli_exists = cli_path.exists()
-    print_status("cli.py exists", cli_exists, str(cli_path))
+    # Check if cli module exists
+    cli_path = Path(__file__).parent.parent / "src" / "claude_mpm" / "cli"
+    cli_exists = cli_path.exists() and cli_path.is_dir()
+    print_status("cli/ module exists", cli_exists, str(cli_path))
+    
+    # Check if cli __init__.py exists
+    cli_init = cli_path / "__init__.py"
+    cli_init_exists = cli_init.exists()
+    print_status("cli/__init__.py exists", cli_init_exists, str(cli_init))
     
     # Check if main script exists
     main_script = Path(__file__).parent.parent / "claude-mpm"
