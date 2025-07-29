@@ -15,7 +15,7 @@ The claude-mpm project now uses a single source of truth for version management:
 - **pyproject.toml**: Removed setuptools-scm, set version as dynamic
 - **setup.py**: Reads directly from VERSION file
 - **src/claude_mpm/__init__.py**: Reads from VERSION file
-- **src/claude_mpm/cli.py**: Reads from VERSION file with fallback to package import
+- **src/claude_mpm/cli/utils.py**: Version reading logic consolidated in CLI utilities
 
 ### 3. Removed Components
 - **_version.py**: Deleted and added to .gitignore

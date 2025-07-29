@@ -69,9 +69,9 @@ The command uses a single source of truth function (`_get_agent_versions_display
 
 ## Integration Points
 
-1. **CLI (`cli.py`)**: 
+1. **CLI (`cli/commands/agents.py`)**: 
    - `manage_agents()` function handles the command when no subcommand is provided
-   - Uses `_get_agent_versions_display()` for consistent output
+   - Uses `get_agent_versions_display()` from `cli/utils.py` for consistent output
 
 2. **Interactive Wrapper (`simple_runner.py`)**:
    - `_handle_mpm_command()` routes `/mpm:agents` to the display function

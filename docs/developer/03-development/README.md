@@ -40,6 +40,13 @@ Techniques for debugging:
 - Performance profiling
 - Common issues and solutions
 
+### [Agent Management Guide](agent-management-guide.md)
+Working with the agent management system:
+- Architecture overview (AgentManager vs AgentLifecycleManager)
+- When to use each component
+- Code examples and patterns
+- Best practices and troubleshooting
+
 ## Quick Start
 
 ### 1. Clone and Setup
@@ -132,7 +139,7 @@ graph LR
 claude-mpm/
 ├── src/claude_mpm/         # Source code
 │   ├── __init__.py
-│   ├── cli.py              # CLI interface
+│   ├── cli/                # CLI implementation
 │   ├── core/               # Core components
 │   ├── orchestration/      # Orchestrators
 │   ├── agents/             # Agent system

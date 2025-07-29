@@ -39,8 +39,21 @@ claude-mpm/
 │   ├── __init__.py                   # Package initialization
 │   ├── __main__.py                   # Entry point for python -m
 │   ├── _version.py                   # Version management
-│   ├── cli.py                        # CLI implementation
-│   ├── cli_main.py                   # CLI main entry point
+│   ├── cli/                          # CLI implementation (modular structure)
+│   │   ├── __init__.py               # Main entry point - orchestrates CLI flow
+│   │   ├── parser.py                 # Argument parsing logic
+│   │   ├── utils.py                  # Shared utility functions
+│   │   ├── commands/                 # Individual command implementations
+│   │   │   ├── __init__.py
+│   │   │   ├── run.py                # Default command - runs Claude sessions
+│   │   │   ├── tickets.py            # Lists tickets
+│   │   │   ├── info.py               # Shows system information
+│   │   │   ├── agents.py             # Manages agent deployments
+│   │   │   └── ui.py                 # Terminal UI launcher
+│   │   └── README.md                 # CLI architecture documentation
+│   │
+│   ├── cli_old.py                    # Legacy CLI (preserved for reference)
+│   ├── cli_enhancements.py           # Experimental Click-based CLI
 │   │
 │   ├── agents/                       # Agent system
 │   │   ├── agent-template.yaml       # Meta-template for generating agents
@@ -182,7 +195,8 @@ When creating new files, follow these guidelines:
 2. All imports should use the full package name: `from claude_mpm.core import ...`
 3. The main entry points are:
    - `/scripts/claude-mpm` (bash script)
-   - `/src/claude_mpm/cli_main.py` (Python entry point)
+   - `/src/claude_mpm/__main__.py` (Python module entry point)
+   - `/src/claude_mpm/cli/__init__.py` (CLI implementation)
 4. Configuration files use YAML format
 5. Agent templates use JSON format
 

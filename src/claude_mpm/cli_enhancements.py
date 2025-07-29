@@ -1,6 +1,25 @@
 """
 Enhanced CLI operations for claude-mpm.
 
+WHY THIS FILE EXISTS:
+This module provides an alternative CLI implementation with enhanced error handling
+and validation features. It was created to explore advanced CLI patterns including:
+- Comprehensive prerequisite validation
+- User-friendly error messages with suggestions
+- Dry-run mode for testing
+- Profile validation and generation
+- Rich terminal output with status indicators
+
+CURRENT STATUS: This is an experimental/alternative CLI implementation that uses
+Click instead of argparse. It's kept separate from the main CLI to:
+1. Preserve the existing CLI behavior
+2. Allow testing of new features without breaking the main interface
+3. Provide a reference implementation for future CLI enhancements
+
+NOTE: This CLI is not currently used in production. The main CLI is in cli/__init__.py.
+To use this enhanced CLI, you would need to create a separate entry point or
+integrate selected features into the main CLI.
+
 Implements error handling and user guidance patterns from awesome-claude-code.
 """
 
