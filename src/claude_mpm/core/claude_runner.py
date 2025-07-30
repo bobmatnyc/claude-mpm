@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+import uuid
 
 try:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
@@ -39,7 +40,8 @@ class ClaudeRunner:
         enable_tickets: bool = True,
         log_level: str = "OFF",
         claude_args: Optional[list] = None,
-        launch_method: str = "exec"  # "exec" or "subprocess"
+        launch_method: str = "exec",  # "exec" or "subprocess"
+        enable_websocket: bool = False
     ):
         """Initialize the Claude runner."""
         self.enable_tickets = enable_tickets
@@ -47,6 +49,7 @@ class ClaudeRunner:
         self.logger = get_logger("claude_runner")
         self.claude_args = claude_args or []
         self.launch_method = launch_method
+        self.enable_websocket = enable_websocket
         
         # Initialize project logger for session logging
         self.project_logger = None
@@ -89,6 +92,9 @@ class ClaudeRunner:
                 })
             except Exception as e:
                 self.logger.debug(f"Failed to create session log file: {e}")
+        
+        # Initialize WebSocket server reference
+        self.websocket_server = None
     
     def setup_agents(self) -> bool:
         """Deploy native agents to .claude/agents/."""
@@ -144,6 +150,28 @@ class ClaudeRunner:
     
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode."""
+        # Start WebSocket server if enabled
+        if self.enable_websocket:
+            try:
+                # Lazy import to avoid circular dependencies
+                from claude_mpm.services.websocket_server import get_websocket_server
+                self.websocket_server = get_websocket_server()
+                self.websocket_server.start()
+                
+                # Generate session ID
+                session_id = str(uuid.uuid4())
+                working_dir = os.getcwd()
+                
+                # Notify session start
+                self.websocket_server.session_started(
+                    session_id=session_id,
+                    launch_method=self.launch_method,
+                    working_dir=working_dir
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to start WebSocket server: {e}")
+                self.websocket_server = None
+        
         # Get version
         try:
             from claude_mpm import __version__
@@ -227,11 +255,24 @@ class ClaudeRunner:
                     "method": self.launch_method
                 })
             
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="starting",
+                    message="Launching Claude interactive session"
+                )
+            
             # Launch using selected method
             if self.launch_method == "subprocess":
                 self._launch_subprocess_interactive(cmd, clean_env)
             else:
                 # Default to exec for backward compatibility
+                if self.websocket_server:
+                    # Notify before exec (we won't be able to after)
+                    self.websocket_server.claude_status_changed(
+                        status="running",
+                        message="Claude process started (exec mode)"
+                    )
                 os.execvpe(cmd[0], cmd, clean_env)
             
         except Exception as e:
@@ -247,6 +288,13 @@ class ClaudeRunner:
                     "error": str(e),
                     "exception_type": type(e).__name__
                 })
+            
+            # Notify WebSocket clients of error
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="error",
+                    message=f"Failed to launch Claude: {e}"
+                )
             # Fallback to subprocess
             try:
                 # Use the same clean_env we prepared earlier
@@ -278,6 +326,28 @@ class ClaudeRunner:
     def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
         """Run Claude with a single prompt and return success status."""
         start_time = time.time()
+        
+        # Start WebSocket server if enabled
+        if self.enable_websocket:
+            try:
+                # Lazy import to avoid circular dependencies
+                from claude_mpm.services.websocket_server import get_websocket_server
+                self.websocket_server = get_websocket_server()
+                self.websocket_server.start()
+                
+                # Generate session ID
+                session_id = str(uuid.uuid4())
+                working_dir = os.getcwd()
+                
+                # Notify session start
+                self.websocket_server.session_started(
+                    session_id=session_id,
+                    launch_method="oneshot",
+                    working_dir=working_dir
+                )
+            except Exception as e:
+                self.logger.warning(f"Failed to start WebSocket server: {e}")
+                self.websocket_server = None
         
         # Check for /mpm: commands
         if prompt.strip().startswith("/mpm:"):
@@ -347,6 +417,13 @@ class ClaudeRunner:
                     component="session"
                 )
             
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="running",
+                    message="Executing Claude oneshot command"
+                )
+            
             result = subprocess.run(cmd, capture_output=True, text=True, env=env)
             
             # Restore original directory if we changed it
@@ -360,6 +437,10 @@ class ClaudeRunner:
             if result.returncode == 0:
                 response = result.stdout.strip()
                 print(response)
+                
+                # Broadcast output to WebSocket clients
+                if self.websocket_server and response:
+                    self.websocket_server.claude_output(response, "stdout")
                 
                 if self.project_logger:
                     # Log successful completion
@@ -390,6 +471,17 @@ class ClaudeRunner:
                             "indicators": [p for p in ["Task(", "subagent_type=", "engineer agent", "qa agent"] 
                                           if p.lower() in response.lower()]
                         })
+                        
+                        # Notify WebSocket clients about delegation
+                        if self.websocket_server:
+                            # Try to extract agent name
+                            agent_name = self._extract_agent_from_response(response)
+                            if agent_name:
+                                self.websocket_server.agent_delegated(
+                                    agent=agent_name,
+                                    task=prompt[:100],
+                                    status="detected"
+                                )
                 
                 # Extract tickets if enabled
                 if self.enable_tickets and self.ticket_manager and response:
@@ -399,6 +491,14 @@ class ClaudeRunner:
             else:
                 error_msg = result.stderr or "Unknown error"
                 print(f"Error: {error_msg}")
+                
+                # Broadcast error to WebSocket clients
+                if self.websocket_server:
+                    self.websocket_server.claude_output(error_msg, "stderr")
+                    self.websocket_server.claude_status_changed(
+                        status="error",
+                        message=f"Command failed with code {result.returncode}"
+                    )
                 
                 if self.project_logger:
                     self.project_logger.log_system(
@@ -445,6 +545,14 @@ class ClaudeRunner:
                     )
                 except Exception as e:
                     self.logger.debug(f"Failed to log session summary: {e}")
+            
+            # End WebSocket session
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="stopped",
+                    message="Session completed"
+                )
+                self.websocket_server.session_ended()
     
     def _extract_tickets(self, text: str):
         """Extract tickets from Claude's response."""
@@ -530,6 +638,28 @@ class ClaudeRunner:
         
         text_lower = text.lower()
         return any(pattern.lower() in text_lower for pattern in delegation_patterns)
+    
+    def _extract_agent_from_response(self, text: str) -> Optional[str]:
+        """Try to extract agent name from delegation response."""
+        # Look for common patterns
+        import re
+        
+        # Pattern 1: subagent_type="agent_name"
+        match = re.search(r'subagent_type=["\']([^"\']*)["\'\)]', text)
+        if match:
+            return match.group(1)
+        
+        # Pattern 2: "engineer agent" etc
+        agent_names = [
+            "engineer", "qa", "documentation", "research", 
+            "security", "ops", "version_control", "data_engineer"
+        ]
+        text_lower = text.lower()
+        for agent in agent_names:
+            if f"{agent} agent" in text_lower or f"agent: {agent}" in text_lower:
+                return agent
+        
+        return None
     
     def _handle_mpm_command(self, prompt: str) -> bool:
         """Handle /mpm: commands directly without going to Claude."""
@@ -643,6 +773,14 @@ class ClaudeRunner:
                     component="subprocess"
                 )
             
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="running",
+                    pid=process.pid,
+                    message="Claude subprocess started"
+                )
+            
             # Set terminal to raw mode for proper interaction
             if sys.stdin.isatty():
                 tty.setraw(sys.stdin)
@@ -669,6 +807,14 @@ class ClaudeRunner:
                         data = os.read(master_fd, 4096)
                         if data:
                             os.write(sys.stdout.fileno(), data)
+                            # Broadcast output to WebSocket clients
+                            if self.websocket_server:
+                                try:
+                                    # Decode and send
+                                    output = data.decode('utf-8', errors='replace')
+                                    self.websocket_server.claude_output(output, "stdout")
+                                except Exception as e:
+                                    self.logger.debug(f"Failed to broadcast output: {e}")
                         else:
                             break  # EOF
                     except OSError:
@@ -692,6 +838,13 @@ class ClaudeRunner:
                     component="subprocess"
                 )
             
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="stopped",
+                    message=f"Claude subprocess exited with code {process.returncode}"
+                )
+            
         finally:
             # Restore terminal
             if original_tty and sys.stdin.isatty():
@@ -711,6 +864,10 @@ class ClaudeRunner:
                 except subprocess.TimeoutExpired:
                     process.kill()
                     process.wait()
+            
+            # End WebSocket session if in subprocess mode
+            if self.websocket_server:
+                self.websocket_server.session_ended()
 
 
 def create_simple_context() -> str:
