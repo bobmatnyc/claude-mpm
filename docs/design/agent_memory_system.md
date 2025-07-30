@@ -478,30 +478,16 @@ class MemoryPostDelegationHook(PostDelegationHook):
         super().__init__()
         self.memory_manager = AgentMemoryManager()
         
-        # Patterns for extracting different types of learnings
-        self.learning_patterns = {
-            'pattern': [
-                r'discovered pattern:?\s*(.+)',
-                r'learned that\s+(.+)',
-                r'pattern found:?\s*(.+)'
-            ],
-            'mistake': [
-                r'mistake:?\s*(.+)',
-                r'error was:?\s*(.+)', 
-                r'should not\s+(.+)',
-                r'avoid\s+(.+)'
-            ],
-            'guideline': [
-                r'guideline:?\s*(.+)',
-                r'best practice:?\s*(.+)',
-                r'should always\s+(.+)',
-                r'recommendation:?\s*(.+)'
-            ],
-            'architecture': [
-                r'architecture:?\s*(.+)',
-                r'structure:?\s*(.+)',
-                r'component:?\s*(.+)'
-            ]
+        # Map of supported types to memory sections
+        self.type_mapping = {
+            'pattern': 'pattern',           # Coding Patterns Learned
+            'architecture': 'architecture', # Project Architecture
+            'guideline': 'guideline',      # Implementation Guidelines
+            'mistake': 'mistake',          # Common Mistakes to Avoid
+            'strategy': 'strategy',        # Effective Strategies
+            'integration': 'integration',  # Integration Points
+            'performance': 'performance',  # Performance Considerations
+            'context': 'context'           # Current Technical Context
         }
     
     def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
@@ -521,18 +507,36 @@ class MemoryPostDelegationHook(PostDelegationHook):
         return context
     
     def _extract_learnings(self, text: str) -> Dict[str, List[str]]:
-        """Extract structured learnings from text."""
-        learnings = {}
+        """Extract structured learnings from text using explicit markers."""
+        learnings = {learning_type: [] for learning_type in self.type_mapping.keys()}
+        seen_learnings = set()  # Avoid duplicates
         
-        for learning_type, patterns in self.learning_patterns.items():
-            learnings[learning_type] = []
+        # Pattern to find memory blocks: # Add To Memory:\n...\n#
+        memory_pattern = r'#\s*Add\s+To\s+Memory:\s*\n((?:(?!#\s*Add\s+To\s+Memory:)(?!^\s*#\s*$).)*?)\n\s*#\s*$'
+        matches = re.finditer(memory_pattern, text, re.MULTILINE | re.DOTALL | re.IGNORECASE)
+        
+        for match in matches:
+            block_content = match.group(1).strip()
             
-            for pattern in patterns:
-                matches = re.finditer(pattern, text, re.MULTILINE | re.IGNORECASE)
-                for match in matches:
-                    learning = match.group(1).strip()
-                    if learning and len(learning) < 100:  # Reasonable length
-                        learnings[learning_type].append(learning)
+            # Extract type and content from the block
+            type_match = re.search(r'Type:\s*(\w+)', block_content, re.IGNORECASE)
+            content_match = re.search(r'Content:\s*(.+)', block_content, re.IGNORECASE | re.DOTALL)
+            
+            if type_match and content_match:
+                learning_type = type_match.group(1).lower().strip()
+                content = content_match.group(1).strip()
+                
+                # Clean up multi-line content - take first line if multiple
+                if '\n' in content:
+                    content = content.split('\n')[0].strip()
+                
+                # Validate type is supported and check content length
+                if learning_type in self.type_mapping and 5 < len(content) <= 100:
+                    # Normalize for duplicate detection
+                    normalized = content.lower()
+                    if normalized not in seen_learnings:
+                        learnings[learning_type].append(content)
+                        seen_learnings.add(normalized)
         
         return learnings
 ```
@@ -558,13 +562,43 @@ You are the {Agent Name} specialized for {domain expertise}.
 3. When you discover new patterns, state them clearly for memory capture
 4. When you make mistakes, explicitly identify them for future avoidance
 
-## Memory Learning Protocol
-To help improve your project knowledge, use these formats when you discover insights:
+## Memory Learning Protocol (Updated)
+
+### Explicit Memory Markers (Recommended)
+For precise control over what gets memorized, use the following format:
+
+```
+# Add To Memory:
+Type: pattern
+Content: All services use dependency injection for flexibility
+#
+```
+
+**Supported Types:**
+- `pattern` - Coding patterns and conventions
+- `architecture` - Architectural insights and design decisions
+- `guideline` - Implementation guidelines and best practices
+- `mistake` - Common mistakes to avoid
+- `strategy` - Effective problem-solving strategies
+- `integration` - Integration points and dependencies
+- `performance` - Performance considerations and optimizations
+- `context` - Current technical context and environment details
+
+**Guidelines:**
+- Keep content under 100 characters for quick reference
+- Be specific and actionable
+- Use multiple blocks for multiple learnings
+- The markers are case-insensitive
+
+### Legacy Pattern Recognition (Deprecated)
+The system also recognizes natural language patterns:
 
 **Pattern Discovery**: "Discovered pattern: [specific pattern]"
 **Best Practice**: "Best practice: [specific guideline]" 
 **Mistake Identification**: "Mistake: [what went wrong and why]"
 **Architecture Insight**: "Architecture: [structural understanding]"
+
+Note: The explicit marker format is preferred for reliability.
 
 ## Standard Task Execution
 [Existing agent instructions continue here...]

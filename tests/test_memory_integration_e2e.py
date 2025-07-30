@@ -76,11 +76,20 @@ def test_memory_hooks_integration():
                         'content': """
 I've created the authentication endpoint with JWT.
 
-Discovered pattern: Use bcrypt for password hashing with cost factor 12.
+# Add To Memory:
+Type: pattern
+Content: Use bcrypt for password hashing with cost factor 12
+#
 
-Best practice: Always rate limit authentication endpoints.
+# Add To Memory:
+Type: guideline
+Content: Always rate limit authentication endpoints
+#
 
-Mistake: Initially forgot to validate email format.
+# Add To Memory:
+Type: mistake
+Content: Initially forgot to validate email format
+#
 
 The implementation follows our REST API standards.
 """
@@ -94,7 +103,7 @@ The implementation follows our REST API standards.
             
             # Verify learnings were extracted
             assert post_result.success
-            assert post_result.metadata['learnings_extracted'] > 0
+            assert post_result.metadata['learnings_extracted'] == 3
             
             # Load updated memory
             updated_memory = memory_manager.load_agent_memory('engineer')
