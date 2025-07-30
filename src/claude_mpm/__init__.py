@@ -13,14 +13,14 @@ else:
 __author__ = "Claude MPM Team"
 
 # Import main components
-from .core.simple_runner import SimpleClaudeRunner
+from .core.claude_runner import ClaudeRunner
 from .services.ticket_manager import TicketManager
 
 # For backwards compatibility
-MPMOrchestrator = SimpleClaudeRunner
+MPMOrchestrator = ClaudeRunner
 
 __all__ = [
-    "SimpleClaudeRunner",
+    "ClaudeRunner",
     "MPMOrchestrator", 
     "TicketManager",
 ]

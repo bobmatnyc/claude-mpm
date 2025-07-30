@@ -1,4 +1,4 @@
-"""Simplified Claude runner replacing the complex orchestrator system."""
+"""Claude runner with both exec and subprocess launch methods."""
 
 import json
 import os
@@ -19,28 +19,34 @@ except ImportError:
     from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 
 
-class SimpleClaudeRunner:
+class ClaudeRunner:
     """
-    Simplified Claude runner that replaces the entire orchestrator system.
+    Claude runner that replaces the entire orchestrator system.
     
     This does exactly what we need:
     1. Deploy native agents to .claude/agents/
-    2. Run Claude CLI with basic subprocess calls
+    2. Run Claude CLI with either exec or subprocess
     3. Extract tickets if needed
     4. Handle both interactive and non-interactive modes
+    
+    Supports two launch methods:
+    - exec: Replace current process (default for backward compatibility)
+    - subprocess: Launch as child process for more control
     """
     
     def __init__(
         self,
         enable_tickets: bool = True,
         log_level: str = "OFF",
-        claude_args: Optional[list] = None
+        claude_args: Optional[list] = None,
+        launch_method: str = "exec"  # "exec" or "subprocess"
     ):
-        """Initialize the simple runner."""
+        """Initialize the Claude runner."""
         self.enable_tickets = enable_tickets
         self.log_level = log_level
-        self.logger = get_logger("simple_runner")
+        self.logger = get_logger("claude_runner")
         self.claude_args = claude_args or []
+        self.launch_method = launch_method
         
         # Initialize project logger for session logging
         self.project_logger = None
@@ -48,7 +54,7 @@ class SimpleClaudeRunner:
             try:
                 self.project_logger = get_project_logger(log_level)
                 self.project_logger.log_system(
-                    "Initializing SimpleClaudeRunner",
+                    f"Initializing ClaudeRunner with {launch_method} launcher",
                     level="INFO",
                     component="runner"
                 )
@@ -76,9 +82,10 @@ class SimpleClaudeRunner:
                 self.session_log_file = self.project_logger.session_dir / "system.jsonl"
                 self._log_session_event({
                     "event": "session_start",
-                    "runner": "SimpleClaudeRunner",
+                    "runner": "ClaudeRunner",
                     "enable_tickets": enable_tickets,
-                    "log_level": log_level
+                    "log_level": log_level,
+                    "launch_method": launch_method
                 })
             except Exception as e:
                 self.logger.debug(f"Failed to create session log file: {e}")
@@ -210,17 +217,22 @@ class SimpleClaudeRunner:
             
             if self.project_logger:
                 self.project_logger.log_system(
-                    "Launching Claude interactive mode",
+                    f"Launching Claude interactive mode with {self.launch_method}",
                     level="INFO",
                     component="session"
                 )
                 self._log_session_event({
                     "event": "launching_claude_interactive",
-                    "command": " ".join(cmd)
+                    "command": " ".join(cmd),
+                    "method": self.launch_method
                 })
             
-            # Replace current process with Claude
-            os.execvpe(cmd[0], cmd, clean_env)
+            # Launch using selected method
+            if self.launch_method == "subprocess":
+                self._launch_subprocess_interactive(cmd, clean_env)
+            else:
+                # Default to exec for backward compatibility
+                os.execvpe(cmd[0], cmd, clean_env)
             
         except Exception as e:
             print(f"Failed to launch Claude: {e}")
@@ -594,6 +606,111 @@ class SimpleClaudeRunner:
                     f.write(json.dumps(log_entry) + '\n')
             except Exception as e:
                 self.logger.debug(f"Failed to log session event: {e}")
+    
+    def _launch_subprocess_interactive(self, cmd: list, env: dict):
+        """Launch Claude as a subprocess with PTY for interactive mode."""
+        import pty
+        import select
+        import termios
+        import tty
+        import signal
+        
+        # Save original terminal settings
+        original_tty = None
+        if sys.stdin.isatty():
+            original_tty = termios.tcgetattr(sys.stdin)
+        
+        # Create PTY
+        master_fd, slave_fd = pty.openpty()
+        
+        try:
+            # Start Claude process
+            process = subprocess.Popen(
+                cmd,
+                stdin=slave_fd,
+                stdout=slave_fd,
+                stderr=slave_fd,
+                env=env
+            )
+            
+            # Close slave in parent
+            os.close(slave_fd)
+            
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Claude subprocess started with PID {process.pid}",
+                    level="INFO",
+                    component="subprocess"
+                )
+            
+            # Set terminal to raw mode for proper interaction
+            if sys.stdin.isatty():
+                tty.setraw(sys.stdin)
+            
+            # Handle Ctrl+C gracefully
+            def signal_handler(signum, frame):
+                if process.poll() is None:
+                    process.terminate()
+                raise KeyboardInterrupt()
+            
+            signal.signal(signal.SIGINT, signal_handler)
+            
+            # I/O loop
+            while True:
+                # Check if process is still running
+                if process.poll() is not None:
+                    break
+                
+                # Check for data from Claude or stdin
+                r, _, _ = select.select([master_fd, sys.stdin], [], [], 0)
+                
+                if master_fd in r:
+                    try:
+                        data = os.read(master_fd, 4096)
+                        if data:
+                            os.write(sys.stdout.fileno(), data)
+                        else:
+                            break  # EOF
+                    except OSError:
+                        break
+                
+                if sys.stdin in r:
+                    try:
+                        data = os.read(sys.stdin.fileno(), 4096)
+                        if data:
+                            os.write(master_fd, data)
+                    except OSError:
+                        break
+            
+            # Wait for process to complete
+            process.wait()
+            
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Claude subprocess exited with code {process.returncode}",
+                    level="INFO",
+                    component="subprocess"
+                )
+            
+        finally:
+            # Restore terminal
+            if original_tty and sys.stdin.isatty():
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_tty)
+            
+            # Close PTY
+            try:
+                os.close(master_fd)
+            except:
+                pass
+            
+            # Ensure process is terminated
+            if 'process' in locals() and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
 
 
 def create_simple_context() -> str:
@@ -625,7 +742,7 @@ Work efficiently and delegate appropriately to subagents when needed."""
 # Convenience functions for backward compatibility
 def run_claude_interactive(context: Optional[str] = None):
     """Run Claude interactively with optional context."""
-    runner = SimpleClaudeRunner()
+    runner = ClaudeRunner()
     if context is None:
         context = create_simple_context()
     runner.run_interactive(context)
@@ -633,7 +750,7 @@ def run_claude_interactive(context: Optional[str] = None):
 
 def run_claude_oneshot(prompt: str, context: Optional[str] = None) -> bool:
     """Run Claude with a single prompt."""
-    runner = SimpleClaudeRunner()
+    runner = ClaudeRunner()
     if context is None:
         context = create_simple_context()
     return runner.run_oneshot(prompt, context)
