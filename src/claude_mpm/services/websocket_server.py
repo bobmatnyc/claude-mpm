@@ -290,6 +290,41 @@ class WebSocketServer:
             "priority": priority,
             "created_at": datetime.utcnow().isoformat() + "Z"
         })
+        
+    def memory_loaded(self, agent_id: str, memory_size: int, sections_count: int):
+        """Notify when agent memory is loaded from file."""
+        self.broadcast_event("memory:loaded", {
+            "agent_id": agent_id,
+            "memory_size": memory_size,
+            "sections_count": sections_count,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    def memory_created(self, agent_id: str, template_type: str):
+        """Notify when new agent memory is created from template."""
+        self.broadcast_event("memory:created", {
+            "agent_id": agent_id,
+            "template_type": template_type,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    def memory_updated(self, agent_id: str, learning_type: str, content: str, section: str):
+        """Notify when learning is added to agent memory."""
+        self.broadcast_event("memory:updated", {
+            "agent_id": agent_id,
+            "learning_type": learning_type,
+            "content": content,
+            "section": section,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
+        
+    def memory_injected(self, agent_id: str, context_size: int):
+        """Notify when agent memory is injected into context."""
+        self.broadcast_event("memory:injected", {
+            "agent_id": agent_id,
+            "context_size": context_size,
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        })
 
 
 # Global instance for easy access

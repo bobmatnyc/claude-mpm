@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Memory Monitor</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1e1e1e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4fc3f7;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .controls {
+            background-color: #2d2d2d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        button {
+            background-color: #4fc3f7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background-color: #29b6f6;
+        }
+        
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin-left: auto;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .status.connected {
+            background-color: #4caf50;
+        }
+        
+        .status.disconnected {
+            background-color: #f44336;
+        }
+        
+        .memory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .memory-card {
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .memory-card h3 {
+            margin: 0 0 10px 0;
+            color: #81c784;
+            font-size: 18px;
+        }
+        
+        .memory-stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .memory-stat-label {
+            color: #999;
+        }
+        
+        .memory-stat-value {
+            color: #fff;
+            font-weight: bold;
+        }
+        
+        .events-container {
+            background-color: #2d2d2d;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .event {
+            background-color: #1e1e1e;
+            border-left: 3px solid #4fc3f7;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 0 4px 4px 0;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .event.memory-loaded {
+            border-left-color: #66bb6a;
+        }
+        
+        .event.memory-created {
+            border-left-color: #ffa726;
+        }
+        
+        .event.memory-updated {
+            border-left-color: #ab47bc;
+        }
+        
+        .event.memory-injected {
+            border-left-color: #29b6f6;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .event-type {
+            font-weight: bold;
+            color: #4fc3f7;
+        }
+        
+        .event-time {
+            color: #999;
+            font-size: 12px;
+        }
+        
+        .event-data {
+            font-size: 14px;
+            color: #ccc;
+        }
+        
+        .event-data-item {
+            margin-left: 15px;
+            margin-top: 3px;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to { 
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        
+        .filter-checkbox input {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 Claude MPM Memory Monitor</h1>
+        
+        <div class="controls">
+            <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+            <button id="clearBtn" onclick="clearEvents()" disabled>Clear Events</button>
+            <div class="status disconnected" id="status">Disconnected</div>
+        </div>
+        
+        <div class="memory-grid" id="memoryGrid">
+            <!-- Memory cards will be dynamically added here -->
+        </div>
+        
+        <div class="filters">
+            <div class="filter-checkbox">
+                <input type="checkbox" id="filterLoaded" checked>
+                <label for="filterLoaded">Loaded</label>
+            </div>
+            <div class="filter-checkbox">
+                <input type="checkbox" id="filterCreated" checked>
+                <label for="filterCreated">Created</label>
+            </div>
+            <div class="filter-checkbox">
+                <input type="checkbox" id="filterUpdated" checked>
+                <label for="filterUpdated">Updated</label>
+            </div>
+            <div class="filter-checkbox">
+                <input type="checkbox" id="filterInjected" checked>
+                <label for="filterInjected">Injected</label>
+            </div>
+        </div>
+        
+        <div class="events-container" id="eventsContainer">
+            <div style="text-align: center; color: #666;">No events yet. Connect to start monitoring.</div>
+        </div>
+    </div>
+
+    <script>
+        let ws = null;
+        let connected = false;
+        const events = [];
+        const agentStats = {};
+        
+        function toggleConnection() {
+            if (connected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+        
+        function connect() {
+            const statusEl = document.getElementById('status');
+            const connectBtn = document.getElementById('connectBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = () => {
+                    connected = true;
+                    statusEl.textContent = 'Connected';
+                    statusEl.className = 'status connected';
+                    connectBtn.textContent = 'Disconnect';
+                    clearBtn.disabled = false;
+                    console.log('Connected to WebSocket server');
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    if (data.type.startsWith('memory:')) {
+                        handleMemoryEvent(data);
+                    }
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+                
+                ws.onclose = () => {
+                    connected = false;
+                    statusEl.textContent = 'Disconnected';
+                    statusEl.className = 'status disconnected';
+                    connectBtn.textContent = 'Connect';
+                    clearBtn.disabled = true;
+                    console.log('Disconnected from WebSocket server');
+                };
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                alert('Failed to connect to WebSocket server. Make sure it\'s running on port 8765.');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+        
+        function handleMemoryEvent(event) {
+            events.unshift(event);
+            updateAgentStats(event);
+            updateMemoryGrid();
+            updateEventsList();
+        }
+        
+        function updateAgentStats(event) {
+            const agentId = event.data.agent_id;
+            if (!agentStats[agentId]) {
+                agentStats[agentId] = {
+                    loaded: 0,
+                    created: 0,
+                    updated: 0,
+                    injected: 0,
+                    lastSize: 0,
+                    sections: 0,
+                    learnings: []
+                };
+            }
+            
+            const stats = agentStats[agentId];
+            
+            switch (event.type) {
+                case 'memory:loaded':
+                    stats.loaded++;
+                    stats.lastSize = event.data.memory_size;
+                    stats.sections = event.data.sections_count;
+                    break;
+                case 'memory:created':
+                    stats.created++;
+                    break;
+                case 'memory:updated':
+                    stats.updated++;
+                    stats.learnings.unshift({
+                        type: event.data.learning_type,
+                        content: event.data.content,
+                        section: event.data.section
+                    });
+                    if (stats.learnings.length > 5) {
+                        stats.learnings.pop();
+                    }
+                    break;
+                case 'memory:injected':
+                    stats.injected++;
+                    break;
+            }
+        }
+        
+        function updateMemoryGrid() {
+            const grid = document.getElementById('memoryGrid');
+            grid.innerHTML = '';
+            
+            Object.entries(agentStats).forEach(([agentId, stats]) => {
+                const card = document.createElement('div');
+                card.className = 'memory-card';
+                
+                const latestLearnings = stats.learnings.map(l => 
+                    `<div class="event-data-item">• ${l.type}: ${l.content.substring(0, 50)}${l.content.length > 50 ? '...' : ''}</div>`
+                ).join('');
+                
+                card.innerHTML = `
+                    <h3>🤖 ${agentId}</h3>
+                    <div class="memory-stat">
+                        <span class="memory-stat-label">Memory Size:</span>
+                        <span class="memory-stat-value">${formatBytes(stats.lastSize)}</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-label">Sections:</span>
+                        <span class="memory-stat-value">${stats.sections}</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-label">Times Loaded:</span>
+                        <span class="memory-stat-value">${stats.loaded}</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-label">Updates:</span>
+                        <span class="memory-stat-value">${stats.updated}</span>
+                    </div>
+                    <div class="memory-stat">
+                        <span class="memory-stat-label">Injections:</span>
+                        <span class="memory-stat-value">${stats.injected}</span>
+                    </div>
+                    ${latestLearnings ? `<div style="margin-top: 10px; font-size: 12px; color: #999;">Recent Learnings:</div>${latestLearnings}` : ''}
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+        
+        function updateEventsList() {
+            const container = document.getElementById('eventsContainer');
+            const filters = {
+                loaded: document.getElementById('filterLoaded').checked,
+                created: document.getElementById('filterCreated').checked,
+                updated: document.getElementById('filterUpdated').checked,
+                injected: document.getElementById('filterInjected').checked
+            };
+            
+            const filteredEvents = events.filter(event => {
+                const eventType = event.type.split(':')[1];
+                return filters[eventType];
+            });
+            
+            if (filteredEvents.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666;">No events matching filters.</div>';
+                return;
+            }
+            
+            container.innerHTML = filteredEvents.slice(0, 100).map(event => {
+                const eventType = event.type.split(':')[1];
+                const timestamp = new Date(event.timestamp).toLocaleTimeString();
+                
+                let dataHtml = '';
+                Object.entries(event.data).forEach(([key, value]) => {
+                    if (key === 'content' && value.length > 100) {
+                        value = value.substring(0, 100) + '...';
+                    }
+                    dataHtml += `<div class="event-data-item"><strong>${key}:</strong> ${value}</div>`;
+                });
+                
+                return `
+                    <div class="event memory-${eventType}">
+                        <div class="event-header">
+                            <span class="event-type">${event.type}</span>
+                            <span class="event-time">${timestamp}</span>
+                        </div>
+                        <div class="event-data">${dataHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function clearEvents() {
+            events.length = 0;
+            Object.keys(agentStats).forEach(key => delete agentStats[key]);
+            updateMemoryGrid();
+            updateEventsList();
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // Add event listeners for filters
+        document.querySelectorAll('.filter-checkbox input').forEach(checkbox => {
+            checkbox.addEventListener('change', updateEventsList);
+        });
+    </script>
+</body>
+</html>
