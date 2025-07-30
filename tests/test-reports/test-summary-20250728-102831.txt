@@ -1,0 +1,32 @@
+
+AI Trackdown PyTools - Test Report
+=================================
+Generated: 2025-07-28T10:28:31.615191
+
+SUMMARY:
+--------
+Total Test Suites: 2
+Successful: 0
+Failed: 2
+Total Duration: 0.61s
+
+DETAILED RESULTS:
+
+❌ FAIL UNIT (0.18s)
+--------------------------------------------------
+Errors: ERROR: file or directory not found: /Users/masa/Projects/claude-mpm/tests/unit
+
+...
+
+❌ FAIL INTEGRATION (0.43s)
+--------------------------------------------------
+
+COVERAGE REPORT:
+---------------
+HTML Coverage Report: /Users/masa/Projects/claude-mpm/htmlcov/index.html
+XML Coverage Report: /Users/masa/Projects/claude-mpm/test-reports/coverage.xml
+
+ARTIFACTS:
+----------
+JSON Report: /Users/masa/Projects/claude-mpm/test-reports/test-report-20250728-102831.json
+JUnit XML Files: /Users/masa/Projects/claude-mpm/test-reports/*.xml

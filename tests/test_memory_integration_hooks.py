@@ -179,9 +179,17 @@ class TestMemoryPostDelegationHook:
                     'content': """
                     I've implemented the feature successfully.
                     
-                    Discovered pattern: Always validate user input at the API boundary.
+                    # Add To Memory:
+                    Type: pattern
+                    Content: Always validate user input at the API boundary
+                    #
                     
-                    Also learned that we should use dependency injection for better testing.
+                    Also learned something important:
+                    
+                    # Add To Memory:
+                    Type: pattern
+                    Content: Use dependency injection for better testing
+                    #
                     
                     The code follows the existing patterns in the codebase.
                     """
@@ -196,22 +204,19 @@ class TestMemoryPostDelegationHook:
         
         # Verify
         assert result.success
-        # Should extract 3 learnings: 2 patterns and 1 guideline (from "Always...")
-        assert result.metadata['learnings_extracted'] == 3
+        # Should extract 2 pattern learnings
+        assert result.metadata['learnings_extracted'] == 2
         
         # Check that learnings were stored
         calls = mock_manager.add_learning.call_args_list
-        print(f"Debug: Found {len(calls)} learnings")
-        for i, call in enumerate(calls):
-            print(f"  {i}: {call[0]}")
         
-        # We expect at least 2 learnings
-        assert len(calls) >= 2
+        # We expect exactly 2 learnings
+        assert len(calls) == 2
         
         # Check that expected learnings are present
         learnings = [(call[0][1], call[0][2]) for call in calls]
         assert ('pattern', 'Always validate user input at the API boundary') in learnings
-        assert ('pattern', 'we should use dependency injection for better testing') in learnings
+        assert ('pattern', 'Use dependency injection for better testing') in learnings
     
     @patch('claude_mpm.hooks.memory_integration_hook.AgentMemoryManager')
     def test_extracts_mistakes(self, mock_manager_class):
@@ -231,11 +236,24 @@ class TestMemoryPostDelegationHook:
                     'content': """
                     Tests completed with some issues found.
                     
-                    Mistake: I forgot to mock the database connection.
+                    # Add To Memory:
+                    Type: mistake
+                    Content: Forgot to mock the database connection
+                    #
                     
-                    We should not run integration tests against production database.
+                    We should not run integration tests against production database:
                     
-                    Always avoid hardcoded test data.
+                    # Add To Memory:
+                    Type: mistake
+                    Content: Never run integration tests against production database
+                    #
+                    
+                    Also important:
+                    
+                    # Add To Memory:
+                    Type: mistake
+                    Content: Avoid hardcoded test data
+                    #
                     """
                 }
             },
@@ -253,9 +271,10 @@ class TestMemoryPostDelegationHook:
         calls = mock_manager.add_learning.call_args_list
         learnings = [(call[0][1], call[0][2]) for call in calls]
         
-        assert ('mistake', 'I forgot to mock the database connection') in learnings
-        assert ('mistake', 'run integration tests against production database') in learnings
-        assert ('mistake', 'hardcoded test data') in learnings
+        assert len(calls) == 3
+        assert ('mistake', 'Forgot to mock the database connection') in learnings
+        assert ('mistake', 'Never run integration tests against production database') in learnings
+        assert ('mistake', 'Avoid hardcoded test data') in learnings
     
     @patch('claude_mpm.hooks.memory_integration_hook.AgentMemoryManager')
     def test_extracts_guidelines(self, mock_manager_class):
@@ -275,11 +294,20 @@ class TestMemoryPostDelegationHook:
                     'content': """
                     Implementation complete.
                     
-                    Best practice: Use async/await for all I/O operations.
+                    # Add To Memory:
+                    Type: guideline
+                    Content: Use async/await for all I/O operations
+                    #
                     
-                    Guideline: Keep functions under 50 lines.
+                    # Add To Memory:
+                    Type: guideline
+                    Content: Keep functions under 50 lines
+                    #
                     
-                    Always use type hints in Python code.
+                    # Add To Memory:
+                    Type: guideline
+                    Content: Always use type hints in Python code
+                    #
                     """
                 }
             },
@@ -294,9 +322,10 @@ class TestMemoryPostDelegationHook:
         calls = mock_manager.add_learning.call_args_list
         learnings = [(call[0][1], call[0][2]) for call in calls]
         
+        assert len(calls) == 3
         assert ('guideline', 'Use async/await for all I/O operations') in learnings
         assert ('guideline', 'Keep functions under 50 lines') in learnings
-        assert ('guideline', 'use type hints in Python code') in learnings
+        assert ('guideline', 'Always use type hints in Python code') in learnings
     
     @patch('claude_mpm.hooks.memory_integration_hook.AgentMemoryManager')
     def test_respects_auto_learning_config(self, mock_manager_class):
@@ -379,9 +408,15 @@ class TestMemoryPostDelegationHook:
                 'agent': 'Engineer',
                 'result': {
                     'content': f"""
-                    Discovered pattern: Short learning.
+                    # Add To Memory:
+                    Type: pattern
+                    Content: Short learning
+                    #
                     
-                    Discovered pattern: {'x' * 150}
+                    # Add To Memory:
+                    Type: pattern
+                    Content: {'x' * 150}
+                    #
                     """
                 }
             },
