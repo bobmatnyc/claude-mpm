@@ -49,12 +49,13 @@ def run_session(args):
     claude_args = getattr(args, 'claude_args', []) or []
     launch_method = getattr(args, 'launch_method', 'exec')
     enable_websocket = getattr(args, 'websocket', False)
+    websocket_port = getattr(args, 'websocket_port', 8765)
     
     # Display WebSocket info if enabled
     if enable_websocket:
         try:
             import websockets
-            print("✓ WebSocket server enabled at ws://localhost:8765")
+            print(f"✓ WebSocket server enabled at ws://localhost:{websocket_port}")
             if launch_method == "exec":
                 print("  Note: WebSocket monitoring limited in exec mode (use --launch-method subprocess for full features)")
         except ImportError:
@@ -66,7 +67,8 @@ def run_session(args):
         log_level=args.logging,
         claude_args=claude_args,
         launch_method=launch_method,
-        enable_websocket=enable_websocket
+        enable_websocket=enable_websocket,
+        websocket_port=websocket_port
     )
     
     # Create basic context

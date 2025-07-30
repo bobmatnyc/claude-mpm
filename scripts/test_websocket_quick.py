@@ -3,11 +3,12 @@
 
 import asyncio
 import json
+import sys
 import websockets
 
-async def quick_test():
+async def quick_test(port=8765):
     """Quick test to verify WebSocket server is running."""
-    uri = "ws://localhost:8765"
+    uri = f"ws://localhost:{port}"
     
     try:
         async with websockets.connect(uri) as websocket:
@@ -21,6 +22,7 @@ async def quick_test():
             print(f"✓ Server responded with status: {status['type']}")
             print(f"  Claude status: {status['data']['claude_status']}")
             print(f"  Session ID: {status['data']['session_id']}")
+            print(f"  Instance port: {status['data'].get('websocket_port', 'unknown')}")
             
             return True
             
@@ -33,5 +35,6 @@ async def quick_test():
         return False
 
 if __name__ == "__main__":
-    success = asyncio.run(quick_test())
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
+    success = asyncio.run(quick_test(port))
     exit(0 if success else 1)

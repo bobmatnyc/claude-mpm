@@ -41,7 +41,8 @@ class ClaudeRunner:
         log_level: str = "OFF",
         claude_args: Optional[list] = None,
         launch_method: str = "exec",  # "exec" or "subprocess"
-        enable_websocket: bool = False
+        enable_websocket: bool = False,
+        websocket_port: int = 8765
     ):
         """Initialize the Claude runner."""
         self.enable_tickets = enable_tickets
@@ -50,6 +51,7 @@ class ClaudeRunner:
         self.claude_args = claude_args or []
         self.launch_method = launch_method
         self.enable_websocket = enable_websocket
+        self.websocket_port = websocket_port
         
         # Initialize project logger for session logging
         self.project_logger = None
@@ -154,8 +156,8 @@ class ClaudeRunner:
         if self.enable_websocket:
             try:
                 # Lazy import to avoid circular dependencies
-                from claude_mpm.services.websocket_server import get_websocket_server
-                self.websocket_server = get_websocket_server()
+                from claude_mpm.services.websocket_server import WebSocketServer
+                self.websocket_server = WebSocketServer(port=self.websocket_port)
                 self.websocket_server.start()
                 
                 # Generate session ID
@@ -331,8 +333,8 @@ class ClaudeRunner:
         if self.enable_websocket:
             try:
                 # Lazy import to avoid circular dependencies
-                from claude_mpm.services.websocket_server import get_websocket_server
-                self.websocket_server = get_websocket_server()
+                from claude_mpm.services.websocket_server import WebSocketServer
+                self.websocket_server = WebSocketServer(port=self.websocket_port)
                 self.websocket_server.start()
                 
                 # Generate session ID
