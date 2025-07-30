@@ -121,6 +121,8 @@ def _ensure_run_attributes(args):
     args.non_interactive = getattr(args, 'non_interactive', False)
     args.no_native_agents = getattr(args, 'no_native_agents', False)
     args.claude_args = getattr(args, 'claude_args', [])
+    args.launch_method = getattr(args, 'launch_method', 'exec')
+    args.websocket = getattr(args, 'websocket', False)
 
 
 def _execute_command(command: str, args) -> int:

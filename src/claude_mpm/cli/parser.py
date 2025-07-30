@@ -107,6 +107,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         default="exec",
         help="Method to launch Claude: exec (replace process) or subprocess (child process)"
     )
+    run_group.add_argument(
+        "--websocket",
+        action="store_true",
+        help="Enable WebSocket server for real-time monitoring (ws://localhost:8765)"
+    )
     
     # Input/output options
     io_group = parser.add_argument_group('input/output options')
@@ -183,6 +188,17 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         "--no-native-agents",
         action="store_true",
         help="Disable deployment of Claude Code native agents"
+    )
+    run_group.add_argument(
+        "--launch-method",
+        choices=["exec", "subprocess"],
+        default="exec",
+        help="Method to launch Claude: exec (replace process) or subprocess (child process)"
+    )
+    run_group.add_argument(
+        "--websocket",
+        action="store_true",
+        help="Enable WebSocket server for real-time monitoring (ws://localhost:8765)"
     )
     
     # Input/output options
