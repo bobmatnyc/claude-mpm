@@ -739,6 +739,10 @@ automatically normalize them to lowercase-hyphenated format for the Task tool.
 Work efficiently and delegate appropriately to subagents when needed."""
 
 
+# Backward compatibility alias
+SimpleClaudeRunner = ClaudeRunner
+
+
 # Convenience functions for backward compatibility
 def run_claude_interactive(context: Optional[str] = None):
     """Run Claude interactively with optional context."""
