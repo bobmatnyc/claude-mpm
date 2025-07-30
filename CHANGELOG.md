@@ -5,6 +5,31 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0-beta.1] - 2025-07-30
+
+### Added
+- **Agent Memory System** (Beta) - Adaptive agents that learn project-specific patterns
+  - Design document: docs/design/agent_memory_system.md
+  - Implementation plan: docs/design/agent_memory_implementation_plan.md
+  - Memory files stored in .claude-mpm/memories/ for each project
+  - Per-agent knowledge accumulation with 8KB size limits
+  - Opt-in automatic learning extraction from agent outputs
+  - Manual memory management via CLI commands (planned)
+  - Full backwards compatibility maintained
+
+### Changed
+- Memory system architecture planned for phased implementation:
+  - Phase 1: Core memory manager and CLI commands
+  - Phase 2: Hook integration for automatic memory injection
+  - Phase 3: Agent template enhancements
+  - Phase 4: Performance optimization and polish
+
+### Notes
+- This is a beta release for testing memory system design and planning
+- No functional implementation yet - design phase only
+- Memory files will be tracked in version control for team knowledge sharing
+- Designed for local deployments with per-project agent specialization
+
 ## [3.1.5] - 2025-07-30
 
 ### Added
