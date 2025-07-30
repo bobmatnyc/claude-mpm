@@ -12,3 +12,4 @@ flask-cors>=4.0.0
 watchdog>=3.0.0
 tree-sitter>=0.21.0
 tree-sitter-language-pack>=0.20.0
+websockets>=12.0
