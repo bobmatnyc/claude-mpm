@@ -27,6 +27,7 @@ class CLICommands(str, Enum):
     INFO = "info"
     AGENTS = "agents"
     UI = "ui"
+    MEMORY = "memory"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -52,6 +53,14 @@ class AgentCommands(str, Enum):
     LIST = "list"
     DEPLOY = "deploy"
     FORCE_DEPLOY = "force-deploy"
+    CLEAN = "clean"
+
+
+class MemoryCommands(str, Enum):
+    """Memory subcommand constants."""
+    STATUS = "status"
+    VIEW = "view"
+    ADD = "add"
     CLEAN = "clean"
 
 

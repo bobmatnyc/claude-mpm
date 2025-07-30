@@ -227,7 +227,27 @@ class Config:
             # Additional configuration
             "correction_max_file_size_mb": 10,
             "correction_backup_enabled": True,
-            "correction_compression_enabled": True
+            "correction_compression_enabled": True,
+            # Agent Memory System configuration
+            "memory": {
+                "enabled": True,                    # Master switch for memory system
+                "auto_learning": False,             # Automatic learning extraction
+                "limits": {
+                    "default_size_kb": 8,           # Default file size limit
+                    "max_sections": 10,             # Maximum sections per file
+                    "max_items_per_section": 15,    # Maximum items per section
+                    "max_line_length": 120          # Maximum line length
+                },
+                "agent_overrides": {
+                    "research": {                   # Research agent override
+                        "size_kb": 16,              # Can have larger memory
+                        "auto_learning": True       # Enable auto learning
+                    },
+                    "qa": {                         # QA agent override
+                        "auto_learning": True       # Enable auto learning
+                    }
+                }
+            }
         }
 
         # Apply defaults for missing keys
