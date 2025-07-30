@@ -1,6 +1,6 @@
 """Core components for Claude MPM."""
 
-from .simple_runner import SimpleClaudeRunner
+from .claude_runner import ClaudeRunner
 from .mixins import LoggerMixin
 
 # Import config components if needed
@@ -24,7 +24,7 @@ except ImportError:
     pass
 
 __all__ = [
-    "SimpleClaudeRunner",
+    "ClaudeRunner",
     "LoggerMixin",
     "Config",
     "ConfigAliases",
