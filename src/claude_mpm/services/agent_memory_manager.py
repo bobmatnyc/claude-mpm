@@ -27,6 +27,7 @@ import logging
 from claude_mpm.core import LoggerMixin
 from claude_mpm.core.config import Config
 from claude_mpm.utils.paths import PathResolver
+from claude_mpm.services.websocket_server import get_websocket_server
 
 
 class AgentMemoryManager(LoggerMixin):
@@ -162,6 +163,17 @@ class AgentMemoryManager(LoggerMixin):
         
         try:
             content = memory_file.read_text(encoding='utf-8')
+            
+            # Emit WebSocket event for memory loaded
+            try:
+                ws_server = get_websocket_server()
+                file_size = len(content.encode('utf-8'))
+                # Count sections by looking for lines starting with ##
+                sections_count = sum(1 for line in content.split('\n') if line.startswith('## '))
+                ws_server.memory_loaded(agent_id, file_size, sections_count)
+            except Exception as ws_error:
+                self.logger.debug(f"WebSocket notification failed: {ws_error}")
+            
             return self._validate_and_repair(content, agent_id)
         except Exception as e:
             self.logger.error(f"Error reading memory file for {agent_id}: {e}")
@@ -227,7 +239,17 @@ class AgentMemoryManager(LoggerMixin):
         }
         
         section = section_mapping.get(learning_type, 'Recent Learnings')
-        return self.update_agent_memory(agent_id, section, content)
+        success = self.update_agent_memory(agent_id, section, content)
+        
+        # Emit WebSocket event for memory updated
+        if success:
+            try:
+                ws_server = get_websocket_server()
+                ws_server.memory_updated(agent_id, learning_type, content, section)
+            except Exception as ws_error:
+                self.logger.debug(f"WebSocket notification failed: {ws_error}")
+        
+        return success
     
     def _create_default_memory(self, agent_id: str) -> str:
         """Create default memory file for agent.
@@ -300,6 +322,13 @@ class AgentMemoryManager(LoggerMixin):
             memory_file = self.memories_dir / f"{agent_id}_agent.md"
             memory_file.write_text(template, encoding='utf-8')
             self.logger.info(f"Created default memory file for {agent_id}")
+            
+            # Emit WebSocket event for memory created
+            try:
+                ws_server = get_websocket_server()
+                ws_server.memory_created(agent_id, "default")
+            except Exception as ws_error:
+                self.logger.debug(f"WebSocket notification failed: {ws_error}")
         except Exception as e:
             self.logger.error(f"Error saving default memory for {agent_id}: {e}")
         
