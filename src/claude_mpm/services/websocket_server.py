@@ -3,6 +3,7 @@
 import asyncio
 import json
 import logging
+import os
 import threading
 import time
 from datetime import datetime
@@ -132,7 +133,13 @@ class WebSocketServer:
                 "session_start": self.session_start,
                 "claude_status": self.claude_status,
                 "claude_pid": self.claude_pid,
-                "connected_clients": len(self.clients)
+                "connected_clients": len(self.clients),
+                "websocket_port": self.port,
+                "instance_info": {
+                    "port": self.port,
+                    "host": self.host,
+                    "working_dir": os.getcwd() if self.session_id else None
+                }
             }
         }
         await websocket.send(json.dumps(status))
@@ -209,7 +216,13 @@ class WebSocketServer:
             "session_id": session_id,
             "start_time": self.session_start,
             "launch_method": launch_method,
-            "working_directory": working_dir
+            "working_directory": working_dir,
+            "websocket_port": self.port,
+            "instance_info": {
+                "port": self.port,
+                "host": self.host,
+                "working_dir": working_dir
+            }
         })
         
     def session_ended(self):

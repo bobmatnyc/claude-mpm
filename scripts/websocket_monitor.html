@@ -130,9 +130,12 @@
         
         <div class="status">
             <strong>Status:</strong> <span id="status" class="disconnected">Disconnected</span>
+            <strong style="margin-left: 20px;">Port:</strong>
+            <input type="number" id="port" value="8765" min="1" max="65535" style="width: 80px; margin-right: 10px;">
             <button id="connect-btn" onclick="connect()">Connect</button>
             <button id="disconnect-btn" onclick="disconnect()" disabled>Disconnect</button>
             <button onclick="clearEvents()">Clear</button>
+            <span id="instance-info" style="margin-left: 20px; color: #4ec9b0;"></span>
         </div>
         
         <div class="events" id="events"></div>
@@ -222,7 +225,8 @@
         function connect() {
             if (ws) return;
             
-            ws = new WebSocket('ws://localhost:8765');
+            const port = document.getElementById('port').value || 8765;
+            ws = new WebSocket(`ws://localhost:${port}`);
             
             ws.onopen = () => {
                 updateStatus(true);
@@ -243,6 +247,15 @@
                 try {
                     const data = JSON.parse(event.data);
                     addEvent(data);
+                    
+                    // Update instance info if this is a status or session event
+                    if (data.type === 'system.status' || data.type === 'session.start') {
+                        const instanceInfo = data.data.instance_info;
+                        if (instanceInfo) {
+                            document.getElementById('instance-info').textContent = 
+                                `Instance: ${instanceInfo.working_dir || 'unknown'} (port ${instanceInfo.port})`;
+                        }
+                    }
                 } catch (e) {
                     console.error('Failed to parse message:', e);
                 }

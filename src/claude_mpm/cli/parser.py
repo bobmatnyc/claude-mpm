@@ -110,7 +110,13 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     run_group.add_argument(
         "--websocket",
         action="store_true",
-        help="Enable WebSocket server for real-time monitoring (ws://localhost:8765)"
+        help="Enable WebSocket server for real-time monitoring (default port: 8765)"
+    )
+    run_group.add_argument(
+        "--websocket-port",
+        type=int,
+        default=8765,
+        help="WebSocket server port (default: 8765)"
     )
     
     # Input/output options
@@ -198,7 +204,13 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     run_group.add_argument(
         "--websocket",
         action="store_true",
-        help="Enable WebSocket server for real-time monitoring (ws://localhost:8765)"
+        help="Enable WebSocket server for real-time monitoring (default port: 8765)"
+    )
+    run_group.add_argument(
+        "--websocket-port",
+        type=int,
+        default=8765,
+        help="WebSocket server port (default: 8765)"
     )
     
     # Input/output options
