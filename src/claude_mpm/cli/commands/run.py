@@ -21,7 +21,7 @@ def run_session(args):
     WHY: This is the primary command that users interact with. It sets up the
     environment, optionally deploys agents, and launches Claude with the MPM framework.
     
-    DESIGN DECISION: We use SimpleClaudeRunner to handle the complexity of
+    DESIGN DECISION: We use ClaudeRunner to handle the complexity of
     subprocess management and hook integration, keeping this function focused
     on high-level orchestration.
     
@@ -33,9 +33,9 @@ def run_session(args):
         logger.info("Starting Claude MPM session")
     
     try:
-        from ...core.simple_runner import SimpleClaudeRunner, create_simple_context
+        from ...core.claude_runner import ClaudeRunner, create_simple_context
     except ImportError:
-        from claude_mpm.core.simple_runner import SimpleClaudeRunner, create_simple_context
+        from claude_mpm.core.claude_runner import ClaudeRunner, create_simple_context
     
     # Skip native agents if disabled
     if getattr(args, 'no_native_agents', False):
@@ -47,10 +47,12 @@ def run_session(args):
     # Create simple runner
     enable_tickets = not args.no_tickets
     claude_args = getattr(args, 'claude_args', []) or []
-    runner = SimpleClaudeRunner(
+    launch_method = getattr(args, 'launch_method', 'exec')
+    runner = ClaudeRunner(
         enable_tickets=enable_tickets,
         log_level=args.logging,
-        claude_args=claude_args
+        claude_args=claude_args,
+        launch_method=launch_method
     )
     
     # Create basic context

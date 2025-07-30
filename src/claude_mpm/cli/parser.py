@@ -101,6 +101,12 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Disable deployment of Claude Code native agents"
     )
+    run_group.add_argument(
+        "--launch-method",
+        choices=["exec", "subprocess"],
+        default="exec",
+        help="Method to launch Claude: exec (replace process) or subprocess (child process)"
+    )
     
     # Input/output options
     io_group = parser.add_argument_group('input/output options')
