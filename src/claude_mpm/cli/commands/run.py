@@ -48,11 +48,25 @@ def run_session(args):
     enable_tickets = not args.no_tickets
     claude_args = getattr(args, 'claude_args', []) or []
     launch_method = getattr(args, 'launch_method', 'exec')
+    enable_websocket = getattr(args, 'websocket', False)
+    
+    # Display WebSocket info if enabled
+    if enable_websocket:
+        try:
+            import websockets
+            print("✓ WebSocket server enabled at ws://localhost:8765")
+            if launch_method == "exec":
+                print("  Note: WebSocket monitoring limited in exec mode (use --launch-method subprocess for full features)")
+        except ImportError:
+            print("⚠️  WebSocket server requested but 'websockets' package not installed")
+            print("  Install with: pip install websockets")
+    
     runner = ClaudeRunner(
         enable_tickets=enable_tickets,
         log_level=args.logging,
         claude_args=claude_args,
-        launch_method=launch_method
+        launch_method=launch_method,
+        enable_websocket=enable_websocket
     )
     
     # Create basic context
