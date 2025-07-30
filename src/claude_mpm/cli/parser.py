@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 
-from ..constants import CLICommands, CLIPrefix, AgentCommands, LogLevel
+from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, LogLevel
 
 
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
@@ -335,6 +335,60 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         "--target",
         type=Path,
         help="Target directory (default: .claude/)"
+    )
+    
+    # Memory command with subcommands
+    memory_parser = subparsers.add_parser(
+        CLICommands.MEMORY.value,
+        help="Manage agent memory files"
+    )
+    add_common_arguments(memory_parser)
+    
+    memory_subparsers = memory_parser.add_subparsers(
+        dest="memory_command",
+        help="Memory commands",
+        metavar="SUBCOMMAND"
+    )
+    
+    # Status command
+    status_parser = memory_subparsers.add_parser(
+        MemoryCommands.STATUS.value,
+        help="Show memory file status"
+    )
+    
+    # View command
+    view_parser = memory_subparsers.add_parser(
+        MemoryCommands.VIEW.value,
+        help="View agent memory file"
+    )
+    view_parser.add_argument(
+        "agent_id",
+        help="Agent ID to view memory for"
+    )
+    
+    # Add command
+    add_parser = memory_subparsers.add_parser(
+        MemoryCommands.ADD.value,
+        help="Manually add learning to agent memory"
+    )
+    add_parser.add_argument(
+        "agent_id",
+        help="Agent ID to add learning to"
+    )
+    add_parser.add_argument(
+        "learning_type",
+        choices=["pattern", "error", "optimization", "preference", "context"],
+        help="Type of learning to add"
+    )
+    add_parser.add_argument(
+        "content",
+        help="Learning content to add"
+    )
+    
+    # Clean command
+    clean_memory_parser = memory_subparsers.add_parser(
+        MemoryCommands.CLEAN.value,
+        help="Clean up old/unused memory files"
     )
     
     return parser
