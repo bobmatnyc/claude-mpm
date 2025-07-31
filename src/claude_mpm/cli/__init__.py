@@ -125,6 +125,7 @@ def _ensure_run_attributes(args):
     args.launch_method = getattr(args, 'launch_method', 'exec')
     args.websocket = getattr(args, 'websocket', False)
     args.websocket_port = getattr(args, 'websocket_port', 8765)
+    args.manager = getattr(args, 'manager', False)
 
 
 def _execute_command(command: str, args) -> int:
