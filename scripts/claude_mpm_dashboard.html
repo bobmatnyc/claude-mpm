@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #252525;
+            --bg-tertiary: #2d2d2d;
+            --text-primary: #e0e0e0;
+            --text-secondary: #999;
+            --accent-blue: #4fc3f7;
+            --accent-green: #66bb6a;
+            --accent-orange: #ffa726;
+            --accent-purple: #ab47bc;
+            --accent-red: #ef5350;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+        
+        .header {
+            background-color: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            transition: background-color 0.3s;
+        }
+        
+        .status-indicator.connected {
+            background-color: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        button {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid #444;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        button:hover {
+            background-color: #333;
+            border-color: var(--accent-blue);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 300px 1fr 350px;
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+        
+        .central-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow: hidden;
+        }
+        
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+        
+        .widget {
+            background-color: var(--bg-secondary);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #333;
+        }
+        
+        .widget-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .session-info {
+            display: grid;
+            gap: 0.5rem;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.875rem;
+        }
+        
+        .info-label {
+            color: var(--text-secondary);
+        }
+        
+        .info-value {
+            color: var(--text-primary);
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        
+        .agent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .agent-card {
+            background-color: var(--bg-tertiary);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 0.75rem;
+            transition: all 0.2s;
+        }
+        
+        .agent-card.active {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 10px rgba(102, 187, 106, 0.3);
+        }
+        
+        .agent-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .agent-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .todo-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .todo-item {
+            background-color: var(--bg-tertiary);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .todo-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+        }
+        
+        .todo-status.pending { background-color: var(--text-secondary); }
+        .todo-status.in_progress { background-color: var(--accent-orange); }
+        .todo-status.completed { background-color: var(--accent-green); }
+        
+        .output-console {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 200px;
+        }
+        
+        .console-output {
+            flex: 1;
+            background-color: #000;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.5rem;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .console-line {
+            margin-bottom: 0.25rem;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+        
+        .console-line.stdout { color: #0f0; }
+        .console-line.stderr { color: #f44; }
+        .console-line.system { color: #4fc3f7; }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .memory-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .memory-item {
+            background-color: var(--bg-tertiary);
+            border-left: 3px solid var(--accent-purple);
+            padding: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .memory-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+        
+        .event-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .event-item {
+            background-color: var(--bg-tertiary);
+            border-left: 3px solid #444;
+            padding: 0.5rem;
+            font-size: 0.75rem;
+            animation: slideIn 0.3s;
+        }
+        
+        .event-item.session { border-left-color: var(--accent-blue); }
+        .event-item.agent { border-left-color: var(--accent-green); }
+        .event-item.memory { border-left-color: var(--accent-purple); }
+        .event-item.todo { border-left-color: var(--accent-orange); }
+        .event-item.error { border-left-color: var(--accent-red); }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-10px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .stat-card {
+            background-color: var(--bg-tertiary);
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 0.75rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .sidebar, .right-panel {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <header class="header">
+            <h1>🚀 Claude MPM Dashboard</h1>
+            <div class="connection-status">
+                <div class="controls">
+                    <button id="connectBtn" onclick="toggleConnection()">Connect</button>
+                    <button id="clearBtn" onclick="clearConsole()" disabled>Clear Console</button>
+                    <button id="historyBtn" onclick="requestHistory()" disabled>Load History</button>
+                </div>
+                <span id="statusText">Disconnected</span>
+                <div class="status-indicator" id="statusIndicator"></div>
+            </div>
+        </header>
+        
+        <main class="main-content">
+            <aside class="sidebar">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">📊 Session Info</h2>
+                    </div>
+                    <div class="session-info" id="sessionInfo">
+                        <div class="info-row">
+                            <span class="info-label">Session ID:</span>
+                            <span class="info-value" id="sessionId">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <span class="info-value" id="claudeStatus">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Duration:</span>
+                            <span class="info-value" id="sessionDuration">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Working Dir:</span>
+                            <span class="info-value" id="workingDir" style="font-size: 0.75rem;">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">WS Port:</span>
+                            <span class="info-value" id="wsPort">-</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">🤖 Active Agents</h2>
+                    </div>
+                    <div class="agent-list" id="agentList"></div>
+                </div>
+                
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">📈 Statistics</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalEvents">0</div>
+                            <div class="stat-label">Total Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="delegationCount">0</div>
+                            <div class="stat-label">Delegations</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="memoryOps">0</div>
+                            <div class="stat-label">Memory Ops</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="errorCount">0</div>
+                            <div class="stat-label">Errors</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <div class="central-panel">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">✅ Todo List</h2>
+                        <span id="todoStats" style="font-size: 0.875rem; color: var(--text-secondary);"></span>
+                    </div>
+                    <div class="todo-list" id="todoList"></div>
+                </div>
+                
+                <div class="widget output-console">
+                    <div class="widget-header">
+                        <h2 class="widget-title">💻 Console Output</h2>
+                        <span id="outputCount" style="font-size: 0.875rem; color: var(--text-secondary);">0 lines</span>
+                    </div>
+                    <div class="console-output" id="consoleOutput"></div>
+                </div>
+            </div>
+            
+            <aside class="right-panel">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">🧠 Recent Memory Updates</h2>
+                    </div>
+                    <div class="memory-panel" id="memoryPanel"></div>
+                </div>
+                
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">📡 Event Feed</h2>
+                    </div>
+                    <div class="event-feed" id="eventFeed"></div>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        let ws = null;
+        let connected = false;
+        let sessionStartTime = null;
+        let durationInterval = null;
+        
+        // State tracking
+        const state = {
+            session: {},
+            agents: {},
+            todos: [],
+            stats: {
+                totalEvents: 0,
+                delegations: 0,
+                memoryOps: 0,
+                errors: 0,
+                outputLines: 0
+            },
+            recentMemory: [],
+            events: []
+        };
+        
+        function toggleConnection() {
+            if (connected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+        
+        function connect() {
+            const statusEl = document.getElementById('statusText');
+            const indicatorEl = document.getElementById('statusIndicator');
+            const connectBtn = document.getElementById('connectBtn');
+            
+            try {
+                ws = new WebSocket('ws://localhost:8765');
+                
+                ws.onopen = () => {
+                    connected = true;
+                    statusEl.textContent = 'Connected';
+                    indicatorEl.classList.add('connected');
+                    connectBtn.textContent = 'Disconnect';
+                    document.getElementById('clearBtn').disabled = false;
+                    document.getElementById('historyBtn').disabled = false;
+                    
+                    addSystemMessage('Connected to Claude MPM WebSocket');
+                    
+                    // Request current status
+                    ws.send(JSON.stringify({ command: 'get_status' }));
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    addSystemMessage('WebSocket error: ' + error, 'error');
+                };
+                
+                ws.onclose = () => {
+                    connected = false;
+                    statusEl.textContent = 'Disconnected';
+                    indicatorEl.classList.remove('connected');
+                    connectBtn.textContent = 'Connect';
+                    document.getElementById('clearBtn').disabled = true;
+                    document.getElementById('historyBtn').disabled = true;
+                    
+                    if (durationInterval) {
+                        clearInterval(durationInterval);
+                        durationInterval = null;
+                    }
+                    
+                    addSystemMessage('Disconnected from Claude MPM WebSocket');
+                };
+            } catch (error) {
+                console.error('Failed to connect:', error);
+                alert('Failed to connect to WebSocket server. Make sure claude-mpm is running with --websocket flag.');
+            }
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+            }
+        }
+        
+        function requestHistory() {
+            if (ws && connected) {
+                ws.send(JSON.stringify({ command: 'get_history' }));
+            }
+        }
+        
+        function handleEvent(event) {
+            state.stats.totalEvents++;
+            updateStats();
+            
+            // Add to event feed
+            addEventToFeed(event);
+            
+            // Handle specific event types
+            switch (event.type) {
+                case 'session.start':
+                    handleSessionStart(event.data);
+                    break;
+                case 'session.end':
+                    handleSessionEnd(event.data);
+                    break;
+                case 'claude.status':
+                    updateClaudeStatus(event.data);
+                    break;
+                case 'claude.output':
+                    addConsoleOutput(event.data);
+                    break;
+                case 'agent.delegation':
+                    handleAgentDelegation(event.data);
+                    break;
+                case 'todo.update':
+                    updateTodoList(event.data);
+                    break;
+                case 'memory:loaded':
+                case 'memory:created':
+                case 'memory:updated':
+                case 'memory:injected':
+                    handleMemoryEvent(event);
+                    break;
+                case 'system.status':
+                    handleSystemStatus(event.data);
+                    break;
+                case 'history':
+                    handleHistory(event.data);
+                    break;
+            }
+        }
+        
+        function handleSessionStart(data) {
+            state.session = data;
+            sessionStartTime = new Date(data.start_time);
+            
+            document.getElementById('sessionId').textContent = data.session_id.substring(0, 8) + '...';
+            document.getElementById('workingDir').textContent = data.working_directory || '-';
+            document.getElementById('wsPort').textContent = data.websocket_port || '8765';
+            
+            // Start duration timer
+            if (durationInterval) clearInterval(durationInterval);
+            durationInterval = setInterval(updateDuration, 1000);
+            
+            addSystemMessage(`Session started: ${data.session_id}`);
+        }
+        
+        function handleSessionEnd(data) {
+            if (durationInterval) {
+                clearInterval(durationInterval);
+                durationInterval = null;
+            }
+            
+            addSystemMessage(`Session ended after ${formatDuration(data.duration_seconds)}`);
+        }
+        
+        function updateClaudeStatus(data) {
+            const statusEl = document.getElementById('claudeStatus');
+            statusEl.textContent = data.status;
+            statusEl.style.color = data.status === 'running' ? 'var(--accent-green)' : 
+                                  data.status === 'error' ? 'var(--accent-red)' : 
+                                  'var(--text-primary)';
+        }
+        
+        function addConsoleOutput(data) {
+            const consoleEl = document.getElementById('consoleOutput');
+            const line = document.createElement('div');
+            line.className = `console-line ${data.stream}`;
+            line.textContent = data.content;
+            consoleEl.appendChild(line);
+            
+            // Auto-scroll to bottom
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+            
+            // Update line count
+            state.stats.outputLines++;
+            document.getElementById('outputCount').textContent = `${state.stats.outputLines} lines`;
+            
+            // Limit console lines
+            while (consoleEl.children.length > 1000) {
+                consoleEl.removeChild(consoleEl.firstChild);
+            }
+        }
+        
+        function addSystemMessage(message, type = 'system') {
+            addConsoleOutput({
+                content: `[${new Date().toLocaleTimeString()}] ${message}`,
+                stream: type
+            });
+        }
+        
+        function handleAgentDelegation(data) {
+            state.stats.delegations++;
+            updateStats();
+            
+            // Update agent stats
+            if (!state.agents[data.agent]) {
+                state.agents[data.agent] = {
+                    delegations: 0,
+                    lastActive: null,
+                    memoryOps: 0
+                };
+            }
+            
+            state.agents[data.agent].delegations++;
+            state.agents[data.agent].lastActive = new Date();
+            
+            updateAgentList();
+            addSystemMessage(`Task delegated to ${data.agent}: ${data.task.substring(0, 50)}...`);
+        }
+        
+        function updateTodoList(data) {
+            state.todos = data.todos || [];
+            const todoListEl = document.getElementById('todoList');
+            const todoStatsEl = document.getElementById('todoStats');
+            
+            // Update stats
+            const stats = data.stats || {
+                total: state.todos.length,
+                completed: state.todos.filter(t => t.status === 'completed').length,
+                in_progress: state.todos.filter(t => t.status === 'in_progress').length,
+                pending: state.todos.filter(t => t.status === 'pending').length
+            };
+            
+            todoStatsEl.textContent = `${stats.completed}/${stats.total} completed`;
+            
+            // Update list
+            todoListEl.innerHTML = '';
+            state.todos.forEach(todo => {
+                const todoEl = document.createElement('div');
+                todoEl.className = 'todo-item';
+                todoEl.innerHTML = `
+                    <div class="todo-status ${todo.status}"></div>
+                    <div>
+                        <div>${todo.content}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                            ${todo.priority} priority
+                        </div>
+                    </div>
+                `;
+                todoListEl.appendChild(todoEl);
+            });
+        }
+        
+        function handleMemoryEvent(event) {
+            state.stats.memoryOps++;
+            updateStats();
+            
+            // Update agent memory stats
+            const agentId = event.data.agent_id;
+            if (!state.agents[agentId]) {
+                state.agents[agentId] = {
+                    delegations: 0,
+                    lastActive: null,
+                    memoryOps: 0
+                };
+            }
+            state.agents[agentId].memoryOps++;
+            updateAgentList();
+            
+            // Add to recent memory updates
+            if (event.type === 'memory:updated') {
+                state.recentMemory.unshift({
+                    agent: agentId,
+                    type: event.data.learning_type,
+                    content: event.data.content,
+                    section: event.data.section,
+                    timestamp: event.timestamp
+                });
+                
+                // Keep only recent 10
+                state.recentMemory = state.recentMemory.slice(0, 10);
+                updateMemoryPanel();
+            }
+        }
+        
+        function updateMemoryPanel() {
+            const memoryPanelEl = document.getElementById('memoryPanel');
+            memoryPanelEl.innerHTML = '';
+            
+            state.recentMemory.forEach(memory => {
+                const memoryEl = document.createElement('div');
+                memoryEl.className = 'memory-item';
+                memoryEl.innerHTML = `
+                    <div class="memory-meta">
+                        <span>${memory.agent} - ${memory.type}</span>
+                        <span>${new Date(memory.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div>${memory.content}</div>
+                `;
+                memoryPanelEl.appendChild(memoryEl);
+            });
+        }
+        
+        function handleSystemStatus(data) {
+            if (data.session_id) {
+                document.getElementById('sessionId').textContent = data.session_id.substring(0, 8) + '...';
+            }
+            if (data.claude_status) {
+                updateClaudeStatus({ status: data.claude_status });
+            }
+            if (data.websocket_port) {
+                document.getElementById('wsPort').textContent = data.websocket_port;
+            }
+            if (data.instance_info && data.instance_info.working_dir) {
+                document.getElementById('workingDir').textContent = data.instance_info.working_dir;
+            }
+        }
+        
+        function handleHistory(data) {
+            if (data.events && Array.isArray(data.events)) {
+                data.events.forEach(event => handleEvent(event));
+                addSystemMessage(`Loaded ${data.events.length} historical events`);
+            }
+        }
+        
+        function updateAgentList() {
+            const agentListEl = document.getElementById('agentList');
+            agentListEl.innerHTML = '';
+            
+            Object.entries(state.agents).forEach(([agent, stats]) => {
+                const agentEl = document.createElement('div');
+                agentEl.className = 'agent-card';
+                if (stats.lastActive && (new Date() - stats.lastActive) < 60000) {
+                    agentEl.classList.add('active');
+                }
+                
+                agentEl.innerHTML = `
+                    <div class="agent-name">
+                        🤖 ${agent}
+                    </div>
+                    <div class="agent-stats">
+                        <div>Delegations: ${stats.delegations}</div>
+                        <div>Memory Ops: ${stats.memoryOps}</div>
+                    </div>
+                `;
+                agentListEl.appendChild(agentEl);
+            });
+        }
+        
+        function addEventToFeed(event) {
+            const feedEl = document.getElementById('eventFeed');
+            const eventEl = document.createElement('div');
+            
+            const eventCategory = event.type.split('.')[0].split(':')[0];
+            eventEl.className = `event-item ${eventCategory}`;
+            
+            const time = new Date(event.timestamp).toLocaleTimeString();
+            eventEl.innerHTML = `
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                    <strong>${event.type}</strong>
+                    <span>${time}</span>
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-secondary);">
+                    ${JSON.stringify(event.data).substring(0, 100)}...
+                </div>
+            `;
+            
+            feedEl.insertBefore(eventEl, feedEl.firstChild);
+            
+            // Keep only recent 50 events
+            while (feedEl.children.length > 50) {
+                feedEl.removeChild(feedEl.lastChild);
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = state.stats.totalEvents;
+            document.getElementById('delegationCount').textContent = state.stats.delegations;
+            document.getElementById('memoryOps').textContent = state.stats.memoryOps;
+            document.getElementById('errorCount').textContent = state.stats.errors;
+        }
+        
+        function updateDuration() {
+            if (sessionStartTime) {
+                const duration = Math.floor((new Date() - sessionStartTime) / 1000);
+                document.getElementById('sessionDuration').textContent = formatDuration(duration);
+            }
+        }
+        
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${secs}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${secs}s`;
+            } else {
+                return `${secs}s`;
+            }
+        }
+        
+        function clearConsole() {
+            document.getElementById('consoleOutput').innerHTML = '';
+            state.stats.outputLines = 0;
+            document.getElementById('outputCount').textContent = '0 lines';
+            addSystemMessage('Console cleared');
+        }
+        
+        // Auto-connect if on localhost
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            setTimeout(() => {
+                if (!connected) {
+                    connect();
+                }
+            }, 500);
+        }
+    </script>
+</body>
+</html>
