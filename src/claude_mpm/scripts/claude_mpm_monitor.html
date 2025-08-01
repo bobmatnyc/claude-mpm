@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Monitor</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .connection-panel {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 20px 30px;
+        }
+
+        .connection-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .connection-controls label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .connection-controls input {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 14px;
+            width: 100px;
+        }
+
+        .connection-controls button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-connect {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-connect:hover {
+            background: #218838;
+        }
+
+        .btn-disconnect {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-disconnect:hover {
+            background: #c82333;
+        }
+
+        .status {
+            margin-left: auto;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .status.connected {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.disconnected {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.connecting {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            padding: 15px 20px;
+            font-weight: 600;
+            color: #495057;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+
+        .panel-content {
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .event-log {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+
+        .event-item {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 4px solid #6c757d;
+        }
+
+        .event-item.hook {
+            border-left-color: #28a745;
+            background: #f8fff9;
+        }
+
+        .event-item.memory {
+            border-left-color: #007bff;
+            background: #f8f9ff;
+        }
+
+        .event-item.system {
+            border-left-color: #ffc107;
+            background: #fffdf8;
+        }
+
+        .event-item.error {
+            border-left-color: #dc3545;
+            background: #fff8f8;
+        }
+
+        .event-timestamp {
+            color: #6c757d;
+            font-size: 11px;
+        }
+
+        .event-type {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        .event-data {
+            margin-top: 4px;
+            color: #6c757d;
+            white-space: pre-wrap;
+        }
+
+        .memory-item {
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        .memory-agent {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .memory-data {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #6c757d;
+            white-space: pre-wrap;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .clear-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .clear-btn:hover {
+            background: #545b62;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .connection-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .connection-controls input,
+            .connection-controls button {
+                width: 100%;
+            }
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Claude MPM Monitor</h1>
+            <p>Real-time monitoring of agent activities, memory operations, and hook events</p>
+        </div>
+
+        <div class="connection-panel">
+            <div class="connection-controls">
+                <label for="port">Server Port:</label>
+                <input type="number" id="port" value="8765" min="1" max="65535">
+                
+                <button id="connectBtn" class="btn-connect">Connect</button>
+                <button id="disconnectBtn" class="btn-disconnect" style="display: none;">Disconnect</button>
+                
+                <div id="status" class="status disconnected">Disconnected</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="panel">
+                <div class="panel-header">
+                    Event Log
+                    <button class="clear-btn" onclick="clearEvents()">Clear</button>
+                </div>
+                <div class="panel-content">
+                    <div id="eventLog" class="event-log"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    Connection Statistics
+                </div>
+                <div class="panel-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div id="totalEvents" class="stat-value">0</div>
+                            <div class="stat-label">Total Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="hookEvents" class="stat-value">0</div>
+                            <div class="stat-label">Hook Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="memoryEvents" class="stat-value">0</div>
+                            <div class="stat-label">Memory Events</div>
+                        </div>
+                        <div class="stat-card">
+                            <div id="uptime" class="stat-value">00:00</div>
+                            <div class="stat-label">Connected Time</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel full-width">
+                <div class="panel-header">
+                    Agent Memory States
+                    <button class="clear-btn" onclick="clearMemory()">Clear</button>
+                </div>
+                <div class="panel-content">
+                    <div id="memoryLog"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = null;
+        let isConnected = false;
+        let connectionStartTime = null;
+        let uptimeInterval = null;
+        let stats = {
+            totalEvents: 0,
+            hookEvents: 0,
+            memoryEvents: 0
+        };
+
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const defaultPort = urlParams.get('port') || '8765';
+        document.getElementById('port').value = defaultPort;
+
+        // Auto-connect if port is provided in URL
+        if (urlParams.get('port')) {
+            setTimeout(() => connect(), 500);
+        }
+
+        function connect() {
+            const port = document.getElementById('port').value;
+            const serverUrl = `http://localhost:${port}`;
+            
+            updateStatus('connecting', 'Connecting...');
+            
+            socket = io(serverUrl, {
+                transports: ['websocket', 'polling'],
+                timeout: 10000,
+                forceNew: true,
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 10000,
+                maxReconnectionAttempts: 10
+            });
+
+            socket.on('connect', () => {
+                isConnected = true;
+                connectionStartTime = Date.now();
+                updateStatus('connected', `Connected to ${serverUrl}`);
+                startUptimeTimer();
+                
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('disconnectBtn').style.display = 'inline-block';
+                
+                addEvent('system', 'Connected to server', { port, url: serverUrl });
+            });
+
+            socket.on('disconnect', (reason) => {
+                isConnected = false;
+                updateStatus('disconnected', `Disconnected: ${reason}`);
+                stopUptimeTimer();
+                
+                document.getElementById('connectBtn').style.display = 'inline-block';
+                document.getElementById('disconnectBtn').style.display = 'none';
+                
+                addEvent('system', 'Disconnected from server', { reason });
+            });
+
+            socket.on('connect_error', (error) => {
+                updateStatus('disconnected', `Connection failed: ${error.message}`);
+                addEvent('error', 'Connection failed', { error: error.message });
+                
+                document.getElementById('connectBtn').style.display = 'inline-block';
+                document.getElementById('disconnectBtn').style.display = 'none';
+            });
+
+            // Listen for all events
+            socket.onAny((eventName, data) => {
+                if (['connect', 'disconnect', 'connect_error'].includes(eventName)) {
+                    return; // Skip connection events, already handled
+                }
+                
+                let eventType = 'system';
+                if (eventName.includes('hook')) {
+                    eventType = 'hook';
+                    stats.hookEvents++;
+                } else if (eventName.includes('memory')) {
+                    eventType = 'memory';
+                    stats.memoryEvents++;
+                }
+                
+                stats.totalEvents++;
+                updateStats();
+                
+                addEvent(eventType, eventName, data);
+                
+                // Update memory display for memory events
+                if (eventType === 'memory' && data) {
+                    updateMemoryDisplay(data);
+                }
+            });
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                socket = null;
+            }
+        }
+
+        function updateStatus(type, message) {
+            const statusEl = document.getElementById('status');
+            statusEl.className = `status ${type}`;
+            statusEl.textContent = message;
+        }
+
+        function addEvent(type, name, data) {
+            const eventLog = document.getElementById('eventLog');
+            const eventItem = document.createElement('div');
+            eventItem.className = `event-item ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const dataStr = data ? JSON.stringify(data, null, 2) : '';
+            
+            eventItem.innerHTML = `
+                <div class="event-timestamp">[${timestamp}]</div>
+                <div class="event-type">${name}</div>
+                ${dataStr ? `<div class="event-data">${dataStr}</div>` : ''}
+            `;
+            
+            eventLog.insertBefore(eventItem, eventLog.firstChild);
+            
+            // Keep only last 100 events
+            while (eventLog.children.length > 100) {
+                eventLog.removeChild(eventLog.lastChild);
+            }
+        }
+
+        function updateMemoryDisplay(data) {
+            const memoryLog = document.getElementById('memoryLog');
+            
+            if (data.agent && data.memory) {
+                // Find existing memory item for this agent or create new one
+                let memoryItem = memoryLog.querySelector(`[data-agent="${data.agent}"]`);
+                if (!memoryItem) {
+                    memoryItem = document.createElement('div');
+                    memoryItem.className = 'memory-item';
+                    memoryItem.setAttribute('data-agent', data.agent);
+                    memoryLog.appendChild(memoryItem);
+                }
+                
+                const timestamp = new Date().toLocaleTimeString();
+                memoryItem.innerHTML = `
+                    <div class="memory-agent">${data.agent} <span style="font-size: 12px; color: #6c757d;">[${timestamp}]</span></div>
+                    <div class="memory-data">${JSON.stringify(data.memory, null, 2)}</div>
+                `;
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalEvents').textContent = stats.totalEvents;
+            document.getElementById('hookEvents').textContent = stats.hookEvents;
+            document.getElementById('memoryEvents').textContent = stats.memoryEvents;
+        }
+
+        function startUptimeTimer() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+            }
+            
+            uptimeInterval = setInterval(() => {
+                if (connectionStartTime) {
+                    const uptime = Date.now() - connectionStartTime;
+                    const minutes = Math.floor(uptime / 60000);
+                    const seconds = Math.floor((uptime % 60000) / 1000);
+                    document.getElementById('uptime').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+            }, 1000);
+        }
+
+        function stopUptimeTimer() {
+            if (uptimeInterval) {
+                clearInterval(uptimeInterval);
+                uptimeInterval = null;
+            }
+            document.getElementById('uptime').textContent = '00:00';
+        }
+
+        function clearEvents() {
+            document.getElementById('eventLog').innerHTML = '';
+            stats = { totalEvents: 0, hookEvents: 0, memoryEvents: 0 };
+            updateStats();
+        }
+
+        function clearMemory() {
+            document.getElementById('memoryLog').innerHTML = '';
+        }
+
+        // Event listeners
+        document.getElementById('connectBtn').addEventListener('click', connect);
+        document.getElementById('disconnectBtn').addEventListener('click', disconnect);
+        
+        document.getElementById('port').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                connect();
+            }
+        });
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (socket) {
+                socket.disconnect();
+            }
+        });
+    </script>
+</body>
+</html>

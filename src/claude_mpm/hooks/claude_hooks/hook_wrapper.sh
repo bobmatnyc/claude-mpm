@@ -2,7 +2,7 @@
 # Claude Code hook wrapper for claude-mpm
 
 # Debug log (optional - comment out in production)
-# echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Wrapper called with args: $@" >> /tmp/hook-wrapper.log
+echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Wrapper called with args: $@" >> /tmp/hook-wrapper.log
 
 # Get the directory where this script is located
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -39,9 +39,14 @@ if [[ " $* " =~ " --logging DEBUG " ]] || [[ " $* " =~ " --debug " ]]; then
     export CLAUDE_MPM_LOG_LEVEL="DEBUG"
 fi
 
-# Debug log (optional)
-# echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] PYTHONPATH: $PYTHONPATH" >> /tmp/hook-wrapper.log
-# echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Running: $PYTHON_CMD $SCRIPT_DIR/hook_handler.py" >> /tmp/hook-wrapper.log
+# Set Socket.IO configuration for hook events
+export CLAUDE_MPM_SOCKETIO_PORT="8765"
+export CLAUDE_MPM_HOOK_DEBUG="true"
 
-# Run the Python hook handler
+# Debug log (optional)
+echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] PYTHONPATH: $PYTHONPATH" >> /tmp/hook-wrapper.log
+echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Running: $PYTHON_CMD $SCRIPT_DIR/hook_handler.py" >> /tmp/hook-wrapper.log
+echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] SOCKETIO_PORT: $CLAUDE_MPM_SOCKETIO_PORT" >> /tmp/hook-wrapper.log
+
+# Run the Python hook handler (now optimized by default)
 exec "$PYTHON_CMD" "$SCRIPT_DIR/hook_handler.py" "$@"
