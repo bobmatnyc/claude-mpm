@@ -433,14 +433,38 @@
                     </div>
                 </div>
             </div>
-            <div class="session-bar">
+            <div class="header-middle">
+                <div class="control-group">
+                    <button id="connect-btn" onclick="connectSocket()" class="compact-button">Connect</button>
+                    <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary compact-button">Disconnect</button>
+                    <input type="text" id="port-input" value="8765" placeholder="Port" style="width: 60px;" class="compact-input">
+                </div>
+                <div class="filter-controls">
+                    <input type="text" id="search-input" placeholder="Search events..." style="width: 180px;" class="compact-input">
+                    <select id="event-type-filter" class="compact-input">
+                        <option value="">All Events</option>
+                        <option value="session">Session</option>
+                        <option value="claude">Claude</option>
+                        <option value="agent">Agent</option>
+                        <option value="hook">Hook</option>
+                        <option value="todo">Todo</option>
+                        <option value="memory">Memory</option>
+                        <option value="log">Log</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <button onclick="clearEvents()" class="btn-secondary compact-button">Clear</button>
+                    <button onclick="exportEvents()" class="btn-success compact-button">Export</button>
+                </div>
+            </div>
+            <div class="header-bottom">
                 <div class="session-control">
-                    <label>Session:</label>
-                    <select id="session-select" class="session-select">
+                    <label style="font-size: 13px;">Session:</label>
+                    <select id="session-select" class="session-select compact-input">
                         <option value="">All Sessions</option>
                         <option value="current">Current Session</option>
                     </select>
-                    <button onclick="refreshSessions()" class="btn-secondary" style="padding: 6px 12px; font-size: 13px;">Refresh</button>
+                    <button onclick="refreshSessions()" class="btn-secondary compact-button">Refresh</button>
                 </div>
                 <div class="connection-info">
                     <span id="socket-id">Socket: Not connected</span>
