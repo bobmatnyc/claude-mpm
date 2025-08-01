@@ -1,0 +1,15 @@
+{
+  "test_results": {
+    "notification_event": true,
+    "stop_event": true,
+    "subagent_stop_event": true,
+    "cli_filtering": true,
+    "script_execution": true
+  },
+  "summary": {
+    "passed": 5,
+    "total": 5,
+    "success_rate": 100.0
+  },
+  "timestamp": "2025-08-01T12:30:43.801572"
+}

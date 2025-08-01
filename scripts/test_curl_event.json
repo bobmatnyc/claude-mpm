@@ -1,0 +1,8 @@
+{
+  "namespace": "/claude",
+  "event": "output",
+  "data": {
+    "content": "Hello from curl!",
+    "stream": "stdout"
+  }
+}
