@@ -306,7 +306,7 @@
         
         /* Removed standalone metrics section - now in header */
         
-        .events-container {
+        .events-wrapper {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 20px;
@@ -317,22 +317,70 @@
             flex-direction: column;
         }
         
+        .split-container {
+            display: flex;
+            gap: 15px;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .module-viewer {
+            width: 40%;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+        
+        .events-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #f8f9fa;
+            overflow: hidden;
+        }
+        
         .events-header {
             display: flex;
-            justify-content: between;
+            justify-content: space-between;
             align-items: center;
             margin-bottom: 15px;
             flex-wrap: wrap;
             gap: 10px;
         }
         
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #e2e8f0;
+            background: white;
+        }
+        
+        .module-header h4 {
+            margin: 0;
+            font-size: 14px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+        
+        .module-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: white;
+        }
+        
         .events-list {
             flex: 1;
             overflow-y: auto;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
             padding: 10px;
-            background: #f8f9fa;
+            background: white;
         }
         
         .event-item {
@@ -459,14 +507,13 @@
         }
         
         @media (max-width: 1200px) {
-            .main-container {
+            .split-container {
                 flex-direction: column;
             }
             
             .module-viewer {
                 width: 100%;
-                height: 300px;
-                margin-bottom: 15px;
+                height: 250px;
             }
         }
         
@@ -569,7 +616,9 @@
             </div>
         </div>
         
-        <div class="events-container">
+        <!-- Events Wrapper -->
+        <div class="events-wrapper">
+            <!-- Common header for both sections -->
             <div class="events-header">
                 <h3>📊 Live Events</h3>
                 <div>
@@ -577,9 +626,30 @@
                     <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary">Auto-scroll: ON</button>
                 </div>
             </div>
-            <div class="events-list" id="events-list">
-                <div class="no-events">
-                    Connect to Socket.IO server to see events...
+            
+            <!-- Split container for module viewer and events list -->
+            <div class="split-container">
+                <!-- Left: Module Viewer -->
+                <div class="module-viewer">
+                    <div class="module-header">
+                        <h4>📁 Event Analysis</h4>
+                        <button onclick="clearSelection()" class="btn-secondary" style="font-size: 11px; padding: 4px 8px;">Clear</button>
+                    </div>
+                    <div class="module-content" id="module-content">
+                        <div class="module-empty">
+                            <p>Click on an event to view details</p>
+                            <p class="module-hint">Events are organized by class</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Events List -->
+                <div class="events-container">
+                    <div class="events-list" id="events-list">
+                        <div class="no-events">
+                            Connect to Socket.IO server to see events...
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
