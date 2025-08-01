@@ -254,8 +254,18 @@ class ClaudeHookHandler:
             'parameter_count': len(tool_input) if isinstance(tool_input, dict) else 0,
             'is_file_operation': tool_name in ['Write', 'Edit', 'MultiEdit', 'Read', 'LS', 'Glob'],
             'is_execution': tool_name in ['Bash', 'NotebookEdit'],
+            'is_delegation': tool_name == 'Task',
             'security_risk': self._assess_security_risk(tool_name, tool_input)
         }
+        
+        # Add delegation-specific data if this is a Task tool
+        if tool_name == 'Task' and isinstance(tool_input, dict):
+            pre_tool_data['delegation_details'] = {
+                'agent_type': tool_input.get('subagent_type', 'unknown'),
+                'prompt': tool_input.get('prompt', ''),
+                'description': tool_input.get('description', ''),
+                'task_preview': (tool_input.get('prompt', '') or tool_input.get('description', ''))[:100]
+            }
         
         self._emit_socketio_event('/hook', 'pre_tool', pre_tool_data)
     
@@ -338,6 +348,17 @@ class ClaudeHookHandler:
             params.update({
                 'url': tool_input.get('url', ''),
                 'prompt': tool_input.get('prompt', '')[:50]  # Truncate prompt
+            })
+        elif tool_name == 'Task':
+            # Special handling for Task tool (agent delegations)
+            params.update({
+                'subagent_type': tool_input.get('subagent_type', 'unknown'),
+                'description': tool_input.get('description', ''),
+                'prompt': tool_input.get('prompt', ''),
+                'prompt_preview': tool_input.get('prompt', '')[:200] if tool_input.get('prompt') else '',
+                'is_pm_delegation': tool_input.get('subagent_type') == 'pm',
+                'is_research_delegation': tool_input.get('subagent_type') == 'research',
+                'is_engineer_delegation': tool_input.get('subagent_type') == 'engineer'
             })
         
         return params
