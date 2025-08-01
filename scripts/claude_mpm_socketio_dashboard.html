@@ -603,7 +603,7 @@
         }
         
         function addEvent(eventData) {
-            events.unshift(eventData);
+            events.push(eventData);
             
             // Track metrics
             const eventType = eventData.type ? eventData.type.split('.')[0] : 'unknown';
@@ -687,7 +687,7 @@
             
             eventsList.innerHTML = eventsHtml;
             
-            // Auto-scroll to bottom
+            // Auto-scroll to bottom (newest events)
             if (autoScroll) {
                 eventsList.scrollTop = eventsList.scrollHeight;
             }
