@@ -677,6 +677,8 @@
         let lastMinute = new Date().getMinutes();
         let sessions = new Map(); // Track sessions
         let currentSessionId = null;
+        let selectedEventIndex = null;
+        let eventsByClass = new Map(); // Group events by class
         
         // Initialize from URL params
         const urlParams = new URLSearchParams(window.location.search);
@@ -989,18 +991,186 @@
         }
         
         function showEventDetails(index) {
+            selectedEventIndex = index;
             const event = filteredEvents[index];
-            const modal = document.getElementById('event-modal');
-            const content = document.getElementById('event-detail-content');
             
-            content.innerHTML = `
-                <h3>${event.type || 'Unknown Event'}</h3>
-                <p><strong>Timestamp:</strong> ${event.timestamp}</p>
-                <h4>Event Data:</h4>
-                <pre>${JSON.stringify(event, null, 2)}</pre>
+            // Update selected state in event list
+            document.querySelectorAll('.event-item').forEach((el, i) => {
+                el.classList.toggle('selected', i === index);
+            });
+            
+            // Group events by class
+            updateEventsByClass(event);
+            
+            // Update module viewer
+            updateModuleViewer();
+        }
+        
+        function updateEventsByClass(currentEvent) {
+            eventsByClass.clear();
+            
+            // Get the event class (first part before dot)
+            const eventClass = currentEvent.type ? currentEvent.type.split('.')[0] : 'unknown';
+            
+            // Find all events of the same class
+            const relatedEvents = events.filter(e => {
+                const eClass = e.type ? e.type.split('.')[0] : 'unknown';
+                return eClass === eventClass;
+            });
+            
+            // Group by specific event type
+            relatedEvents.forEach(event => {
+                const eventType = event.type || 'unknown';
+                if (!eventsByClass.has(eventType)) {
+                    eventsByClass.set(eventType, []);
+                }
+                eventsByClass.get(eventType).push(event);
+            });
+        }
+        
+        function updateModuleViewer() {
+            const moduleContent = document.getElementById('module-content');
+            
+            if (eventsByClass.size === 0) {
+                moduleContent.innerHTML = `
+                    <div class="module-empty">
+                        <p>Click on an event to view details</p>
+                        <p class="module-hint">Events are organized by class</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            // Get the main event class
+            const mainClass = Array.from(eventsByClass.keys())[0].split('.')[0];
+            const classIcons = {
+                'session': '🔄',
+                'hook': '🎣',
+                'agent': '🤖',
+                'todo': '✅',
+                'memory': '🧠',
+                'claude': '🤖',
+                'connection': '🔌',
+                'system': '⚙️'
+            };
+            
+            html += `<div class="event-class-section">`;
+            html += `<div class="event-class-header">`;
+            html += `<span class="event-class-icon">${classIcons[mainClass] || '📊'}</span>`;
+            html += `${mainClass.toUpperCase()} Events (${events.filter(e => (e.type || '').startsWith(mainClass)).length} total)`;
+            html += `</div>`;
+            
+            // Show details for each event type in this class
+            eventsByClass.forEach((events, eventType) => {
+                const latestEvent = events[events.length - 1];
+                html += createEventDetailCard(eventType, latestEvent, events.length);
+            });
+            
+            html += `</div>`;
+            
+            moduleContent.innerHTML = html;
+        }
+        
+        function createEventDetailCard(eventType, event, count) {
+            const eventSubtype = eventType.split('.')[1] || 'event';
+            let html = `<div class="event-detail-card">`;
+            
+            html += `<div class="event-detail-header">`;
+            html += `<span class="event-detail-title">${eventSubtype} (${count})</span>`;
+            html += `<span class="event-detail-time">${new Date(event.timestamp).toLocaleTimeString()}</span>`;
+            html += `</div>`;
+            
+            html += `<div class="event-detail-content">`;
+            
+            // Extract key information based on event type
+            const data = event.data || {};
+            
+            if (eventType.includes('hook')) {
+                // Hook events
+                if (data.tool_name) {
+                    html += createProperty('Tool', data.tool_name);
+                }
+                if (data.operation_type) {
+                    html += createProperty('Operation', data.operation_type);
+                }
+                if (data.tool_parameters && data.tool_parameters.subagent_type) {
+                    html += createProperty('Agent', data.tool_parameters.subagent_type);
+                }
+                if (data.exit_code !== undefined) {
+                    html += createProperty('Exit Code', data.exit_code);
+                }
+                if (data.prompt_preview) {
+                    html += createProperty('Prompt', data.prompt_preview.substring(0, 100) + '...');
+                }
+            } else if (eventType.includes('session')) {
+                // Session events
+                if (data.session_id) {
+                    html += createProperty('Session ID', data.session_id.substring(0, 8) + '...');
+                }
+                if (data.working_directory) {
+                    html += createProperty('Directory', data.working_directory);
+                }
+                if (data.duration_seconds) {
+                    html += createProperty('Duration', `${data.duration_seconds.toFixed(1)}s`);
+                }
+            } else if (eventType.includes('agent')) {
+                // Agent events
+                if (data.agent) {
+                    html += createProperty('Agent', data.agent);
+                }
+                if (data.task) {
+                    html += createProperty('Task', data.task.substring(0, 100) + '...');
+                }
+                if (data.status) {
+                    html += createProperty('Status', data.status);
+                }
+            } else if (eventType.includes('todo')) {
+                // Todo events
+                const stats = data.stats || {};
+                if (stats.total !== undefined) {
+                    html += createProperty('Total Todos', stats.total);
+                }
+                if (stats.completed !== undefined) {
+                    html += createProperty('Completed', stats.completed);
+                }
+                if (stats.in_progress !== undefined) {
+                    html += createProperty('In Progress', stats.in_progress);
+                }
+            } else {
+                // Generic properties
+                const importantKeys = Object.keys(data).slice(0, 5);
+                importantKeys.forEach(key => {
+                    const value = data[key];
+                    if (typeof value === 'string' || typeof value === 'number') {
+                        html += createProperty(key, String(value).substring(0, 100));
+                    }
+                });
+            }
+            
+            html += `</div>`;
+            html += `</div>`;
+            
+            return html;
+        }
+        
+        function createProperty(key, value) {
+            return `
+                <div class="event-property">
+                    <span class="event-property-key">${key}:</span>
+                    <span class="event-property-value">${value}</span>
+                </div>
             `;
-            
-            modal.style.display = 'block';
+        }
+        
+        function clearSelection() {
+            selectedEventIndex = null;
+            eventsByClass.clear();
+            document.querySelectorAll('.event-item').forEach(el => {
+                el.classList.remove('selected');
+            });
+            updateModuleViewer();
         }
         
         function closeModal() {
