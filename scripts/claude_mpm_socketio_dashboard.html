@@ -28,51 +28,134 @@
         .header {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
         }
         
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex: 1;
+        }
+        
         .header h1 {
             color: #4a5568;
-            margin-bottom: 10px;
-            font-size: 28px;
+            font-size: 24px;
+            margin: 0;
         }
         
-        .status-bar {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
-        
-        .status-item {
-            background: #f7fafc;
-            padding: 8px 16px;
+        .status-badge {
+            padding: 6px 14px;
             border-radius: 20px;
-            font-size: 14px;
-            border-left: 4px solid #4299e1;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
         
         .status-connected {
-            border-left-color: #48bb78;
+            background: #d4f8e8;
+            color: #22543d;
         }
         
         .status-disconnected {
-            border-left-color: #f56565;
+            background: #fed7d7;
+            color: #742a2a;
         }
         
         .status-connecting {
-            border-left-color: #ed8936;
+            background: #feebc8;
+            color: #7b341e;
+        }
+        
+        .metrics-widget {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .metric-mini {
+            text-align: center;
+            padding: 0 10px;
+            border-left: 1px solid #e2e8f0;
+        }
+        
+        .metric-mini:first-child {
+            border-left: none;
+        }
+        
+        .metric-mini-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4299e1;
+            line-height: 1;
+        }
+        
+        .metric-mini-label {
+            font-size: 11px;
+            color: #718096;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .session-bar {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+            flex-wrap: wrap;
+        }
+        
+        .session-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+        
+        .session-control label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+        
+        .session-select {
+            flex: 1;
+            max-width: 300px;
+            font-size: 13px;
+            padding: 6px 10px;
+        }
+        
+        .connection-info {
+            display: flex;
+            gap: 15px;
+            font-size: 12px;
+            color: #718096;
+        }
+        
+        .connection-info span {
+            white-space: nowrap;
         }
         
         .controls {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
+            padding: 15px 20px;
+            margin-bottom: 15px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
@@ -142,39 +225,15 @@
             background: #38a169;
         }
         
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .metric-card {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 20px;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-        }
-        
-        .metric-value {
-            font-size: 32px;
-            font-weight: bold;
-            color: #4299e1;
-            margin-bottom: 5px;
-        }
-        
-        .metric-label {
-            color: #718096;
-            font-size: 14px;
-        }
+        /* Removed standalone metrics section - now in header */
         
         .events-container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            height: 600px;
+            height: calc(100vh - 280px);
+            min-height: 400px;
             display: flex;
             flex-direction: column;
         }
@@ -348,62 +407,46 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🚀 Claude MPM Socket.IO Dashboard</h1>
-            <p>Real-time monitoring of Claude MPM sessions and events</p>
-            <div class="status-bar">
-                <div id="connection-status" class="status-item status-disconnected">
-                    🔴 Disconnected
+            <div class="header-top">
+                <div class="header-left">
+                    <h1>🚀 Claude MPM Monitor</h1>
+                    <div id="connection-status" class="status-badge status-disconnected">
+                        <span class="status-dot">●</span> Disconnected
+                    </div>
                 </div>
-                <div id="socket-id" class="status-item">
-                    Socket ID: Not connected
+                <div class="metrics-widget">
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="total-events">0</div>
+                        <div class="metric-mini-label">Events</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="events-per-minute">0</div>
+                        <div class="metric-mini-label">Per Min</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="unique-types">0</div>
+                        <div class="metric-mini-label">Types</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="error-count">0</div>
+                        <div class="metric-mini-label">Errors</div>
+                    </div>
                 </div>
-                <div id="server-info" class="status-item">
-                    Server: Not connected
+            </div>
+            <div class="session-bar">
+                <div class="session-control">
+                    <label>Session:</label>
+                    <select id="session-select" class="session-select">
+                        <option value="">All Sessions</option>
+                        <option value="current">Current Session</option>
+                    </select>
+                    <button onclick="refreshSessions()" class="btn-secondary" style="padding: 6px 12px; font-size: 13px;">Refresh</button>
                 </div>
-            </div>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <label>Connection:</label>
-                <button id="connect-btn" onclick="connectSocket()">Connect</button>
-                <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary">Disconnect</button>
-                <input type="text" id="port-input" value="8765" placeholder="Port" style="width: 80px;">
-            </div>
-            <div class="control-group">
-                <label>Filters:</label>
-                <input type="text" id="search-input" placeholder="Search events..." style="width: 200px;">
-                <select id="event-type-filter">
-                    <option value="">All Events</option>
-                    <option value="session">Session</option>
-                    <option value="claude">Claude</option>
-                    <option value="agent">Agent</option>
-                    <option value="hook">Hook</option>
-                    <option value="todo">Todo</option>
-                    <option value="memory">Memory</option>
-                    <option value="log">Log</option>
-                </select>
-                <button onclick="clearEvents()" class="btn-secondary">Clear Events</button>
-                <button onclick="exportEvents()" class="btn-success">Export JSON</button>
-            </div>
-        </div>
-        
-        <div class="metrics">
-            <div class="metric-card">
-                <div class="metric-value" id="total-events">0</div>
-                <div class="metric-label">Total Events</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value" id="events-per-minute">0</div>
-                <div class="metric-label">Events/Min</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value" id="unique-types">0</div>
-                <div class="metric-label">Event Types</div>
-            </div>
-            <div class="metric-card">
-                <div class="metric-value" id="error-count">0</div>
-                <div class="metric-label">Errors</div>
+                <div class="connection-info">
+                    <span id="socket-id">Socket: Not connected</span>
+                    <span id="server-info">Server: Offline</span>
+                    <span id="port-info">Port: 8765</span>
+                </div>
             </div>
         </div>
         
@@ -411,8 +454,8 @@
             <div class="events-header">
                 <h3>📊 Live Events</h3>
                 <div>
-                    <button onclick="requestHistory()" class="btn-secondary">Load History</button>
-                    <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary">Auto-scroll: ON</button>
+                    <button onclick="requestHistory()" class="btn-secondary compact-button">Load History</button>
+                    <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary compact-button">Auto-scroll: ON</button>
                 </div>
             </div>
             <div class="events-list" id="events-list">
@@ -442,6 +485,8 @@
         let errorCount = 0;
         let eventsThisMinute = 0;
         let lastMinute = new Date().getMinutes();
+        let sessions = new Map(); // Track sessions
+        let currentSessionId = null;
         
         // Initialize from URL params
         const urlParams = new URLSearchParams(window.location.search);
@@ -492,7 +537,7 @@
             socket.on('connect', () => {
                 console.log('Connected to Socket.IO server');
                 updateConnectionStatus('Connected', 'connected');
-                document.getElementById('socket-id').textContent = `Socket ID: ${socket.id}`;
+                document.getElementById('socket-id').textContent = `Socket: ${socket.id.substring(0, 8)}...`;
                 requestStatus();
                 // Request history on successful connection
                 setTimeout(requestHistory, 500);
@@ -501,8 +546,8 @@
             socket.on('disconnect', (reason) => {
                 console.log('Disconnected from server:', reason);
                 updateConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
-                document.getElementById('socket-id').textContent = 'Socket ID: Not connected';
-                document.getElementById('server-info').textContent = 'Server: Not connected';
+                document.getElementById('socket-id').textContent = 'Socket: Not connected';
+                document.getElementById('server-info').textContent = 'Server: Offline';
             });
             
             socket.on('connect_error', (error) => {
@@ -558,7 +603,7 @@
             socket.on('status', (data) => {
                 console.log('Server status:', data);
                 document.getElementById('server-info').textContent = 
-                    `Server: ${data.server || 'Unknown'} (${data.clients_connected || 0} clients)`;
+                    `Server: ${data.server ? 'Online' : 'Unknown'} (${data.clients_connected || 0} clients)`;
             });
             
             socket.on('claude_event', (eventData) => {
@@ -585,8 +630,14 @@
         
         function updateConnectionStatus(status, type) {
             const statusEl = document.getElementById('connection-status');
-            statusEl.textContent = type === 'connected' ? '🟢 ' + status : '🔴 ' + status;
-            statusEl.className = 'status-item status-' + type;
+            const statusText = type === 'connected' ? 'Connected' : 
+                              type === 'connecting' ? 'Connecting' : 'Disconnected';
+            statusEl.innerHTML = `<span class="status-dot">●</span> ${statusText}`;
+            statusEl.className = 'status-badge status-' + type;
+            
+            // Update port info
+            const port = document.getElementById('port-input').value;
+            document.getElementById('port-info').textContent = `Port: ${port}`;
         }
         
         function requestStatus() {
@@ -624,9 +675,40 @@
                 eventsThisMinute++;
             }
             
+            // Track sessions
+            if (eventData.type === 'session.start' && eventData.data) {
+                const sessionId = eventData.data.session_id;
+                if (sessionId) {
+                    sessions.set(sessionId, {
+                        id: sessionId,
+                        startTime: eventData.data.start_time || eventData.timestamp,
+                        workingDir: eventData.data.working_directory || 'Unknown'
+                    });
+                    currentSessionId = sessionId;
+                    updateSessionSelect();
+                }
+            } else if (eventData.type === 'session.end' && eventData.data) {
+                const sessionId = eventData.data.session_id;
+                if (sessionId && sessions.has(sessionId)) {
+                    const session = sessions.get(sessionId);
+                    session.endTime = eventData.data.end_time || eventData.timestamp;
+                    session.active = false;
+                    if (currentSessionId === sessionId) {
+                        currentSessionId = null;
+                    }
+                    updateSessionSelect();
+                }
+            }
+            
+            // Extract session ID from event data if available
+            if (!eventData.sessionId && eventData.data) {
+                eventData.sessionId = eventData.data.session_id || 
+                                     (eventData.data.data && eventData.data.data.session_id);
+            }
+            
             // Limit history
             if (events.length > 1000) {
-                events = events.slice(0, 1000);
+                events = events.slice(-1000);
             }
             
             updateDisplay();
@@ -641,8 +723,22 @@
         function applyFilters() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const eventTypeFilter = document.getElementById('event-type-filter').value;
+            const sessionFilter = document.getElementById('session-select').value;
             
             filteredEvents = events.filter(event => {
+                // Session filter
+                if (sessionFilter) {
+                    if (sessionFilter === 'current' && currentSessionId) {
+                        if (event.sessionId !== currentSessionId) {
+                            return false;
+                        }
+                    } else if (sessionFilter !== 'current' && sessionFilter !== '') {
+                        if (event.sessionId !== sessionFilter) {
+                            return false;
+                        }
+                    }
+                }
+                
                 // Search filter
                 if (searchTerm) {
                     const searchableText = JSON.stringify(event).toLowerCase();
@@ -757,9 +853,43 @@
             btn.className = autoScroll ? 'btn-secondary' : 'btn-secondary';
         }
         
+        function updateSessionSelect() {
+            const select = document.getElementById('session-select');
+            const currentValue = select.value;
+            
+            // Clear existing options except the first two
+            while (select.options.length > 2) {
+                select.remove(2);
+            }
+            
+            // Add session options
+            sessions.forEach((session, sessionId) => {
+                const option = document.createElement('option');
+                option.value = sessionId;
+                const timeStr = new Date(session.startTime).toLocaleTimeString();
+                const activeStr = session.active !== false ? ' (Active)' : '';
+                option.textContent = `Session ${sessionId.substring(0, 8)} - ${timeStr}${activeStr}`;
+                select.appendChild(option);
+            });
+            
+            // Restore selection if it still exists
+            if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
+                select.value = currentValue;
+            }
+        }
+        
+        function refreshSessions() {
+            // Request session history from server
+            if (socket && socket.connected) {
+                socket.emit('get_sessions');
+            }
+            updateSessionSelect();
+        }
+        
         // Event listeners
         document.getElementById('search-input').addEventListener('input', updateDisplay);
         document.getElementById('event-type-filter').addEventListener('change', updateDisplay);
+        document.getElementById('session-select').addEventListener('change', updateDisplay);
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {
