@@ -569,7 +569,9 @@
             socket.on('history', (data) => {
                 console.log('Received history:', data.events.length, 'events');
                 if (data.events && data.events.length > 0) {
+                    // Merge history with existing events and sort by timestamp
                     events = data.events.concat(events);
+                    events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                     updateDisplay();
                 }
             });
