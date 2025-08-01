@@ -16,7 +16,7 @@ The Claude MPM monitoring system now captures comprehensive data from all Claude
 
 ### 2. Pre-Tool Events (`hook.pre_tool`)
 - **tool_name**: Name of the tool being invoked
-- **operation_type**: Classification (read, write, execute, network, etc.)
+- **operation_type**: Classification (read, write, execute, network, task_management, delegation, etc.)
 - **tool_parameters**: Extracted parameters specific to each tool
 - **is_delegation**: Boolean flag for Task tool invocations
 - **security_risk**: Risk assessment (low, medium, high)
@@ -31,6 +31,24 @@ When `tool_name` is "Task" (agent delegations):
   - prompt (full text)
   - description
   - task_preview (first 100 chars)
+
+#### TodoWrite Tool Parameters
+When `tool_name` is "TodoWrite" (task management):
+- **todo_count**: Total number of todos
+- **todos**: Complete array of todo objects with:
+  - content: Task description
+  - status: pending, in_progress, or completed
+  - priority: high, medium, or low
+  - id: Unique identifier
+- **todo_summary**: Summary object containing:
+  - total: Total count
+  - status_counts: Count by status
+  - priority_counts: Count by priority
+  - summary: Text summary (e.g., "2 completed, 1 in progress")
+- **has_in_progress**: Boolean for active tasks
+- **has_pending**: Boolean for pending tasks
+- **has_completed**: Boolean for completed tasks
+- **priorities**: List of all priority levels in use
 
 ### 3. Post-Tool Events (`hook.post_tool`)
 - **tool_name**: Name of the completed tool
@@ -105,6 +123,27 @@ if event_data['tool_parameters']['is_pm_delegation']:
 # Check high-risk operations
 if event_data['security_risk'] == 'high':
     alert_security_team(event_data)
+```
+
+### Task List Monitoring
+```python
+# Track TodoWrite updates
+if event_data['tool_name'] == 'TodoWrite':
+    todos = event_data['tool_parameters']['todos']
+    summary = event_data['tool_parameters']['todo_summary']
+    
+    print(f"Task update: {summary['summary']}")
+    
+    # Find high-priority in-progress tasks
+    urgent_tasks = [
+        todo for todo in todos 
+        if todo['status'] == 'in_progress' and todo['priority'] == 'high'
+    ]
+    
+    # Alert on stalled tasks
+    for todo in todos:
+        if todo['status'] == 'pending' and is_overdue(todo):
+            notify_task_overdue(todo)
 ```
 
 ## Implementation Notes
