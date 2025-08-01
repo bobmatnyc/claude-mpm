@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Socket.IO Dashboard</title>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 5px 0; border-radius: 5px; }
+        .error { background: #ffe6e6; }
+        .success { background: #e6ffe6; }
+        .info { background: #e6f3ff; }
+    </style>
+</head>
+<body>
+    <h1>Socket.IO Connection Debug</h1>
+    <div id="connection-status">Disconnected</div>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <h2>Events Log</h2>
+    <div id="logs"></div>
+    
+    <script>
+        let socket = null;
+        let sockets = {};
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = 'log ' + type;
+            div.textContent = new Date().toLocaleTimeString() + ': ' + message;
+            logs.insertBefore(div, logs.firstChild);
+            console.log(message);
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        function updateStatus(status, type) {
+            const statusEl = document.getElementById('connection-status');
+            statusEl.textContent = status;
+            statusEl.className = type;
+        }
+        
+        function connect() {
+            const url = 'http://localhost:8765';
+            
+            log('Connecting to ' + url);
+            
+            // Test connecting to each namespace
+            const namespaces = ['/system', '/session', '/claude', '/agent', '/hook', '/todo', '/memory', '/log'];
+            
+            namespaces.forEach(namespace => {
+                const namespaceSocket = io(url + namespace, {
+                    autoConnect: true,
+                    reconnection: true,
+                    reconnectionDelay: 1000
+                });
+                
+                sockets[namespace] = namespaceSocket;
+                
+                namespaceSocket.on('connect', () => {
+                    log('Connected to ' + namespace, 'success');
+                    if (namespace === '/system') {
+                        updateStatus('Connected', 'success');
+                        // Request status
+                        namespaceSocket.emit('get_status');
+                    }
+                });
+                
+                namespaceSocket.on('disconnect', (reason) => {
+                    log('Disconnected from ' + namespace + ': ' + reason, 'error');
+                    if (namespace === '/system') {
+                        updateStatus('Disconnected', 'error');
+                    }
+                });
+                
+                namespaceSocket.on('connect_error', (error) => {
+                    log('Connection error for ' + namespace + ': ' + error, 'error');
+                });
+                
+                // Listen for all possible events
+                const eventTypes = ['start', 'end', 'status_changed', 'output', 'task_delegated', 
+                                  'user_prompt', 'pre_tool', 'post_tool', 'updated', 'loaded', 
+                                  'created', 'injected', 'message', 'status', 'test_event'];
+                
+                eventTypes.forEach(eventType => {
+                    namespaceSocket.on(eventType, (data) => {
+                        log('Received ' + namespace + '/' + eventType + ': ' + JSON.stringify(data), 'info');
+                    });
+                });
+            });
+            
+            socket = sockets['/system'];
+        }
+        
+        function disconnect() {
+            Object.values(sockets).forEach(s => {
+                if (s) s.disconnect();
+            });
+            sockets = {};
+            socket = null;
+            updateStatus('Disconnected', 'error');
+            log('Disconnected all sockets');
+        }
+        
+        // Auto-connect on page load
+        connect();
+    </script>
+</body>
+</html>

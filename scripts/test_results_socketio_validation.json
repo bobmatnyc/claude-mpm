@@ -1,0 +1,24 @@
+{
+  "socketio_validation": {
+    "Notification": {
+      "success": true,
+      "socketio_emitted": false,
+      "data_structure_valid": true
+    },
+    "Stop": {
+      "success": true,
+      "socketio_emitted": false,
+      "data_structure_valid": true
+    },
+    "SubagentStop": {
+      "success": true,
+      "socketio_emitted": false,
+      "data_structure_valid": true
+    }
+  },
+  "timestamp": "2025-08-01T12:32:13.844301",
+  "test_environment": {
+    "python_version": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]",
+    "socketio_available": true
+  }
+}

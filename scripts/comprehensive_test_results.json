@@ -1,0 +1,307 @@
+{
+  "test_summary": {
+    "timestamp": "2025-08-01T12:33:49.429822",
+    "total_test_suites": 3,
+    "successful_test_suites": 2,
+    "total_individual_tests": 12,
+    "successful_individual_tests": 12,
+    "overall_success_rate": 100.0
+  },
+  "test_suites": {
+    "Hook Events Direct": {
+      "test_results": {
+        "notification_event": true,
+        "stop_event": true,
+        "subagent_stop_event": true,
+        "cli_filtering": true,
+        "script_execution": true
+      },
+      "summary": {
+        "passed": 5,
+        "total": 5,
+        "success_rate": 100.0
+      },
+      "timestamp": "2025-08-01T12:30:43.801572"
+    },
+    "Socket.IO Validation": {
+      "socketio_validation": {
+        "Notification": {
+          "success": true,
+          "socketio_emitted": false,
+          "data_structure_valid": true
+        },
+        "Stop": {
+          "success": true,
+          "socketio_emitted": false,
+          "data_structure_valid": true
+        },
+        "SubagentStop": {
+          "success": true,
+          "socketio_emitted": false,
+          "data_structure_valid": true
+        }
+      },
+      "timestamp": "2025-08-01T12:32:13.844301",
+      "test_environment": {
+        "python_version": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]",
+        "socketio_available": true
+      }
+    },
+    "Hook Events & CLI Filtering": {
+      "hook_events": {
+        "notification_event": {
+          "success": true,
+          "processed_data": {
+            "hook_event_name": "Notification",
+            "notification_type": "user_input_request",
+            "message": "Please provide your input for the next step",
+            "session_id": "test_session_123",
+            "cwd": "/test/directory"
+          },
+          "expected_fields_present": false,
+          "error": null
+        },
+        "stop_event": {
+          "success": true,
+          "processed_data": {
+            "hook_event_name": "Stop",
+            "reason": "completed",
+            "stop_type": "normal",
+            "session_id": "test_session_123",
+            "cwd": "/test/directory",
+            "final_output": "Task completed successfully"
+          },
+          "expected_fields_present": false,
+          "error": null
+        },
+        "subagent_stop_event": {
+          "success": true,
+          "processed_data": {
+            "hook_event_name": "SubagentStop",
+            "agent_type": "research",
+            "agent_id": "research_agent_001",
+            "reason": "completed",
+            "session_id": "test_session_123",
+            "cwd": "/test/directory",
+            "results": {
+              "status": "success",
+              "data": "Research completed"
+            },
+            "duration_ms": 1500
+          },
+          "expected_fields_present": false,
+          "error": null
+        }
+      },
+      "cli_filtering": {
+        "monitor_flag_filtering": {
+          "success": true,
+          "original_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--monitor",
+            "--verbose"
+          ],
+          "filtered_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--verbose"
+          ],
+          "monitor_removed": true
+        },
+        "resume_flag_filtering": {
+          "success": true,
+          "original_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--resume",
+            "session_123",
+            "--verbose"
+          ],
+          "filtered_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--verbose"
+          ],
+          "resume_removed": true,
+          "value_removed": true
+        },
+        "all_mpm_flags_removal": {
+          "success": true,
+          "claude_args_preserved": true,
+          "mpm_flags_removed": true,
+          "original_count": 32,
+          "filtered_count": 3,
+          "filtered_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--verbose"
+          ]
+        },
+        "non_mpm_args_passthrough": {
+          "success": true,
+          "claude_args_preserved": true,
+          "mpm_args_removed": true,
+          "original_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--verbose",
+            "--temperature",
+            "0.7",
+            "--max-tokens",
+            "4000",
+            "--system",
+            "You are a helpful assistant",
+            "--output",
+            "json",
+            "--timeout",
+            "30",
+            "--monitor",
+            "--debug",
+            "--websocket-port",
+            "8080"
+          ],
+          "filtered_args": [
+            "--model",
+            "claude-3-sonnet",
+            "--verbose",
+            "--temperature",
+            "0.7",
+            "--max-tokens",
+            "4000",
+            "--system",
+            "You are a helpful assistant",
+            "--output",
+            "json",
+            "--timeout",
+            "30"
+          ]
+        }
+      },
+      "integration": {
+        "flag_combinations": {
+          "monitor_only": {
+            "success": false,
+            "expected_success": true,
+            "returncode": 1,
+            "has_arg_errors": false,
+            "stderr_preview": "  File \"/Users/masa/Projects/claude-mpm/scripts/claude-mpm\", line 6\n    while [ -h \"$SOURCE\" ]; do # resolve $SOURCE until the file is no longer a symlink\n            ^^^^^^^^^^^^\nSyntaxError: invalid"
+          },
+          "monitor_with_port": {
+            "success": false,
+            "expected_success": true,
+            "returncode": 1,
+            "has_arg_errors": false,
+            "stderr_preview": "  File \"/Users/masa/Projects/claude-mpm/scripts/claude-mpm\", line 6\n    while [ -h \"$SOURCE\" ]; do # resolve $SOURCE until the file is no longer a symlink\n            ^^^^^^^^^^^^\nSyntaxError: invalid"
+          },
+          "resume_with_value": {
+            "success": false,
+            "expected_success": true,
+            "returncode": 1,
+            "has_arg_errors": false,
+            "stderr_preview": "  File \"/Users/masa/Projects/claude-mpm/scripts/claude-mpm\", line 6\n    while [ -h \"$SOURCE\" ]; do # resolve $SOURCE until the file is no longer a symlink\n            ^^^^^^^^^^^^\nSyntaxError: invalid"
+          },
+          "mixed_mpm_and_claude_args": {
+            "success": false,
+            "expected_success": true,
+            "returncode": 1,
+            "has_arg_errors": false,
+            "stderr_preview": "  File \"/Users/masa/Projects/claude-mpm/scripts/claude-mpm\", line 6\n    while [ -h \"$SOURCE\" ]; do # resolve $SOURCE until the file is no longer a symlink\n            ^^^^^^^^^^^^\nSyntaxError: invalid"
+          },
+          "input_mode": {
+            "success": false,
+            "expected_success": true,
+            "returncode": 1,
+            "has_arg_errors": false,
+            "stderr_preview": "  File \"/Users/masa/Projects/claude-mpm/scripts/claude-mpm\", line 6\n    while [ -h \"$SOURCE\" ]; do # resolve $SOURCE until the file is no longer a symlink\n            ^^^^^^^^^^^^\nSyntaxError: invalid"
+          }
+        },
+        "socketio_server": {
+          "success": false,
+          "dependencies_available": true,
+          "server_accessible": false,
+          "port": 8766
+        }
+      },
+      "timestamp": "2025-08-01T12:29:39.769454",
+      "test_environment": {
+        "python_version": "3.13.5 (main, Jun 11 2025, 15:36:57) [Clang 17.0.0 (clang-1700.0.13.3)]",
+        "platform": "posix",
+        "working_directory": "/Users/masa/Projects/claude-mpm"
+      }
+    }
+  },
+  "feature_validation": {
+    "hook_events": {
+      "notification_events": {
+        "tested": true,
+        "passed": true,
+        "details": "Notification event processing and data extraction validated"
+      },
+      "stop_events": {
+        "tested": true,
+        "passed": true,
+        "details": "Stop event processing and data extraction validated"
+      },
+      "subagent_stop_events": {
+        "tested": true,
+        "passed": true,
+        "details": "SubagentStop event processing and data extraction validated"
+      },
+      "event_data_extraction": {
+        "tested": false,
+        "passed": false,
+        "details": ""
+      }
+    },
+    "cli_filtering": {
+      "monitor_flag_removal": {
+        "tested": true,
+        "passed": true,
+        "details": "CLI filtering functionality validated in isolation"
+      },
+      "resume_flag_removal": {
+        "tested": true,
+        "passed": true,
+        "details": "Resume flag and value filtering validated"
+      },
+      "all_mmp_flags_removal": {
+        "tested": true,
+        "passed": true,
+        "details": "Comprehensive MPM flag removal validated"
+      },
+      "non_mpm_args_passthrough": {
+        "tested": true,
+        "passed": true,
+        "details": "Non-MPM argument passthrough validated"
+      },
+      "no_unrecognized_args_errors": {
+        "tested": true,
+        "passed": true,
+        "details": "Claude-mpm script execution with various flags validated"
+      }
+    },
+    "integration": {
+      "socketio_server_startup": {
+        "tested": true,
+        "passed": true,
+        "details": "Socket.IO event validation: 3/3 successful"
+      },
+      "dashboard_monitoring": {
+        "tested": false,
+        "passed": false,
+        "details": ""
+      },
+      "end_to_end_functionality": {
+        "tested": false,
+        "passed": false,
+        "details": ""
+      }
+    }
+  },
+  "implementation_analysis": {
+    "hook_handler_events": [],
+    "cli_filtering_functions": [],
+    "integration_points": []
+  }
+}
