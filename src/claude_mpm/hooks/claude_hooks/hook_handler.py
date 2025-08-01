@@ -480,9 +480,20 @@ class ClaudeHookHandler:
         - Enables tracking of delegation success/failure patterns
         - Useful for understanding subagent performance and reliability
         """
-        agent_type = event.get('agent_type', 'unknown')
-        agent_id = event.get('agent_id', '')
-        reason = event.get('reason', 'unknown')
+        # Claude Code may send minimal data, so we extract what we can
+        agent_type = event.get('agent_type', event.get('subagent_type', 'unknown'))
+        agent_id = event.get('agent_id', event.get('subagent_id', ''))
+        reason = event.get('reason', event.get('stop_reason', 'unknown'))
+        
+        # Try to infer agent type from other fields if not provided
+        if agent_type == 'unknown' and 'task' in event:
+            task_desc = str(event.get('task', '')).lower()
+            if 'research' in task_desc:
+                agent_type = 'research'
+            elif 'engineer' in task_desc or 'code' in task_desc:
+                agent_type = 'engineer'
+            elif 'pm' in task_desc or 'project' in task_desc:
+                agent_type = 'pm'
         
         subagent_stop_data = {
             'event_type': 'subagent_stop',
@@ -498,6 +509,10 @@ class ClaudeHookHandler:
             'has_results': bool(event.get('results') or event.get('output')),
             'duration_context': event.get('duration_ms')
         }
+        
+        # Debug log the raw event data
+        if DEBUG:
+            print(f"SubagentStop raw event data: {json.dumps(event, indent=2)}", file=sys.stderr)
         
         # Emit to /hook namespace
         self._emit_socketio_event('/hook', 'subagent_stop', subagent_stop_data)
