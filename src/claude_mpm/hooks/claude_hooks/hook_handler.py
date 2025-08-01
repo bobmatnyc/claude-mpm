@@ -360,8 +360,53 @@ class ClaudeHookHandler:
                 'is_research_delegation': tool_input.get('subagent_type') == 'research',
                 'is_engineer_delegation': tool_input.get('subagent_type') == 'engineer'
             })
+        elif tool_name == 'TodoWrite':
+            # Special handling for TodoWrite tool (task management)
+            todos = tool_input.get('todos', [])
+            params.update({
+                'todo_count': len(todos),
+                'todos': todos,  # Full todo list
+                'todo_summary': self._summarize_todos(todos),
+                'has_in_progress': any(t.get('status') == 'in_progress' for t in todos),
+                'has_pending': any(t.get('status') == 'pending' for t in todos),
+                'has_completed': any(t.get('status') == 'completed' for t in todos),
+                'priorities': list(set(t.get('priority', 'medium') for t in todos))
+            })
         
         return params
+    
+    def _summarize_todos(self, todos: list) -> dict:
+        """Create a summary of the todo list for quick understanding."""
+        if not todos:
+            return {'total': 0, 'summary': 'Empty todo list'}
+        
+        status_counts = {'pending': 0, 'in_progress': 0, 'completed': 0}
+        priority_counts = {'high': 0, 'medium': 0, 'low': 0}
+        
+        for todo in todos:
+            status = todo.get('status', 'pending')
+            priority = todo.get('priority', 'medium')
+            
+            if status in status_counts:
+                status_counts[status] += 1
+            if priority in priority_counts:
+                priority_counts[priority] += 1
+        
+        # Create a text summary
+        summary_parts = []
+        if status_counts['completed'] > 0:
+            summary_parts.append(f"{status_counts['completed']} completed")
+        if status_counts['in_progress'] > 0:
+            summary_parts.append(f"{status_counts['in_progress']} in progress")
+        if status_counts['pending'] > 0:
+            summary_parts.append(f"{status_counts['pending']} pending")
+        
+        return {
+            'total': len(todos),
+            'status_counts': status_counts,
+            'priority_counts': priority_counts,
+            'summary': ', '.join(summary_parts) if summary_parts else 'No tasks'
+        }
     
     def _classify_tool_operation(self, tool_name: str, tool_input: dict) -> str:
         """Classify the type of operation being performed."""
@@ -373,8 +418,10 @@ class ClaudeHookHandler:
             return 'execute'
         elif tool_name in ['WebFetch', 'WebSearch']:
             return 'network'
-        elif tool_name in ['TodoWrite']:
-            return 'metadata'
+        elif tool_name == 'TodoWrite':
+            return 'task_management'
+        elif tool_name == 'Task':
+            return 'delegation'
         else:
             return 'other'
     
