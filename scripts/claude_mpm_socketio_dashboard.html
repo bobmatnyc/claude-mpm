@@ -51,18 +51,99 @@
         
         .header h1 {
             color: #4a5568;
-            font-size: 24px;
+            font-size: 20px;
             margin: 0;
+            font-weight: 600;
+        }
+        
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            min-height: 36px;
+        }
+        
+        .header-row:first-child {
+            justify-content: space-between;
+        }
+        
+        .header-row + .header-row {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .connection-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex: 1;
+            max-width: 400px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .session-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .session-select {
+            width: 200px;
+        }
+        
+        label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #4a5568;
+            white-space: nowrap;
+        }
+        
+        .info-group {
+            display: flex;
+            gap: 12px;
+            margin-left: auto;
+            font-size: 12px;
+            color: #718096;
+            background: #f7fafc;
+            padding: 6px 12px;
+            border-radius: 6px;
+        }
+        
+        .info-group span {
+            white-space: nowrap;
+        }
+        
+        .info-separator {
+            color: #cbd5e0;
         }
         
         .status-badge {
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
+            white-space: nowrap;
         }
         
         .status-connected {
@@ -82,35 +163,33 @@
         
         .metrics-widget {
             display: flex;
-            gap: 15px;
+            gap: 20px;
             align-items: center;
+            background: #f7fafc;
+            padding: 8px 16px;
+            border-radius: 8px;
         }
         
         .metric-mini {
             text-align: center;
-            padding: 0 10px;
-            border-left: 1px solid #e2e8f0;
-        }
-        
-        .metric-mini:first-child {
-            border-left: none;
         }
         
         .metric-mini-value {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             color: #4299e1;
-            line-height: 1;
+            line-height: 1.2;
         }
         
         .metric-mini-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #718096;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            margin-top: 2px;
         }
         
-        .session-bar {
+        .header-middle, .header-bottom {
             display: flex;
             gap: 15px;
             align-items: center;
@@ -118,6 +197,10 @@
             padding-top: 12px;
             border-top: 1px solid #e2e8f0;
             flex-wrap: wrap;
+        }
+        
+        .header-bottom {
+            justify-content: space-between;
         }
         
         .session-control {
@@ -159,30 +242,24 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
-        .control-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 15px;
-        }
-        
-        .control-group:last-child {
-            margin-bottom: 0;
-        }
-        
-        .control-group label {
-            font-weight: 600;
-            color: #4a5568;
-            min-width: 100px;
-        }
+        /* Removed old control styles - now using new layout */
         
         input, select, button {
-            padding: 8px 12px;
-            border: 2px solid #e2e8f0;
+            padding: 6px 10px;
+            border: 1px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 12px;
             transition: all 0.2s;
+        }
+        
+        #port-input {
+            width: 50px;
+            text-align: center;
+        }
+        
+        #search-input {
+            flex: 1;
+            min-width: 150px;
         }
         
         input:focus, select:focus {
@@ -196,8 +273,10 @@
             color: white;
             border: none;
             cursor: pointer;
-            font-weight: 600;
-            padding: 10px 20px;
+            font-weight: 500;
+            padding: 6px 14px;
+            font-size: 12px;
+            white-space: nowrap;
         }
         
         button:hover {
@@ -407,11 +486,12 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="header-top">
-                <div class="header-left">
+            <!-- Row 1: Title, Status, Metrics -->
+            <div class="header-row">
+                <div class="header-title">
                     <h1>🚀 Claude MPM Monitor</h1>
                     <div id="connection-status" class="status-badge status-disconnected">
-                        <span class="status-dot">●</span> Disconnected
+                        <span>●</span> Disconnected
                     </div>
                 </div>
                 <div class="metrics-widget">
@@ -433,15 +513,17 @@
                     </div>
                 </div>
             </div>
-            <div class="header-middle">
-                <div class="control-group">
-                    <button id="connect-btn" onclick="connectSocket()" class="compact-button">Connect</button>
-                    <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary compact-button">Disconnect</button>
-                    <input type="text" id="port-input" value="8765" placeholder="Port" style="width: 60px;" class="compact-input">
+            
+            <!-- Row 2: Connection & Filters -->
+            <div class="header-row">
+                <div class="connection-controls">
+                    <button id="connect-btn" onclick="connectSocket()">Connect</button>
+                    <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary">Disconnect</button>
+                    <input type="text" id="port-input" value="8765" placeholder="Port">
                 </div>
-                <div class="filter-controls">
-                    <input type="text" id="search-input" placeholder="Search events..." style="width: 180px;" class="compact-input">
-                    <select id="event-type-filter" class="compact-input">
+                <div class="filter-group">
+                    <input type="text" id="search-input" placeholder="Search events...">
+                    <select id="event-type-filter">
                         <option value="">All Events</option>
                         <option value="session">Session</option>
                         <option value="claude">Claude</option>
@@ -452,23 +534,27 @@
                         <option value="log">Log</option>
                     </select>
                 </div>
-                <div class="control-group">
-                    <button onclick="clearEvents()" class="btn-secondary compact-button">Clear</button>
-                    <button onclick="exportEvents()" class="btn-success compact-button">Export</button>
+                <div class="action-buttons">
+                    <button onclick="clearEvents()" class="btn-secondary">Clear</button>
+                    <button onclick="exportEvents()" class="btn-success">Export</button>
                 </div>
             </div>
-            <div class="header-bottom">
-                <div class="session-control">
-                    <label style="font-size: 13px;">Session:</label>
-                    <select id="session-select" class="session-select compact-input">
+            
+            <!-- Row 3: Session & Info -->
+            <div class="header-row">
+                <div class="session-group">
+                    <label>Session:</label>
+                    <select id="session-select" class="session-select">
                         <option value="">All Sessions</option>
                         <option value="current">Current Session</option>
                     </select>
-                    <button onclick="refreshSessions()" class="btn-secondary compact-button">Refresh</button>
+                    <button onclick="refreshSessions()" class="btn-secondary">Refresh</button>
                 </div>
-                <div class="connection-info">
+                <div class="info-group">
                     <span id="socket-id">Socket: Not connected</span>
+                    <span class="info-separator">•</span>
                     <span id="server-info">Server: Offline</span>
+                    <span class="info-separator">•</span>
                     <span id="port-info">Port: 8765</span>
                 </div>
             </div>
@@ -478,8 +564,8 @@
             <div class="events-header">
                 <h3>📊 Live Events</h3>
                 <div>
-                    <button onclick="requestHistory()" class="btn-secondary compact-button">Load History</button>
-                    <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary compact-button">Auto-scroll: ON</button>
+                    <button onclick="requestHistory()" class="btn-secondary">Load History</button>
+                    <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary">Auto-scroll: ON</button>
                 </div>
             </div>
             <div class="events-list" id="events-list">
