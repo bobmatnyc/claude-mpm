@@ -1,0 +1,108 @@
+{
+  "server_health": {
+    "health_endpoint": {
+      "status": 200,
+      "response_time": 0.001715,
+      "content": {
+        "status": "healthy",
+        "server": "claude-mpm-socketio",
+        "timestamp": "2025-07-31T18:52:57.237Z",
+        "port": "8766",
+        "host": "localhost"
+      }
+    },
+    "status_endpoint": {
+      "status": 200,
+      "response_time": 0.000832,
+      "content": {
+        "status": "healthy",
+        "server": "claude-mpm-socketio",
+        "timestamp": "2025-07-31T18:52:57.238Z",
+        "port": "8766",
+        "host": "localhost"
+      }
+    }
+  },
+  "dashboard_serving": {
+    "dashboard_html": {
+      "status": 200,
+      "response_time": 0.001179,
+      "content_length": 23547,
+      "content_type": "text/html"
+    },
+    "dashboard_alias": {
+      "status": 200,
+      "response_time": 0.000807,
+      "content_length": 23547
+    },
+    "html_validation": {
+      "has_socket_io_script": true,
+      "has_dashboard_title": true,
+      "has_connect_button": true,
+      "has_event_filters": true,
+      "has_metrics_section": true
+    }
+  },
+  "socket.io_connectivity": {
+    "connection": {
+      "success": true,
+      "connection_time": 0.004775047302246094,
+      "socket_id": "_3spIM-CXS7pua5cAAAA"
+    },
+    "status_event": {
+      "server": "claude-mpm-socketio",
+      "timestamp": "2025-07-31T18:52:57.247Z",
+      "clients_connected": 1,
+      "event_history_size": 0
+    },
+    "history_event": {
+      "events": []
+    }
+  },
+  "event_handling": {
+    "events_sent": 6,
+    "events_received": 0,
+    "event_types_received": []
+  },
+  "error_handling": {
+    "invalid_endpoint__nonexistent": 200,
+    "invalid_endpoint__admin_invalid": 200,
+    "invalid_endpoint__api_v1_invalid": 200,
+    "connection_to_invalid_port": "correctly_failed"
+  },
+  "performance": {
+    "events_sent": 100,
+    "send_time": 0.002367258071899414,
+    "events_per_second": 42242.96505186826,
+    "events_received": 0,
+    "reception_rate": 0.0
+  },
+  "browser_compatibility": {
+    "uses_html5_doctype": true,
+    "has_viewport_meta": true,
+    "uses_modern_css": true,
+    "uses_es6_features": true,
+    "responsive_design": true,
+    "socket_io_cdn": true
+  },
+  "security": {
+    "cors_headers": {
+      "Content-Type": "text/plain",
+      "Date": "Thu, 31 Jul 2025 18:53:06 GMT",
+      "Connection": "keep-alive",
+      "Keep-Alive": "timeout=5",
+      "Transfer-Encoding": "chunked"
+    },
+    "security_header_x_content_type_options": false,
+    "security_header_x_frame_options": false,
+    "security_header_x_xss_protection": false,
+    "security_header_strict_transport_security": false,
+    "authentication_enabled": false
+  },
+  "test_summary": {
+    "total_time": 9.718796014785767,
+    "categories_tested": 8,
+    "timestamp": "2025-07-31 14:53:06",
+    "port": 8766
+  }
+}
