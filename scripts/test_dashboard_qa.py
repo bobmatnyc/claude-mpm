@@ -80,7 +80,7 @@ class DashboardQATester:
         
         try:
             # Test main dashboard endpoint
-            response = requests.get(f"{self.base_url}/claude_mpm_socketio_dashboard.html", timeout=5)
+            response = requests.get(f"{self.base_url}/dashboard", timeout=5)
             results["dashboard_html"] = {
                 "status": response.status_code,
                 "response_time": response.elapsed.total_seconds(),
@@ -88,17 +88,17 @@ class DashboardQATester:
                 "content_type": response.headers.get("content-type", "")
             }
             
-            # Test dashboard alias
-            response = requests.get(f"{self.base_url}/dashboard", timeout=5)
-            results["dashboard_alias"] = {
+            # Test legacy dashboard redirect
+            response = requests.get(f"{self.base_url}/claude_mpm_socketio_dashboard.html", timeout=5, allow_redirects=False)
+            results["legacy_redirect"] = {
                 "status": response.status_code,
                 "response_time": response.elapsed.total_seconds(),
-                "content_length": len(response.content)
+                "location": response.headers.get("location", "")
             }
             
             # Validate HTML content
             if results["dashboard_html"]["status"] == 200:
-                html_content = requests.get(f"{self.base_url}/claude_mpm_socketio_dashboard.html").text
+                html_content = requests.get(f"{self.base_url}/dashboard").text
                 results["html_validation"] = {
                     "has_socket_io_script": "socket.io.min.js" in html_content,
                     "has_dashboard_title": "Claude MPM Socket.IO Dashboard" in html_content,
@@ -302,7 +302,7 @@ class DashboardQATester:
         
         try:
             # Test that dashboard HTML uses standard web technologies
-            response = requests.get(f"{self.base_url}/claude_mpm_socketio_dashboard.html")
+            response = requests.get(f"{self.base_url}/dashboard")
             html_content = response.text
             
             # Check for modern web standards

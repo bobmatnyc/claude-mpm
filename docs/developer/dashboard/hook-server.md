@@ -124,7 +124,7 @@ python scripts/websocket_server_manager.py
 ### Automatic Start
 
 The server starts automatically when:
-1. Running `claude-mpm run --manager`
+1. Running `claude-mpm run --monitor`
 2. First WebSocket client connects
 
 ### Process Management

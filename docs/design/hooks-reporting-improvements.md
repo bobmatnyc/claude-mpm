@@ -1008,9 +1008,9 @@ Added support for three additional Claude hook events that were previously not c
 ```python
 # Complete MPM flags list now includes:
 mpm_flags = {
-    '--monitor', '--websocket', '--websocket-port', '--no-hooks',
+    '--monitor', '--websocket-port', '--no-hooks',
     '--no-tickets', '--intercept-commands', '--no-native-agents', 
-    '--launch-method', '--manager', '--resume', '--input',
+    '--launch-method', '--resume', '--input',
     '--non-interactive', '--debug', '--logging', '--log-dir',
     '--framework-path', '--agents-dir', '--version', '-i', '-d'
 }

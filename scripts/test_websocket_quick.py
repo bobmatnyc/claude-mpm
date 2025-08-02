@@ -28,7 +28,7 @@ async def quick_test(port=8765):
             
     except ConnectionRefusedError:
         print(f"✗ Could not connect to {uri}")
-        print("  Make sure claude-mpm is running with --websocket flag")
+        print("  Make sure claude-mpm is running with --monitor flag")
         return False
     except Exception as e:
         print(f"✗ Error: {e}")

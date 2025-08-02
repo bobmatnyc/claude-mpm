@@ -88,7 +88,7 @@ def test_argument_filtering():
         # Basic MPM flags should be filtered
         (['--monitor', '--model', 'sonnet'], ['--model', 'sonnet'], 'Basic monitor flag'),
         (['--resume', 'session-123', '--model', 'claude-3'], ['--model', 'claude-3'], 'Resume flag'),
-        (['--websocket', '--temperature', '0.5'], ['--temperature', '0.5'], 'WebSocket flag'),
+        (['--monitor', '--temperature', '0.5'], ['--temperature', '0.5'], 'Monitor flag'),
         
         # Flags with values should filter both flag and value
         (['--websocket-port', '8080', '--model', 'sonnet'], ['--model', 'sonnet'], 'Flag with value'),

@@ -21,7 +21,7 @@ def main():
     
     print("🚀 Starting Socket.IO test server...")
     print("📱 Test with multiple browser tabs at:")
-    print(f"   http://localhost:8765/claude_mpm_socketio_dashboard.html")
+    print(f"   http://localhost:8765/dashboard")
     print("   OR")
     print(f"   file://{os.path.abspath('scripts/test_multiple_tabs.html')}")
     print("\n⏹️  Press Ctrl+C to stop the server")

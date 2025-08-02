@@ -272,10 +272,10 @@ class CLIArgumentFilterTester:
         from claude_mpm.cli.commands.run import filter_claude_mpm_args
         
         mpm_flags = [
-            '--monitor', '--websocket', '--websocket-port', '8080',
+            '--monitor', '--websocket-port', '8080',
             '--no-hooks', '--no-tickets', '--intercept-commands',
             '--no-native-agents', '--launch-method', 'exec',
-            '--manager', '--resume', 'session_id',
+            '--resume', 'session_id',
             '--input', 'test input', '--non-interactive',
             '--debug', '--logging', 'INFO', '--log-dir', '/tmp/logs',
             '--framework-path', '/path/to/framework',
@@ -292,9 +292,9 @@ class CLIArgumentFilterTester:
         # Check that Claude args remain and MPM args are removed
         claude_args_preserved = all(arg in filtered_args for arg in claude_args)
         mpm_flags_removed = not any(flag in filtered_args for flag in [
-            '--monitor', '--websocket', '--websocket-port', '--no-hooks',
+            '--monitor', '--websocket-port', '--no-hooks',
             '--no-tickets', '--intercept-commands', '--no-native-agents',
-            '--launch-method', '--manager', '--resume', '--input',
+            '--launch-method', '--resume', '--input',
             '--non-interactive', '--debug', '--logging', '--log-dir',
             '--framework-path', '--agents-dir', '--version', '-i', '-d'
         ])

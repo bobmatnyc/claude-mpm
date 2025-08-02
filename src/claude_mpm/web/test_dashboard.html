@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude MPM Dashboard Test</title>
+    
+    <!-- Test version using relative paths for verification -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" href="static/css/dashboard.css">
+    
+    <!-- Additional styles for file operations -->
+    <style>
+        .file-item {
+            background: white;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid #4299e1;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .file-item:hover {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transform: translateX(2px);
+        }
+        
+        .file-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .file-icon {
+            font-size: 16px;
+            min-width: 20px;
+        }
+        
+        .file-path {
+            flex: 1;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            color: #2d3748;
+            word-break: break-all;
+        }
+        
+        .file-timestamp {
+            font-size: 12px;
+            color: #718096;
+        }
+        
+        .file-summary {
+            font-size: 12px;
+            color: #4a5568;
+            margin-left: 28px;
+        }
+        
+        .operation-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+        
+        .operation-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        
+        .operation-icon {
+            font-size: 14px;
+            min-width: 16px;
+        }
+        
+        .operation-type {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .operation-timestamp {
+            margin-left: auto;
+            font-size: 11px;
+            color: #718096;
+        }
+        
+        .operation-details {
+            font-size: 12px;
+            color: #4a5568;
+            line-height: 1.4;
+        }
+        
+        .file-details {
+            background: white;
+            border-radius: 6px;
+            padding: 15px;
+        }
+        
+        .file-path-display {
+            font-size: 14px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .operations-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .test-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            max-width: 300px;
+            z-index: 1001;
+        }
+        
+        .test-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
+        
+        .test-pass { color: #38a169; }
+        .test-fail { color: #e53e3e; }
+        .test-pending { color: #d69e2e; }
+    </style>
+</head>
+<body>
+    <!-- Test Status Panel -->
+    <div class="test-status">
+        <h4>🧪 Module Test Status</h4>
+        <div id="test-results">
+            <div class="test-item test-pending">⏳ Loading modules...</div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Header Section -->
+        <div class="header">
+            <!-- Row 1: Title, Status, Metrics -->
+            <div class="header-row">
+                <div class="header-title">
+                    <h1>🚀 Claude MPM Monitor (Modular Test)</h1>
+                    <div id="connection-status" class="status-badge status-disconnected">
+                        <span>●</span> Disconnected
+                    </div>
+                </div>
+                <div class="metrics-widget">
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="total-events">0</div>
+                        <div class="metric-mini-label">Events</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="events-per-minute">0</div>
+                        <div class="metric-mini-label">Per Min</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="unique-types">0</div>
+                        <div class="metric-mini-label">Types</div>
+                    </div>
+                    <div class="metric-mini">
+                        <div class="metric-mini-value" id="error-count">0</div>
+                        <div class="metric-mini-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Row 2: Connection Controls and Session Selection -->
+            <div class="header-row">
+                <div class="connection-controls">
+                    <button id="connect-btn">Connect</button>
+                    <button id="disconnect-btn" class="btn-secondary">Disconnect</button>
+                    <input type="text" id="port-input" value="8765" placeholder="Port">
+                </div>
+                <div class="session-group">
+                    <label>Session:</label>
+                    <select id="session-select" class="session-select">
+                        <option value="">All Sessions</option>
+                        <option value="current">Current Session</option>
+                    </select>
+                    <button class="btn-secondary">Refresh</button>
+                </div>
+                <div class="action-buttons">
+                    <button class="btn-secondary">Clear</button>
+                    <button class="btn-success">Export</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="events-wrapper">
+            <!-- Split container for module viewer and tabbed content -->
+            <div class="split-container">
+                <!-- Left: Module Viewer -->
+                <div class="module-viewer">
+                    <div class="module-header">
+                        <h4>📁 Event Analysis</h4>
+                        <button class="btn-secondary" style="font-size: 11px; padding: 4px 8px;">Clear</button>
+                    </div>
+                    <div class="module-content" id="module-content">
+                        <div class="module-empty">
+                            <p>Click on an event to view details</p>
+                            <p class="module-hint">Events are organized by class</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right: Tabbed Content -->
+                <div class="events-container">
+                    <!-- Tab Navigation -->
+                    <div class="tab-nav">
+                        <button class="tab-button active">📊 Events</button>
+                        <button class="tab-button">🤖 Agents</button>
+                        <button class="tab-button">🔧 Tools</button>
+                        <button class="tab-button">📁 Files</button>
+                    </div>
+                    
+                    <!-- Events Tab -->
+                    <div class="tab-content active" id="events-tab">
+                        <div class="tab-filters">
+                            <input type="text" id="events-search-input" placeholder="Search events...">
+                            <select id="events-type-filter">
+                                <option value="">All Events</option>
+                                <option value="session">Session</option>
+                                <option value="claude">Claude</option>
+                                <option value="agent">Agent</option>
+                                <option value="hook">Hook</option>
+                                <option value="todo">Todo</option>
+                                <option value="memory">Memory</option>
+                                <option value="log">Log</option>
+                            </select>
+                        </div>
+                        <div class="events-list" id="events-list">
+                            <div class="no-events">
+                                Connect to Socket.IO server to see events...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Agents Tab -->
+                    <div class="tab-content" id="agents-tab">
+                        <div class="tab-filters">
+                            <input type="text" id="agents-search-input" placeholder="Search agents...">
+                            <select id="agents-type-filter">
+                                <option value="">All Agents</option>
+                                <option value="research">Research</option>
+                                <option value="engineer">Engineer</option>
+                                <option value="pm">Project Manager</option>
+                                <option value="ops">Operations</option>
+                            </select>
+                        </div>
+                        <div class="events-list" id="agents-list">
+                            <div class="no-events">
+                                No agent events found...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tools Tab -->
+                    <div class="tab-content" id="tools-tab">
+                        <div class="tab-filters">
+                            <input type="text" id="tools-search-input" placeholder="Search tools...">
+                            <select id="tools-type-filter">
+                                <option value="">All Tools</option>
+                                <option value="Read">Read</option>
+                                <option value="Write">Write</option>
+                                <option value="Edit">Edit</option>
+                                <option value="Bash">Bash</option>
+                                <option value="Grep">Grep</option>
+                                <option value="Glob">Glob</option>
+                            </select>
+                        </div>
+                        <div class="events-list" id="tools-list">
+                            <div class="no-events">
+                                No tool events found...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Files Tab -->
+                    <div class="tab-content" id="files-tab">
+                        <div class="tab-filters">
+                            <input type="text" id="files-search-input" placeholder="Search files...">
+                            <select id="files-type-filter">
+                                <option value="">All Operations</option>
+                                <option value="read">Read</option>
+                                <option value="write">Write</option>
+                                <option value="edit">Edit</option>
+                                <option value="search">Search</option>
+                            </select>
+                        </div>
+                        <div class="events-list" id="files-list">
+                            <div class="no-events">
+                                No file operations found...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-content">
+            <div class="footer-item">
+                <span class="footer-label">Session:</span>
+                <span class="footer-value" id="footer-session">All Sessions</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label">Directory:</span>
+                <span class="footer-value" id="footer-working-dir">Unknown</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label">Branch:</span>
+                <span class="footer-value" id="footer-git-branch">Unknown</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label" id="socket-id">Socket: Not connected</span>
+            </div>
+            <span class="footer-divider">|</span>
+            <div class="footer-item">
+                <span class="footer-label" id="server-info">Server: Offline</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- JavaScript Modules -->
+    <script src="static/js/socket-client.js"></script>
+    <script src="static/js/components/event-viewer.js"></script>
+    <script src="static/js/components/module-viewer.js"></script>
+    <script src="static/js/components/session-manager.js"></script>
+    <script src="static/js/dashboard.js"></script>
+    
+    <!-- Test Script -->
+    <script>
+        // Simple test to verify modules loaded correctly
+        setTimeout(() => {
+            const results = document.getElementById('test-results');
+            const tests = [
+                { name: 'SocketClient', check: () => typeof SocketClient !== 'undefined' },
+                { name: 'EventViewer', check: () => typeof EventViewer !== 'undefined' },
+                { name: 'ModuleViewer', check: () => typeof ModuleViewer !== 'undefined' },
+                { name: 'SessionManager', check: () => typeof SessionManager !== 'undefined' },
+                { name: 'Dashboard', check: () => typeof Dashboard !== 'undefined' },
+                { name: 'Dashboard Instance', check: () => typeof window.dashboard !== 'undefined' },
+                { name: 'Global Functions', check: () => typeof connectSocket !== 'undefined' }
+            ];
+            
+            let html = '';
+            let allPass = true;
+            
+            tests.forEach(test => {
+                const passed = test.check();
+                const status = passed ? 'test-pass' : 'test-fail';
+                const icon = passed ? '✅' : '❌';
+                html += `<div class="test-item ${status}">${icon} ${test.name}</div>`;
+                if (!passed) allPass = false;
+            });
+            
+            if (allPass) {
+                html += '<div class="test-item test-pass">🎉 All modules loaded successfully!</div>';
+            } else {
+                html += '<div class="test-item test-fail">⚠️ Some modules failed to load</div>';
+            }
+            
+            results.innerHTML = html;
+        }, 1000);
+    </script>
+</body>
+</html>

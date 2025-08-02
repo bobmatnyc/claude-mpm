@@ -16,7 +16,7 @@ import re
 from typing import Dict, Any, List
 from claude_mpm.hooks.base_hook import PreDelegationHook, PostDelegationHook, HookContext, HookResult
 from claude_mpm.services.agent_memory_manager import AgentMemoryManager
-from claude_mpm.services.websocket_server import get_server_instance
+from claude_mpm.services.socketio_server import get_socketio_server
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
 
@@ -87,14 +87,14 @@ INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns
                     
                     logger.info(f"Injected memory for agent '{agent_id}'")
                     
-                    # Emit WebSocket event for memory injected
+                    # Emit Socket.IO event for memory injected
                     try:
-                        ws_server = get_server_instance()
+                        socketio_server = get_socketio_server()
                         # Calculate size of injected content
                         injected_size = len(memory_section.encode('utf-8'))
-                        ws_server.memory_injected(agent_id, injected_size)
+                        socketio_server.memory_injected(agent_id, injected_size)
                     except Exception as ws_error:
-                        logger.debug(f"WebSocket notification failed: {ws_error}")
+                        logger.debug(f"Socket.IO notification failed: {ws_error}")
                     
                     return HookResult(
                         success=True,
