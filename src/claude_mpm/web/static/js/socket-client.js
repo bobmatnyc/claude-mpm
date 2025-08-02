@@ -81,8 +81,8 @@ class SocketClient {
             );
             
             this.requestStatus();
-            // Request history on successful connection
-            setTimeout(() => this.requestHistory(), 500);
+            // History is now automatically sent by server on connection
+            // No need to explicitly request it
         });
         
         this.socket.on('disconnect', (reason) => {
@@ -122,6 +122,7 @@ class SocketClient {
             
             // Transform event to match expected format
             const transformedEvent = this.transformEvent(data);
+            console.log('Transformed event:', transformedEvent);
             this.addEvent(transformedEvent);
         });
 
@@ -170,9 +171,17 @@ class SocketClient {
             this.addEvent({ type: 'log', subtype: 'entry', timestamp: new Date().toISOString(), data });
         });
 
-        this.socket.on('history.events', (data) => {
-            console.log('Received event history:', data.length, 'events');
-            if (Array.isArray(data)) {
+        this.socket.on('history', (data) => {
+            console.log('Received event history:', data);
+            if (data && Array.isArray(data.events)) {
+                console.log(`Processing ${data.events.length} historical events (${data.count} sent, ${data.total_available} total available)`);
+                // Add events in the order received (should already be chronological - oldest first)
+                data.events.forEach(event => this.addEvent(event, false));
+                this.notifyEventUpdate();
+                console.log(`Event history loaded: ${data.events.length} events added to dashboard`);
+            } else if (Array.isArray(data)) {
+                // Handle legacy format for backward compatibility
+                console.log('Received legacy event history format:', data.length, 'events');
                 data.forEach(event => this.addEvent(event, false));
                 this.notifyEventUpdate();
             }
@@ -212,12 +221,21 @@ class SocketClient {
     }
 
     /**
-     * Request event history
+     * Request event history from server
+     * @param {Object} options - History request options
+     * @param {number} options.limit - Maximum number of events to retrieve (default: 50)
+     * @param {Array<string>} options.event_types - Optional filter by event types
      */
-    requestHistory() {
+    requestHistory(options = {}) {
         if (this.socket && this.socket.connected) {
-            console.log('Requesting event history...');
-            this.socket.emit('request.history', { limit: 1000 });
+            const params = {
+                limit: options.limit || 50,
+                event_types: options.event_types || []
+            };
+            console.log('Requesting event history...', params);
+            this.socket.emit('get_history', params);
+        } else {
+            console.warn('Cannot request history: not connected to server');
         }
     }
 
@@ -277,6 +295,15 @@ class SocketClient {
         this.events = [];
         this.sessions.clear();
         this.notifyEventUpdate();
+    }
+    
+    /**
+     * Clear events and request fresh history from server
+     * @param {Object} options - History request options (same as requestHistory)
+     */
+    refreshHistory(options = {}) {
+        this.clearEvents();
+        this.requestHistory(options);
     }
 
     /**
@@ -377,6 +404,18 @@ class SocketClient {
             const [mainType, ...subtypeParts] = type.split('.');
             transformedEvent.type = mainType;
             transformedEvent.subtype = subtypeParts.join('.');
+        }
+
+        // Extract and flatten data fields to top level for dashboard compatibility
+        // The dashboard expects fields like tool_name, agent_type, etc. at the top level
+        if (eventData.data && typeof eventData.data === 'object') {
+            // Copy all data fields to the top level
+            Object.keys(eventData.data).forEach(key => {
+                // Only copy if the key doesn't already exist at top level
+                if (!(key in transformedEvent)) {
+                    transformedEvent[key] = eventData.data[key];
+                }
+            });
         }
 
         return transformedEvent;
