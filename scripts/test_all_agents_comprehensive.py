@@ -79,7 +79,7 @@ def main():
             sys.executable, "-m", "claude_mpm", "run",
             "-i", prompt,
             "--non-interactive",
-            "--websocket"  # Ensure WebSocket is enabled
+            "--monitor"  # Ensure WebSocket is enabled
         ]
         
         start_time = time.time()
@@ -197,7 +197,7 @@ def main():
     # Save results to file
     results_file = Path(__file__).parent / "agent_test_results.json"
     with open(results_file, 'w') as f:
-        json.dumps({
+        json.dump({
             "test_time": time.strftime("%Y-%m-%d %H:%M:%S"),
             "total_agents": len(agents),
             "successful": len(successful),

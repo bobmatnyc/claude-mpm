@@ -107,17 +107,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         default="exec",
         help="Method to launch Claude: exec (replace process) or subprocess (child process)"
     )
-    # WebSocket options - make websocket and manager mutually exclusive
-    websocket_group = run_group.add_mutually_exclusive_group()
-    websocket_group.add_argument(
-        "--websocket",
+    # Monitor options - consolidated monitoring and management interface
+    run_group.add_argument(
+        "--monitor",
         action="store_true",
-        help="Enable WebSocket server for real-time monitoring (default port: 8765)"
-    )
-    websocket_group.add_argument(
-        "--manager",
-        action="store_true",
-        help="Start management interface with WebSocket server and dashboard"
+        help="Enable monitoring and management interface with WebSocket server and dashboard (default port: 8765)"
     )
     run_group.add_argument(
         "--websocket-port",
@@ -208,17 +202,11 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         default="exec",
         help="Method to launch Claude: exec (replace process) or subprocess (child process)"
     )
-    # WebSocket options - make websocket and manager mutually exclusive
-    websocket_group = run_group.add_mutually_exclusive_group()
-    websocket_group.add_argument(
-        "--websocket",
+    # Monitor options - consolidated monitoring and management interface
+    run_group.add_argument(
+        "--monitor",
         action="store_true",
-        help="Enable WebSocket server for real-time monitoring (default port: 8765)"
-    )
-    websocket_group.add_argument(
-        "--manager",
-        action="store_true",
-        help="Start management interface with WebSocket server and dashboard"
+        help="Enable monitoring and management interface with WebSocket server and dashboard (default port: 8765)"
     )
     run_group.add_argument(
         "--websocket-port",

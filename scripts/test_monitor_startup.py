@@ -65,7 +65,7 @@ def test_monitor_startup():
         
         # Test dashboard endpoint
         try:
-            response = urllib.request.urlopen('http://localhost:8765/claude_mpm_socketio_dashboard.html', timeout=2)
+            response = urllib.request.urlopen('http://localhost:8765/dashboard', timeout=2)
             dashboard_data = response.read().decode()
             if "Claude MPM Socket.IO Dashboard" in dashboard_data:
                 print("✅ Dashboard HTML is being served correctly")

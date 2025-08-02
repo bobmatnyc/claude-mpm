@@ -189,7 +189,7 @@ The Claude MPM Socket.IO Dashboard has been comprehensively tested across 8 majo
 ```
 Node.js Socket.IO Server (Port 8766)
 ├── Health Endpoint (/health, /status) ✅
-├── Dashboard Serving (/dashboard, /claude_mpm_socketio_dashboard.html) ✅
+├── Dashboard Serving (/dashboard, legacy redirect from /claude_mpm_socketio_dashboard.html) ✅
 ├── Socket.IO Handling (connection, events, history) ✅
 ├── Event Broadcasting (to all connected clients) ✅
 ├── Event History (1000 event circular buffer) ✅

@@ -109,7 +109,7 @@ def test_claude_execution_with_monitoring():
                 './claude-mpm', 'run',
                 '--input', 'Hello, this is a test message to trigger hooks',
                 '--non-interactive',
-                '--websocket',  # Enable WebSocket
+                '--monitor',  # Enable WebSocket
                 '--websocket-port', '8765'
             ]
             

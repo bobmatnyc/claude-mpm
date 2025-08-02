@@ -57,9 +57,8 @@ def check_python_dependencies() -> bool:
 def create_dashboard_html(port: int):
     """Create the Socket.IO dashboard HTML file.
     
-    WHY: The dashboard provides a comprehensive web interface for monitoring
-    Claude MPM sessions in real-time. It includes event filtering, search,
-    metrics, and export capabilities.
+    WHY: For backward compatibility, this still creates the old dashboard file
+    but now also ensures the new modular dashboard is available.
     
     Args:
         port: Port number for the Socket.IO server
@@ -798,11 +797,21 @@ def create_dashboard_html(port: int):
 </body>
 </html>'''
     
+    # Create legacy dashboard for backward compatibility
     dashboard_path = SCRIPT_DIR / "claude_mpm_socketio_dashboard.html"
     with open(dashboard_path, 'w', encoding='utf-8') as f:
         f.write(dashboard_html_content)
     
-    print(f"✓ Created Socket.IO dashboard at {dashboard_path}")
+    print(f"✓ Created legacy Socket.IO dashboard at {dashboard_path}")
+    
+    # Check if new modular dashboard is available
+    web_templates_dir = PROJECT_ROOT / "src" / "claude_mpm" / "web" / "templates"
+    modular_dashboard = web_templates_dir / "index.html"
+    if modular_dashboard.exists():
+        print(f"✓ Modular dashboard found at {modular_dashboard}")
+    else:
+        print(f"⚠️  Modular dashboard not found at {modular_dashboard}")
+        print(f"   Using legacy dashboard for now")
 
 def check_server_running(port: int) -> bool:
     """Check if a Socket.IO server is already running on the specified port.
@@ -878,16 +887,17 @@ def open_dashboard(port: int, no_browser: bool = False):
     
     WHY: Users need easy access to the monitoring dashboard. This function
     handles URL construction and browser opening with fallback options.
+    Now uses the new modular dashboard location.
     
     Args:
         port: Port number for the Socket.IO server
         no_browser: Skip browser opening if True
     """
     if no_browser:
-        print(f"📊 Dashboard available at: http://localhost:{port}/claude_mpm_socketio_dashboard.html")
+        print(f"📊 Dashboard available at: http://localhost:{port}/dashboard")
         return
     
-    dashboard_url = f"http://localhost:{port}/claude_mpm_socketio_dashboard.html?autoconnect=true&port={port}"
+    dashboard_url = f"http://localhost:{port}/dashboard?autoconnect=true&port={port}"
     
     try:
         print(f"🌐 Opening dashboard: {dashboard_url}")
@@ -975,7 +985,7 @@ Examples:
             
             if args.daemon and server_thread:
                 print(f"🔄 Python server running in background")
-                print(f"   Dashboard: http://localhost:{args.port}/claude_mpm_socketio_dashboard.html")
+                print(f"   Dashboard: http://localhost:{args.port}/dashboard")
         else:
             print("❌ Failed to start Socket.IO server")
             sys.exit(1)

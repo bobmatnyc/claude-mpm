@@ -135,7 +135,7 @@ async def main():
         print(f"\n⚠️  Partial success: {len(events_received)}/{len(real_events)} events received")
     
     print(f"\n💡 You can now use the dashboard with Socket.IO events!")
-    print(f"   - Start claude-mpm with --manager flag")
+    print(f"   - Start claude-mpm with --monitor flag")
     print(f"   - Open the dashboard in your browser")
     print(f"   - Watch real-time events as Claude runs!")
 

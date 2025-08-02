@@ -257,8 +257,6 @@ class SocketIOServer:
             # Add HTTP routes
             self.app.router.add_get('/health', self._handle_health)
             self.app.router.add_get('/status', self._handle_health)
-            self.app.router.add_get('/claude_mpm_socketio_dashboard.html', self._handle_dashboard)
-            self.app.router.add_get('/dashboard', self._handle_dashboard)
             
             # Register event handlers
             self._register_events()
@@ -304,19 +302,6 @@ class SocketIOServer:
             "clients_connected": len(self.clients)
         })
         
-    async def _handle_dashboard(self, request):
-        """Handle dashboard HTML requests."""
-        # Look for dashboard HTML file in the scripts directory
-        from pathlib import Path
-        scripts_dir = get_scripts_dir()
-        dashboard_path = scripts_dir / "claude_mpm_socketio_dashboard.html"
-        
-        if dashboard_path.exists():
-            with open(dashboard_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            return web.Response(text=content, content_type='text/html')
-        else:
-            return web.Response(text="Dashboard HTML not found", status=404)
             
     def _register_events(self):
         """Register Socket.IO event handlers."""

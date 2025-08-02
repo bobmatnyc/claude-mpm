@@ -43,7 +43,7 @@ if __name__ == "__main__":
         if port:
             print(f"Available port: {port}")
             print(f"\nRun claude-mpm with:")
-            print(f"  claude-mpm --websocket --websocket-port {port}")
+            print(f"  claude-mpm --monitor --websocket-port {port}")
             sys.exit(0)
         else:
             print("No available ports found in range 8765-8865")

@@ -151,15 +151,18 @@ class DeploymentPaths:
         Get the path to the monitor HTML file.
         
         WHY: The monitor HTML can be in different locations depending on
-        deployment context.
+        deployment context. We now prioritize the new modular web structure.
         
         Returns:
             Path to the monitor HTML file
         """
         # Try multiple locations in order of preference
         candidates = [
-            self.scripts_dir / "claude_mpm_socketio_dashboard.html",
-            self.project_root / "scripts" / "claude_mpm_socketio_dashboard.html",
+            # New modular structure (preferred)
+            self.package_root / "web" / "templates" / "index.html",
+            self.package_root / "web" / "templates" / "dashboard.html",  # fallback
+            self.package_root / "web" / "index.html",  # root web index
+            # Legacy locations (for backward compatibility)
             self.static_dir / "claude_mpm_monitor.html",
             self.scripts_dir / "claude_mpm_monitor.html",
             self.project_root / "scripts" / "claude_mpm_monitor.html",
@@ -169,9 +172,9 @@ class DeploymentPaths:
             if candidate.exists():
                 return candidate
                 
-        # Return the expected location even if it doesn't exist
-        # This allows better error messages
-        return self.static_dir / "claude_mpm_monitor.html"
+        # Return the preferred new location even if it doesn't exist
+        # This allows better error messages and encourages proper structure
+        return self.package_root / "web" / "templates" / "index.html"
         
     def get_resource_path(self, resource_type: str, filename: str) -> Path:
         """

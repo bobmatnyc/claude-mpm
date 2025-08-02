@@ -45,7 +45,7 @@ echo "   Watch for cleanup messages:"
 echo ""
 
 # Run claude-mpm which should clean up automatically
-timeout 10s python -m claude_mpm run --manager --non-interactive -i "test cleanup" 2>&1 | grep -E "(Cleaning|Terminated|Removed|Cleanup complete)"
+timeout 10s python -m claude_mpm run --monitor --non-interactive -i "test cleanup" 2>&1 | grep -E "(Cleaning|Terminated|Removed|Cleanup complete)"
 
 echo ""
 echo "4️⃣ Checking cleanup results..."

@@ -7,10 +7,10 @@ The Claude MPM WebSocket API provides real-time monitoring of Claude sessions, i
 1. Enable WebSocket server when running claude-mpm:
    ```bash
    # Default port (8765)
-   claude-mpm --websocket --launch-method subprocess
+   claude-mpm --monitor --launch-method subprocess
    
    # Custom port
-   claude-mpm --websocket --websocket-port 8766 --launch-method subprocess
+   claude-mpm --monitor --websocket-port 8766 --launch-method subprocess
    ```
 
 2. Connect to the WebSocket server at `ws://localhost:PORT`
@@ -26,13 +26,13 @@ The Claude MPM WebSocket API provides real-time monitoring of Claude sessions, i
 
 ```bash
 # With subprocess launcher (recommended for full features)
-claude-mpm --websocket --launch-method subprocess
+claude-mpm --monitor --launch-method subprocess
 
 # With custom port
-claude-mpm --websocket --websocket-port 8766 --launch-method subprocess
+claude-mpm --monitor --websocket-port 8766 --launch-method subprocess
 
 # With exec launcher (limited monitoring)
-claude-mpm --websocket
+claude-mpm --monitor
 ```
 
 ### Managing Multiple Instances
@@ -45,9 +45,9 @@ python scripts/find_websocket_port.py
 python scripts/find_websocket_port.py 8766
 
 # Run multiple instances on different ports
-claude-mpm --websocket --websocket-port 8765  # Instance 1
-claude-mpm --websocket --websocket-port 8766  # Instance 2
-claude-mpm --websocket --websocket-port 8767  # Instance 3
+claude-mpm --monitor --websocket-port 8765  # Instance 1
+claude-mpm --monitor --websocket-port 8766  # Instance 2
+claude-mpm --monitor --websocket-port 8767  # Instance 3
 ```
 
 ### Test WebSocket Connection
