@@ -176,13 +176,20 @@ class SocketClient {
             if (data && Array.isArray(data.events)) {
                 console.log(`Processing ${data.events.length} historical events (${data.count} sent, ${data.total_available} total available)`);
                 // Add events in the order received (should already be chronological - oldest first)
-                data.events.forEach(event => this.addEvent(event, false));
+                // Transform each historical event to match expected format
+                data.events.forEach(event => {
+                    const transformedEvent = this.transformEvent(event);
+                    this.addEvent(transformedEvent, false);
+                });
                 this.notifyEventUpdate();
                 console.log(`Event history loaded: ${data.events.length} events added to dashboard`);
             } else if (Array.isArray(data)) {
                 // Handle legacy format for backward compatibility
                 console.log('Received legacy event history format:', data.length, 'events');
-                data.forEach(event => this.addEvent(event, false));
+                data.forEach(event => {
+                    const transformedEvent = this.transformEvent(event);
+                    this.addEvent(transformedEvent, false);
+                });
                 this.notifyEventUpdate();
             }
         });

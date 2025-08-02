@@ -219,18 +219,26 @@ class ModuleViewer {
     createHookStructuredView(event) {
         const data = event.data || {};
         
+        // Extract file path information from tool parameters
+        const filePath = this.extractFilePathFromHook(data);
+        const toolInfo = this.extractToolInfoFromHook(data);
+        
         return `
             <div class="structured-view-section">
                 <div class="structured-view-header">
                     <h4>🔗 Hook Information</h4>
                 </div>
                 <div class="structured-data">
-                    ${this.createProperty('Hook Name', data.hook_name || data.name || 'Unknown')}
-                    ${this.createProperty('Phase', event.subtype || 'N/A')}
-                    ${this.createProperty('Target', data.target || 'N/A')}
-                    ${data.context ? this.createProperty('Context', JSON.stringify(data.context)) : ''}
-                    ${data.result ? this.createProperty('Result', JSON.stringify(data.result)) : ''}
-                    ${data.duration ? this.createProperty('Duration', `${data.duration}ms`) : ''}
+                    ${this.createProperty('Hook Name', this.getHookDisplayName(event, data))}
+                    ${this.createProperty('Event Type', data.event_type || event.subtype || 'N/A')}
+                    ${filePath ? this.createProperty('File Path', filePath) : ''}
+                    ${toolInfo.tool_name ? this.createProperty('Tool', toolInfo.tool_name) : ''}
+                    ${toolInfo.operation_type ? this.createProperty('Operation', toolInfo.operation_type) : ''}
+                    ${data.session_id ? this.createProperty('Session ID', data.session_id) : ''}
+                    ${data.working_directory ? this.createProperty('Working Directory', data.working_directory) : ''}
+                    ${data.duration_ms ? this.createProperty('Duration', `${data.duration_ms}ms`) : ''}
+                    ${data.exit_code !== undefined ? this.createProperty('Exit Code', data.exit_code) : ''}
+                    ${data.success !== undefined ? this.createProperty('Success', data.success ? 'Yes' : 'No') : ''}
                 </div>
             </div>
         `;
@@ -424,6 +432,86 @@ class ModuleViewer {
             cancelled: '❌'
         };
         return icons[status] || icons.pending;
+    }
+
+    /**
+     * Get meaningful hook display name from event data
+     */
+    getHookDisplayName(event, data) {
+        // First check if there's a specific hook name in the data
+        if (data.hook_name) return data.hook_name;
+        if (data.name) return data.name;
+        
+        // Use event.subtype or data.event_type to determine hook name
+        const eventType = event.subtype || data.event_type;
+        
+        // Map hook event types to meaningful display names
+        const hookNames = {
+            'user_prompt': 'User Prompt',
+            'pre_tool': 'Tool Execution (Pre)',
+            'post_tool': 'Tool Execution (Post)', 
+            'notification': 'Notification',
+            'stop': 'Session Stop',
+            'subagent_stop': 'Subagent Stop'
+        };
+        
+        if (hookNames[eventType]) {
+            return hookNames[eventType];
+        }
+        
+        // If it's a compound event type like "hook.user_prompt", extract the part after "hook."
+        if (typeof event.type === 'string' && event.type.startsWith('hook.')) {
+            const hookType = event.type.replace('hook.', '');
+            if (hookNames[hookType]) {
+                return hookNames[hookType];
+            }
+        }
+        
+        // Fallback to formatting the event type nicely
+        if (eventType) {
+            return eventType.split('_')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                .join(' ');
+        }
+        
+        return 'Unknown Hook';
+    }
+
+    /**
+     * Extract file path from hook event data
+     */
+    extractFilePathFromHook(data) {
+        // Check tool parameters for file path
+        if (data.tool_parameters && data.tool_parameters.file_path) {
+            return data.tool_parameters.file_path;
+        }
+        
+        // Check direct file_path field
+        if (data.file_path) {
+            return data.file_path;
+        }
+        
+        // Check nested in other common locations
+        if (data.tool_input && data.tool_input.file_path) {
+            return data.tool_input.file_path;
+        }
+        
+        // Check for notebook path (alternative field name)
+        if (data.tool_parameters && data.tool_parameters.notebook_path) {
+            return data.tool_parameters.notebook_path;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract tool information from hook event data
+     */
+    extractToolInfoFromHook(data) {
+        return {
+            tool_name: data.tool_name || (data.tool_parameters && data.tool_parameters.tool_name),
+            operation_type: data.operation_type || (data.tool_parameters && data.tool_parameters.operation_type)
+        };
     }
 
     /**

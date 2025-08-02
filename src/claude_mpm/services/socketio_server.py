@@ -335,9 +335,15 @@ class SocketIOServer:
                     "client_id": sid,
                     "server_time": datetime.utcnow().isoformat() + "Z"
                 }, room=sid)
-                self.logger.debug(f"✅ Sent welcome messages to client {sid}")
+                
+                # Automatically send the last 50 events to new clients
+                await self._send_event_history(sid, limit=50)
+                
+                self.logger.debug(f"✅ Sent welcome messages and event history to client {sid}")
             except Exception as e:
                 self.logger.error(f"❌ Failed to send welcome to client {sid}: {e}")
+                import traceback
+                self.logger.error(f"Full traceback: {traceback.format_exc()}")
             
         @self.sio.event
         async def disconnect(sid):
@@ -371,16 +377,17 @@ class SocketIOServer:
             event_types = params.get("event_types", [])
             limit = min(params.get("limit", 100), len(self.event_history))
             
-            history = []
-            for event in reversed(self.event_history):
-                if not event_types or event["type"] in event_types:
-                    history.append(event)
-                    if len(history) >= limit:
-                        break
-                        
-            await self.sio.emit('history', {
-                "events": list(reversed(history))
-            }, room=sid)
+            await self._send_event_history(sid, event_types=event_types, limit=limit)
+            
+        @self.sio.event
+        async def request_history(sid, data=None):
+            """Handle legacy history request (for client compatibility)."""
+            # This handles the 'request.history' event that the client currently emits
+            params = data or {}
+            event_types = params.get("event_types", [])
+            limit = min(params.get("limit", 50), len(self.event_history))
+            
+            await self._send_event_history(sid, event_types=event_types, limit=limit)
             
         @self.sio.event
         async def subscribe(sid, data=None):
@@ -425,6 +432,54 @@ class SocketIOServer:
         except Exception as e:
             self.logger.error(f"Failed to send status to client: {e}")
             raise
+            
+    async def _send_event_history(self, sid: str, event_types: list = None, limit: int = 50):
+        """Send event history to a specific client.
+        
+        WHY: When clients connect to the dashboard, they need context from recent events
+        to understand what's been happening. This sends the most recent events in
+        chronological order (oldest first) so the dashboard displays them properly.
+        
+        Args:
+            sid: Socket.IO session ID of the client
+            event_types: Optional list of event types to filter by
+            limit: Maximum number of events to send (default: 50)
+        """
+        try:
+            if not self.event_history:
+                self.logger.debug(f"No event history to send to client {sid}")
+                return
+                
+            # Limit to reasonable number to avoid overwhelming client
+            limit = min(limit, 100)
+            
+            # Get the most recent events, filtered by type if specified
+            history = []
+            for event in reversed(self.event_history):
+                if not event_types or event.get("type") in event_types:
+                    history.append(event)
+                    if len(history) >= limit:
+                        break
+            
+            # Reverse to get chronological order (oldest first)
+            history = list(reversed(history))
+            
+            if history:
+                # Send as 'history' event that the client expects
+                await self.sio.emit('history', {
+                    "events": history,
+                    "count": len(history),
+                    "total_available": len(self.event_history)
+                }, room=sid)
+                
+                self.logger.info(f"📚 Sent {len(history)} historical events to client {sid}")
+            else:
+                self.logger.debug(f"No matching events found for client {sid} with filters: {event_types}")
+                
+        except Exception as e:
+            self.logger.error(f"❌ Failed to send event history to client {sid}: {e}")
+            import traceback
+            self.logger.error(f"Stack trace: {traceback.format_exc()}")
             
     def broadcast_event(self, event_type: str, data: Dict[str, Any]):
         """Broadcast an event to all connected clients."""
