@@ -1,0 +1,35 @@
+❌ Failed to start Socket.IO server: [Errno 48] error while attempting to bind on address ('127.0.0.1', 8765): [errno 48] address already in use
+Stack trace: Traceback (most recent call last):
+  File "/Users/masa/Projects/claude-mpm/src/claude_mpm/services/socketio_server.py", line 271, in _serve
+    await self.site.start()
+  File "/Users/masa/Projects/claude-mpm/venv/lib/python3.13/site-packages/aiohttp/web_runner.py", line 121, in start
+    self._server = await loop.create_server(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/base_events.py", line 1622, in create_server
+    raise OSError(err.errno, msg) from None
+OSError: [Errno 48] error while attempting to bind on address ('127.0.0.1', 8765): [errno 48] address already in use
+
+❌ Socket.IO server error in _run_server: [Errno 48] error while attempting to bind on address ('127.0.0.1', 8765): [errno 48] address already in use
+Stack trace: Traceback (most recent call last):
+  File "/Users/masa/Projects/claude-mpm/src/claude_mpm/services/socketio_server.py", line 227, in _run_server
+    self.loop.run_until_complete(self._serve())
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/Users/masa/Projects/claude-mpm/src/claude_mpm/services/socketio_server.py", line 271, in _serve
+    await self.site.start()
+  File "/Users/masa/Projects/claude-mpm/venv/lib/python3.13/site-packages/aiohttp/web_runner.py", line 121, in start
+    self._server = await loop.create_server(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    )
+    ^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.5/Frameworks/Python.framework/Versions/3.13/lib/python3.13/asyncio/base_events.py", line 1622, in create_server
+    raise OSError(err.errno, msg) from None
+OSError: [Errno 48] error while attempting to bind on address ('127.0.0.1', 8765): [errno 48] address already in use
+
+❌ Socket.IO server thread failed to start!

@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Keyboard Navigation Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .instructions { background: #f0f0f0; padding: 20px; border-radius: 8px; }
+        .shortcut { font-family: monospace; background: #e0e0e0; padding: 2px 6px; border-radius: 3px; }
+        h2 { color: #333; }
+        .test-area { margin-top: 20px; padding: 20px; border: 2px dashed #ccc; }
+    </style>
+</head>
+<body>
+    <h1>🎹 Keyboard Navigation Test Guide</h1>
+    
+    <div class="instructions">
+        <h2>✅ What's New:</h2>
+        <ul>
+            <li>Arrow key navigation (<span class="shortcut">↑</span>/<span class="shortcut">↓</span>) for events list</li>
+            <li>Auto-updating module viewer as you navigate</li>
+            <li>Blue highlight shows selected event</li>
+            <li>Smooth scrolling to keep selection in view</li>
+        </ul>
+        
+        <h2>📝 How to Test:</h2>
+        <ol>
+            <li>Open the <a href="http://localhost:8765/dashboard?autoconnect=true&port=8765" target="_blank">Socket.IO Dashboard</a></li>
+            <li>Wait for some events to appear in the list</li>
+            <li>Click anywhere on the dashboard to focus it</li>
+            <li>Press <span class="shortcut">↓</span> to select the first event</li>
+            <li>Continue pressing <span class="shortcut">↑</span>/<span class="shortcut">↓</span> to navigate</li>
+        </ol>
+        
+        <h2>🔍 What to Check:</h2>
+        <ul>
+            <li>Selected event has blue background</li>
+            <li>Module viewer (left panel) updates automatically</li>
+            <li>Arrow keys wrap at top/bottom of list</li>
+            <li>Selected event scrolls into view</li>
+        </ul>
+        
+        <h2>🐛 Debugging:</h2>
+        <p>Open browser console (F12) and look for:</p>
+        <ul>
+            <li><code>Arrow navigation: 1 from X to Y</code></li>
+            <li><code>Selected event: Y [event type]</code></li>
+            <li><code>updateModuleViewer called, eventsByClass size: X</code></li>
+            <li><code>updateEventsByClass called with: [event object]</code></li>
+        </ul>
+    </div>
+    
+    <div class="test-area">
+        <h3>Quick Test:</h3>
+        <button onclick="window.open('http://localhost:8765/dashboard?autoconnect=true&port=8765', '_blank')">
+            🚀 Open Dashboard
+        </button>
+        
+        <h3 style="margin-top: 20px;">Expected Console Output:</h3>
+        <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px;">
+Arrow navigation: 1 from -1 to 0
+updateEventsByClass called with: {type: "session.start", ...}
+Event class: session
+updateModuleViewer called, eventsByClass size: 3
+Selected event: 0 session.start
+        </pre>
+    </div>
+</body>
+</html>

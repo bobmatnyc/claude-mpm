@@ -28,238 +28,74 @@
         .header {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
         }
         
-        .header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex: 1;
-        }
-        
         .header h1 {
             color: #4a5568;
-            font-size: 20px;
-            margin: 0;
-            font-weight: 600;
+            margin-bottom: 10px;
+            font-size: 28px;
         }
         
-        .header-row {
+        .status-bar {
             display: flex;
-            align-items: center;
             gap: 20px;
-            min-height: 36px;
-        }
-        
-        .header-row:first-child {
-            justify-content: space-between;
-        }
-        
-        .header-row + .header-row {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e2e8f0;
-        }
-        
-        .header-title {
-            display: flex;
             align-items: center;
-            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 15px;
         }
         
-        .connection-controls {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .filter-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex: 1;
-            max-width: 400px;
-        }
-        
-        .action-buttons {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        .session-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .session-select {
-            width: 200px;
-        }
-        
-        label {
-            font-size: 12px;
-            font-weight: 600;
-            color: #4a5568;
-            white-space: nowrap;
-        }
-        
-        .info-group {
-            display: flex;
-            gap: 12px;
-            margin-left: auto;
-            font-size: 12px;
-            color: #718096;
+        .status-item {
             background: #f7fafc;
-            padding: 6px 12px;
-            border-radius: 6px;
-        }
-        
-        .info-group span {
-            white-space: nowrap;
-        }
-        
-        .info-separator {
-            color: #cbd5e0;
-        }
-        
-        .status-badge {
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            white-space: nowrap;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            border-left: 4px solid #4299e1;
         }
         
         .status-connected {
-            background: #d4f8e8;
-            color: #22543d;
+            border-left-color: #48bb78;
         }
         
         .status-disconnected {
-            background: #fed7d7;
-            color: #742a2a;
-        }
-        
-        .status-connecting {
-            background: #feebc8;
-            color: #7b341e;
-        }
-        
-        .metrics-widget {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            background: #f7fafc;
-            padding: 8px 16px;
-            border-radius: 8px;
-        }
-        
-        .metric-mini {
-            text-align: center;
-        }
-        
-        .metric-mini-value {
-            font-size: 16px;
-            font-weight: bold;
-            color: #4299e1;
-            line-height: 1.2;
-        }
-        
-        .metric-mini-label {
-            font-size: 10px;
-            color: #718096;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 2px;
-        }
-        
-        .header-middle, .header-bottom {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e2e8f0;
-            flex-wrap: wrap;
-        }
-        
-        .header-bottom {
-            justify-content: space-between;
-        }
-        
-        .session-control {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex: 1;
-        }
-        
-        .session-control label {
-            font-size: 13px;
-            font-weight: 600;
-            color: #4a5568;
-        }
-        
-        .session-select {
-            flex: 1;
-            max-width: 300px;
-            font-size: 13px;
-            padding: 6px 10px;
-        }
-        
-        .connection-info {
-            display: flex;
-            gap: 15px;
-            font-size: 12px;
-            color: #718096;
-        }
-        
-        .connection-info span {
-            white-space: nowrap;
+            border-left-color: #f56565;
         }
         
         .controls {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
         
-        /* Removed old control styles - now using new layout */
+        .control-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .control-group:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-group label {
+            font-weight: 600;
+            color: #4a5568;
+            min-width: 100px;
+        }
         
         input, select, button {
-            padding: 6px 10px;
-            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
             border-radius: 6px;
-            font-size: 12px;
+            font-size: 14px;
             transition: all 0.2s;
-        }
-        
-        #port-input {
-            width: 50px;
-            text-align: center;
-        }
-        
-        #search-input {
-            flex: 1;
-            min-width: 150px;
         }
         
         input:focus, select:focus {
@@ -273,10 +109,8 @@
             color: white;
             border: none;
             cursor: pointer;
-            font-weight: 500;
-            padding: 6px 14px;
-            font-size: 12px;
-            white-space: nowrap;
+            font-weight: 600;
+            padding: 10px 20px;
         }
         
         button:hover {
@@ -304,83 +138,59 @@
             background: #38a169;
         }
         
-        /* Removed standalone metrics section - now in header */
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
         
-        .events-wrapper {
+        .metric-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .metric-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4299e1;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            color: #718096;
+            font-size: 14px;
+        }
+        
+        .events-container {
             background: rgba(255, 255, 255, 0.95);
             border-radius: 12px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            height: calc(100vh - 280px);
-            min-height: 400px;
+            height: 600px;
             display: flex;
             flex-direction: column;
-        }
-        
-        .split-container {
-            display: flex;
-            gap: 15px;
-            flex: 1;
-            overflow: hidden;
-        }
-        
-        .module-viewer {
-            width: 40%;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            background: #f8f9fa;
-            overflow: hidden;
-        }
-        
-        .events-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            background: #f8f9fa;
-            overflow: hidden;
         }
         
         .events-header {
             display: flex;
-            justify-content: space-between;
+            justify-content: between;
             align-items: center;
             margin-bottom: 15px;
             flex-wrap: wrap;
             gap: 10px;
         }
         
-        .module-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px 15px;
-            border-bottom: 1px solid #e2e8f0;
-            background: white;
-        }
-        
-        .module-header h4 {
-            margin: 0;
-            font-size: 14px;
-            color: #4a5568;
-            font-weight: 600;
-        }
-        
-        .module-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 15px;
-            background: white;
-        }
-        
         .events-list {
             flex: 1;
             overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
             padding: 10px;
-            background: white;
+            background: #f8f9fa;
         }
         
         .event-item {
@@ -506,30 +316,22 @@
             font-style: italic;
         }
         
-        @media (max-width: 1200px) {
-            .split-container {
-                flex-direction: column;
-            }
-            
-            .module-viewer {
-                width: 100%;
-                height: 250px;
-            }
-        }
-        
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
             }
             
-            .header-row {
+            .control-group {
                 flex-direction: column;
                 align-items: stretch;
-                gap: 10px;
             }
             
-            .filter-group {
-                max-width: none;
+            .control-group label {
+                min-width: auto;
+            }
+            
+            .metrics {
+                grid-template-columns: 1fr;
             }
             
             .modal-content {
@@ -542,83 +344,66 @@
 <body>
     <div class="container">
         <div class="header">
-            <!-- Row 1: Title, Status, Metrics -->
-            <div class="header-row">
-                <div class="header-title">
-                    <h1>🚀 Claude MPM Monitor</h1>
-                    <div id="connection-status" class="status-badge status-disconnected">
-                        <span>●</span> Disconnected
-                    </div>
+            <h1>🚀 Claude MPM Socket.IO Dashboard</h1>
+            <p>Real-time monitoring of Claude MPM sessions and events</p>
+            <div class="status-bar">
+                <div id="connection-status" class="status-item status-disconnected">
+                    🔴 Disconnected
                 </div>
-                <div class="metrics-widget">
-                    <div class="metric-mini">
-                        <div class="metric-mini-value" id="total-events">0</div>
-                        <div class="metric-mini-label">Events</div>
-                    </div>
-                    <div class="metric-mini">
-                        <div class="metric-mini-value" id="events-per-minute">0</div>
-                        <div class="metric-mini-label">Per Min</div>
-                    </div>
-                    <div class="metric-mini">
-                        <div class="metric-mini-value" id="unique-types">0</div>
-                        <div class="metric-mini-label">Types</div>
-                    </div>
-                    <div class="metric-mini">
-                        <div class="metric-mini-value" id="error-count">0</div>
-                        <div class="metric-mini-label">Errors</div>
-                    </div>
+                <div id="socket-id" class="status-item">
+                    Socket ID: Not connected
                 </div>
-            </div>
-            
-            <!-- Row 2: Connection & Filters -->
-            <div class="header-row">
-                <div class="connection-controls">
-                    <button id="connect-btn" onclick="connectSocket()">Connect</button>
-                    <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary">Disconnect</button>
-                    <input type="text" id="port-input" value="8765" placeholder="Port">
-                </div>
-                <div class="filter-group">
-                    <input type="text" id="search-input" placeholder="Search events...">
-                    <select id="event-type-filter">
-                        <option value="">All Events</option>
-                        <option value="session">Session</option>
-                        <option value="claude">Claude</option>
-                        <option value="agent">Agent</option>
-                        <option value="hook">Hook</option>
-                        <option value="todo">Todo</option>
-                        <option value="memory">Memory</option>
-                        <option value="log">Log</option>
-                    </select>
-                </div>
-                <div class="action-buttons">
-                    <button onclick="clearEvents()" class="btn-secondary">Clear</button>
-                    <button onclick="exportEvents()" class="btn-success">Export</button>
-                </div>
-            </div>
-            
-            <!-- Row 3: Session & Info -->
-            <div class="header-row">
-                <div class="session-group">
-                    <label>Session:</label>
-                    <select id="session-select" class="session-select">
-                        <option value="">All Sessions</option>
-                        <option value="current">Current Session</option>
-                    </select>
-                    <button onclick="refreshSessions()" class="btn-secondary">Refresh</button>
-                </div>
-                <div class="info-group">
-                    <span id="socket-id">Socket: Not connected</span>
-                    <span class="info-separator">•</span>
-                    <span id="server-info">Server: Offline</span>
-                    <span class="info-separator">•</span>
-                    <span id="port-info">Port: 8765</span>
+                <div id="server-info" class="status-item">
+                    Server: Not connected
                 </div>
             </div>
         </div>
         
-        <!-- Events Wrapper -->
-        <div class="events-wrapper">
-            <!-- Common header for both sections -->
+        <div class="controls">
+            <div class="control-group">
+                <label>Connection:</label>
+                <button id="connect-btn" onclick="connectSocket()">Connect</button>
+                <button id="disconnect-btn" onclick="disconnectSocket()" class="btn-secondary">Disconnect</button>
+                <input type="text" id="port-input" value="8765" placeholder="Port" style="width: 80px;">
+            </div>
+            <div class="control-group">
+                <label>Filters:</label>
+                <input type="text" id="search-input" placeholder="Search events..." style="width: 200px;">
+                <select id="event-type-filter">
+                    <option value="">All Events</option>
+                    <option value="session">Session</option>
+                    <option value="claude">Claude</option>
+                    <option value="agent">Agent</option>
+                    <option value="hook">Hook</option>
+                    <option value="todo">Todo</option>
+                    <option value="memory">Memory</option>
+                    <option value="log">Log</option>
+                </select>
+                <button onclick="clearEvents()" class="btn-secondary">Clear Events</button>
+                <button onclick="exportEvents()" class="btn-success">Export JSON</button>
+            </div>
+        </div>
+        
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-value" id="total-events">0</div>
+                <div class="metric-label">Total Events</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="events-per-minute">0</div>
+                <div class="metric-label">Events/Min</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="unique-types">0</div>
+                <div class="metric-label">Event Types</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="error-count">0</div>
+                <div class="metric-label">Errors</div>
+            </div>
+        </div>
+        
+        <div class="events-container">
             <div class="events-header">
                 <h3>📊 Live Events</h3>
                 <div>
@@ -626,33 +411,11 @@
                     <button onclick="toggleAutoScroll()" id="autoscroll-btn" class="btn-secondary">Auto-scroll: ON</button>
                 </div>
             </div>
-            
-            <!-- Split container for module viewer and events list -->
-            <div class="split-container">
-                <!-- Left: Module Viewer -->
-                <div class="module-viewer">
-                    <div class="module-header">
-                        <h4>📁 Event Analysis</h4>
-                        <button onclick="clearSelection()" class="btn-secondary" style="font-size: 11px; padding: 4px 8px;">Clear</button>
-                    </div>
-                    <div class="module-content" id="module-content">
-                        <div class="module-empty">
-                            <p>Click on an event to view details</p>
-                            <p class="module-hint">Events are organized by class</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Right: Events List -->
-                <div class="events-container">
-                    <div class="events-list" id="events-list">
-                        <div class="no-events">
-                            Connect to Socket.IO server to see events...
-                        </div>
-                    </div>
+            <div class="events-list" id="events-list">
+                <div class="no-events">
+                    Connect to Socket.IO server to see events...
                 </div>
             </div>
-        </div>
         </div>
     </div>
     
@@ -675,10 +438,6 @@
         let errorCount = 0;
         let eventsThisMinute = 0;
         let lastMinute = new Date().getMinutes();
-        let sessions = new Map(); // Track sessions
-        let currentSessionId = null;
-        let selectedEventIndex = null;
-        let eventsByClass = new Map(); // Group events by class
         
         // Initialize from URL params
         const urlParams = new URLSearchParams(window.location.search);
@@ -695,107 +454,42 @@
             const port = document.getElementById('port-input').value || defaultPort;
             const url = `http://localhost:${port}`;
             
-            // Prevent multiple simultaneous connections
-            if (socket && (socket.connected || socket.connecting)) {
-                console.log('Already connected or connecting, disconnecting first...');
+            if (socket && socket.connected) {
                 socket.disconnect();
-                // Wait a moment for cleanup
-                setTimeout(doConnect, 100);
-                return;
             }
             
-            doConnect();
+            console.log(`Connecting to Socket.IO server at ${url}`);
             
-            function doConnect() {
-                console.log(`Connecting to Socket.IO server at ${url}`);
-                updateConnectionStatus('Connecting...', 'connecting');
-                
-                socket = io(url, {
-                    autoConnect: true,
-                    reconnection: true,
-                    reconnectionDelay: 1000,
-                    reconnectionDelayMax: 10000,
-                    maxReconnectionAttempts: 10,
-                    timeout: 10000,
-                    forceNew: true,
-                    transports: ['websocket', 'polling']
-                });
-                
-                setupSocketHandlers();
-            }
-        }
-        
-        function setupSocketHandlers() {
+            socket = io(url, {
+                autoConnect: true,
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                maxReconnectionAttempts: 5
+            });
+            
             socket.on('connect', () => {
                 console.log('Connected to Socket.IO server');
                 updateConnectionStatus('Connected', 'connected');
-                document.getElementById('socket-id').textContent = `Socket: ${socket.id.substring(0, 8)}...`;
+                document.getElementById('socket-id').textContent = `Socket ID: ${socket.id}`;
                 requestStatus();
-                // Request history on successful connection
-                setTimeout(requestHistory, 500);
             });
             
             socket.on('disconnect', (reason) => {
                 console.log('Disconnected from server:', reason);
-                updateConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
-                document.getElementById('socket-id').textContent = 'Socket: Not connected';
-                document.getElementById('server-info').textContent = 'Server: Offline';
+                updateConnectionStatus('Disconnected', 'disconnected');
+                document.getElementById('socket-id').textContent = 'Socket ID: Not connected';
             });
             
             socket.on('connect_error', (error) => {
                 console.error('Connection error:', error);
-                const errorMsg = error.message || error.description || 'Unknown error';
-                updateConnectionStatus(`Connection Error: ${errorMsg}`, 'disconnected');
-                addEvent({
-                    type: 'connection.error',
-                    timestamp: new Date().toISOString(),
-                    data: { error: errorMsg, url: socket.io.uri }
-                });
-            });
-            
-            socket.on('reconnect', (attemptNumber) => {
-                console.log(`Reconnected after ${attemptNumber} attempts`);
-                updateConnectionStatus('Reconnected', 'connected');
-                addEvent({
-                    type: 'connection.reconnected',
-                    timestamp: new Date().toISOString(),
-                    data: { attempts: attemptNumber }
-                });
-            });
-            
-            socket.on('reconnect_attempt', (attemptNumber) => {
-                console.log(`Reconnection attempt ${attemptNumber}`);
-                updateConnectionStatus(`Reconnecting... (${attemptNumber})`, 'connecting');
-            });
-            
-            socket.on('reconnect_error', (error) => {
-                console.error('Reconnection error:', error);
-                updateConnectionStatus('Reconnection Failed', 'disconnected');
-            });
-            
-            socket.on('reconnect_failed', () => {
-                console.error('Reconnection failed permanently');
-                updateConnectionStatus('Connection Failed', 'disconnected');
-                addEvent({
-                    type: 'connection.failed',
-                    timestamp: new Date().toISOString(),
-                    data: { reason: 'Max reconnection attempts exceeded' }
-                });
-            });
-            
-            socket.on('welcome', (data) => {
-                console.log('Received welcome message:', data);
-                addEvent({
-                    type: 'connection.welcome',
-                    timestamp: new Date().toISOString(),
-                    data: data
-                });
+                updateConnectionStatus('Connection Error', 'disconnected');
             });
             
             socket.on('status', (data) => {
                 console.log('Server status:', data);
                 document.getElementById('server-info').textContent = 
-                    `Server: ${data.server ? 'Online' : 'Unknown'} (${data.clients_connected || 0} clients)`;
+                    `Server: ${data.server || 'Unknown'} (${data.clients_connected || 0} clients)`;
             });
             
             socket.on('claude_event', (eventData) => {
@@ -806,9 +500,7 @@
             socket.on('history', (data) => {
                 console.log('Received history:', data.events.length, 'events');
                 if (data.events && data.events.length > 0) {
-                    // Merge history with existing events and sort by timestamp
                     events = data.events.concat(events);
-                    events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
                     updateDisplay();
                 }
             });
@@ -822,14 +514,8 @@
         
         function updateConnectionStatus(status, type) {
             const statusEl = document.getElementById('connection-status');
-            const statusText = type === 'connected' ? 'Connected' : 
-                              type === 'connecting' ? 'Connecting' : 'Disconnected';
-            statusEl.innerHTML = `<span class="status-dot">●</span> ${statusText}`;
-            statusEl.className = 'status-badge status-' + type;
-            
-            // Update port info
-            const port = document.getElementById('port-input').value;
-            document.getElementById('port-info').textContent = `Port: ${port}`;
+            statusEl.textContent = type === 'connected' ? '🟢 ' + status : '🔴 ' + status;
+            statusEl.className = 'status-item status-' + type;
         }
         
         function requestStatus() {
@@ -848,7 +534,7 @@
         }
         
         function addEvent(eventData) {
-            events.push(eventData);
+            events.unshift(eventData);
             
             // Track metrics
             const eventType = eventData.type ? eventData.type.split('.')[0] : 'unknown';
@@ -867,40 +553,9 @@
                 eventsThisMinute++;
             }
             
-            // Track sessions
-            if (eventData.type === 'session.start' && eventData.data) {
-                const sessionId = eventData.data.session_id;
-                if (sessionId) {
-                    sessions.set(sessionId, {
-                        id: sessionId,
-                        startTime: eventData.data.start_time || eventData.timestamp,
-                        workingDir: eventData.data.working_directory || 'Unknown'
-                    });
-                    currentSessionId = sessionId;
-                    updateSessionSelect();
-                }
-            } else if (eventData.type === 'session.end' && eventData.data) {
-                const sessionId = eventData.data.session_id;
-                if (sessionId && sessions.has(sessionId)) {
-                    const session = sessions.get(sessionId);
-                    session.endTime = eventData.data.end_time || eventData.timestamp;
-                    session.active = false;
-                    if (currentSessionId === sessionId) {
-                        currentSessionId = null;
-                    }
-                    updateSessionSelect();
-                }
-            }
-            
-            // Extract session ID from event data if available
-            if (!eventData.sessionId && eventData.data) {
-                eventData.sessionId = eventData.data.session_id || 
-                                     (eventData.data.data && eventData.data.data.session_id);
-            }
-            
             // Limit history
             if (events.length > 1000) {
-                events = events.slice(-1000);
+                events = events.slice(0, 1000);
             }
             
             updateDisplay();
@@ -915,22 +570,8 @@
         function applyFilters() {
             const searchTerm = document.getElementById('search-input').value.toLowerCase();
             const eventTypeFilter = document.getElementById('event-type-filter').value;
-            const sessionFilter = document.getElementById('session-select').value;
             
             filteredEvents = events.filter(event => {
-                // Session filter
-                if (sessionFilter) {
-                    if (sessionFilter === 'current' && currentSessionId) {
-                        if (event.sessionId !== currentSessionId) {
-                            return false;
-                        }
-                    } else if (sessionFilter !== 'current' && sessionFilter !== '') {
-                        if (event.sessionId !== sessionFilter) {
-                            return false;
-                        }
-                    }
-                }
-                
                 // Search filter
                 if (searchTerm) {
                     const searchableText = JSON.stringify(event).toLowerCase();
@@ -977,7 +618,7 @@
             
             eventsList.innerHTML = eventsHtml;
             
-            // Auto-scroll to bottom (newest events)
+            // Auto-scroll to bottom
             if (autoScroll) {
                 eventsList.scrollTop = eventsList.scrollHeight;
             }
@@ -991,186 +632,18 @@
         }
         
         function showEventDetails(index) {
-            selectedEventIndex = index;
             const event = filteredEvents[index];
+            const modal = document.getElementById('event-modal');
+            const content = document.getElementById('event-detail-content');
             
-            // Update selected state in event list
-            document.querySelectorAll('.event-item').forEach((el, i) => {
-                el.classList.toggle('selected', i === index);
-            });
-            
-            // Group events by class
-            updateEventsByClass(event);
-            
-            // Update module viewer
-            updateModuleViewer();
-        }
-        
-        function updateEventsByClass(currentEvent) {
-            eventsByClass.clear();
-            
-            // Get the event class (first part before dot)
-            const eventClass = currentEvent.type ? currentEvent.type.split('.')[0] : 'unknown';
-            
-            // Find all events of the same class
-            const relatedEvents = events.filter(e => {
-                const eClass = e.type ? e.type.split('.')[0] : 'unknown';
-                return eClass === eventClass;
-            });
-            
-            // Group by specific event type
-            relatedEvents.forEach(event => {
-                const eventType = event.type || 'unknown';
-                if (!eventsByClass.has(eventType)) {
-                    eventsByClass.set(eventType, []);
-                }
-                eventsByClass.get(eventType).push(event);
-            });
-        }
-        
-        function updateModuleViewer() {
-            const moduleContent = document.getElementById('module-content');
-            
-            if (eventsByClass.size === 0) {
-                moduleContent.innerHTML = `
-                    <div class="module-empty">
-                        <p>Click on an event to view details</p>
-                        <p class="module-hint">Events are organized by class</p>
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            
-            // Get the main event class
-            const mainClass = Array.from(eventsByClass.keys())[0].split('.')[0];
-            const classIcons = {
-                'session': '🔄',
-                'hook': '🎣',
-                'agent': '🤖',
-                'todo': '✅',
-                'memory': '🧠',
-                'claude': '🤖',
-                'connection': '🔌',
-                'system': '⚙️'
-            };
-            
-            html += `<div class="event-class-section">`;
-            html += `<div class="event-class-header">`;
-            html += `<span class="event-class-icon">${classIcons[mainClass] || '📊'}</span>`;
-            html += `${mainClass.toUpperCase()} Events (${events.filter(e => (e.type || '').startsWith(mainClass)).length} total)`;
-            html += `</div>`;
-            
-            // Show details for each event type in this class
-            eventsByClass.forEach((events, eventType) => {
-                const latestEvent = events[events.length - 1];
-                html += createEventDetailCard(eventType, latestEvent, events.length);
-            });
-            
-            html += `</div>`;
-            
-            moduleContent.innerHTML = html;
-        }
-        
-        function createEventDetailCard(eventType, event, count) {
-            const eventSubtype = eventType.split('.')[1] || 'event';
-            let html = `<div class="event-detail-card">`;
-            
-            html += `<div class="event-detail-header">`;
-            html += `<span class="event-detail-title">${eventSubtype} (${count})</span>`;
-            html += `<span class="event-detail-time">${new Date(event.timestamp).toLocaleTimeString()}</span>`;
-            html += `</div>`;
-            
-            html += `<div class="event-detail-content">`;
-            
-            // Extract key information based on event type
-            const data = event.data || {};
-            
-            if (eventType.includes('hook')) {
-                // Hook events
-                if (data.tool_name) {
-                    html += createProperty('Tool', data.tool_name);
-                }
-                if (data.operation_type) {
-                    html += createProperty('Operation', data.operation_type);
-                }
-                if (data.tool_parameters && data.tool_parameters.subagent_type) {
-                    html += createProperty('Agent', data.tool_parameters.subagent_type);
-                }
-                if (data.exit_code !== undefined) {
-                    html += createProperty('Exit Code', data.exit_code);
-                }
-                if (data.prompt_preview) {
-                    html += createProperty('Prompt', data.prompt_preview.substring(0, 100) + '...');
-                }
-            } else if (eventType.includes('session')) {
-                // Session events
-                if (data.session_id) {
-                    html += createProperty('Session ID', data.session_id.substring(0, 8) + '...');
-                }
-                if (data.working_directory) {
-                    html += createProperty('Directory', data.working_directory);
-                }
-                if (data.duration_seconds) {
-                    html += createProperty('Duration', `${data.duration_seconds.toFixed(1)}s`);
-                }
-            } else if (eventType.includes('agent')) {
-                // Agent events
-                if (data.agent) {
-                    html += createProperty('Agent', data.agent);
-                }
-                if (data.task) {
-                    html += createProperty('Task', data.task.substring(0, 100) + '...');
-                }
-                if (data.status) {
-                    html += createProperty('Status', data.status);
-                }
-            } else if (eventType.includes('todo')) {
-                // Todo events
-                const stats = data.stats || {};
-                if (stats.total !== undefined) {
-                    html += createProperty('Total Todos', stats.total);
-                }
-                if (stats.completed !== undefined) {
-                    html += createProperty('Completed', stats.completed);
-                }
-                if (stats.in_progress !== undefined) {
-                    html += createProperty('In Progress', stats.in_progress);
-                }
-            } else {
-                // Generic properties
-                const importantKeys = Object.keys(data).slice(0, 5);
-                importantKeys.forEach(key => {
-                    const value = data[key];
-                    if (typeof value === 'string' || typeof value === 'number') {
-                        html += createProperty(key, String(value).substring(0, 100));
-                    }
-                });
-            }
-            
-            html += `</div>`;
-            html += `</div>`;
-            
-            return html;
-        }
-        
-        function createProperty(key, value) {
-            return `
-                <div class="event-property">
-                    <span class="event-property-key">${key}:</span>
-                    <span class="event-property-value">${value}</span>
-                </div>
+            content.innerHTML = `
+                <h3>${event.type || 'Unknown Event'}</h3>
+                <p><strong>Timestamp:</strong> ${event.timestamp}</p>
+                <h4>Event Data:</h4>
+                <pre>${JSON.stringify(event, null, 2)}</pre>
             `;
-        }
-        
-        function clearSelection() {
-            selectedEventIndex = null;
-            eventsByClass.clear();
-            document.querySelectorAll('.event-item').forEach(el => {
-                el.classList.remove('selected');
-            });
-            updateModuleViewer();
+            
+            modal.style.display = 'block';
         }
         
         function closeModal() {
@@ -1213,43 +686,9 @@
             btn.className = autoScroll ? 'btn-secondary' : 'btn-secondary';
         }
         
-        function updateSessionSelect() {
-            const select = document.getElementById('session-select');
-            const currentValue = select.value;
-            
-            // Clear existing options except the first two
-            while (select.options.length > 2) {
-                select.remove(2);
-            }
-            
-            // Add session options
-            sessions.forEach((session, sessionId) => {
-                const option = document.createElement('option');
-                option.value = sessionId;
-                const timeStr = new Date(session.startTime).toLocaleTimeString();
-                const activeStr = session.active !== false ? ' (Active)' : '';
-                option.textContent = `Session ${sessionId.substring(0, 8)} - ${timeStr}${activeStr}`;
-                select.appendChild(option);
-            });
-            
-            // Restore selection if it still exists
-            if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
-                select.value = currentValue;
-            }
-        }
-        
-        function refreshSessions() {
-            // Request session history from server
-            if (socket && socket.connected) {
-                socket.emit('get_sessions');
-            }
-            updateSessionSelect();
-        }
-        
         // Event listeners
         document.getElementById('search-input').addEventListener('input', updateDisplay);
         document.getElementById('event-type-filter').addEventListener('change', updateDisplay);
-        document.getElementById('session-select').addEventListener('change', updateDisplay);
         
         // Keyboard shortcuts
         document.addEventListener('keydown', (e) => {

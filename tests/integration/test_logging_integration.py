@@ -16,8 +16,8 @@ def test_manager_with_logging():
     print("🧪 Testing Manager Mode with WebSocket Logging")
     print("-" * 50)
     
-    # Start claude-mpm with manager flag
-    cmd = [sys.executable, "-m", "claude_mpm", "run", "--manager", "--logging", "DEBUG"]
+    # Start claude-mpm with monitor flag
+    cmd = [sys.executable, "-m", "claude_mpm", "run", "--monitor", "--logging", "DEBUG"]
     
     print(f"📋 Command: {' '.join(cmd)}")
     print("\n✅ Starting claude-mpm with WebSocket logging...")
@@ -62,7 +62,7 @@ def main():
     print("=" * 60)
     
     print("\nThis test will:")
-    print("1. Start claude-mpm with --manager flag")
+    print("1. Start claude-mpm with --monitor flag")
     print("2. Enable DEBUG logging level")
     print("3. Stream all logs to the dashboard via WebSocket")
     print("\n" + "=" * 60)

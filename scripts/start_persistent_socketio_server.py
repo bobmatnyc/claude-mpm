@@ -12,7 +12,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.services.websocket_server import SocketIOServer
+from claude_mpm.services.socketio_server import SocketIOServer
 
 
 def main():

@@ -23,18 +23,18 @@ def test_browser_opening_simulation():
     
     # Simulate the exact conditions
     websocket_port = 8765
-    dashboard_url = f'http://localhost:{websocket_port}/claude_mpm_socketio_dashboard.html?autoconnect=true&port={websocket_port}'
+    dashboard_url = f'http://localhost:{websocket_port}/dashboard?autoconnect=true&port={websocket_port}'
     
     print(f"Dashboard URL: {dashboard_url}")
     
-    # Check if dashboard HTML exists
-    scripts_dir = project_root / "scripts"
-    dashboard_html = scripts_dir / "claude_mpm_socketio_dashboard.html"
+    # Check if new modular dashboard exists
+    web_templates_dir = project_root / "src" / "claude_mpm" / "web" / "templates"
+    dashboard_html = web_templates_dir / "index.html"
     
     if dashboard_html.exists():
-        print("✓ Dashboard HTML file exists")
+        print("✓ Modular dashboard template exists")
     else:
-        print("❌ Dashboard HTML file missing - creating it...")
+        print("❌ Modular dashboard template missing - checking legacy location...")
         try:
             # Create dashboard using launcher
             import subprocess
@@ -96,7 +96,7 @@ def test_actual_browser_opening():
     
     try:
         websocket_port = 8765
-        dashboard_url = f'http://localhost:{websocket_port}/claude_mpm_socketio_dashboard.html?autoconnect=true&port={websocket_port}'
+        dashboard_url = f'http://localhost:{websocket_port}/dashboard?autoconnect=true&port={websocket_port}'
         
         print(f"Opening browser to: {dashboard_url}")
         webbrowser.open(dashboard_url, autoraise=True)

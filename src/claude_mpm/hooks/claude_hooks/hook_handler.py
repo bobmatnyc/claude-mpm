@@ -17,6 +17,7 @@ import sys
 import os
 from datetime import datetime
 from pathlib import Path
+from collections import deque
 
 # Quick environment check
 DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', '').lower() == 'true'
@@ -53,6 +54,12 @@ class ClaudeHookHandler:
         self.sio_client = None
         self.sio_connected = False
         
+        # Agent delegation tracking
+        # Store recent Task delegations: session_id -> agent_type
+        self.active_delegations = {}
+        # Use deque to limit memory usage (keep last 100 delegations)
+        self.delegation_history = deque(maxlen=100)
+        
         # Initialize fallback server instance if available (but don't start it)
         if SERVER_AVAILABLE:
             try:
@@ -61,6 +68,45 @@ class ClaudeHookHandler:
                 self.websocket_server = None
         else:
             self.websocket_server = None
+    
+    def _track_delegation(self, session_id: str, agent_type: str):
+        """Track a new agent delegation."""
+        if session_id and agent_type and agent_type != 'unknown':
+            self.active_delegations[session_id] = agent_type
+            key = f"{session_id}:{datetime.now().timestamp()}"
+            self.delegation_history.append((key, agent_type))
+            
+            # Clean up old delegations (older than 5 minutes)
+            cutoff_time = datetime.now().timestamp() - 300
+            keys_to_remove = []
+            for sid in list(self.active_delegations.keys()):
+                # Check if this is an old entry by looking in history
+                found_recent = False
+                for hist_key, _ in reversed(self.delegation_history):
+                    if hist_key.startswith(sid):
+                        _, timestamp = hist_key.split(':', 1)
+                        if float(timestamp) > cutoff_time:
+                            found_recent = True
+                            break
+                if not found_recent:
+                    keys_to_remove.append(sid)
+            
+            for key in keys_to_remove:
+                del self.active_delegations[key]
+    
+    def _get_delegation_agent_type(self, session_id: str) -> str:
+        """Get the agent type for a session's active delegation."""
+        # First try exact session match
+        if session_id and session_id in self.active_delegations:
+            return self.active_delegations[session_id]
+        
+        # Then try to find in recent history
+        if session_id:
+            for key, agent_type in reversed(self.delegation_history):
+                if key.startswith(session_id):
+                    return agent_type
+        
+        return 'unknown'
     
     def _get_socketio_client(self):
         """Get or create Socket.IO client.
@@ -260,12 +306,18 @@ class ClaudeHookHandler:
         
         # Add delegation-specific data if this is a Task tool
         if tool_name == 'Task' and isinstance(tool_input, dict):
+            agent_type = tool_input.get('subagent_type', 'unknown')
             pre_tool_data['delegation_details'] = {
-                'agent_type': tool_input.get('subagent_type', 'unknown'),
+                'agent_type': agent_type,
                 'prompt': tool_input.get('prompt', ''),
                 'description': tool_input.get('description', ''),
                 'task_preview': (tool_input.get('prompt', '') or tool_input.get('description', ''))[:100]
             }
+            
+            # Track this delegation for SubagentStop correlation
+            session_id = event.get('session_id', '')
+            if session_id and agent_type != 'unknown':
+                self._track_delegation(session_id, agent_type)
         
         self._emit_socketio_event('/hook', 'pre_tool', pre_tool_data)
     
@@ -548,12 +600,18 @@ class ClaudeHookHandler:
         - Enables tracking of delegation success/failure patterns
         - Useful for understanding subagent performance and reliability
         """
-        # Claude Code may send minimal data, so we extract what we can
-        agent_type = event.get('agent_type', event.get('subagent_type', 'unknown'))
+        # First try to get agent type from our tracking
+        session_id = event.get('session_id', '')
+        agent_type = self._get_delegation_agent_type(session_id) if session_id else 'unknown'
+        
+        # Fall back to event data if tracking didn't have it
+        if agent_type == 'unknown':
+            agent_type = event.get('agent_type', event.get('subagent_type', 'unknown'))
+        
         agent_id = event.get('agent_id', event.get('subagent_id', ''))
         reason = event.get('reason', event.get('stop_reason', 'unknown'))
         
-        # Try to infer agent type from other fields if not provided
+        # Try to infer agent type from other fields if still unknown
         if agent_type == 'unknown' and 'task' in event:
             task_desc = str(event.get('task', '')).lower()
             if 'research' in task_desc:

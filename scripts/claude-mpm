@@ -105,7 +105,7 @@ if [[ "$FIRST_ARG" == "--help" ]] || [[ "$FIRST_ARG" == "-h" ]] || [[ "$FIRST_AR
 fi
 
 # Check if it's a claude-mpm specific flag (with or without prefix)
-MPM_FLAGS=("--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--websocket" "--websocket-port" "--manager")
+MPM_FLAGS=("--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--monitor" "--websocket-port")
 for flag in "${MPM_FLAGS[@]}"; do
     if [[ " $* " =~ " $flag " ]] || [[ " $* " =~ " --mpm:${flag#--} " ]] || [[ " $* " =~ " -mpm:${flag#-} " ]]; then
         IS_MPM_COMMAND=true

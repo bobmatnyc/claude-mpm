@@ -50,7 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - subprocess.Popen runner as alternative to os.execvp for better process control
 - WebSocket API for real-time monitoring of Claude sessions
-- --websocket CLI flag to enable WebSocket server
+- --monitor CLI flag to enable WebSocket server
 - --launch-method flag to choose between exec and subprocess launchers
 - WebSocket test client and HTML monitor
 - Documentation for WebSocket API usage

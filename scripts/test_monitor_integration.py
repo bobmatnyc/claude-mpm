@@ -85,8 +85,8 @@ def test_monitor_cli_parsing():
             return False
         
         # Test 2: --monitor should enable websocket automatically
-        if hasattr(args, 'websocket'):
-            print(f"  websocket flag: {getattr(args, 'websocket', 'not set')}")
+        if hasattr(args, 'monitor'):
+            print(f"  monitor flag: {getattr(args, 'monitor', 'not set')}")
         
         return True
         
@@ -112,7 +112,6 @@ def test_monitor_runner_setup():
             no_native_agents=False,
             claude_args=[],
             launch_method="subprocess",  # Use subprocess to avoid process replacement
-            websocket=False,  # Should be automatically enabled
             websocket_port=8765,
             non_interactive=True,
             input="test message"

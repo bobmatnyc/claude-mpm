@@ -24,7 +24,7 @@ def filter_claude_mpm_args(claude_args):
     Filter out claude-mpm specific arguments from claude_args before passing to Claude CLI.
     
     WHY: The argparse.REMAINDER captures ALL remaining arguments, including claude-mpm
-    specific flags like --monitor, --websocket, etc. Claude CLI doesn't understand these
+    specific flags like --monitor, etc. Claude CLI doesn't understand these
     flags and will error if they're passed through.
     
     DESIGN DECISION: We maintain a list of known claude-mpm flags to filter out,
@@ -44,14 +44,12 @@ def filter_claude_mpm_args(claude_args):
     mpm_flags = {
         # Run-specific flags
         '--monitor',
-        '--websocket', 
         '--websocket-port',
         '--no-hooks',
         '--no-tickets',
         '--intercept-commands',
         '--no-native-agents',
         '--launch-method',
-        '--manager',
         '--resume',
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         '--input',
@@ -139,7 +137,7 @@ def run_session(args):
     # Use the specified launch method (default: exec)
     launch_method = getattr(args, 'launch_method', 'exec')
     
-    enable_websocket = getattr(args, 'websocket', False) or monitor_mode
+    enable_websocket = getattr(args, 'monitor', False) or monitor_mode
     websocket_port = getattr(args, 'websocket_port', 8765)
     
     # Display Socket.IO server info if enabled
@@ -294,9 +292,14 @@ def launch_socketio_monitor(port, logger):
             
             # Open browser with static HTML file
             try:
-                print(f"🌐 Opening dashboard in browser...")
-                open_in_browser_tab(dashboard_url, logger)
-                logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
+                # Check if we should suppress browser opening (for tests)
+                if os.environ.get('CLAUDE_MPM_NO_BROWSER') != '1':
+                    print(f"🌐 Opening dashboard in browser...")
+                    open_in_browser_tab(dashboard_url, logger)
+                    logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
+                else:
+                    print(f"🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)")
+                    logger.info(f"Browser opening suppressed by environment variable")
                 return True, True
             except Exception as e:
                 logger.warning(f"Failed to open browser: {e}")
@@ -326,9 +329,14 @@ def launch_socketio_monitor(port, logger):
                 
                 # Open browser with static HTML file
                 try:
-                    print(f"🌐 Opening dashboard in browser...")
-                    open_in_browser_tab(dashboard_url, logger)
-                    logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
+                    # Check if we should suppress browser opening (for tests)
+                    if os.environ.get('CLAUDE_MPM_NO_BROWSER') != '1':
+                        print(f"🌐 Opening dashboard in browser...")
+                        open_in_browser_tab(dashboard_url, logger)
+                        logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
+                    else:
+                        print(f"🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)")
+                        logger.info(f"Browser opening suppressed by environment variable")
                     return True, True
                 except Exception as e:
                     logger.warning(f"Failed to open browser: {e}")

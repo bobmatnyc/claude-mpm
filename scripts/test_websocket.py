@@ -51,7 +51,7 @@ async def test_websocket_client():
                     
     except ConnectionRefusedError:
         print(f"Could not connect to {uri}")
-        print("Make sure claude-mpm is running with --websocket flag")
+        print("Make sure claude-mpm is running with --monitor flag")
         sys.exit(1)
     except KeyboardInterrupt:
         print("\nInterrupted")
@@ -60,7 +60,7 @@ async def test_websocket_client():
         
 if __name__ == "__main__":
     print("WebSocket test client - Connecting to claude-mpm WebSocket server")
-    print("Run this while claude-mpm is active with --websocket flag")
+    print("Run this while claude-mpm is active with --monitor flag")
     print("Press Ctrl+C to stop\n")
     
     asyncio.run(test_websocket_client())

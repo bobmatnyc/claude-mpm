@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 import os
+import subprocess
 import threading
 import time
 from datetime import datetime
@@ -208,15 +209,36 @@ class WebSocketServer:
             
     # Convenience methods for common events
     
+    def _get_git_branch(self, working_dir: str) -> str:
+        """Get the current git branch for the working directory."""
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                cwd=working_dir,
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except Exception:
+            pass
+        return "not a git repo"
+    
     def session_started(self, session_id: str, launch_method: str, working_dir: str):
         """Notify that a session has started."""
         self.session_id = session_id
         self.session_start = datetime.utcnow().isoformat() + "Z"
+        
+        # Get git branch if in a git repo
+        git_branch = self._get_git_branch(working_dir)
+        
         self.broadcast_event("session.start", {
             "session_id": session_id,
             "start_time": self.session_start,
             "launch_method": launch_method,
             "working_directory": working_dir,
+            "git_branch": git_branch,
             "websocket_port": self.port,
             "instance_info": {
                 "port": self.port,

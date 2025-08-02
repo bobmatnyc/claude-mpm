@@ -39,7 +39,7 @@ The Claude MPM Dashboard ecosystem provides comprehensive real-time monitoring o
 
 ### 🚀 Socket.IO Dashboard (Recommended)
 
-**File**: `scripts/claude_mpm_socketio_dashboard.html`
+**File**: `src/claude_mpm/web/templates/index.html` (served at `/dashboard`)
 
 The new Socket.IO-based dashboard with enhanced features:
 
@@ -77,11 +77,11 @@ The original WebSocket-based dashboard:
 
 2. **Start Claude MPM**:
    ```bash
-   ./claude-mpm --manager
+   ./claude-mpm --monitor
    ```
 
 3. **Access Interfaces**:
-   - Dashboard: http://localhost:3000/claude_mpm_socketio_dashboard.html
+   - Dashboard: http://localhost:3000/dashboard
    - Admin UI: http://localhost:3000/admin
 
 ### Alternative: Legacy WebSocket Dashboard
@@ -93,7 +93,7 @@ The original WebSocket-based dashboard:
 
 2. **Launch Claude MPM**:
    ```bash
-   ./claude-mpm run --manager
+   ./claude-mpm run --monitor
    ```
 
 3. **Open Dashboard**:
@@ -107,7 +107,7 @@ For both dashboards, you can filter to specific sessions:
 
 **Socket.IO Dashboard**:
 ```
-http://localhost:3000/claude_mpm_socketio_dashboard.html?session=your-session-id&autoconnect=true
+http://localhost:3000/dashboard?session=your-session-id&autoconnect=true
 ```
 
 **Legacy Dashboard**:
@@ -185,16 +185,16 @@ The Socket.IO implementation is designed to be backward compatible, but here's h
    ```bash
    # Old way
    python scripts/websocket_server_production.py &
-   ./claude-mpm run --manager
+   ./claude-mpm run --monitor
    
    # New way
    python scripts/launch_socketio_dashboard.py
-   ./claude-mpm --manager
+   ./claude-mpm --monitor
    ```
 
 2. **Update Bookmarks**:
    - Old: `file:///path/to/claude_mpm_dashboard.html?port=8765`
-   - New: `http://localhost:3000/claude_mpm_socketio_dashboard.html`
+   - New: `http://localhost:3000/dashboard`
 
 3. **Custom Clients**:
    - Replace WebSocket client code with Socket.IO client
@@ -247,7 +247,7 @@ python scripts/launch_socketio_dashboard.py --port 3000
 python scripts/launch_socketio_dashboard.py --port 3001 --admin-only
 
 # Access both
-# http://localhost:3000/claude_mpm_socketio_dashboard.html
+# http://localhost:3000/dashboard
 # http://localhost:3001/admin
 ```
 
@@ -306,7 +306,7 @@ Hooks are configured in `.claude/settings.json`:
 ## Key Files
 
 ### Socket.IO Implementation
-- `scripts/claude_mpm_socketio_dashboard.html` - Enhanced Socket.IO dashboard
+- `src/claude_mpm/web/templates/index.html` - Modular Socket.IO dashboard (served at `/dashboard`)
 - `scripts/launch_socketio_dashboard.py` - Socket.IO server launcher
 - `scripts/socketio_server.js` - Node.js Socket.IO server
 - `src/claude_mpm/services/websocket_server.py` - Python Socket.IO integration

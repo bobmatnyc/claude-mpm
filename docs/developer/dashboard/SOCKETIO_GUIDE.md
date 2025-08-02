@@ -86,7 +86,7 @@ The Socket.IO implementation follows a clean, namespace-based architecture:
    - Integrates with the unified logging system
    - Socket.IO client for reliable log emission
 
-4. **Dashboard** (`scripts/claude_mpm_socketio_dashboard.html`)
+4. **Dashboard** (`src/claude_mpm/web/templates/index.html`, served at `/dashboard`)
    - Interactive web dashboard for monitoring
    - Multi-namespace event filtering
    - Real-time metrics and visualizations
@@ -156,11 +156,11 @@ The Socket.IO server is organized into logical namespaces, each handling specifi
 
 2. **Start Claude MPM with Socket.IO enabled**:
    ```bash
-   ./claude-mpm --manager
+   ./claude-mpm --monitor
    ```
 
 3. **Access the Dashboard**:
-   - Dashboard: http://localhost:3000/claude_mpm_socketio_dashboard.html
+   - Dashboard: http://localhost:3000/dashboard
    - Admin UI: http://localhost:3000/admin
 
 ### Manual Setup
@@ -226,7 +226,7 @@ The Socket.IO dashboard provides a comprehensive interface for monitoring Claude
 The dashboard supports URL parameters for customization:
 
 ```
-http://localhost:3000/claude_mpm_socketio_dashboard.html?port=3000&autoconnect=true
+http://localhost:3000/dashboard?port=3000&autoconnect=true
 ```
 
 Parameters:
