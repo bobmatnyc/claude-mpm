@@ -293,9 +293,47 @@ class EventViewer {
      */
     formatHookEvent(event) {
         const data = event.data;
-        const hookName = data.hook_name || data.name || 'Unknown';
-        const phase = event.subtype || 'unknown';
-        return `<strong>Hook ${phase}:</strong> ${hookName}`;
+        const eventType = data.event_type || event.subtype || 'unknown';
+        
+        // Format based on specific hook event type
+        switch (eventType) {
+            case 'user_prompt':
+                const prompt = data.prompt_text || data.prompt_preview || '';
+                const truncated = prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt;
+                return `<strong>User Prompt:</strong> ${truncated || 'No prompt text'}`;
+                
+            case 'pre_tool':
+                const toolName = data.tool_name || 'Unknown tool';
+                const operation = data.operation_type || 'operation';
+                return `<strong>Pre-Tool (${operation}):</strong> ${toolName}`;
+                
+            case 'post_tool':
+                const postToolName = data.tool_name || 'Unknown tool';
+                const status = data.success ? 'success' : data.status || 'failed';
+                const duration = data.duration_ms ? ` (${data.duration_ms}ms)` : '';
+                return `<strong>Post-Tool (${status}):</strong> ${postToolName}${duration}`;
+                
+            case 'notification':
+                const notifType = data.notification_type || 'notification';
+                const message = data.message_preview || data.message || 'No message';
+                return `<strong>Notification (${notifType}):</strong> ${message}`;
+                
+            case 'stop':
+                const reason = data.reason || 'unknown';
+                const stopType = data.stop_type || 'normal';
+                return `<strong>Stop (${stopType}):</strong> ${reason}`;
+                
+            case 'subagent_stop':
+                const agentType = data.agent_type || 'unknown agent';
+                const stopReason = data.reason || 'unknown';
+                return `<strong>Subagent Stop (${agentType}):</strong> ${stopReason}`;
+                
+            default:
+                // Fallback to original logic for unknown hook types
+                const hookName = data.hook_name || data.name || data.event_type || 'Unknown';
+                const phase = event.subtype || eventType;
+                return `<strong>Hook ${phase}:</strong> ${hookName}`;
+        }
     }
 
     /**
