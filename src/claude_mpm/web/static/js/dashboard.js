@@ -2034,7 +2034,7 @@ class Dashboard {
                                     <span class="operation-timestamp">${new Date(op.timestamp).toLocaleString()}</span>
                                     ${(['edit', 'write'].includes(op.operation)) ? `
                                         <span class="git-diff-icon" 
-                                              onclick="showGitDiffModal('${filePath}', '${op.timestamp}', ${op.workingDirectory ? `'${op.workingDirectory}'` : 'null'})"
+                                              onclick="showGitDiffModal('${filePath}', '${op.timestamp}')"
                                               title="View git diff for this file operation"
                                               style="margin-left: 8px; cursor: pointer; font-size: 16px;">
                                             📋
