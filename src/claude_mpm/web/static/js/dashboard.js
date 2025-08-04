@@ -85,10 +85,12 @@ class Dashboard {
      * @returns {Object} - {type: 'main_agent'|'subagent', confidence: 'definitive'|'high'|'medium'|'default', agentName: string}
      */
     inferAgentFromEvent(event) {
-        const sessionId = event.session_id || 'unknown';
-        const eventType = event.hook_event_name || event.type || '';
+        // Handle both direct properties and nested data properties
+        const data = event.data || {};
+        const sessionId = event.session_id || data.session_id || 'unknown';
+        const eventType = event.hook_event_name || data.hook_event_name || event.type || '';
         const subtype = event.subtype || '';
-        const toolName = event.tool_name || '';
+        const toolName = event.tool_name || data.tool_name || '';
         
         // Direct event detection (highest confidence) - from design doc
         if (eventType === 'SubagentStop' || subtype === 'subagent_stop') {
@@ -216,9 +218,10 @@ class Dashboard {
      */
     extractAgentNameFromEvent(event) {
         // Priority order based on reliability from design doc
+        const data = event.data || {};
         
         // 1. Task tool subagent_type (highest priority)
-        if (event.tool_name === 'Task') {
+        if (event.tool_name === 'Task' || data.tool_name === 'Task') {
             const taskAgent = this.extractSubagentTypeFromTask(event);
             if (taskAgent) return taskAgent;
         }
@@ -227,14 +230,15 @@ class Dashboard {
         if (event.subagent_type && event.subagent_type !== 'unknown') {
             return event.subagent_type;
         }
-        
-        // 3. Data subagent_type
-        if (event.data?.subagent_type && event.data.subagent_type !== 'unknown') {
-            return event.data.subagent_type;
+        if (data.subagent_type && data.subagent_type !== 'unknown') {
+            return data.subagent_type;
         }
         
-        // 4. Agent type fields (but not 'main' or 'unknown')
+        // 3. Agent type fields (but not 'main' or 'unknown')
         if (event.agent_type && !['main', 'unknown'].includes(event.agent_type)) {
+            return event.agent_type;
+        }
+        if (data.agent_type && !['main', 'unknown'].includes(data.agent_type)) {
             return event.agent_type;
         }
         
@@ -1065,7 +1069,7 @@ class Dashboard {
         
         // Use agent inference to filter events instead of hardcoded logic
         let agentEvents = events
-            .map((event, index) => ({ event, index, inference: this.getInferredAgent(index) }))
+            .map((event, index) => ({ event, index, inference: this.inferAgentFromEvent(event) }))
             .filter(({ event, index, inference }) => {
                 // Show events that have meaningful agent context
                 if (!inference) return false;
@@ -1139,12 +1143,8 @@ class Dashboard {
 
         console.log('Rendering', filteredAgentEvents.length, 'agent events');
 
-        const agentsHtml = filteredAgentEvents.map((event, index) => {
+        const agentsHtml = filteredAgentEvents.map(({ event, inference }, index) => {
             const timestamp = new Date(event.timestamp).toLocaleTimeString();
-            
-            // Use inferred agent data instead of hardcoded extraction
-            const eventIndex = this.eventViewer.events.indexOf(event);
-            const inference = this.getInferredAgent(eventIndex);
             
             let agentName = inference ? inference.agentName : 'Unknown';
             let operation = 'operation';
@@ -1155,11 +1155,12 @@ class Dashboard {
             let reason = inference ? inference.reason : 'no inference';
             
             // Extract Task tool information if present
-            if (event.tool_name === 'Task') {
+            const data = event.data || {};
+            if (event.tool_name === 'Task' || data.tool_name === 'Task') {
                 operation = 'delegation';
                 
                 // Try different sources for Task tool data
-                const taskParams = event.tool_parameters || event.data?.tool_parameters || event.data?.delegation_details || {};
+                const taskParams = event.tool_parameters || data.tool_parameters || data.delegation_details || {};
                 
                 if (taskParams.prompt) {
                     prompt = taskParams.prompt;
@@ -1201,7 +1202,7 @@ class Dashboard {
                         <strong>Inference:</strong> ${inference ? inference.type : 'unknown'} (${confidence})
                         ${taskPreview ? `<br><strong>Task Preview:</strong> ${taskPreview}` : ''}
                         ${description ? `<br><strong>Description:</strong> ${description}` : ''}
-                        ${event.session_id ? `<br><strong>Session:</strong> ${event.session_id.substring(0, 8)}...` : ''}
+                        ${event.session_id || data.session_id ? `<br><strong>Session:</strong> ${(event.session_id || data.session_id).substring(0, 8)}...` : ''}
                     </div>
                 </div>
             `;
