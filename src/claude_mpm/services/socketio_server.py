@@ -448,7 +448,7 @@ class SocketIOServer:
                 
                 # Check if this is a git repository
                 git_check = await asyncio.create_subprocess_exec(
-                    'git', 'rev-parse', '--git-dir',
+                    'git', '-C', working_dir, 'rev-parse', '--git-dir',
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -464,7 +464,7 @@ class SocketIOServer:
                 
                 # Get the absolute path of the file relative to git root
                 git_root_proc = await asyncio.create_subprocess_exec(
-                    'git', 'rev-parse', '--show-toplevel',
+                    'git', '-C', working_dir, 'rev-parse', '--show-toplevel',
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -508,7 +508,7 @@ class SocketIOServer:
                                 
                                 # Get the diff for this specific commit
                                 diff_proc = await asyncio.create_subprocess_exec(
-                                    'git', 'show', '--format=fuller', commit_hash, '--', file_path,
+                                    'git', '-C', working_dir, 'show', '--format=fuller', commit_hash, '--', file_path,
                                     stdout=asyncio.subprocess.PIPE,
                                     stderr=asyncio.subprocess.PIPE
                                 )
@@ -528,7 +528,7 @@ class SocketIOServer:
                 
                 # Fallback: Get the most recent change to the file
                 log_proc = await asyncio.create_subprocess_exec(
-                    'git', 'log', '-1', '--oneline', '--', file_path,
+                    'git', '-C', working_dir, 'log', '-1', '--oneline', '--', file_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -539,7 +539,7 @@ class SocketIOServer:
                     
                     # Get the diff for the most recent commit
                     diff_proc = await asyncio.create_subprocess_exec(
-                        'git', 'show', '--format=fuller', commit_hash, '--', file_path,
+                        'git', '-C', working_dir, 'show', '--format=fuller', commit_hash, '--', file_path,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE
                     )
@@ -557,7 +557,7 @@ class SocketIOServer:
                 
                 # Try to show unstaged changes first
                 diff_proc = await asyncio.create_subprocess_exec(
-                    'git', 'diff', '--', file_path,
+                    'git', '-C', working_dir, 'diff', '--', file_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -575,7 +575,7 @@ class SocketIOServer:
                 
                 # Then try staged changes
                 diff_proc = await asyncio.create_subprocess_exec(
-                    'git', 'diff', '--cached', '--', file_path,
+                    'git', '-C', working_dir, 'diff', '--cached', '--', file_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
@@ -593,7 +593,7 @@ class SocketIOServer:
                 
                 # Final fallback: Show changes against HEAD
                 diff_proc = await asyncio.create_subprocess_exec(
-                    'git', 'diff', 'HEAD', '--', file_path,
+                    'git', '-C', working_dir, 'diff', 'HEAD', '--', file_path,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE
                 )
