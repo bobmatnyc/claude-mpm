@@ -419,7 +419,6 @@ class SocketIOServer:
             dict: Contains diff content, metadata, and status information
         """
         try:
-            self.logger.info(f"🔍 Git diff request - file: {file_path}, timestamp: {timestamp}, working_dir: {working_dir}")
             # If file_path is absolute, determine its git repository
             if os.path.isabs(file_path):
                 # Find the directory containing the file

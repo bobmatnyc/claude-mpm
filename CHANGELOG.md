@@ -5,6 +5,34 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2025-08-05
+
+### Added
+- **Per-Session Working Directories**: Each session can now have its own working directory
+  - Set working directory via UI in monitoring dashboard
+  - Directories persist across session switches
+  - Git operations automatically use session's directory
+  - Footer displays current working directory and git branch
+
+### Fixed
+- **Git Diff Viewer**: Fixed cross-project file operations
+  - All git commands now properly use `-C` flag with working directory
+  - Git diff viewer uses dashboard's current working directory
+  - Improved error handling and display for git operations
+  - Fixed "No git history found" errors for files in different projects
+
+### Improved
+- **Documentation**: Reorganized for better user experience
+  - New QUICKSTART.md for getting started quickly
+  - Dedicated monitoring.md for dashboard features
+  - Streamlined README.md with clear navigation
+  - Removed duplicate content and improved structure
+
+### Changed
+- Working directory automatically syncs when footer updates
+- Session selection now loads associated working directory
+- Git branch detection runs when working directory changes
+
 ## [3.3.0] - 2025-08-04
 
 ### Added

@@ -3518,16 +3518,9 @@ Check browser console for complete logs.
 
 // Git Diff Modal Functions
 window.showGitDiffModal = function(filePath, timestamp, workingDir) {
-    console.log(`🔍 Showing git diff for: ${filePath}`);
-    console.log(`📁 Provided working directory: ${workingDir}`);
-    console.log(`📂 Dashboard current working directory: ${window.dashboard?.currentWorkingDir}`);
-    
     // Use the dashboard's current working directory if not provided
     if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
         workingDir = window.dashboard.currentWorkingDir;
-        console.log(`✅ Using dashboard working directory: ${workingDir}`);
-    } else if (!workingDir) {
-        console.log(`⚠️ No working directory available!`);
     }
     
     // Create modal if it doesn't exist
@@ -3649,16 +3642,6 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             }
         }
         
-        console.log('🔧 Git diff modal debug info:', {
-            filePath,
-            timestamp,
-            workingDir,
-            workingDirProvided: !!workingDir,
-            dashboardWorkingDir: window.dashboard?.currentWorkingDir,
-            port,
-            socketClientPort: window.dashboard?.socketClient?.port,
-            portInputValue: document.getElementById('port-input')?.value
-        });
         
         // Build URL parameters
         const params = new URLSearchParams({
