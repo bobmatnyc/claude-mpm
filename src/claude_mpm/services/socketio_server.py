@@ -257,6 +257,16 @@ class SocketIOServer:
             # Add HTTP routes
             self.app.router.add_get('/health', self._handle_health)
             self.app.router.add_get('/status', self._handle_health)
+            self.app.router.add_get('/api/git-diff', self._handle_git_diff)
+            
+            # Add dashboard routes
+            self.app.router.add_get('/', self._handle_dashboard)
+            self.app.router.add_get('/dashboard', self._handle_dashboard)
+            
+            # Add static file serving for web assets
+            static_path = get_project_root() / 'src' / 'claude_mpm' / 'web' / 'static'
+            if static_path.exists():
+                self.app.router.add_static('/static/', path=str(static_path), name='static')
             
             # Register event handlers
             self._register_events()
@@ -301,6 +311,220 @@ class SocketIOServer:
             "host": self.host,
             "clients_connected": len(self.clients)
         })
+
+    async def _handle_dashboard(self, request):
+        """Serve the dashboard HTML file."""
+        dashboard_path = get_project_root() / 'src' / 'claude_mpm' / 'web' / 'templates' / 'index.html'
+        self.logger.info(f"Dashboard requested, looking for: {dashboard_path}")
+        self.logger.info(f"Path exists: {dashboard_path.exists()}")
+        if dashboard_path.exists():
+            return web.FileResponse(str(dashboard_path))
+        else:
+            return web.Response(text=f"Dashboard not found at: {dashboard_path}", status=404)
+        
+    async def _handle_git_diff(self, request):
+        """Handle git diff requests for file operations.
+        
+        Expected query parameters:
+        - file: The file path to generate diff for
+        - timestamp: ISO timestamp of the operation (optional)
+        - working_dir: Working directory for git operations (optional)
+        """
+        try:
+            # Extract query parameters
+            file_path = request.query.get('file')
+            timestamp = request.query.get('timestamp')
+            working_dir = request.query.get('working_dir', os.getcwd())
+            
+            if not file_path:
+                return web.json_response({
+                    "error": "Missing required parameter: file"
+                }, status=400)
+            
+            self.logger.debug(f"Git diff requested for file: {file_path}, timestamp: {timestamp}")
+            
+            # Generate git diff using the _generate_git_diff helper
+            diff_result = await self._generate_git_diff(file_path, timestamp, working_dir)
+            
+            return web.json_response(diff_result)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating git diff: {e}")
+            return web.json_response({
+                "error": f"Failed to generate git diff: {str(e)}"
+            }, status=500)
+    
+    async def _generate_git_diff(self, file_path: str, timestamp: Optional[str] = None, working_dir: str = None):
+        """Generate git diff for a specific file operation.
+        
+        WHY: This method generates a git diff showing the changes made to a file
+        during a specific write operation. It uses git log and show commands to
+        find the most relevant commit around the specified timestamp.
+        
+        Args:
+            file_path: Path to the file relative to the git repository
+            timestamp: ISO timestamp of the file operation (optional)
+            working_dir: Working directory containing the git repository
+            
+        Returns:
+            dict: Contains diff content, metadata, and status information
+        """
+        try:
+            if working_dir is None:
+                working_dir = os.getcwd()
+                
+            # Change to the working directory
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(working_dir)
+                
+                # Check if this is a git repository
+                git_check = await asyncio.create_subprocess_exec(
+                    'git', 'rev-parse', '--git-dir',
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                await git_check.communicate()
+                
+                if git_check.returncode != 0:
+                    return {
+                        "error": "Not a git repository",
+                        "file_path": file_path,
+                        "working_dir": working_dir
+                    }
+                
+                # Get the absolute path of the file relative to git root
+                git_root_proc = await asyncio.create_subprocess_exec(
+                    'git', 'rev-parse', '--show-toplevel',
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                git_root_output, _ = await git_root_proc.communicate()
+                
+                if git_root_proc.returncode != 0:
+                    return {"error": "Failed to determine git root directory"}
+                
+                git_root = git_root_output.decode().strip()
+                
+                # Make file_path relative to git root if it's absolute
+                if os.path.isabs(file_path):
+                    try:
+                        file_path = os.path.relpath(file_path, git_root)
+                    except ValueError:
+                        # File is not under git root
+                        pass
+                
+                # If timestamp is provided, try to find commits around that time
+                if timestamp:
+                    # Convert timestamp to git format
+                    try:
+                        from datetime import datetime
+                        dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                        git_since = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        
+                        # Find commits that modified this file around the timestamp
+                        log_proc = await asyncio.create_subprocess_exec(
+                            'git', 'log', '--oneline', '--since', git_since, 
+                            '--until', f'{git_since} +1 hour', '--', file_path,
+                            stdout=asyncio.subprocess.PIPE,
+                            stderr=asyncio.subprocess.PIPE
+                        )
+                        log_output, _ = await log_proc.communicate()
+                        
+                        if log_proc.returncode == 0 and log_output:
+                            # Get the most recent commit hash
+                            commits = log_output.decode().strip().split('\n')
+                            if commits and commits[0]:
+                                commit_hash = commits[0].split()[0]
+                                
+                                # Get the diff for this specific commit
+                                diff_proc = await asyncio.create_subprocess_exec(
+                                    'git', 'show', '--format=fuller', commit_hash, '--', file_path,
+                                    stdout=asyncio.subprocess.PIPE,
+                                    stderr=asyncio.subprocess.PIPE
+                                )
+                                diff_output, diff_error = await diff_proc.communicate()
+                                
+                                if diff_proc.returncode == 0:
+                                    return {
+                                        "success": True,
+                                        "diff": diff_output.decode(),
+                                        "commit_hash": commit_hash,
+                                        "file_path": file_path,
+                                        "method": "timestamp_based",
+                                        "timestamp": timestamp
+                                    }
+                    except Exception as e:
+                        self.logger.warning(f"Failed to parse timestamp or find commits: {e}")
+                
+                # Fallback: Get the most recent change to the file
+                log_proc = await asyncio.create_subprocess_exec(
+                    'git', 'log', '-1', '--oneline', '--', file_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                log_output, _ = await log_proc.communicate()
+                
+                if log_proc.returncode == 0 and log_output:
+                    commit_hash = log_output.decode().strip().split()[0]
+                    
+                    # Get the diff for the most recent commit
+                    diff_proc = await asyncio.create_subprocess_exec(
+                        'git', 'show', '--format=fuller', commit_hash, '--', file_path,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    diff_output, diff_error = await diff_proc.communicate()
+                    
+                    if diff_proc.returncode == 0:
+                        return {
+                            "success": True,
+                            "diff": diff_output.decode(),
+                            "commit_hash": commit_hash,
+                            "file_path": file_path,
+                            "method": "latest_commit",
+                            "timestamp": timestamp
+                        }
+                
+                # Final fallback: Show current working directory changes
+                diff_proc = await asyncio.create_subprocess_exec(
+                    'git', 'diff', 'HEAD', '--', file_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                diff_output, _ = await diff_proc.communicate()
+                
+                if diff_proc.returncode == 0:
+                    working_diff = diff_output.decode()
+                    if working_diff.strip():
+                        return {
+                            "success": True,
+                            "diff": working_diff,
+                            "commit_hash": "working_directory",
+                            "file_path": file_path,
+                            "method": "working_directory",
+                            "timestamp": timestamp
+                        }
+                
+                return {
+                    "error": "No git history found for this file",
+                    "file_path": file_path,
+                    "suggestions": [
+                        "The file may not be tracked by git",
+                        "The file may not have any committed changes",
+                        "The timestamp may be outside the git history range"
+                    ]
+                }
+                
+            finally:
+                os.chdir(original_cwd)
+                
+        except Exception as e:
+            self.logger.error(f"Error in _generate_git_diff: {e}")
+            return {
+                "error": f"Git diff generation failed: {str(e)}",
+                "file_path": file_path
+            }
         
             
     def _register_events(self):
