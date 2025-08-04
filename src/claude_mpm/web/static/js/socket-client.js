@@ -6,6 +6,7 @@
 class SocketClient {
     constructor() {
         this.socket = null;
+        this.port = null; // Store the current port
         this.connectionCallbacks = {
             connect: [],
             disconnect: [],
@@ -28,6 +29,8 @@ class SocketClient {
      * @param {string} port - Port number to connect to
      */
     connect(port = '8765') {
+        // Store the port for later use
+        this.port = port;
         const url = `http://localhost:${port}`;
         
         // Prevent multiple simultaneous connections
@@ -213,6 +216,7 @@ class SocketClient {
             this.socket.disconnect();
             this.socket = null;
         }
+        this.port = null; // Clear the stored port
         this.isConnected = false;
         this.isConnecting = false;
     }

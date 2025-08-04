@@ -31,13 +31,7 @@ except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
 
-# Fallback imports
-try:
-    from ...services.websocket_server import get_server_instance
-    SERVER_AVAILABLE = True
-except ImportError:
-    SERVER_AVAILABLE = False
-    get_server_instance = None
+# No fallback needed - we only use Socket.IO now
 
 
 class ClaudeHookHandler:
@@ -65,14 +59,7 @@ class ClaudeHookHandler:
         self._git_branch_cache = {}
         self._git_branch_cache_time = {}
         
-        # Initialize fallback server instance if available (but don't start it)
-        if SERVER_AVAILABLE:
-            try:
-                self.websocket_server = get_server_instance()
-            except:
-                self.websocket_server = None
-        else:
-            self.websocket_server = None
+        # No fallback server needed - we only use Socket.IO now
     
     def _track_delegation(self, session_id: str, agent_type: str):
         """Track a new agent delegation."""
@@ -291,17 +278,6 @@ class ClaudeHookHandler:
                     print(f"Socket.IO emit failed: {e}", file=sys.stderr)
                 # Mark as disconnected so next call will reconnect
                 self.sio_connected = False
-        
-        # Fallback to legacy WebSocket server
-        elif hasattr(self, 'websocket_server') and self.websocket_server:
-            try:
-                # Map to legacy event format
-                legacy_event = f"hook.{event}"
-                self.websocket_server.broadcast_event(legacy_event, data)
-                if DEBUG:
-                    print(f"Emitted legacy event: {legacy_event}", file=sys.stderr)
-            except:
-                pass  # Silent failure
     
     def _handle_user_prompt_fast(self, event):
         """Handle user prompt with comprehensive data capture.

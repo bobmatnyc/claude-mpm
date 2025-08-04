@@ -119,6 +119,13 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         default=8765,
         help="WebSocket server port (default: 8765)"
     )
+    run_group.add_argument(
+        "--resume",
+        type=str,
+        nargs="?",
+        const="last",
+        help="Resume a session (last session if no ID specified, or specific session ID)"
+    )
     
     # Input/output options
     io_group = parser.add_argument_group('input/output options')
@@ -213,6 +220,13 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         type=int,
         default=8765,
         help="WebSocket server port (default: 8765)"
+    )
+    run_group.add_argument(
+        "--resume",
+        type=str,
+        nargs="?",
+        const="last",
+        help="Resume a session (last session if no ID specified, or specific session ID)"
     )
     
     # Input/output options

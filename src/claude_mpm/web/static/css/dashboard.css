@@ -128,6 +128,37 @@ body {
     align-items: center;
 }
 
+/* Main Controls Row */
+.main-controls {
+    justify-content: space-between;
+}
+
+.connection-toggle {
+    display: flex;
+    align-items: center;
+}
+
+/* Connection Controls Row */
+.connection-controls-row {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    border-top: 1px solid transparent;
+}
+
+.connection-controls-row.show {
+    max-height: 80px;
+    opacity: 1;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    margin-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
 .filter-group {
     display: flex;
     gap: 8px;
@@ -146,6 +177,52 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.working-dir-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.working-dir-display {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+.working-dir-path {
+    font-family: monospace;
+    font-size: 12px;
+    color: #2d3748;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.working-dir-path:hover {
+    color: #3182ce;
+    text-decoration: underline;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+    background: rgba(0, 0, 0, 0.1);
 }
 
 .session-select {
@@ -939,6 +1016,8 @@ button:active {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-content {
@@ -979,7 +1058,7 @@ pre {
     z-index: 1001; /* Higher than regular modals */
 }
 
-.git-diff-content {
+.modal-content.git-diff-content {
     width: 95vw;
     height: 95vh;
     max-width: none;
@@ -1002,6 +1081,7 @@ pre {
     background: #f8fafc;
     border-radius: 8px 8px 0 0;
     min-height: 60px;
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .git-diff-title {
@@ -1065,6 +1145,8 @@ pre {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Important for flexbox scrolling */
+    position: relative; /* Establish positioning context */
 }
 
 .git-diff-loading {
@@ -1142,6 +1224,9 @@ pre {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0; /* Important for flexbox scrolling */
+    height: 100%;
+    max-height: calc(100% - 80px); /* Account for header */
 }
 
 .git-diff-toolbar {
@@ -1150,6 +1235,7 @@ pre {
     align-items: center;
     padding: 12px 24px;
     background: #f7fafc;
+    flex-shrink: 0; /* Prevent toolbar from shrinking */
     border-bottom: 1px solid #e2e8f0;
 }
 
@@ -1193,17 +1279,27 @@ pre {
     background: #3182ce;
 }
 
-.git-diff-display {
+.git-diff-scroll-wrapper {
     flex: 1;
+    overflow: auto !important;
+    overflow-y: scroll !important;
+    min-height: 0;
+    position: relative;
+    height: 100%;
+    max-height: calc(100vh - 300px); /* Account for header, toolbar, margins */
+}
+
+.git-diff-display {
     margin: 0;
     background: #1a202c;
     color: #e2e8f0;
     padding: 0;
     border-radius: 0;
-    overflow: auto;
+    overflow: visible;
     font-family: 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace;
     font-size: 13px;
     line-height: 1.5;
+    min-height: min-content;
 }
 
 .git-diff-code {

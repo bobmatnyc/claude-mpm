@@ -11,12 +11,13 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
+from datetime import datetime
 
 from ...core.logger import get_logger
 from ...constants import LogLevel
 from ..utils import get_user_input, list_agent_versions_at_startup
 from ...utils.dependency_manager import ensure_socketio_dependencies
-from ...deployment_paths import get_monitor_html_path, get_scripts_dir, get_package_root
+from ...deployment_paths import get_scripts_dir, get_package_root
 
 
 def filter_claude_mpm_args(claude_args):
@@ -80,16 +81,77 @@ def filter_claude_mpm_args(claude_args):
             # Also skip the next argument if this flag expects a value
             value_expecting_flags = {
                 '--websocket-port', '--launch-method', '--logging', '--log-dir', 
-                '--framework-path', '--agents-dir', '-i', '--input', '--resume'
+                '--framework-path', '--agents-dir', '-i', '--input'
             }
+            optional_value_flags = {
+                '--resume'  # These flags can have optional values (nargs="?")
+            }
+            
             if arg in value_expecting_flags and i < len(claude_args):
                 i += 1  # Skip the value too
+            elif arg in optional_value_flags and i < len(claude_args):
+                # For optional value flags, only skip next arg if it doesn't start with --
+                next_arg = claude_args[i]
+                if not next_arg.startswith('--'):
+                    i += 1  # Skip the value
         else:
             # This is not a claude-mpm flag, keep it
             filtered_args.append(arg)
             i += 1
     
     return filtered_args
+
+
+def create_session_context(session_id, session_manager):
+    """
+    Create enhanced context for resumed sessions.
+    
+    WHY: When resuming a session, we want to provide Claude with context about
+    the previous session including what agents were used and when it was created.
+    This helps maintain continuity across session boundaries.
+    
+    Args:
+        session_id: Session ID being resumed
+        session_manager: SessionManager instance
+        
+    Returns:
+        Enhanced context string with session information
+    """
+    try:
+        from ...core.claude_runner import create_simple_context
+    except ImportError:
+        from claude_mpm.core.claude_runner import create_simple_context
+    
+    base_context = create_simple_context()
+    
+    session_data = session_manager.get_session_by_id(session_id)
+    if not session_data:
+        return base_context
+    
+    # Add session resumption information
+    session_info = f"""
+
+# Session Resumption
+
+You are resuming session {session_id[:8]}... which was:
+- Created: {session_data.get('created_at', 'unknown')}
+- Last used: {session_data.get('last_used', 'unknown')}
+- Context: {session_data.get('context', 'default')}
+- Use count: {session_data.get('use_count', 0)}
+"""
+    
+    # Add information about agents previously run in this session
+    agents_run = session_data.get('agents_run', [])
+    if agents_run:
+        session_info += "\n- Previous agent activity:\n"
+        for agent_info in agents_run[-5:]:  # Show last 5 agents
+            session_info += f"  • {agent_info.get('agent', 'unknown')}: {agent_info.get('task', 'no description')[:50]}...\n"
+        if len(agents_run) > 5:
+            session_info += f"  (and {len(agents_run) - 5} other agent interactions)\n"
+    
+    session_info += "\nContinue from where you left off in this session."
+    
+    return base_context + session_info
 
 
 def run_session(args):
@@ -112,8 +174,44 @@ def run_session(args):
     
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
+        from ...core.session_manager import SessionManager
     except ImportError:
         from claude_mpm.core.claude_runner import ClaudeRunner, create_simple_context
+        from claude_mpm.core.session_manager import SessionManager
+    
+    # Handle session resumption
+    session_manager = SessionManager()
+    resume_session_id = None
+    resume_context = None
+    
+    if hasattr(args, 'resume') and args.resume:
+        if args.resume == "last":
+            # Resume the last interactive session
+            resume_session_id = session_manager.get_last_interactive_session()
+            if resume_session_id:
+                session_data = session_manager.get_session_by_id(resume_session_id)
+                if session_data:
+                    resume_context = session_data.get("context", "default")
+                    logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
+                    print(f"🔄 Resuming session {resume_session_id[:8]}... (created: {session_data.get('created_at', 'unknown')})")
+                else:
+                    logger.warning(f"Session {resume_session_id} not found")
+            else:
+                logger.info("No recent interactive sessions found")
+                print("ℹ️  No recent interactive sessions found to resume")
+        else:
+            # Resume specific session by ID
+            resume_session_id = args.resume
+            session_data = session_manager.get_session_by_id(resume_session_id)
+            if session_data:
+                resume_context = session_data.get("context", "default")
+                logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
+                print(f"🔄 Resuming session {resume_session_id[:8]}... (context: {resume_context})")
+            else:
+                logger.error(f"Session {resume_session_id} not found")
+                print(f"❌ Session {resume_session_id} not found")
+                print("💡 Use 'claude-mpm sessions' to list available sessions")
+                return
     
     # Skip native agents if disabled
     if getattr(args, 'no_native_agents', False):
@@ -189,8 +287,19 @@ def run_session(args):
         # Pass information about whether we already opened the browser in run.py
         runner._browser_opened_by_cli = getattr(args, '_browser_opened_by_cli', False)
     
-    # Create basic context
-    context = create_simple_context()
+    # Create context - use resumed session context if available
+    if resume_session_id and resume_context:
+        # For resumed sessions, create enhanced context with session information
+        context = create_session_context(resume_session_id, session_manager)
+        # Update session usage
+        session_manager.active_sessions[resume_session_id]["last_used"] = datetime.now().isoformat()
+        session_manager.active_sessions[resume_session_id]["use_count"] += 1
+        session_manager._save_sessions()
+    else:
+        # Create a new session for tracking
+        new_session_id = session_manager.create_session("default")
+        context = create_simple_context()
+        logger.info(f"Created new session {new_session_id}")
     
     # For monitor mode, we handled everything in launch_socketio_monitor
     # No need for ClaudeRunner browser delegation
@@ -260,16 +369,8 @@ def launch_socketio_monitor(port, logger):
         
         socketio_port = port
         
-        # Get path to monitor HTML using deployment paths
-        html_file_path = get_monitor_html_path()
-        
-        if not html_file_path.exists():
-            logger.error(f"Monitor HTML file not found: {html_file_path}")
-            print(f"❌ Monitor HTML file not found: {html_file_path}")
-            return False, False
-        
-        # Create file:// URL with port parameter
-        dashboard_url = f'file://{html_file_path.absolute()}?port={socketio_port}'
+        # Use HTTP URL to access dashboard from Socket.IO server
+        dashboard_url = f'http://localhost:{socketio_port}'
         
         # Check if Socket.IO server is already running
         server_running = _check_socketio_server_running(socketio_port, logger)

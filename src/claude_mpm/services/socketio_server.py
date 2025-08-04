@@ -254,10 +254,22 @@ class SocketIOServer:
             self.app = web.Application()
             self.sio.attach(self.app)
             
+            # Add CORS middleware
+            import aiohttp_cors
+            cors = aiohttp_cors.setup(self.app, defaults={
+                "*": aiohttp_cors.ResourceOptions(
+                    allow_credentials=True,
+                    expose_headers="*",
+                    allow_headers="*",
+                    allow_methods="*"
+                )
+            })
+            
             # Add HTTP routes
             self.app.router.add_get('/health', self._handle_health)
             self.app.router.add_get('/status', self._handle_health)
             self.app.router.add_get('/api/git-diff', self._handle_git_diff)
+            self.app.router.add_options('/api/git-diff', self._handle_cors_preflight)
             
             # Add dashboard routes
             self.app.router.add_get('/', self._handle_dashboard)
@@ -310,6 +322,10 @@ class SocketIOServer:
             "port": self.port,
             "host": self.host,
             "clients_connected": len(self.clients)
+        }, headers={
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Accept'
         })
 
     async def _handle_dashboard(self, request):
@@ -321,6 +337,18 @@ class SocketIOServer:
             return web.FileResponse(str(dashboard_path))
         else:
             return web.Response(text=f"Dashboard not found at: {dashboard_path}", status=404)
+    
+    async def _handle_cors_preflight(self, request):
+        """Handle CORS preflight requests."""
+        return web.Response(
+            status=200,
+            headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Accept, Authorization',
+                'Access-Control-Max-Age': '86400'
+            }
+        )
         
     async def _handle_git_diff(self, request):
         """Handle git diff requests for file operations.
@@ -336,23 +364,44 @@ class SocketIOServer:
             timestamp = request.query.get('timestamp')
             working_dir = request.query.get('working_dir', os.getcwd())
             
+            self.logger.info(f"Git diff API request: file={file_path}, timestamp={timestamp}, working_dir={working_dir}")
+            
             if not file_path:
+                self.logger.warning("Git diff request missing file parameter")
                 return web.json_response({
+                    "success": False,
                     "error": "Missing required parameter: file"
-                }, status=400)
+                }, status=400, headers={
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Accept'
+                })
             
             self.logger.debug(f"Git diff requested for file: {file_path}, timestamp: {timestamp}")
             
             # Generate git diff using the _generate_git_diff helper
             diff_result = await self._generate_git_diff(file_path, timestamp, working_dir)
             
-            return web.json_response(diff_result)
+            self.logger.info(f"Git diff result: success={diff_result.get('success', False)}, method={diff_result.get('method', 'unknown')}")
+            
+            return web.json_response(diff_result, headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+            })
             
         except Exception as e:
             self.logger.error(f"Error generating git diff: {e}")
+            import traceback
+            self.logger.error(f"Git diff error traceback: {traceback.format_exc()}")
             return web.json_response({
+                "success": False,
                 "error": f"Failed to generate git diff: {str(e)}"
-            }, status=500)
+            }, status=500, headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+            })
     
     async def _generate_git_diff(self, file_path: str, timestamp: Optional[str] = None, working_dir: str = None):
         """Generate git diff for a specific file operation.
@@ -370,13 +419,32 @@ class SocketIOServer:
             dict: Contains diff content, metadata, and status information
         """
         try:
+            # If file_path is absolute, determine its git repository
+            if os.path.isabs(file_path):
+                # Find the directory containing the file
+                file_dir = os.path.dirname(file_path)
+                if os.path.exists(file_dir):
+                    # Try to find the git root from the file's directory
+                    current_dir = file_dir
+                    while current_dir != "/" and current_dir:
+                        if os.path.exists(os.path.join(current_dir, ".git")):
+                            working_dir = current_dir
+                            self.logger.info(f"Found git repository at: {working_dir}")
+                            break
+                        current_dir = os.path.dirname(current_dir)
+                    else:
+                        # If no git repo found, use the file's directory
+                        working_dir = file_dir
+                        self.logger.info(f"No git repo found, using file's directory: {working_dir}")
+            
             if working_dir is None:
                 working_dir = os.getcwd()
                 
-            # Change to the working directory
+            # For read-only git operations, we can work from any directory
+            # by passing the -C flag to git commands instead of changing directories
             original_cwd = os.getcwd()
             try:
-                os.chdir(working_dir)
+                # We'll use git -C <working_dir> for all commands instead of chdir
                 
                 # Check if this is a git repository
                 git_check = await asyncio.create_subprocess_exec(
@@ -388,6 +456,7 @@ class SocketIOServer:
                 
                 if git_check.returncode != 0:
                     return {
+                        "success": False,
                         "error": "Not a git repository",
                         "file_path": file_path,
                         "working_dir": working_dir
@@ -402,7 +471,7 @@ class SocketIOServer:
                 git_root_output, _ = await git_root_proc.communicate()
                 
                 if git_root_proc.returncode != 0:
-                    return {"error": "Failed to determine git root directory"}
+                    return {"success": False, "error": "Failed to determine git root directory"}
                 
                 git_root = git_root_output.decode().strip()
                 
@@ -424,7 +493,7 @@ class SocketIOServer:
                         
                         # Find commits that modified this file around the timestamp
                         log_proc = await asyncio.create_subprocess_exec(
-                            'git', 'log', '--oneline', '--since', git_since, 
+                            'git', '-C', working_dir, 'log', '--oneline', '--since', git_since, 
                             '--until', f'{git_since} +1 hour', '--', file_path,
                             stdout=asyncio.subprocess.PIPE,
                             stderr=asyncio.subprocess.PIPE
@@ -486,7 +555,43 @@ class SocketIOServer:
                             "timestamp": timestamp
                         }
                 
-                # Final fallback: Show current working directory changes
+                # Try to show unstaged changes first
+                diff_proc = await asyncio.create_subprocess_exec(
+                    'git', 'diff', '--', file_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                diff_output, _ = await diff_proc.communicate()
+                
+                if diff_proc.returncode == 0 and diff_output.decode().strip():
+                    return {
+                        "success": True,
+                        "diff": diff_output.decode(),
+                        "commit_hash": "unstaged_changes",
+                        "file_path": file_path,
+                        "method": "unstaged_changes",
+                        "timestamp": timestamp
+                    }
+                
+                # Then try staged changes
+                diff_proc = await asyncio.create_subprocess_exec(
+                    'git', 'diff', '--cached', '--', file_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                diff_output, _ = await diff_proc.communicate()
+                
+                if diff_proc.returncode == 0 and diff_output.decode().strip():
+                    return {
+                        "success": True,
+                        "diff": diff_output.decode(),
+                        "commit_hash": "staged_changes",
+                        "file_path": file_path,
+                        "method": "staged_changes",
+                        "timestamp": timestamp
+                    }
+                
+                # Final fallback: Show changes against HEAD
                 diff_proc = await asyncio.create_subprocess_exec(
                     'git', 'diff', 'HEAD', '--', file_path,
                     stdout=asyncio.subprocess.PIPE,
@@ -506,14 +611,34 @@ class SocketIOServer:
                             "timestamp": timestamp
                         }
                 
+                # Check if file is from a different repository
+                suggestions = [
+                    "The file may not be tracked by git",
+                    "The file may not have any committed changes",
+                    "The timestamp may be outside the git history range"
+                ]
+                
+                if os.path.isabs(file_path) and not file_path.startswith(os.getcwd()):
+                    current_repo = os.path.basename(os.getcwd())
+                    file_repo = "unknown"
+                    # Try to extract repository name from path
+                    path_parts = file_path.split("/")
+                    if "Projects" in path_parts:
+                        idx = path_parts.index("Projects")
+                        if idx + 1 < len(path_parts):
+                            file_repo = path_parts[idx + 1]
+                    
+                    suggestions.clear()
+                    suggestions.append(f"This file is from the '{file_repo}' repository")
+                    suggestions.append(f"The git diff viewer is running from the '{current_repo}' repository")
+                    suggestions.append("Git diff can only show changes for files in the current repository")
+                    suggestions.append("To view changes for this file, run the monitoring dashboard from its repository")
+                
                 return {
+                    "success": False,
                     "error": "No git history found for this file",
                     "file_path": file_path,
-                    "suggestions": [
-                        "The file may not be tracked by git",
-                        "The file may not have any committed changes",
-                        "The timestamp may be outside the git history range"
-                    ]
+                    "suggestions": suggestions
                 }
                 
             finally:
@@ -522,6 +647,7 @@ class SocketIOServer:
         except Exception as e:
             self.logger.error(f"Error in _generate_git_diff: {e}")
             return {
+                "success": False,
                 "error": f"Git diff generation failed: {str(e)}",
                 "file_path": file_path
             }
@@ -630,6 +756,44 @@ class SocketIOServer:
             
             # Re-broadcast to all other clients
             await self.sio.emit('claude_event', data, skip_sid=sid)
+        
+        @self.sio.event
+        async def get_git_branch(sid, working_dir=None):
+            """Get the current git branch for a directory"""
+            import subprocess
+            try:
+                if not working_dir:
+                    working_dir = os.getcwd()
+                
+                # Run git command to get current branch
+                result = subprocess.run(
+                    ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                    cwd=working_dir,
+                    capture_output=True,
+                    text=True
+                )
+                
+                if result.returncode == 0:
+                    branch = result.stdout.strip()
+                    await self.sio.emit('git_branch_response', {
+                        'success': True,
+                        'branch': branch,
+                        'working_dir': working_dir
+                    }, room=sid)
+                else:
+                    await self.sio.emit('git_branch_response', {
+                        'success': False,
+                        'error': 'Not a git repository',
+                        'working_dir': working_dir
+                    }, room=sid)
+                    
+            except Exception as e:
+                self.logger.error(f"Error getting git branch: {e}")
+                await self.sio.emit('git_branch_response', {
+                    'success': False,
+                    'error': str(e),
+                    'working_dir': working_dir
+                }, room=sid)
             
     async def _send_current_status(self, sid: str):
         """Send current system status to a client."""

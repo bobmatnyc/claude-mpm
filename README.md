@@ -176,6 +176,11 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 - **Full Documentation**: See [monitoring documentation](docs/user/monitoring/) for complete details
 
 ### Session Management
+- **Session Continuity**: Resume previous Claude conversations with `--resume` flag
+  - Resume last session: `claude-mpm run --resume`
+  - Resume specific session: `claude-mpm run --resume <session-id>`
+  - Works with monitoring: `claude-mpm run --resume --monitor`
+  - Maintains conversation context and history for improved Claude performance
 - Comprehensive logging of all interactions
 - Debug mode for troubleshooting
 - Organized log structure
@@ -265,6 +270,15 @@ claude-mpm
 # Run with real-time monitoring dashboard
 claude-mpm run --monitor
 
+# Resume the last interactive session
+claude-mpm run --resume
+
+# Resume a specific session by ID
+claude-mpm run --resume session-abc123
+
+# Combine monitoring with session resumption
+claude-mpm run --resume --monitor
+
 # Run with debug logging
 claude-mpm --debug
 
@@ -285,6 +299,7 @@ Options:
 Commands:
   run                  Run Claude session (default)
     --monitor          Launch with real-time monitoring dashboard
+    --resume [ID]      Resume a session (last session if no ID specified)
   info                 Show framework and configuration info
 ```
 
