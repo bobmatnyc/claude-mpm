@@ -175,14 +175,31 @@
             <div class="split-container">
                 <!-- Left: Module Viewer -->
                 <div class="module-viewer">
-                    <div class="module-header">
-                        <h4>📁 Event Analysis</h4>
-                        <button class="btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="clearSelection()">Clear</button>
-                    </div>
-                    <div class="module-content" id="module-content">
-                        <div class="module-empty">
-                            <p>Click on an event to view details</p>
-                            <p class="module-hint">Events are organized by class</p>
+                    <!-- Two-pane layout: Data (top) and JSON (bottom) -->
+                    <div class="module-panes" id="module-content">
+                        <!-- Data Pane (top) -->
+                        <div class="module-data-pane">
+                            <div class="module-data-header">
+                                <h5>📊 Structured Data</h5>
+                            </div>
+                            <div class="module-data-content" id="module-data-content">
+                                <div class="module-empty">
+                                    <p>Click on an event to view structured data</p>
+                                    <p class="module-hint">Data is organized by event type</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- JSON Pane (bottom) -->
+                        <div class="module-json-pane">
+                            <div class="module-json-header">
+                                <h5>🔍 Raw JSON</h5>
+                            </div>
+                            <div class="module-json-content" id="module-json-content">
+                                <div class="module-empty">
+                                    <p>Raw JSON data will appear here</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

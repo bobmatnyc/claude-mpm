@@ -37,6 +37,9 @@ class Dashboard {
         // Tool call tracking for tools tab
         this.toolCalls = new Map(); // Map of tool call keys to paired pre/post events
         
+        // Agent events tracking for agents tab
+        this.agentEvents = []; // Array of filtered agent events
+        
         this.init();
     }
 
@@ -399,6 +402,12 @@ class Dashboard {
         document.addEventListener('socketConnectionStatus', (e) => {
             this.updateConnectionStatus(e.detail.status, e.detail.type);
         });
+
+        // Listen for session filter changes to update dropdown options
+        document.addEventListener('sessionFilterChanged', (e) => {
+            console.log('Session filter changed, re-rendering current tab:', this.currentTab);
+            this.renderCurrentTab();
+        });
     }
 
     /**
@@ -501,6 +510,37 @@ class Dashboard {
             filesTypeFilter.addEventListener('change', () => {
                 if (this.currentTab === 'files') this.renderCurrentTab();
             });
+        }
+    }
+
+    /**
+     * Populate filter dropdown with unique values from data
+     * @param {string} selectId - ID of the select element
+     * @param {Array} values - Array of unique values to populate
+     * @param {string} allOption - Text for the "All" option
+     */
+    populateFilterDropdown(selectId, values, allOption) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        // Store current selection
+        const currentValue = select.value;
+
+        // Clear existing options except the first "All" option
+        select.innerHTML = `<option value="">${allOption}</option>`;
+
+        // Add unique values, sorted alphabetically
+        const sortedValues = [...values].sort();
+        sortedValues.forEach(value => {
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = value;
+            select.appendChild(option);
+        });
+
+        // Restore selection if it still exists
+        if (currentValue && sortedValues.includes(currentValue)) {
+            select.value = currentValue;
         }
     }
 
@@ -861,25 +901,13 @@ class Dashboard {
      * @param {number} index - Index in the filtered agents list
      */
     showAgentDetailsByIndex(index) {
-        const events = this.getFilteredEventsForTab('agents');
-        const agentEvents = this.applyAgentsFilters(events.filter(event => {
-            const type = event.type || '';
-            const subtype = event.subtype || '';
-            
-            const isDirectAgentEvent = type === 'agent' || type.includes('agent');
-            const isTaskDelegation = event.tool_name === 'Task' && 
-                                    (subtype === 'pre_tool' || type === 'hook') &&
-                                    event.tool_parameters?.subagent_type;
-            const isDelegationEvent = event.subagent_type ||
-                                     (type + '.' + subtype).includes('delegation');
-            const hasAgentType = event.agent_type && 
-                               event.agent_type !== 'unknown';
-            const isSessionEvent = type === 'session';
-            
-            return isDirectAgentEvent || isTaskDelegation || isDelegationEvent || hasAgentType || isSessionEvent;
-        }));
+        // Use stored filtered agent events instead of recalculating
+        const agentEvents = this.agentEvents;
 
-        if (index < 0 || index >= agentEvents.length) return;
+        if (index < 0 || index >= agentEvents.length) {
+            console.warn('Invalid agent index:', index, 'Available agents:', agentEvents.length);
+            return;
+        }
 
         const event = agentEvents[index];
         const eventIndex = this.eventViewer.events.indexOf(event);
@@ -969,11 +997,18 @@ class Dashboard {
      * Render agents tab
      */
     renderAgents() {
+        console.log('=== RENDERAGENTS DEBUG START ===');
+        console.log('1. Function called, checking agentsList element...');
+        
         const agentsList = document.getElementById('agents-list');
-        if (!agentsList) return;
+        if (!agentsList) {
+            console.error('agentsList element not found!');
+            return;
+        }
+        console.log('2. agentsList element found:', agentsList);
 
         const events = this.getFilteredEventsForTab('agents');
-        console.log('Agent tab - total events:', events.length);
+        console.log('3. Total events from getFilteredEventsForTab:', events.length);
         
         // Enhanced debugging: log first few events to understand structure
         if (events.length > 0) {
@@ -1055,24 +1090,56 @@ class Dashboard {
                 
                 return isAgentRelated;
             })
-            .map(({ event }) => event)
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            .map(({ event, inference }) => ({ event, inference }))
+            .sort((a, b) => new Date(a.event.timestamp) - new Date(b.event.timestamp));
 
-        // Apply tab-specific filters
-        agentEvents = this.applyAgentsFilters(agentEvents);
-
-        console.log('Agent tab - filtering summary:', {
-            total_events: events.length,
-            agent_events_found: agentEvents.length,
-            percentage: agentEvents.length > 0 ? ((agentEvents.length / events.length) * 100).toFixed(1) + '%' : '0%'
+        // Extract unique agent types from the data for filter dropdown
+        const uniqueAgentTypes = new Set();
+        agentEvents.forEach(({ event, inference }) => {
+            if (inference && inference.agentName && inference.agentName !== 'Unknown') {
+                uniqueAgentTypes.add(inference.agentName);
+            }
+            // Also check for agent_type in the event data
+            if (event.agent_type && event.agent_type !== 'unknown' && event.agent_type !== 'main') {
+                uniqueAgentTypes.add(event.agent_type);
+            }
+            if (event.subagent_type) {
+                uniqueAgentTypes.add(event.subagent_type);
+            }
         });
 
-        if (agentEvents.length === 0) {
+        // Populate the agents filter dropdown
+        this.populateFilterDropdown('agents-type-filter', Array.from(uniqueAgentTypes), 'All Agents');
+
+        // Apply tab-specific filters to the agentEvents array while preserving inference data
+        let filteredAgentEvents = agentEvents.filter(({ event }) => {
+            // Create a temporary array with just events for the existing filter function
+            const singleEventArray = [event];
+            const filteredSingleEvent = this.applyAgentsFilters(singleEventArray);
+            return filteredSingleEvent.length > 0;
+        });
+        
+        // Store filtered agent events with inference data in class property
+        this.agentEventsWithInference = filteredAgentEvents;
+        
+        // Also store just the events for backward compatibility
+        this.agentEvents = filteredAgentEvents.map(({ event }) => event);
+
+        console.log('4. Agent tab - filtering summary:', {
+            total_events: events.length,
+            agent_events_found: filteredAgentEvents.length,
+            percentage: filteredAgentEvents.length > 0 ? ((filteredAgentEvents.length / events.length) * 100).toFixed(1) + '%' : '0%'
+        });
+
+        if (filteredAgentEvents.length === 0) {
+            console.log('5. No agent events found, showing empty message');
             agentsList.innerHTML = '<div class="no-events">No agent events found...</div>';
             return;
         }
 
-        const agentsHtml = agentEvents.map((event, index) => {
+        console.log('Rendering', filteredAgentEvents.length, 'agent events');
+
+        const agentsHtml = filteredAgentEvents.map((event, index) => {
             const timestamp = new Date(event.timestamp).toLocaleTimeString();
             
             // Use inferred agent data instead of hardcoded extraction
@@ -1120,8 +1187,10 @@ class Dashboard {
                 'unknown': '❔'
             }[confidence] || '❔';
 
+            const onclickString = `dashboard.selectCard('agents', ${index}, 'agent', ${index}); dashboard.showAgentDetailsByIndex(${index});`;
+
             return `
-                <div class="event-item event-agent" onclick="dashboard.selectCard('agents', ${index}, 'agent', event); dashboard.showAgentDetails(${index}, ${this.eventViewer.events.indexOf(event)})">
+                <div class="event-item event-agent" onclick="${onclickString}">
                     <div class="event-header">
                         <span class="event-type">🤖 ${agentName}</span>
                         <span class="confidence-indicator" title="Confidence: ${confidence} (${reason})">${confidenceIcon}</span>
@@ -1138,7 +1207,30 @@ class Dashboard {
             `;
         }).join('');
 
+        console.log('9. Generated HTML length:', agentsHtml.length);
+        console.log('10. Sample HTML (first 500 chars):', agentsHtml.substring(0, 500));
+        
         agentsList.innerHTML = agentsHtml;
+        
+        // Check if the HTML was actually set
+        console.log('11. HTML set in DOM, innerHTML length:', agentsList.innerHTML.length);
+        console.log('12. Number of event-agent elements:', agentsList.querySelectorAll('.event-agent').length);
+        
+        // Test onclick on first element if exists
+        const firstAgent = agentsList.querySelector('.event-agent');
+        if (firstAgent) {
+            console.log('13. First agent element found:', firstAgent);
+            console.log('14. First agent onclick attribute:', firstAgent.getAttribute('onclick'));
+            
+            // Add a test click event listener as well
+            firstAgent.addEventListener('click', function(e) {
+                console.log('15. CLICK EVENT DETECTED on agent element!', e.target);
+            });
+        } else {
+            console.log('13. No .event-agent elements found in DOM after setting innerHTML');
+        }
+        
+        console.log('=== RENDERAGENTS DEBUG END ===');
         this.scrollListToBottom('agents-list');
     }
 
@@ -1169,6 +1261,17 @@ class Dashboard {
             });
 
         console.log('Tools tab - after filtering:', toolCallsArray.length, 'tool calls');
+
+        // Extract unique tool names from the data for filter dropdown
+        const uniqueToolNames = new Set();
+        toolCallsArray.forEach(([key, toolCall]) => {
+            if (toolCall.tool_name) {
+                uniqueToolNames.add(toolCall.tool_name);
+            }
+        });
+
+        // Populate the tools filter dropdown
+        this.populateFilterDropdown('tools-type-filter', Array.from(uniqueToolNames), 'All Tools');
 
         // Apply tab-specific filters to tool calls
         toolCallsArray = this.applyToolCallFilters(toolCallsArray);
@@ -1255,7 +1358,6 @@ class Dashboard {
                 <div class="event-item event-tool ${statusClass}" onclick="dashboard.selectCard('tools', ${index}, 'toolCall', '${key}'); dashboard.showToolCallDetails('${key}')">
                     <div class="event-header">
                         <span class="event-type">🔧 ${toolName}</span>
-                        <span class="confidence-indicator" title="Agent inference confidence: ${confidence}">${confidenceIcon}</span>
                         <span class="event-timestamp">${timestamp}</span>
                     </div>
                     <div class="event-data">
@@ -1300,6 +1402,21 @@ class Dashboard {
             });
 
         console.log('Files tab - after filtering:', filesArray.length, 'files');
+
+        // Extract unique operations from the data for filter dropdown
+        const uniqueOperations = new Set();
+        filesArray.forEach(([filePath, fileData]) => {
+            if (fileData.operations && fileData.operations.length > 0) {
+                fileData.operations.forEach(operation => {
+                    if (operation.operation) {
+                        uniqueOperations.add(operation.operation);
+                    }
+                });
+            }
+        });
+
+        // Populate the files filter dropdown
+        this.populateFilterDropdown('files-type-filter', Array.from(uniqueOperations), 'All Operations');
 
         // Apply tab-specific filters
         filesArray = this.applyFilesFilters(filesArray);
@@ -1348,96 +1465,73 @@ class Dashboard {
      * Show agent details in module viewer
      */
     showAgentDetails(agentIndex, eventIndex) {
-        // Get the agent event
-        const events = this.getFilteredEventsForTab('agents');
-        const agentEvents = this.applyAgentsFilters(events.filter(event => {
-            const type = event.type || '';
-            const subtype = event.subtype || '';
-            
-            const isDirectAgentEvent = type === 'agent' || type.includes('agent');
-            const isTaskDelegation = event.tool_name === 'Task' && 
-                                    (subtype === 'pre_tool' || type === 'hook') &&
-                                    event.tool_parameters?.subagent_type;
-            const isDelegationEvent = event.subagent_type ||
-                                     (type + '.' + subtype).includes('delegation');
-            const hasAgentType = event.agent_type && 
-                               event.agent_type !== 'unknown' && 
-                               event.agent_type !== 'main';
-            const isSessionEvent = type === 'session';
-            
-            return isDirectAgentEvent || isTaskDelegation || isDelegationEvent || hasAgentType || isSessionEvent;
-        }));
-
-        const event = agentEvents[agentIndex];
-        if (!event) return;
-
-        // Extract agent information
+        console.log('showAgentDetails called with agentIndex:', agentIndex, 'eventIndex:', eventIndex);
+        
+        // Use stored filtered agent events with inference data if available
+        const agentEventsWithInference = this.agentEventsWithInference || [];
+        const agentEvents = this.agentEvents;
+        
+        let event, inference;
+        
+        // Try to get event and inference data together
+        if (agentEventsWithInference[agentIndex]) {
+            event = agentEventsWithInference[agentIndex].event;
+            inference = agentEventsWithInference[agentIndex].inference;
+        } else if (agentEvents[agentIndex]) {
+            // Fallback to just event data
+            event = agentEvents[agentIndex];
+            inference = null;
+        } else {
+            return;
+        }
+        
+        // Extract agent information using inference data first, then fallback to event data
         let agentName = 'Unknown Agent';
         let prompt = '';
         let description = '';
         let fullPrompt = '';
         
-        if (event.tool_name === 'Task' && event.tool_parameters?.subagent_type) {
+        // Use inference data for agent name if available
+        if (inference && inference.agentName && inference.agentName !== 'Unknown') {
+            agentName = inference.agentName;
+        } else if (event.tool_name === 'Task' && event.tool_parameters?.subagent_type) {
             agentName = event.tool_parameters.subagent_type;
-            prompt = event.tool_parameters.prompt || '';
-            description = event.tool_parameters.description || '';
-            fullPrompt = prompt;
         } else if (event.subagent_type) {
             agentName = event.subagent_type;
         } else if (event.agent_type && event.agent_type !== 'unknown') {
             agentName = event.agent_type;
         }
+        
+        // Extract task information
+        if (event.tool_name === 'Task' && event.tool_parameters) {
+            prompt = event.tool_parameters.prompt || '';
+            description = event.tool_parameters.description || '';
+            fullPrompt = prompt;
+        }
 
-        const content = `
-            <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>🤖 Agent Details</h4>
-                </div>
-                <div class="agent-details">
-                    <div class="agent-info">
-                        <div class="structured-field">
-                            <strong>Agent Name:</strong> ${agentName}
-                        </div>
-                        ${description ? `
-                            <div class="structured-field">
-                                <strong>Description:</strong> ${description}
-                            </div>
-                        ` : ''}
-                        <div class="structured-field">
-                            <strong>Timestamp:</strong> ${new Date(event.timestamp).toLocaleString()}
-                        </div>
-                        <div class="structured-field">
-                            <strong>Event Type:</strong> ${event.type}.${event.subtype || 'default'}
-                        </div>
-                        ${event.session_id ? `
-                            <div class="structured-field">
-                                <strong>Session ID:</strong> ${event.session_id}
-                            </div>
-                        ` : ''}
-                    </div>
-                    
-                    ${fullPrompt ? `
-                        <div class="prompt-section">
-                            <div class="structured-view-header">
-                                <h4>📝 Task Prompt</h4>
-                            </div>
-                            <div class="structured-data">
-                                <div class="task-prompt" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.4;">
-                                    ${fullPrompt}
-                                </div>
-                                <div style="margin-top: 10px; text-align: center;">
-                                    <button onclick="dashboard.togglePromptExpansion(this)" style="font-size: 11px; padding: 4px 8px;">
-                                        ${fullPrompt.length > 200 ? 'Show More' : 'Show Less'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    ` : ''}
-                </div>
-            </div>
-        `;
+        // Add debug logging
+        console.log('showAgentDetails called with:', { 
+            agentIndex, 
+            eventIndex, 
+            event, 
+            inference, 
+            agentName: agentName,
+            hasInferenceData: !!inference 
+        });
+        console.log('moduleViewer available:', !!this.moduleViewer);
 
-        this.moduleViewer.container.innerHTML = content;
+        // Create enhanced event object with inference data for module viewer
+        const enhancedEvent = {
+            ...event,
+            _inference: inference, // Add inference data as a private property
+            _agentName: agentName  // Add resolved agent name
+        };
+
+        // Use the module viewer's ingest method to properly display the agent event
+        if (this.moduleViewer) {
+            console.log('Calling moduleViewer.ingest with enhanced event:', enhancedEvent);
+            this.moduleViewer.ingest(enhancedEvent);
+        }
         
         // Also show the event details in EventViewer
         if (eventIndex >= 0) {
@@ -1562,7 +1656,13 @@ class Dashboard {
             </div>
         `;
 
-        this.moduleViewer.container.innerHTML = content;
+        // Use the new dual-pane approach for tools
+        if (this.moduleViewer.dataContainer) {
+            this.moduleViewer.dataContainer.innerHTML = content;
+        }
+        if (this.moduleViewer.jsonContainer && event) {
+            this.moduleViewer.jsonContainer.innerHTML = `<pre>${JSON.stringify(event, null, 2)}</pre>`;
+        }
         
         // Also show the event details in EventViewer
         if (eventIndex >= 0) {
@@ -1590,9 +1690,9 @@ class Dashboard {
         const target = preEvent ? this.extractToolTarget(toolName, parameters, parameters) : 'Unknown target';
         
         // Get execution results from post-event
-        const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : 'Unknown';
-        const success = toolCall.success !== undefined ? toolCall.success : 'Unknown';
-        const exitCode = toolCall.exit_code !== undefined ? toolCall.exit_code : 'Unknown';
+        const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : '-';
+        const success = toolCall.success !== undefined ? toolCall.success : null;
+        const exitCode = toolCall.exit_code !== undefined ? toolCall.exit_code : null;
         // Format result summary properly if it's an object
         let resultSummary = toolCall.result_summary || 'No summary available';
         let formattedResultSummary = '';
@@ -1676,12 +1776,12 @@ class Dashboard {
                         <div class="structured-field">
                             <strong>Duration:</strong> ${duration}
                         </div>
-                        ${success !== 'Unknown' ? `
+                        ${success !== null ? `
                             <div class="structured-field">
                                 <strong>Success:</strong> ${success}
                             </div>
                         ` : ''}
-                        ${exitCode !== 'Unknown' ? `
+                        ${exitCode !== null ? `
                             <div class="structured-field">
                                 <strong>Exit Code:</strong> ${exitCode}
                             </div>
@@ -1697,16 +1797,14 @@ class Dashboard {
                         <div class="result-section">
                             <div class="structured-view-header">
                                 <h4>📊 Result Summary</h4>
-                                ${typeof resultSummary === 'object' && resultSummary !== null ? `
-                                    <button onclick="dashboard.toggleResultSummaryJson('${toolCallKey}')" style="font-size: 11px; padding: 4px 8px; margin-left: 10px;">Toggle JSON</button>
-                                ` : ''}
                             </div>
                             <div class="structured-data">
                                 <div class="result-summary" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.4;">
                                     ${formattedResultSummary}
                                 </div>
                                 ${typeof resultSummary === 'object' && resultSummary !== null ? `
-                                    <div id="result-summary-json-${toolCallKey}" class="result-summary-json" style="display: none; white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f0f9ff; border-radius: 6px; font-family: monospace; font-size: 11px; line-height: 1.3; margin-top: 10px;">
+                                    <div class="result-summary-json" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f0f9ff; border-radius: 6px; font-family: monospace; font-size: 11px; line-height: 1.3; margin-top: 10px;">
+                                        <h5 style="margin: 0 0 8px 0; font-size: 11px; color: #4a5568;">Raw JSON:</h5>
                                         ${JSON.stringify(resultSummary, null, 2)}
                                     </div>
                                 ` : ''}
@@ -1714,7 +1812,37 @@ class Dashboard {
                         </div>
                     ` : ''}
                     
-                    ${Object.keys(parameters).length > 0 ? `
+                    ${toolName === 'TodoWrite' && parameters.todos ? `
+                        <div class="todos-section">
+                            <div class="todos-list">
+                                ${parameters.todos.map(todo => {
+                                    const statusIcon = {
+                                        'pending': '⏳',
+                                        'in_progress': '🔄',
+                                        'completed': '✅'
+                                    }[todo.status] || '❓';
+                                    
+                                    const priorityColor = {
+                                        'high': '#dc2626',
+                                        'medium': '#f59e0b',
+                                        'low': '#10b981'
+                                    }[todo.priority] || '#6b7280';
+                                    
+                                    return `
+                                        <div class="todo-item" style="padding: 8px; margin: 4px 0; border-left: 3px solid ${priorityColor}; background: #f8fafc; border-radius: 4px;">
+                                            <div style="display: flex; align-items: center; gap: 8px;">
+                                                <span style="font-size: 16px;">${statusIcon}</span>
+                                                <span style="font-weight: 500; color: #374151;">${todo.content}</span>
+                                                <span style="font-size: 11px; color: ${priorityColor}; text-transform: uppercase; font-weight: 600; margin-left: auto;">${todo.priority}</span>
+                                            </div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${Object.keys(parameters).length > 0 && toolName !== 'TodoWrite' ? `
                         <div class="parameters-section">
                             <div class="structured-view-header">
                                 <h4>⚙️ Parameters</h4>
@@ -1744,19 +1872,61 @@ class Dashboard {
             </div>
         `;
 
-        this.moduleViewer.container.innerHTML = content;
-    }
-
-
-    /**
-     * Toggle JSON visibility for result summary
-     */
-    toggleResultSummaryJson(toolCallKey) {
-        const jsonDiv = document.getElementById(`result-summary-json-${toolCallKey}`);
-        if (jsonDiv) {
-            jsonDiv.style.display = jsonDiv.style.display === 'none' ? 'block' : 'none';
+        // Special handling for TodoWrite - show only checklist with standard header
+        if (toolName === 'TodoWrite' && parameters.todos) {
+            // Create contextual header matching module-viewer pattern
+            const contextualHeader = `
+                <div class="contextual-header">
+                    <h3 class="contextual-header-text">TodoWrite: ${agentName} ${this.formatTimestamp(toolCall.timestamp)}</h3>
+                </div>
+            `;
+            
+            const todoContent = `
+                <div class="todo-checklist">
+                    ${parameters.todos.map(todo => {
+                        const statusIcon = {
+                            'pending': '⏳',
+                            'in_progress': '🔄',
+                            'completed': '✅'
+                        }[todo.status] || '❓';
+                        
+                        const priorityIcon = {
+                            'high': '🔴',
+                            'medium': '🟡',
+                            'low': '🟢'
+                        }[todo.priority] || '🟡';
+                        
+                        return `
+                            <div class="todo-item todo-${todo.status || 'pending'}">
+                                <span class="todo-status">${statusIcon}</span>
+                                <span class="todo-content">${todo.content || 'No content'}</span>
+                                <span class="todo-priority priority-${todo.priority || 'medium'}">${priorityIcon}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            if (this.moduleViewer.dataContainer) {
+                this.moduleViewer.dataContainer.innerHTML = contextualHeader + todoContent;
+            }
+            if (this.moduleViewer.jsonContainer) {
+                const toolCallData = {
+                    toolCall: toolCall,
+                    preEvent: preEvent,
+                    postEvent: postEvent
+                };
+                this.moduleViewer.jsonContainer.innerHTML = `<pre>${JSON.stringify(toolCallData, null, 2)}</pre>`;
+            }
+        } else {
+            // For other tools, use the module viewer's ingest method with pre-event
+            if (this.moduleViewer && preEvent) {
+                this.moduleViewer.ingest(preEvent);
+            }
         }
     }
+
+
 
     /**
      * Show detailed file operations in module viewer
@@ -1765,14 +1935,23 @@ class Dashboard {
         const fileData = this.fileOperations.get(filePath);
         if (!fileData) return;
 
+        // Get file name from path for header
+        const fileName = filePath.split('/').pop() || filePath;
+        const lastOp = fileData.operations[fileData.operations.length - 1];
+        const headerTimestamp = this.formatTimestamp(lastOp.timestamp);
+        
+        // Create contextual header matching module-viewer pattern
+        const contextualHeader = `
+            <div class="contextual-header">
+                <h3 class="contextual-header-text">File: ${fileName} ${headerTimestamp}</h3>
+            </div>
+        `;
+
         const content = `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>📁 File Operations</h4>
-                </div>
                 <div class="file-details">
                     <div class="file-path-display">
-                        <strong>File:</strong> ${filePath}
+                        <strong>Full Path:</strong> ${filePath}
                     </div>
                     <div class="operations-list">
                         ${fileData.operations.map(op => `
@@ -1794,7 +1973,14 @@ class Dashboard {
             </div>
         `;
 
-        this.moduleViewer.container.innerHTML = content;
+        // Use the new dual-pane approach for file details with standard header
+        if (this.moduleViewer.dataContainer) {
+            this.moduleViewer.dataContainer.innerHTML = contextualHeader + content;
+        }
+        if (this.moduleViewer.jsonContainer) {
+            // Show the file data with operations
+            this.moduleViewer.jsonContainer.innerHTML = `<pre>${JSON.stringify(fileData, null, 2)}</pre>`;
+        }
     }
 
     /**
@@ -2305,6 +2491,27 @@ class Dashboard {
     }
 
     /**
+     * Format timestamp for display
+     * @param {string|number} timestamp - Timestamp to format
+     * @returns {string} Formatted time
+     */
+    formatTimestamp(timestamp) {
+        if (!timestamp) return 'Unknown time';
+        
+        try {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        } catch (e) {
+            return 'Invalid time';
+        }
+    }
+
+    /**
      * Get relative file path for display
      */
     getRelativeFilePath(filePath) {
@@ -2772,6 +2979,7 @@ class Dashboard {
         this.eventViewer.clearEvents();
         this.fileOperations.clear();
         this.toolCalls.clear();
+        this.agentEvents = [];
         this.renderCurrentTab();
     }
 
@@ -2827,6 +3035,25 @@ window.clearSelection = function() {
 window.switchTab = function(tabName) {
     if (window.dashboard) {
         window.dashboard.switchTab(tabName);
+    }
+};
+
+// Detail view functions
+window.showAgentDetailsByIndex = function(index) {
+    if (window.dashboard) {
+        window.dashboard.showAgentDetailsByIndex(index);
+    }
+};
+
+window.showToolCallDetails = function(toolCallKey) {
+    if (window.dashboard) {
+        window.dashboard.showToolCallDetails(toolCallKey);
+    }
+};
+
+window.showFileDetails = function(filePath) {
+    if (window.dashboard) {
+        window.dashboard.showFileDetails(filePath);
     }
 };
 
@@ -2976,6 +3203,266 @@ Check browser console for complete logs.
     
     console.log(summary);
     return summary;
+};
+
+// Git Diff Modal Functions
+window.showGitDiffModal = function(filePath, timestamp, workingDir) {
+    console.log(`🔍 Showing git diff for: ${filePath}`);
+    
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('git-diff-modal');
+    if (!modal) {
+        modal = createGitDiffModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Update modal content
+    updateGitDiffModal(modal, filePath, timestamp, workingDir);
+    
+    // Show the modal
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+};
+
+window.hideGitDiffModal = function() {
+    const modal = document.getElementById('git-diff-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore background scrolling
+    }
+};
+
+function createGitDiffModal() {
+    const modal = document.createElement('div');
+    modal.id = 'git-diff-modal';
+    modal.className = 'modal git-diff-modal';
+    
+    modal.innerHTML = `
+        <div class="modal-content git-diff-content">
+            <div class="git-diff-header">
+                <h2 class="git-diff-title">
+                    <span class="git-diff-icon">📋</span>
+                    <span class="git-diff-title-text">Git Diff</span>
+                </h2>
+                <div class="git-diff-meta">
+                    <span class="git-diff-file-path"></span>
+                    <span class="git-diff-timestamp"></span>
+                </div>
+                <button class="git-diff-close" onclick="hideGitDiffModal()">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="git-diff-body">
+                <div class="git-diff-loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading git diff...</span>
+                </div>
+                <div class="git-diff-error" style="display: none;">
+                    <div class="error-icon">⚠️</div>
+                    <div class="error-message"></div>
+                    <div class="error-suggestions"></div>
+                </div>
+                <div class="git-diff-content-area" style="display: none;">
+                    <div class="git-diff-toolbar">
+                        <div class="git-diff-info">
+                            <span class="commit-hash"></span>
+                            <span class="diff-method"></span>
+                        </div>
+                        <div class="git-diff-actions">
+                            <button class="git-diff-copy" onclick="copyGitDiff()">
+                                📋 Copy
+                            </button>
+                        </div>
+                    </div>
+                    <pre class="git-diff-display"><code class="git-diff-code"></code></pre>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideGitDiffModal();
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            hideGitDiffModal();
+        }
+    });
+    
+    return modal;
+}
+
+async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
+    // Update header info
+    const filePathElement = modal.querySelector('.git-diff-file-path');
+    const timestampElement = modal.querySelector('.git-diff-timestamp');
+    
+    filePathElement.textContent = filePath;
+    timestampElement.textContent = timestamp ? new Date(timestamp).toLocaleString() : 'Latest';
+    
+    // Show loading state
+    modal.querySelector('.git-diff-loading').style.display = 'flex';
+    modal.querySelector('.git-diff-error').style.display = 'none';
+    modal.querySelector('.git-diff-content-area').style.display = 'none';
+    
+    try {
+        // Fetch git diff from the backend
+        const params = new URLSearchParams({
+            file: filePath
+        });
+        
+        if (timestamp) {
+            params.append('timestamp', timestamp);
+        }
+        if (workingDir) {
+            params.append('working_dir', workingDir);
+        }
+        
+        // Get the Socket.IO server port from dashboard
+        const port = window.dashboard && window.dashboard.socketClient 
+            ? window.dashboard.socketClient.port 
+            : 8765;
+            
+        const response = await fetch(`http://localhost:${port}/api/git-diff?${params}`);
+        const result = await response.json();
+        
+        // Hide loading
+        modal.querySelector('.git-diff-loading').style.display = 'none';
+        
+        if (result.success) {
+            // Show successful diff
+            displayGitDiff(modal, result);
+        } else {
+            // Show error
+            displayGitDiffError(modal, result);
+        }
+        
+    } catch (error) {
+        console.error('Failed to fetch git diff:', error);
+        modal.querySelector('.git-diff-loading').style.display = 'none';
+        displayGitDiffError(modal, {
+            error: `Network error: ${error.message}`,
+            file_path: filePath
+        });
+    }
+}
+
+function highlightGitDiff(diffText) {
+    /**
+     * Apply basic syntax highlighting to git diff output
+     * WHY: Git diffs have a standard format that can be highlighted for better readability:
+     * - Lines starting with '+' are additions (green)
+     * - Lines starting with '-' are deletions (red)  
+     * - Lines starting with '@@' are context headers (blue)
+     * - File headers and metadata get special formatting
+     */
+    return diffText
+        .split('\n')
+        .map(line => {
+            // Escape HTML entities
+            const escaped = line
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            
+            // Apply diff highlighting
+            if (line.startsWith('+++') || line.startsWith('---')) {
+                return `<span class="diff-header">${escaped}</span>`;
+            } else if (line.startsWith('@@')) {
+                return `<span class="diff-meta">${escaped}</span>`;
+            } else if (line.startsWith('+')) {
+                return `<span class="diff-addition">${escaped}</span>`;
+            } else if (line.startsWith('-')) {
+                return `<span class="diff-deletion">${escaped}</span>`;
+            } else if (line.startsWith('commit ') || line.startsWith('Author:') || line.startsWith('Date:')) {
+                return `<span class="diff-header">${escaped}</span>`;
+            } else {
+                return `<span class="diff-context">${escaped}</span>`;
+            }
+        })
+        .join('\n');
+}
+
+function displayGitDiff(modal, result) {
+    const contentArea = modal.querySelector('.git-diff-content-area');
+    const commitHashElement = modal.querySelector('.commit-hash');
+    const methodElement = modal.querySelector('.diff-method');
+    const codeElement = modal.querySelector('.git-diff-code');
+    
+    // Update metadata
+    commitHashElement.textContent = `Commit: ${result.commit_hash}`;
+    methodElement.textContent = `Method: ${result.method}`;
+    
+    // Update diff content with basic syntax highlighting
+    codeElement.innerHTML = highlightGitDiff(result.diff);
+    
+    // Show content area
+    contentArea.style.display = 'block';
+}
+
+function displayGitDiffError(modal, result) {
+    const errorArea = modal.querySelector('.git-diff-error');
+    const messageElement = modal.querySelector('.error-message');
+    const suggestionsElement = modal.querySelector('.error-suggestions');
+    
+    messageElement.textContent = result.error || 'Unknown error occurred';
+    
+    if (result.suggestions && result.suggestions.length > 0) {
+        suggestionsElement.innerHTML = `
+            <h4>Suggestions:</h4>
+            <ul>
+                ${result.suggestions.map(s => `<li>${s}</li>`).join('')}
+            </ul>
+        `;
+    } else {
+        suggestionsElement.innerHTML = '';
+    }
+    
+    errorArea.style.display = 'block';
+}
+
+window.copyGitDiff = function() {
+    const modal = document.getElementById('git-diff-modal');
+    if (!modal) return;
+    
+    const codeElement = modal.querySelector('.git-diff-code');
+    if (!codeElement) return;
+    
+    const text = codeElement.textContent;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            // Show brief feedback
+            const button = modal.querySelector('.git-diff-copy');
+            const originalText = button.textContent;
+            button.textContent = '✅ Copied!';
+            setTimeout(() => {
+                button.textContent = originalText;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text:', err);
+        });
+    } else {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        const button = modal.querySelector('.git-diff-copy');
+        const originalText = button.textContent;
+        button.textContent = '✅ Copied!';
+        setTimeout(() => {
+            button.textContent = originalText;
+        }, 2000);
+    }
 };
 
 // Initialize dashboard when DOM is loaded

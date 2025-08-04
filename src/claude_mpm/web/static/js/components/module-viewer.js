@@ -6,6 +6,8 @@
 class ModuleViewer {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
+        this.dataContainer = null;
+        this.jsonContainer = null;
         this.currentEvent = null;
         this.eventsByClass = new Map();
         
@@ -16,8 +18,21 @@ class ModuleViewer {
      * Initialize the module viewer
      */
     init() {
+        this.setupContainers();
         this.setupEventHandlers();
         this.showEmptyState();
+    }
+
+    /**
+     * Setup container references for the two-pane layout
+     */
+    setupContainers() {
+        this.dataContainer = document.getElementById('module-data-content');
+        this.jsonContainer = document.getElementById('module-json-content');
+        
+        if (!this.dataContainer || !this.jsonContainer) {
+            console.error('Module viewer pane containers not found');
+        }
     }
 
     /**
@@ -44,12 +59,23 @@ class ModuleViewer {
      * Show empty state when no event is selected
      */
     showEmptyState() {
-        this.container.innerHTML = `
-            <div class="module-empty">
-                <p>Click on an event to view details</p>
-                <p class="module-hint">Events are organized by class</p>
-            </div>
-        `;
+        if (this.dataContainer) {
+            this.dataContainer.innerHTML = `
+                <div class="module-empty">
+                    <p>Click on an event to view structured data</p>
+                    <p class="module-hint">Data is organized by event type</p>
+                </div>
+            `;
+        }
+        
+        if (this.jsonContainer) {
+            this.jsonContainer.innerHTML = `
+                <div class="module-empty">
+                    <p>Raw JSON data will appear here</p>
+                </div>
+            `;
+        }
+        
         this.currentEvent = null;
     }
 
@@ -60,11 +86,62 @@ class ModuleViewer {
     showEventDetails(event) {
         this.currentEvent = event;
         
+        // Render structured data in top pane
+        this.renderStructuredData(event);
+        
+        // Render JSON in bottom pane
+        this.renderJsonData(event);
+    }
+
+    /**
+     * Render structured data in the data pane
+     * @param {Object} event - The event to render
+     */
+    renderStructuredData(event) {
+        if (!this.dataContainer) return;
+        
+        // Create contextual header
+        const contextualHeader = this.createContextualHeader(event);
+        
         // Create structured view based on event type
         const structuredView = this.createEventStructuredView(event);
         
-        // Show in container
-        this.container.innerHTML = structuredView;
+        // Show header and structured view in data container
+        this.dataContainer.innerHTML = contextualHeader + structuredView;
+    }
+
+    /**
+     * Render JSON data in the JSON pane
+     * @param {Object} event - The event to render
+     */
+    renderJsonData(event) {
+        if (!this.jsonContainer) return;
+        
+        // Create formatted JSON display
+        this.jsonContainer.innerHTML = `
+            <pre>${this.formatJSON(event)}</pre>
+        `;
+    }
+
+    /**
+     * Ingest method that determines how to render event(s)
+     * @param {Object|Array} eventData - Single event or array of events
+     */
+    ingest(eventData) {
+        if (Array.isArray(eventData)) {
+            // Handle multiple events - for now, show the first one
+            if (eventData.length > 0) {
+                this.showEventDetails(eventData[0]);
+            } else {
+                this.showEmptyState();
+            }
+        } else if (eventData && typeof eventData === 'object') {
+            // Handle single event
+            this.showEventDetails(eventData);
+        } else {
+            // Invalid data
+            this.showEmptyState();
+        }
     }
 
     /**
@@ -115,6 +192,78 @@ class ModuleViewer {
     }
 
     /**
+     * Create contextual header for the structured data
+     * @param {Object} event - Event to display
+     * @returns {string} HTML content
+     */
+    createContextualHeader(event) {
+        const timestamp = this.formatTimestamp(event.timestamp);
+        const data = event.data || {};
+        let headerText = '';
+        
+        // Determine header text based on event type
+        switch (event.type) {
+            case 'hook':
+                // For Tools: "ToolName: [Agent] [time]"
+                const toolName = this.extractToolName(data);
+                const agent = this.extractAgent(event) || 'Unknown';
+                if (toolName) {
+                    headerText = `${toolName}: ${agent} ${timestamp}`;
+                } else {
+                    const hookName = this.getHookDisplayName(event, data);
+                    headerText = `${hookName}: ${agent} ${timestamp}`;
+                }
+                break;
+                
+            case 'agent':
+                // For Agents: "Agent: [AgentType] [time]"
+                const agentType = data.agent_type || data.name || 'Unknown';
+                headerText = `Agent: ${agentType} ${timestamp}`;
+                break;
+                
+            case 'todo':
+                // For TodoWrite: "TodoWrite: [Agent] [time]"
+                const todoAgent = this.extractAgent(event) || 'PM';
+                headerText = `TodoWrite: ${todoAgent} ${timestamp}`;
+                break;
+                
+            case 'memory':
+                // For Memory: "Memory: [Operation] [time]"
+                const operation = data.operation || 'Unknown';
+                headerText = `Memory: ${operation} ${timestamp}`;
+                break;
+                
+            case 'session':
+            case 'claude':
+            case 'log':
+            case 'connection':
+                // For Events: "Event: [Type.Subtype] [time]"
+                const eventType = event.type;
+                const subtype = event.subtype || 'default';
+                headerText = `Event: ${eventType}.${subtype} ${timestamp}`;
+                break;
+                
+            default:
+                // For Files and other events: "File: [filename] [time]" or generic
+                const fileName = this.extractFileName(data);
+                if (fileName) {
+                    headerText = `File: ${fileName} ${timestamp}`;
+                } else {
+                    const eventType = event.type || 'Unknown';
+                    const subtype = event.subtype || 'default';
+                    headerText = `Event: ${eventType}.${subtype} ${timestamp}`;
+                }
+                break;
+        }
+        
+        return `
+            <div class="contextual-header">
+                <h3 class="contextual-header-text">${headerText}</h3>
+            </div>
+        `;
+    }
+
+    /**
      * Create structured view for an event
      * @param {Object} event - Event to display
      * @returns {string} HTML content
@@ -126,9 +275,6 @@ class ModuleViewer {
 
         let content = `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>📊 Event Details</h4>
-                </div>
                 ${this.createEventDetailCard(event.type, event, eventCount)}
             </div>
         `;
@@ -139,7 +285,12 @@ class ModuleViewer {
                 content += this.createAgentStructuredView(event);
                 break;
             case 'hook':
-                content += this.createHookStructuredView(event);
+                // Check if this is actually a Task delegation (agent-related hook)
+                if (event.data?.tool_name === 'Task' && event.data?.tool_parameters?.subagent_type) {
+                    content += this.createAgentStructuredView(event);
+                } else {
+                    content += this.createHookStructuredView(event);
+                }
                 break;
             case 'todo':
                 content += this.createTodoStructuredView(event);
@@ -158,9 +309,7 @@ class ModuleViewer {
                 break;
         }
 
-        // Add raw JSON section
-        content += this.createJsonSection(event);
-
+        // Note: JSON section is now rendered separately in the JSON pane
         return content;
     }
 
@@ -196,18 +345,46 @@ class ModuleViewer {
     createAgentStructuredView(event) {
         const data = event.data || {};
         
+        // Handle Task delegation events (which appear as hook events but contain agent info)
+        if (event.type === 'hook' && data.tool_name === 'Task' && data.tool_parameters?.subagent_type) {
+            const taskData = data.tool_parameters;
+            return `
+                <div class="structured-view-section">
+                    <div class="structured-data">
+                        ${this.createProperty('Agent Type', taskData.subagent_type)}
+                        ${this.createProperty('Task Type', 'Subagent Delegation')}
+                        ${this.createProperty('Phase', event.subtype || 'pre_tool')}
+                        ${taskData.description ? this.createProperty('Description', taskData.description) : ''}
+                        ${taskData.prompt ? this.createProperty('Prompt Preview', this.truncateText(taskData.prompt, 200)) : ''}
+                        ${data.session_id ? this.createProperty('Session ID', data.session_id) : ''}
+                        ${data.working_directory ? this.createProperty('Working Directory', data.working_directory) : ''}
+                    </div>
+                    ${taskData.prompt ? `
+                        <div class="prompt-section">
+                            <div class="contextual-header">
+                                <h3 class="contextual-header-text">📝 Task Prompt</h3>
+                            </div>
+                            <div class="structured-data">
+                                <div class="task-prompt" style="white-space: pre-wrap; max-height: 300px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.4;">
+                                    ${taskData.prompt}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Handle regular agent events
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>🤖 Agent Information</h4>
-                </div>
                 <div class="structured-data">
-                    ${this.createProperty('Agent Type', data.agent_type || 'Unknown')}
+                    ${this.createProperty('Agent Type', data.agent_type || data.subagent_type || 'Unknown')}
                     ${this.createProperty('Name', data.name || 'N/A')}
                     ${this.createProperty('Phase', event.subtype || 'N/A')}
-                    ${data.config ? this.createProperty('Config', JSON.stringify(data.config)) : ''}
+                    ${data.config ? this.createProperty('Config', typeof data.config === 'object' ? Object.keys(data.config).join(', ') : String(data.config)) : ''}
                     ${data.capabilities ? this.createProperty('Capabilities', data.capabilities.join(', ')) : ''}
-                    ${data.result ? this.createProperty('Result', JSON.stringify(data.result)) : ''}
+                    ${data.result ? this.createProperty('Result', typeof data.result === 'object' ? '[Object]' : String(data.result)) : ''}
                 </div>
             </div>
         `;
@@ -223,11 +400,27 @@ class ModuleViewer {
         const filePath = this.extractFilePathFromHook(data);
         const toolInfo = this.extractToolInfoFromHook(data);
         
+        // Check if this is a write operation that can show git diff
+        const isWriteOperation = this.isWriteOperation(toolInfo.tool_name, data);
+        const canShowGitDiff = isWriteOperation && filePath;
+        
+        let gitDiffButton = '';
+        if (canShowGitDiff) {
+            const timestamp = event.timestamp;
+            const workingDir = data.working_directory || '';
+            gitDiffButton = `
+                <div class="git-diff-action">
+                    <button class="git-diff-button" 
+                            onclick="showGitDiffModal('${filePath}', '${timestamp}', '${workingDir}')"
+                            title="View git diff for this file operation">
+                        📋 View Git Diff
+                    </button>
+                </div>
+            `;
+        }
+        
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>🔗 Hook Information</h4>
-                </div>
                 <div class="structured-data">
                     ${this.createProperty('Hook Name', this.getHookDisplayName(event, data))}
                     ${this.createProperty('Event Type', data.event_type || event.subtype || 'N/A')}
@@ -240,8 +433,58 @@ class ModuleViewer {
                     ${data.exit_code !== undefined ? this.createProperty('Exit Code', data.exit_code) : ''}
                     ${data.success !== undefined ? this.createProperty('Success', data.success ? 'Yes' : 'No') : ''}
                 </div>
+                ${gitDiffButton}
             </div>
         `;
+    }
+
+    /**
+     * Check if this is a write operation that modifies files
+     * @param {string} toolName - Name of the tool used
+     * @param {Object} data - Event data
+     * @returns {boolean} True if this is a write operation
+     */
+    isWriteOperation(toolName, data) {
+        // Common write operation tool names
+        const writeTools = [
+            'Write',
+            'Edit', 
+            'MultiEdit',
+            'NotebookEdit'
+        ];
+        
+        if (writeTools.includes(toolName)) {
+            return true;
+        }
+        
+        // Check for write-related parameters in the data
+        if (data.tool_parameters) {
+            const params = data.tool_parameters;
+            
+            // Check for content or editing parameters
+            if (params.content || params.new_string || params.edits) {
+                return true;
+            }
+            
+            // Check for file modification indicators
+            if (params.edit_mode && params.edit_mode !== 'read') {
+                return true;
+            }
+        }
+        
+        // Check event subtype for write operations
+        if (data.event_type === 'post_tool' || data.event_type === 'pre_tool') {
+            // Additional heuristics based on tool usage patterns
+            if (toolName && (
+                toolName.toLowerCase().includes('write') ||
+                toolName.toLowerCase().includes('edit') ||
+                toolName.toLowerCase().includes('modify')
+            )) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 
     /**
@@ -250,27 +493,17 @@ class ModuleViewer {
     createTodoStructuredView(event) {
         const data = event.data || {};
         
-        let content = `
-            <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>✅ Todo Information</h4>
-                </div>
-                <div class="structured-data">
-                    ${this.createProperty('Operation', event.subtype || 'N/A')}
-                    ${data.count ? this.createProperty('Total Items', data.count) : ''}
-                </div>
-            </div>
-        `;
+        let content = '';
 
-        // Add todo checklist if available
+        // Add todo checklist if available - start directly with checklist
         if (data.todos && Array.isArray(data.todos)) {
             content += `
                 <div class="todo-checklist">
-                    <div class="todo-checklist-header">📋 Todo Items</div>
                     ${data.todos.map(todo => `
                         <div class="todo-item todo-${todo.status || 'pending'}">
                             <span class="todo-status">${this.getTodoStatusIcon(todo.status)}</span>
                             <span class="todo-content">${todo.content || 'No content'}</span>
+                            <span class="todo-priority priority-${todo.priority || 'medium'}">${this.getTodoPriorityIcon(todo.priority)}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -288,15 +521,12 @@ class ModuleViewer {
         
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>🧠 Memory Information</h4>
-                </div>
                 <div class="structured-data">
                     ${this.createProperty('Operation', data.operation || 'Unknown')}
                     ${this.createProperty('Key', data.key || 'N/A')}
-                    ${data.value ? this.createProperty('Value', JSON.stringify(data.value)) : ''}
+                    ${data.value ? this.createProperty('Value', typeof data.value === 'object' ? '[Object]' : String(data.value)) : ''}
                     ${data.namespace ? this.createProperty('Namespace', data.namespace) : ''}
-                    ${data.metadata ? this.createProperty('Metadata', JSON.stringify(data.metadata)) : ''}
+                    ${data.metadata ? this.createProperty('Metadata', typeof data.metadata === 'object' ? '[Object]' : String(data.metadata)) : ''}
                 </div>
             </div>
         `;
@@ -310,9 +540,6 @@ class ModuleViewer {
         
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>🤖 Claude Interaction</h4>
-                </div>
                 <div class="structured-data">
                     ${this.createProperty('Type', event.subtype || 'N/A')}
                     ${data.prompt ? this.createProperty('Prompt', this.truncateText(data.prompt, 200)) : ''}
@@ -334,9 +561,6 @@ class ModuleViewer {
         
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>📱 Session Information</h4>
-                </div>
                 <div class="structured-data">
                     ${this.createProperty('Action', event.subtype || 'N/A')}
                     ${this.createProperty('Session ID', data.session_id || 'N/A')}
@@ -361,13 +585,10 @@ class ModuleViewer {
         
         return `
             <div class="structured-view-section">
-                <div class="structured-view-header">
-                    <h4>📋 Event Data</h4>
-                </div>
                 <div class="structured-data">
                     ${keys.map(key => 
                         this.createProperty(key, typeof data[key] === 'object' ? 
-                            JSON.stringify(data[key]) : String(data[key]))
+                            '[Object]' : String(data[key]))
                     ).join('')}
                 </div>
             </div>
@@ -432,6 +653,18 @@ class ModuleViewer {
             cancelled: '❌'
         };
         return icons[status] || icons.pending;
+    }
+
+    /**
+     * Get todo priority icon
+     */
+    getTodoPriorityIcon(priority) {
+        const icons = {
+            high: '🔴',
+            medium: '🟡',
+            low: '🟢'
+        };
+        return icons[priority] || icons.medium;
     }
 
     /**
@@ -531,6 +764,115 @@ class ModuleViewer {
         } catch (e) {
             return String(obj);
         }
+    }
+
+    /**
+     * Format timestamp for display
+     * @param {string|number} timestamp - Timestamp to format
+     * @returns {string} Formatted time
+     */
+    formatTimestamp(timestamp) {
+        if (!timestamp) return 'Unknown time';
+        
+        try {
+            const date = new Date(timestamp);
+            return date.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            });
+        } catch (e) {
+            return 'Invalid time';
+        }
+    }
+
+    /**
+     * Extract tool name from event data
+     * @param {Object} data - Event data
+     * @returns {string|null} Tool name
+     */
+    extractToolName(data) {
+        // Check various locations where tool name might be stored
+        if (data.tool_name) return data.tool_name;
+        if (data.tool_parameters && data.tool_parameters.tool_name) return data.tool_parameters.tool_name;
+        if (data.tool_input && data.tool_input.tool_name) return data.tool_input.tool_name;
+        
+        // Try to infer from other fields
+        if (data.tool_parameters) {
+            // Common tool patterns
+            if (data.tool_parameters.file_path || data.tool_parameters.notebook_path) {
+                return 'FileOperation';
+            }
+            if (data.tool_parameters.pattern) {
+                return 'Search';
+            }
+            if (data.tool_parameters.command) {
+                return 'Bash';
+            }
+            if (data.tool_parameters.todos) {
+                return 'TodoWrite';
+            }
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract agent information from event data
+     * @param {Object} data - Event data
+     * @returns {string|null} Agent identifier
+     */
+    extractAgent(data) {
+        // First check if we have enhanced inference data from dashboard
+        if (data._agentName && data._agentName !== 'Unknown Agent') {
+            return data._agentName;
+        }
+        
+        // Check inference data if available
+        if (data._inference && data._inference.agentName && data._inference.agentName !== 'Unknown') {
+            return data._inference.agentName;
+        }
+        
+        // Check various locations where agent info might be stored
+        if (data.agent) return data.agent;
+        if (data.agent_type) return data.agent_type;
+        if (data.agent_name) return data.agent_name;
+        
+        // Check session data
+        if (data.session_id && typeof data.session_id === 'string') {
+            // Extract agent from session ID if it contains agent info
+            const sessionParts = data.session_id.split('_');
+            if (sessionParts.length > 1) {
+                return sessionParts[0].toUpperCase();
+            }
+        }
+        
+        // Infer from context
+        if (data.todos) return 'PM'; // TodoWrite typically from PM agent
+        if (data.tool_name === 'TodoWrite') return 'PM';
+        
+        return null;
+    }
+
+    /**
+     * Extract file name from event data
+     * @param {Object} data - Event data
+     * @returns {string|null} File name
+     */
+    extractFileName(data) {
+        const filePath = this.extractFilePathFromHook(data);
+        if (filePath) {
+            // Extract just the filename from the full path
+            const pathParts = filePath.split('/');
+            return pathParts[pathParts.length - 1];
+        }
+        
+        // Check other common file fields
+        if (data.filename) return data.filename;
+        if (data.file) return data.file;
+        
+        return null;
     }
 
     /**
