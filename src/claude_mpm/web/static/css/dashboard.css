@@ -492,6 +492,20 @@ button:active {
     box-shadow: 0 2px 12px rgba(33, 150, 243, 0.2);
 }
 
+/* Selected state for all card types - unified styling */
+.event-item.selected,
+.file-item.selected {
+    background: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    box-shadow: 0 2px 12px rgba(33, 150, 243, 0.2) !important;
+    transform: translateX(4px) !important;
+}
+
+/* Ensure file items also have transition for smooth selection */
+.file-item {
+    transition: all 0.2s ease-in-out;
+}
+
 .event-item .event-data strong {
     color: #475569;
     font-weight: 600;

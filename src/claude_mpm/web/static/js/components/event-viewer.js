@@ -68,21 +68,12 @@ class EventViewer {
 
     /**
      * Setup keyboard navigation for events
+     * Note: This is now handled by the unified Dashboard navigation system
      */
     setupKeyboardNavigation() {
-        document.addEventListener('keydown', (e) => {
-            // Only handle navigation if events tab is active
-            if (document.querySelector('.tab-content.active')?.id !== 'events-tab') {
-                return;
-            }
-
-            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                e.preventDefault();
-                this.handleArrowNavigation(e.key === 'ArrowDown' ? 1 : -1);
-            } else if (e.key === 'Escape') {
-                this.clearSelection();
-            }
-        });
+        // Keyboard navigation is now handled by Dashboard.setupUnifiedKeyboardNavigation()
+        // This method is kept for backward compatibility but does nothing
+        console.log('EventViewer: Keyboard navigation handled by unified Dashboard system');
     }
 
     /**
@@ -197,6 +188,11 @@ class EventViewer {
         
         // Update filtered elements reference
         this.filteredEventElements = Array.from(eventsList.querySelectorAll('.event-item'));
+
+        // Update Dashboard navigation items if we're in the events tab
+        if (window.dashboard && window.dashboard.currentTab === 'events') {
+            window.dashboard.tabNavigation.events.items = this.filteredEventElements;
+        }
 
         // Auto-scroll to bottom if enabled
         if (this.autoScroll && this.filteredEvents.length > 0) {
@@ -389,13 +385,20 @@ class EventViewer {
         // Update selection
         this.selectedEventIndex = index;
         
-        // Update visual selection
+        // Get the selected event
+        const event = this.filteredEvents[index];
+        
+        // Coordinate with Dashboard unified navigation system
+        if (window.dashboard) {
+            // Update the dashboard's navigation state for events tab
+            window.dashboard.tabNavigation.events.selectedIndex = index;
+            window.dashboard.selectCard('events', index, 'event', event);
+        }
+        
+        // Update visual selection (this will be handled by Dashboard.updateCardSelectionUI())
         this.filteredEventElements.forEach((el, i) => {
             el.classList.toggle('selected', i === index);
         });
-
-        // Get the selected event
-        const event = this.filteredEvents[index];
         
         // Notify other components about selection
         document.dispatchEvent(new CustomEvent('eventSelected', {
@@ -420,6 +423,12 @@ class EventViewer {
         this.filteredEventElements.forEach(el => {
             el.classList.remove('selected');
         });
+        
+        // Coordinate with Dashboard unified navigation system
+        if (window.dashboard) {
+            window.dashboard.tabNavigation.events.selectedIndex = -1;
+            window.dashboard.clearCardSelection();
+        }
         
         // Notify other components
         document.dispatchEvent(new CustomEvent('eventSelectionCleared'));
