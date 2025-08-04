@@ -17,6 +17,9 @@ A framework for Claude that enables multi-agent workflows and extensible capabil
 # Install globally via npm (recommended)
 npm install -g @bobmatnyc/claude-mpm
 
+# Or install via PyPI
+pip install claude-mpm
+
 # Or use npx for one-time usage
 npx @bobmatnyc/claude-mpm
 ```
@@ -164,6 +167,14 @@ Claude MPM provides a modular framework for extending Claude's capabilities:
 - Reusable business logic
 - Well-defined interfaces
 
+### Real-Time Monitoring
+- **Live Dashboard**: Monitor Claude interactions with a real-time web dashboard
+- **Event Tracking**: View all events, agent activities, tool usage, and file operations
+- **Multi-Tab Interface**: Organized views for Events, Agents, Tools, and Files
+- **Zero Configuration**: Simple `--monitor` flag enables monitoring
+- **Development Focus**: Basic monitoring with enhanced features planned
+- **Full Documentation**: See [monitoring documentation](docs/user/monitoring/) for complete details
+
 ### Session Management
 - Comprehensive logging of all interactions
 - Debug mode for troubleshooting
@@ -251,6 +262,9 @@ These tree-sitter dependencies enable:
 # Run interactive session
 claude-mpm
 
+# Run with real-time monitoring dashboard
+claude-mpm run --monitor
+
 # Run with debug logging
 claude-mpm --debug
 
@@ -270,6 +284,7 @@ Options:
 
 Commands:
   run                  Run Claude session (default)
+    --monitor          Launch with real-time monitoring dashboard
   info                 Show framework and configuration info
 ```
 

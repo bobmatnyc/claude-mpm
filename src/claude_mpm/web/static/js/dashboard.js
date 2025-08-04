@@ -15,8 +15,27 @@ class Dashboard {
         this.currentTab = 'events';
         this.autoScroll = true;
         
+        // Selection state - tracks the currently selected card across all tabs
+        this.selectedCard = {
+            tab: null,        // which tab the selection is in
+            index: null,      // index of selected item in that tab
+            type: null,       // 'event', 'agent', 'tool', 'file'
+            data: null        // the actual data object
+        };
+        
+        // Navigation state for each tab
+        this.tabNavigation = {
+            events: { selectedIndex: -1, items: [] },
+            agents: { selectedIndex: -1, items: [] },
+            tools: { selectedIndex: -1, items: [] },
+            files: { selectedIndex: -1, items: [] }
+        };
+        
         // File tracking for files tab
         this.fileOperations = new Map(); // Map of file paths to operations
+        
+        // Tool call tracking for tools tab
+        this.toolCalls = new Map(); // Map of tool call keys to paired pre/post events
         
         this.init();
     }
@@ -29,9 +48,308 @@ class Dashboard {
         this.initializeComponents();
         this.setupEventHandlers();
         this.setupTabNavigation();
+        this.setupUnifiedKeyboardNavigation();
         this.initializeFromURL();
         
+        // Initialize agent inference system
+        this.initializeAgentInference();
+        
         console.log('Claude MPM Dashboard initialized');
+    }
+
+    /**
+     * Initialize agent inference system
+     * Based on docs/design/main-subagent-identification.md
+     */
+    initializeAgentInference() {
+        // Agent inference state tracking
+        this.agentInference = {
+            // Track current subagent delegation context
+            currentDelegation: null,
+            // Map of session_id -> agent context
+            sessionAgents: new Map(),
+            // Map of event indices -> inferred agent
+            eventAgentMap: new Map()
+        };
+        
+        console.log('Agent inference system initialized');
+    }
+
+    /**
+     * Infer agent context from event payload
+     * Based on production-ready detection from design document
+     * @param {Object} event - Event payload
+     * @returns {Object} - {type: 'main_agent'|'subagent', confidence: 'definitive'|'high'|'medium'|'default', agentName: string}
+     */
+    inferAgentFromEvent(event) {
+        const sessionId = event.session_id || 'unknown';
+        const eventType = event.hook_event_name || event.type || '';
+        const subtype = event.subtype || '';
+        const toolName = event.tool_name || '';
+        
+        // Direct event detection (highest confidence) - from design doc
+        if (eventType === 'SubagentStop' || subtype === 'subagent_stop') {
+            const agentName = this.extractAgentNameFromEvent(event);
+            return {
+                type: 'subagent',
+                confidence: 'definitive',
+                agentName: agentName,
+                reason: 'SubagentStop event'
+            };
+        }
+        
+        if (eventType === 'Stop' || subtype === 'stop') {
+            return {
+                type: 'main_agent',
+                confidence: 'definitive',
+                agentName: 'PM',
+                reason: 'Stop event'
+            };
+        }
+        
+        // Tool-based detection (high confidence) - from design doc
+        if (toolName === 'Task') {
+            const agentName = this.extractSubagentTypeFromTask(event);
+            if (agentName) {
+                return {
+                    type: 'subagent',
+                    confidence: 'high',
+                    agentName: agentName,
+                    reason: 'Task tool with subagent_type'
+                };
+            }
+        }
+        
+        // Hook event pattern analysis (high confidence)
+        if (eventType === 'PreToolUse' && toolName === 'Task') {
+            const agentName = this.extractSubagentTypeFromTask(event);
+            if (agentName) {
+                return {
+                    type: 'subagent',
+                    confidence: 'high',
+                    agentName: agentName,
+                    reason: 'PreToolUse Task delegation'
+                };
+            }
+        }
+        
+        // Session pattern analysis (medium confidence) - from design doc
+        if (sessionId) {
+            const sessionLower = sessionId.toLowerCase();
+            if (['subagent', 'task', 'agent-'].some(pattern => sessionLower.includes(pattern))) {
+                return {
+                    type: 'subagent',
+                    confidence: 'medium',
+                    agentName: 'Subagent',
+                    reason: 'Session ID pattern'
+                };
+            }
+        }
+        
+        // Agent type field analysis
+        const agentType = event.agent_type || event.data?.agent_type;
+        const subagentType = event.subagent_type || event.data?.subagent_type;
+        
+        if (subagentType && subagentType !== 'unknown') {
+            return {
+                type: 'subagent',
+                confidence: 'high',
+                agentName: subagentType,
+                reason: 'subagent_type field'
+            };
+        }
+        
+        if (agentType && agentType !== 'unknown' && agentType !== 'main') {
+            return {
+                type: 'subagent',
+                confidence: 'medium',
+                agentName: agentType,
+                reason: 'agent_type field'
+            };
+        }
+        
+        // Default to main agent (from design doc)
+        return {
+            type: 'main_agent',
+            confidence: 'default',
+            agentName: 'PM',
+            reason: 'default classification'
+        };
+    }
+
+    /**
+     * Extract subagent type from Task tool parameters
+     * @param {Object} event - Event with Task tool
+     * @returns {string|null} - Subagent type or null
+     */
+    extractSubagentTypeFromTask(event) {
+        // Check tool_parameters directly
+        if (event.tool_parameters?.subagent_type) {
+            return event.tool_parameters.subagent_type;
+        }
+        
+        // Check nested in data.tool_parameters (hook events)
+        if (event.data?.tool_parameters?.subagent_type) {
+            return event.data.tool_parameters.subagent_type;
+        }
+        
+        // Check delegation_details (new structure)
+        if (event.data?.delegation_details?.agent_type) {
+            return event.data.delegation_details.agent_type;
+        }
+        
+        // Check tool_input fallback
+        if (event.tool_input?.subagent_type) {
+            return event.tool_input.subagent_type;
+        }
+        
+        return null;
+    }
+
+    /**
+     * Extract agent name from any event
+     * @param {Object} event - Event payload
+     * @returns {string} - Agent name
+     */
+    extractAgentNameFromEvent(event) {
+        // Priority order based on reliability from design doc
+        
+        // 1. Task tool subagent_type (highest priority)
+        if (event.tool_name === 'Task') {
+            const taskAgent = this.extractSubagentTypeFromTask(event);
+            if (taskAgent) return taskAgent;
+        }
+        
+        // 2. Direct subagent_type field
+        if (event.subagent_type && event.subagent_type !== 'unknown') {
+            return event.subagent_type;
+        }
+        
+        // 3. Data subagent_type
+        if (event.data?.subagent_type && event.data.subagent_type !== 'unknown') {
+            return event.data.subagent_type;
+        }
+        
+        // 4. Agent type fields (but not 'main' or 'unknown')
+        if (event.agent_type && !['main', 'unknown'].includes(event.agent_type)) {
+            return event.agent_type;
+        }
+        
+        if (event.data?.agent_type && !['main', 'unknown'].includes(event.data.agent_type)) {
+            return event.data.agent_type;
+        }
+        
+        // 5. Other fallbacks
+        if (event.agent && event.agent !== 'unknown') {
+            return event.agent;
+        }
+        
+        if (event.name && event.name !== 'unknown') {
+            return event.name;
+        }
+        
+        // Default fallback
+        return 'Unknown';
+    }
+
+    /**
+     * Process all events and build agent inference context
+     * This tracks delegation boundaries and agent context throughout the session
+     */
+    processAgentInference() {
+        const events = this.eventViewer.events;
+        
+        // Reset inference state
+        this.agentInference.currentDelegation = null;
+        this.agentInference.sessionAgents.clear();
+        this.agentInference.eventAgentMap.clear();
+        
+        console.log('Processing agent inference for', events.length, 'events');
+        
+        // Process events chronologically to track delegation context
+        events.forEach((event, index) => {
+            const inference = this.inferAgentFromEvent(event);
+            const sessionId = event.session_id || 'default';
+            
+            // Track delegation boundaries
+            if (event.tool_name === 'Task' && inference.type === 'subagent') {
+                // Start of subagent delegation
+                this.agentInference.currentDelegation = {
+                    agentName: inference.agentName,
+                    sessionId: sessionId,
+                    startIndex: index,
+                    endIndex: null
+                };
+                console.log('Delegation started:', this.agentInference.currentDelegation);
+            } else if (inference.confidence === 'definitive' && inference.reason === 'SubagentStop event') {
+                // End of subagent delegation
+                if (this.agentInference.currentDelegation) {
+                    this.agentInference.currentDelegation.endIndex = index;
+                    console.log('Delegation ended:', this.agentInference.currentDelegation);
+                    this.agentInference.currentDelegation = null;
+                }
+            }
+            
+            // Determine agent for this event based on context
+            let finalAgent = inference;
+            
+            // If we're in a delegation context and this event doesn't have high confidence agent info,
+            // inherit from delegation context
+            if (this.agentInference.currentDelegation && 
+                inference.confidence === 'default' && 
+                sessionId === this.agentInference.currentDelegation.sessionId) {
+                finalAgent = {
+                    type: 'subagent',
+                    confidence: 'inherited',
+                    agentName: this.agentInference.currentDelegation.agentName,
+                    reason: 'inherited from delegation context'
+                };
+            }
+            
+            // Store the inference result
+            this.agentInference.eventAgentMap.set(index, finalAgent);
+            
+            // Update session agent tracking
+            this.agentInference.sessionAgents.set(sessionId, finalAgent);
+            
+            // Debug first few inferences
+            if (index < 5) {
+                console.log(`Event ${index} agent inference:`, {
+                    event_type: event.type,
+                    subtype: event.subtype,
+                    tool_name: event.tool_name,
+                    inference: finalAgent
+                });
+            }
+        });
+        
+        console.log('Agent inference processing complete. Results:', {
+            total_events: events.length,
+            inferred_agents: this.agentInference.eventAgentMap.size,
+            unique_sessions: this.agentInference.sessionAgents.size
+        });
+    }
+
+    /**
+     * Get inferred agent for a specific event
+     * @param {number} eventIndex - Index of event in events array
+     * @returns {Object|null} - Agent inference result or null
+     */
+    getInferredAgent(eventIndex) {
+        return this.agentInference.eventAgentMap.get(eventIndex) || null;
+    }
+
+    /**
+     * Get inferred agent for an event object
+     * @param {Object} event - Event object
+     * @returns {Object|null} - Agent inference result or null
+     */
+    getInferredAgentForEvent(event) {
+        const events = this.eventViewer.events;
+        const eventIndex = events.indexOf(event);
+        if (eventIndex === -1) return null;
+        
+        return this.getInferredAgent(eventIndex);
     }
 
     /**
@@ -79,9 +397,12 @@ class Dashboard {
             }
         });
 
-        // Listen for socket events to update file operations
+        // Listen for socket events to update file operations and tool calls
         this.socketClient.onEventUpdate((events) => {
             this.updateFileOperations(events);
+            this.updateToolCalls(events);
+            // Process agent inference after events are updated
+            this.processAgentInference();
             this.renderCurrentTab();
         });
 
@@ -208,6 +529,32 @@ class Dashboard {
     }
 
     /**
+     * Setup unified keyboard navigation for all tabs
+     */
+    setupUnifiedKeyboardNavigation() {
+        document.addEventListener('keydown', (e) => {
+            // Only handle navigation if no input is focused
+            if (document.activeElement && 
+                (document.activeElement.tagName === 'INPUT' || 
+                 document.activeElement.tagName === 'TEXTAREA' || 
+                 document.activeElement.tagName === 'SELECT')) {
+                return;
+            }
+
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                this.handleUnifiedArrowNavigation(e.key === 'ArrowDown' ? 1 : -1);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                this.handleUnifiedEnterKey();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                this.clearUnifiedSelection();
+            }
+        });
+    }
+
+    /**
      * Get tab name from button text
      */
     getTabNameFromButton(button) {
@@ -268,6 +615,316 @@ class Dashboard {
     }
 
     /**
+     * Handle unified arrow key navigation across all tabs
+     * @param {number} direction - Direction: 1 for down, -1 for up
+     */
+    handleUnifiedArrowNavigation(direction) {
+        const tabNav = this.tabNavigation[this.currentTab];
+        if (!tabNav) return;
+
+        // Update items list for current tab
+        this.updateTabNavigationItems();
+
+        if (tabNav.items.length === 0) return;
+
+        // Calculate new index
+        let newIndex = tabNav.selectedIndex + direction;
+        
+        // Wrap around
+        if (newIndex >= tabNav.items.length) {
+            newIndex = 0;
+        } else if (newIndex < 0) {
+            newIndex = tabNav.items.length - 1;
+        }
+
+        // Update selection
+        this.selectCardByIndex(this.currentTab, newIndex);
+    }
+
+    /**
+     * Handle unified Enter key across all tabs
+     */
+    handleUnifiedEnterKey() {
+        const tabNav = this.tabNavigation[this.currentTab];
+        if (!tabNav || tabNav.selectedIndex === -1) return;
+
+        // Trigger click on the selected item
+        const selectedElement = tabNav.items[tabNav.selectedIndex];
+        if (selectedElement && selectedElement.onclick) {
+            selectedElement.click();
+        }
+    }
+
+    /**
+     * Clear unified selection across all tabs
+     */
+    clearUnifiedSelection() {
+        // Clear all tab navigation states
+        Object.keys(this.tabNavigation).forEach(tabName => {
+            this.tabNavigation[tabName].selectedIndex = -1;
+        });
+        
+        // Clear card selection
+        this.clearCardSelection();
+        
+        // Clear EventViewer selection if it exists
+        if (this.eventViewer) {
+            this.eventViewer.clearSelection();
+        }
+        
+        // Clear module viewer
+        if (this.moduleViewer) {
+            this.moduleViewer.clear();
+        }
+    }
+
+    /**
+     * Update items list for current tab navigation
+     */
+    updateTabNavigationItems() {
+        const tabNav = this.tabNavigation[this.currentTab];
+        if (!tabNav) return;
+
+        let containerSelector;
+        switch (this.currentTab) {
+            case 'events':
+                containerSelector = '#events-list .event-item';
+                break;
+            case 'agents':
+                containerSelector = '#agents-list .event-item';
+                break;
+            case 'tools':
+                containerSelector = '#tools-list .event-item';
+                break;
+            case 'files':
+                containerSelector = '#files-list .file-item, #files-list .event-item';
+                break;
+        }
+
+        if (containerSelector) {
+            tabNav.items = Array.from(document.querySelectorAll(containerSelector));
+        }
+    }
+
+    /**
+     * Select a card by index in the specified tab
+     * @param {string} tabName - Tab name
+     * @param {number} index - Index of item to select
+     */
+    selectCardByIndex(tabName, index) {
+        const tabNav = this.tabNavigation[tabName];
+        if (!tabNav || index < 0 || index >= tabNav.items.length) return;
+
+        // Update navigation state
+        tabNav.selectedIndex = index;
+        
+        // Update visual selection
+        this.updateUnifiedSelectionUI();
+        
+        // Scroll selected item into view
+        const selectedElement = tabNav.items[index];
+        if (selectedElement) {
+            selectedElement.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
+        }
+
+        // Update details view based on tab
+        this.showCardDetails(tabName, index);
+    }
+
+    /**
+     * Update visual selection UI for current tab
+     */
+    updateUnifiedSelectionUI() {
+        const tabNav = this.tabNavigation[this.currentTab];
+        if (!tabNav) return;
+
+        // Clear all selections in current tab
+        tabNav.items.forEach((item, index) => {
+            item.classList.toggle('selected', index === tabNav.selectedIndex);
+        });
+    }
+
+    /**
+     * Show card details based on tab and index
+     * @param {string} tabName - Tab name
+     * @param {number} index - Index of item
+     */
+    showCardDetails(tabName, index) {
+        switch (tabName) {
+            case 'events':
+                // Use EventViewer's existing method
+                if (this.eventViewer) {
+                    this.eventViewer.showEventDetails(index);
+                }
+                break;
+            case 'agents':
+                this.showAgentDetailsByIndex(index);
+                break;
+            case 'tools':
+                this.showToolDetailsByIndex(index);
+                break;
+            case 'files':
+                this.showFileDetailsByIndex(index);
+                break;
+        }
+    }
+
+    /**
+     * Select a card and update the UI
+     * @param {string} tabName - Tab name (events, agents, tools, files)
+     * @param {number} index - Index of the item in that tab
+     * @param {string} type - Type of item (event, agent, tool, file)
+     * @param {Object} data - The data object for the selected item
+     */
+    selectCard(tabName, index, type, data) {
+        // Clear previous selection
+        this.clearCardSelection();
+        
+        // Update selection state
+        this.selectedCard = {
+            tab: tabName,
+            index: index,
+            type: type,
+            data: data
+        };
+        
+        // Update visual selection in the current tab
+        this.updateCardSelectionUI();
+        
+        console.log('Card selected:', this.selectedCard);
+    }
+    
+    /**
+     * Clear card selection
+     */
+    clearCardSelection() {
+        // Clear visual selection from all tabs
+        document.querySelectorAll('.event-item.selected, .file-item.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        // Reset selection state
+        this.selectedCard = {
+            tab: null,
+            index: null,
+            type: null,
+            data: null
+        };
+    }
+    
+    /**
+     * Update visual selection in the current tab
+     */
+    updateCardSelectionUI() {
+        if (!this.selectedCard.tab || this.selectedCard.index === null) return;
+        
+        // Get the list container for the selected tab
+        let listContainer;
+        switch (this.selectedCard.tab) {
+            case 'events':
+                listContainer = document.getElementById('events-list');
+                break;
+            case 'agents':
+                listContainer = document.getElementById('agents-list');
+                break;
+            case 'tools':
+                listContainer = document.getElementById('tools-list');
+                break;
+            case 'files':
+                listContainer = document.getElementById('files-list');
+                break;
+        }
+        
+        if (listContainer) {
+            const cards = listContainer.querySelectorAll('.event-item, .file-item');
+            cards.forEach((card, index) => {
+                card.classList.toggle('selected', index === this.selectedCard.index);
+            });
+        }
+    }
+
+    /**
+     * Show agent details by index in the current filtered list
+     * @param {number} index - Index in the filtered agents list
+     */
+    showAgentDetailsByIndex(index) {
+        const events = this.getFilteredEventsForTab('agents');
+        const agentEvents = this.applyAgentsFilters(events.filter(event => {
+            const type = event.type || '';
+            const subtype = event.subtype || '';
+            
+            const isDirectAgentEvent = type === 'agent' || type.includes('agent');
+            const isTaskDelegation = event.tool_name === 'Task' && 
+                                    (subtype === 'pre_tool' || type === 'hook') &&
+                                    event.tool_parameters?.subagent_type;
+            const isDelegationEvent = event.subagent_type ||
+                                     (type + '.' + subtype).includes('delegation');
+            const hasAgentType = event.agent_type && 
+                               event.agent_type !== 'unknown';
+            const isSessionEvent = type === 'session';
+            
+            return isDirectAgentEvent || isTaskDelegation || isDelegationEvent || hasAgentType || isSessionEvent;
+        }));
+
+        if (index < 0 || index >= agentEvents.length) return;
+
+        const event = agentEvents[index];
+        const eventIndex = this.eventViewer.events.indexOf(event);
+        this.showAgentDetails(index, eventIndex);
+    }
+
+    /**
+     * Show tool details by index in the current filtered list
+     * @param {number} index - Index in the filtered tool calls list
+     */
+    showToolDetailsByIndex(index) {
+        // Get filtered tool calls array (same as renderTools)
+        let toolCallsArray = Array.from(this.toolCalls.entries())
+            .filter(([key, toolCall]) => {
+                return toolCall.tool_name && (toolCall.pre_event || toolCall.post_event);
+            })
+            .sort((a, b) => {
+                const timeA = new Date(a[1].timestamp || 0);
+                const timeB = new Date(b[1].timestamp || 0);
+                return timeA - timeB;
+            });
+
+        // Apply tab-specific filters
+        toolCallsArray = this.applyToolCallFilters(toolCallsArray);
+
+        if (index < 0 || index >= toolCallsArray.length) return;
+
+        const [toolCallKey] = toolCallsArray[index];
+        this.showToolCallDetails(toolCallKey);
+    }
+
+    /**
+     * Show file details by index in the current filtered list
+     * @param {number} index - Index in the filtered files list
+     */
+    showFileDetailsByIndex(index) {
+        let filesArray = Array.from(this.fileOperations.entries())
+            .filter(([filePath, fileData]) => {
+                return fileData.operations && fileData.operations.length > 0;
+            })
+            .sort((a, b) => {
+                const timeA = a[1].lastOperation ? new Date(a[1].lastOperation) : new Date(0);
+                const timeB = b[1].lastOperation ? new Date(b[1].lastOperation) : new Date(0);
+                return timeA - timeB;
+            });
+
+        filesArray = this.applyFilesFilters(filesArray);
+
+        if (index < 0 || index >= filesArray.length) return;
+
+        const [filePath] = filesArray[index];
+        this.showFileDetails(filePath);
+    }
+
+    /**
      * Render content for the current tab
      */
     renderCurrentTab() {
@@ -285,6 +942,17 @@ class Dashboard {
                 this.renderFiles();
                 break;
         }
+        
+        // Update navigation items for the current tab after rendering
+        this.updateTabNavigationItems();
+        
+        // Restore selection after rendering if it's in the current tab
+        if (this.selectedCard.tab === this.currentTab) {
+            this.updateCardSelectionUI();
+        }
+        
+        // Update unified selection UI to maintain consistency
+        this.updateUnifiedSelectionUI();
     }
 
     /**
@@ -307,13 +975,23 @@ class Dashboard {
                     tool_name: event.tool_name,
                     agent_type: event.agent_type,
                     subagent_type: event.subagent_type,
-                    tool_parameters: event.tool_parameters
+                    tool_parameters: event.tool_parameters,
+                    delegation_details: event.delegation_details,
+                    data: event.data ? {
+                        agent_type: event.data.agent_type,
+                        subagent_type: event.data.subagent_type,
+                        event_type: event.data.event_type,
+                        tool_name: event.data.tool_name,
+                        tool_parameters: event.data.tool_parameters,
+                        delegation_details: event.data.delegation_details
+                    } : 'no data field'
                 });
             });
             
             // Count events by type and tool_name for debugging
             const eventCounts = {};
             const toolCounts = {};
+            const agentCounts = {};
             events.forEach(event => {
                 const key = `${event.type}.${event.subtype || 'none'}`;
                 eventCounts[key] = (eventCounts[key] || 0) + 1;
@@ -321,54 +999,53 @@ class Dashboard {
                 if (event.tool_name) {
                     toolCounts[event.tool_name] = (toolCounts[event.tool_name] || 0) + 1;
                 }
+                
+                // Count agent types from multiple sources
+                const agentTypes = [];
+                if (event.agent_type) agentTypes.push(`direct:${event.agent_type}`);
+                if (event.subagent_type) agentTypes.push(`sub:${event.subagent_type}`);
+                if (event.tool_parameters?.subagent_type) agentTypes.push(`tool_param:${event.tool_parameters.subagent_type}`);
+                if (event.data?.agent_type) agentTypes.push(`data:${event.data.agent_type}`);
+                if (event.data?.subagent_type) agentTypes.push(`data_sub:${event.data.subagent_type}`);
+                if (event.data?.delegation_details?.agent_type) agentTypes.push(`delegation:${event.data.delegation_details.agent_type}`);
+                
+                agentTypes.forEach(agentType => {
+                    agentCounts[agentType] = (agentCounts[agentType] || 0) + 1;
+                });
             });
             console.log('Agent tab - event type breakdown:', eventCounts);
             console.log('Agent tab - tool breakdown:', toolCounts);
+            console.log('Agent tab - agent type breakdown:', agentCounts);
         }
         
+        // Use agent inference to filter events instead of hardcoded logic
         let agentEvents = events
-            .filter(event => {
-                // Check for agent-related events
-                const type = event.type || '';
-                const subtype = event.subtype || '';
-                const fullType = subtype ? `${type}.${subtype}` : type;
+            .map((event, index) => ({ event, index, inference: this.getInferredAgent(index) }))
+            .filter(({ event, index, inference }) => {
+                // Show events that have meaningful agent context
+                if (!inference) return false;
                 
-                // Check various conditions for agent events:
-                // 1. Direct agent type events
-                const isDirectAgentEvent = type === 'agent' || type.includes('agent');
-                
-                // 2. Pre-tool events with Task tool (contains subagent_type parameter)
-                const isTaskDelegation = event.tool_name === 'Task' && 
-                                        (subtype === 'pre_tool' || type === 'hook') &&
-                                        event.tool_parameters?.subagent_type;
-                
-                // 3. Other delegation events
-                const isDelegationEvent = event.subagent_type ||
-                                         fullType.includes('delegation');
-                
-                // 4. Events with agent_type that's not 'unknown' or empty (include 'main' for now)
-                const hasAgentType = event.agent_type && 
-                                   event.agent_type !== 'unknown';
-                
-                // 5. Session events (agent switching)
-                const isSessionEvent = type === 'session';
-                
-                const isAgentEvent = isDirectAgentEvent || isTaskDelegation || isDelegationEvent || hasAgentType || isSessionEvent;
+                // Include events that are definitely agent-related
+                const isAgentRelated = inference.type === 'subagent' || 
+                                     (inference.type === 'main_agent' && inference.confidence !== 'default') ||
+                                     event.tool_name === 'Task' ||
+                                     event.hook_event_name === 'SubagentStop' ||
+                                     event.subtype === 'subagent_stop';
                 
                 // Debug first few events
-                const eventIndex = events.indexOf(event);
-                if (eventIndex < 2 && isAgentEvent) {
-                    console.log(`Agent filter [${eventIndex}] - MATCHED:`, {
-                        type, subtype, tool_name: event.tool_name,
-                        agent_type: event.agent_type,
-                        subagent_type: event.subagent_type
+                if (index < 5) {
+                    console.log(`Agent filter [${index}] - ${isAgentRelated ? 'MATCHED' : 'SKIPPED'}:`, {
+                        type: event.type,
+                        subtype: event.subtype,
+                        tool_name: event.tool_name,
+                        inference: inference,
+                        isAgentRelated
                     });
                 }
                 
-                // Removed redundant logging - we have summary stats below
-                
-                return isAgentEvent;
+                return isAgentRelated;
             })
+            .map(({ event }) => event)
             .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
         // Apply tab-specific filters
@@ -388,39 +1065,32 @@ class Dashboard {
         const agentsHtml = agentEvents.map((event, index) => {
             const timestamp = new Date(event.timestamp).toLocaleTimeString();
             
-            // Extract agent information with priority for Task tool subagent_type
-            let agentName = 'Unknown';
+            // Use inferred agent data instead of hardcoded extraction
+            const eventIndex = this.eventViewer.events.indexOf(event);
+            const inference = this.getInferredAgent(eventIndex);
+            
+            let agentName = inference ? inference.agentName : 'Unknown';
             let operation = 'operation';
             let prompt = '';
             let description = '';
             let taskPreview = '';
+            let confidence = inference ? inference.confidence : 'unknown';
+            let reason = inference ? inference.reason : 'no inference';
             
-            // Priority 1: Task tool with subagent_type parameter
-            if (event.tool_name === 'Task' && event.tool_parameters?.subagent_type) {
-                agentName = event.tool_parameters.subagent_type;
+            // Extract Task tool information if present
+            if (event.tool_name === 'Task') {
                 operation = 'delegation';
                 
-                // Extract additional Task tool information
-                if (event.tool_parameters.prompt) {
-                    prompt = event.tool_parameters.prompt;
+                // Try different sources for Task tool data
+                const taskParams = event.tool_parameters || event.data?.tool_parameters || event.data?.delegation_details || {};
+                
+                if (taskParams.prompt) {
+                    prompt = taskParams.prompt;
                     taskPreview = prompt.length > 200 ? prompt.substring(0, 200) + '...' : prompt;
                 }
-                if (event.tool_parameters.description) {
-                    description = event.tool_parameters.description;
+                if (taskParams.description) {
+                    description = taskParams.description;
                 }
-            }
-            // Priority 2: Direct subagent_type in event
-            else if (event.subagent_type) {
-                agentName = event.subagent_type;
-                operation = 'delegation';
-            } 
-            // Priority 3: Other agent types
-            else if (event.agent_type && event.agent_type !== 'unknown') {
-                agentName = event.agent_type;
-            } else if (event.agent) {
-                agentName = event.agent;
-            } else if (event.name) {
-                agentName = event.name;
             }
             
             // Extract operation from event type/subtype
@@ -430,14 +1100,26 @@ class Dashboard {
                 operation = this.extractOperation(event.type) || 'operation';
             }
             
+            // Add confidence indicator
+            const confidenceIcon = {
+                'definitive': '🎯',
+                'high': '✅',
+                'medium': '⚠️',
+                'inherited': '📋',
+                'default': '❓',
+                'unknown': '❔'
+            }[confidence] || '❔';
+
             return `
-                <div class="event-item event-agent" onclick="dashboard.showAgentDetails(${index}, ${this.eventViewer.events.indexOf(event)})">
+                <div class="event-item event-agent" onclick="dashboard.selectCard('agents', ${index}, 'agent', event); dashboard.showAgentDetails(${index}, ${this.eventViewer.events.indexOf(event)})">
                     <div class="event-header">
                         <span class="event-type">🤖 ${agentName}</span>
+                        <span class="confidence-indicator" title="Confidence: ${confidence} (${reason})">${confidenceIcon}</span>
                         <span class="event-timestamp">${timestamp}</span>
                     </div>
                     <div class="event-data">
                         <strong>Operation:</strong> ${operation}
+                        <strong>Inference:</strong> ${inference ? inference.type : 'unknown'} (${confidence})
                         ${taskPreview ? `<br><strong>Task Preview:</strong> ${taskPreview}` : ''}
                         ${description ? `<br><strong>Description:</strong> ${description}` : ''}
                         ${event.session_id ? `<br><strong>Session:</strong> ${event.session_id.substring(0, 8)}...` : ''}
@@ -450,160 +1132,126 @@ class Dashboard {
     }
 
     /**
-     * Render tools tab
+     * Render tools tab - shows paired tool calls instead of individual events
      */
     renderTools() {
         const toolsList = document.getElementById('tools-list');
         if (!toolsList) return;
 
-        const events = this.getFilteredEventsForTab('tools');
-        console.log('Tools tab - total events:', events.length);
+        console.log('Tools tab - total tool calls:', this.toolCalls.size);
         
-        // Enhanced debugging: log first few events to understand structure
-        if (events.length > 0) {
-            console.log('Tools tab - sample events for analysis:');
-            events.slice(0, 3).forEach((event, i) => {
-                console.log(`  Event ${i}:`, {
-                    type: event.type,
-                    subtype: event.subtype,
-                    tool_name: event.tool_name,
-                    tools: event.tools,
-                    tool_parameters: event.tool_parameters
-                });
-            });
-            
-            // Count events by type and tool_name for debugging
-            const eventCounts = {};
-            const toolCounts = {};
-            events.forEach(event => {
-                const key = `${event.type}.${event.subtype || 'none'}`;
-                eventCounts[key] = (eventCounts[key] || 0) + 1;
-                
-                if (event.tool_name) {
-                    toolCounts[event.tool_name] = (toolCounts[event.tool_name] || 0) + 1;
-                }
-            });
-            console.log('Tools tab - event type breakdown:', eventCounts);
-            console.log('Tools tab - tool breakdown:', toolCounts);
-        }
-        
-        let toolEvents = events
-            .filter(event => {
-                // Check for tool-related events
-                const type = event.type || '';
-                const subtype = event.subtype || '';
-                
-                // Check various conditions for tool events:
-                // 1. Hook events with tool subtypes
-                const isHookToolEvent = type === 'hook' && (
-                    subtype.includes('tool') || 
-                    subtype.includes('pre_') || 
-                    subtype.includes('post_')
-                );
-                
-                // 2. Events with tool_name in event
-                const hasToolName = event.tool_name;
-                
-                // 3. Events with tools array (multiple tools)
-                const hasToolsArray = event.tools && Array.isArray(event.tools);
-                
-                // 4. Legacy hook events with tool patterns (backward compatibility)
-                const isLegacyHookEvent = type.startsWith('hook.') && (
-                    type.includes('tool') || 
-                    type.includes('pre') || 
-                    type.includes('post')
-                );
-                
-                const isToolEvent = isHookToolEvent || hasToolName || hasToolsArray || isLegacyHookEvent;
-                
-                // Debug first few events
-                const eventIndex = events.indexOf(event);
-                if (eventIndex < 2 && isToolEvent) {
-                    console.log(`Tool filter [${eventIndex}] - MATCHED:`, {
-                        type, subtype, tool_name: event.tool_name,
-                        tools: event.tools
-                    });
-                }
-                
-                // Removed redundant logging - we have summary stats below
-                
-                return isToolEvent;
-            })
-            .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-
-        // Apply tab-specific filters
-        toolEvents = this.applyToolsFilters(toolEvents);
-
-        console.log('Tools tab - filtering summary:', {
-            total_events: events.length,
-            tool_events_found: toolEvents.length,
-            percentage: toolEvents.length > 0 ? ((toolEvents.length / events.length) * 100).toFixed(1) + '%' : '0%'
-        });
-
-        if (toolEvents.length === 0) {
-            toolsList.innerHTML = '<div class="no-events">No tool events found...</div>';
+        if (this.toolCalls.size === 0) {
+            toolsList.innerHTML = '<div class="no-events">No tool calls found...</div>';
             return;
         }
 
-        const toolsHtml = toolEvents.map((event, index) => {
-            const timestamp = new Date(event.timestamp).toLocaleTimeString();
+        // Convert to array and sort by timestamp
+        let toolCallsArray = Array.from(this.toolCalls.entries())
+            .filter(([key, toolCall]) => {
+                // Ensure we have valid data
+                return toolCall.tool_name && (toolCall.pre_event || toolCall.post_event);
+            })
+            .sort((a, b) => {
+                const timeA = new Date(a[1].timestamp || 0);
+                const timeB = new Date(b[1].timestamp || 0);
+                return timeA - timeB;
+            });
+
+        console.log('Tools tab - after filtering:', toolCallsArray.length, 'tool calls');
+
+        // Apply tab-specific filters to tool calls
+        toolCallsArray = this.applyToolCallFilters(toolCallsArray);
+
+        console.log('Tools tab - after search/type filters:', toolCallsArray.length, 'tool calls');
+
+        if (toolCallsArray.length === 0) {
+            toolsList.innerHTML = '<div class="no-events">No tool calls match current filters...</div>';
+            return;
+        }
+
+        const toolsHtml = toolCallsArray.map(([key, toolCall], index) => {
+            const timestamp = new Date(toolCall.timestamp).toLocaleTimeString();
+            const toolName = toolCall.tool_name || 'Unknown Tool';
             
-            // Extract tool name with priority order
-            let toolName = 'Unknown Tool';
-            if (event.tool_name) {
-                toolName = event.tool_name;
-            } else if (event.tools && Array.isArray(event.tools) && event.tools.length > 0) {
-                toolName = event.tools[0]; // Use first tool if multiple
-            } else {
-                toolName = this.extractToolFromHook(event.type) || this.extractToolFromSubtype(event.subtype) || 'Unknown Tool';
-            }
+            // Use inferred agent data instead of hardcoded 'PM'
+            let agentName = 'PM';
+            let confidence = 'default';
             
-            // Determine agent name - check for subagent context first
-            let agentName = 'PM'; // Default to PM instead of 'main'
+            // Try to get inference from pre_event first, then post_event
+            const preEvent = toolCall.pre_event;
+            const postEvent = toolCall.post_event;
             
-            // Priority 1: Check if this is part of a Task tool execution (subagent context)
-            if (event.subagent_type) {
-                agentName = event.subagent_type;
-            }
-            // Priority 2: Check for agent_type that's not 'main' or 'unknown'
-            else if (event.agent_type && event.agent_type !== 'main' && event.agent_type !== 'unknown') {
-                agentName = event.agent_type;
-            }
-            // Priority 3: Check in parameters for subagent_type (for Task tool events)
-            else if (event.tool_parameters?.subagent_type) {
-                agentName = event.tool_parameters.subagent_type;
-            }
-            // Priority 4: Look for context clues in the event structure
-            else if (event.context_agent || event.triggering_agent) {
-                agentName = event.context_agent || event.triggering_agent;
-            }
-            
-            // Extract tool target/parameters
-            const target = this.extractToolTarget(toolName, event.tool_parameters, event.tool_parameters);
-            
-            // Determine operation type
-            let operation = 'execution';
-            if (event.subtype) {
-                if (event.subtype.includes('pre_')) {
-                    operation = 'pre-execution';
-                } else if (event.subtype.includes('post_')) {
-                    operation = 'post-execution';
-                } else {
-                    operation = event.subtype.replace(/_/g, ' ');
+            if (preEvent) {
+                const eventIndex = this.eventViewer.events.indexOf(preEvent);
+                const inference = this.getInferredAgent(eventIndex);
+                if (inference) {
+                    agentName = inference.agentName;
+                    confidence = inference.confidence;
+                }
+            } else if (postEvent) {
+                const eventIndex = this.eventViewer.events.indexOf(postEvent);
+                const inference = this.getInferredAgent(eventIndex);
+                if (inference) {
+                    agentName = inference.agentName;
+                    confidence = inference.confidence;
                 }
             }
             
+            // Fallback to existing logic if no inference available
+            if (agentName === 'PM' && confidence === 'default') {
+                agentName = toolCall.agent_type || 'PM';
+            }
+            
+            // Extract tool target/parameters from pre_event
+            const target = preEvent ? this.extractToolTarget(toolName, preEvent.tool_parameters, preEvent.tool_parameters) : 'Unknown target';
+            
+            // Determine status and duration
+            let statusInfo = '';
+            let statusClass = '';
+            
+            if (toolCall.post_event) {
+                // We have completion data
+                const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : 'Unknown duration';
+                const success = toolCall.success !== undefined ? toolCall.success : 'Unknown';
+                
+                if (success === true) {
+                    statusInfo = `✅ Success (${duration})`;
+                    statusClass = 'tool-success';
+                } else if (success === false) {
+                    statusInfo = `❌ Failed (${duration})`;
+                    statusClass = 'tool-failure';
+                } else {
+                    statusInfo = `⏳ Completed (${duration})`;
+                    statusClass = 'tool-completed';
+                }
+            } else {
+                // Only pre_event - still running or incomplete
+                statusInfo = '⏳ Running...';
+                statusClass = 'tool-running';
+            }
+            
+            // Add confidence indicator for agent inference
+            const confidenceIcon = {
+                'definitive': '🎯',
+                'high': '✅',
+                'medium': '⚠️',
+                'inherited': '📋',
+                'default': '❓',
+                'unknown': '❔'
+            }[confidence] || '❔';
+            
             return `
-                <div class="event-item event-tool" onclick="eventViewer.showEventDetails(${this.eventViewer.events.indexOf(event)})">
+                <div class="event-item event-tool ${statusClass}" onclick="dashboard.selectCard('tools', ${index}, 'toolCall', '${key}'); dashboard.showToolCallDetails('${key}')">
                     <div class="event-header">
                         <span class="event-type">🔧 ${toolName}</span>
+                        <span class="confidence-indicator" title="Agent inference confidence: ${confidence}">${confidenceIcon}</span>
                         <span class="event-timestamp">${timestamp}</span>
                     </div>
                     <div class="event-data">
-                        <strong>Agent:</strong> ${agentName}<br>
-                        <strong>Operation:</strong> ${operation}<br>
+                        <strong>Agent:</strong> ${agentName} (${confidence})<br>
+                        <strong>Status:</strong> ${statusInfo}<br>
                         <strong>Target:</strong> ${target}
-                        ${event.session_id ? `<br><strong>Session:</strong> ${event.session_id.substring(0, 8)}...` : ''}
+                        ${toolCall.session_id ? `<br><strong>Session:</strong> ${toolCall.session_id.substring(0, 8)}...` : ''}
                     </div>
                 </div>
             `;
@@ -651,7 +1299,7 @@ class Dashboard {
             return;
         }
 
-        const filesHtml = filesArray.map(([filePath, fileData]) => {
+        const filesHtml = filesArray.map(([filePath, fileData], index) => {
             if (!fileData.operations || fileData.operations.length === 0) {
                 console.warn('File with no operations:', filePath);
                 return '';
@@ -661,16 +1309,20 @@ class Dashboard {
             const lastOp = fileData.operations[fileData.operations.length - 1];
             const timestamp = new Date(lastOp.timestamp).toLocaleTimeString();
             
+            // Get unique operations as text, joined with |
+            const uniqueOperations = [...new Set(fileData.operations.map(op => op.operation))];
+            const operationsText = uniqueOperations.join('|');
+            
             return `
-                <div class="event-item file-item" onclick="dashboard.showFileDetails('${filePath}')">
+                <div class="event-item file-item" onclick="dashboard.selectCard('files', ${index}, 'file', '${filePath}'); dashboard.showFileDetails('${filePath}')">
                     <div class="event-header">
-                        <span class="event-type">${icon} ${lastOp.operation}</span>
+                        <span class="event-type">${icon}</span>
+                        <span class="file-path">${this.getRelativeFilePath(filePath)}</span>
                         <span class="event-timestamp">${timestamp}</span>
                     </div>
                     <div class="event-data">
-                        <strong>File:</strong> ${this.getRelativeFilePath(filePath)}<br>
-                        <strong>Operations:</strong> ${fileData.operations.length}<br>
-                        <strong>Agent:</strong> ${lastOp.agent}
+                        <strong>Operations:</strong> ${operationsText}<br>
+                        <strong>Agent:</strong> ${lastOp.agent} ${lastOp.confidence ? `(${lastOp.confidence})` : ''}
                     </div>
                 </div>
             `;
@@ -797,6 +1449,303 @@ class Dashboard {
     }
 
     /**
+     * Show tool details in module viewer
+     */
+    showToolDetails(toolIndex, eventIndex) {
+        // Get the tool event
+        const events = this.getFilteredEventsForTab('tools');
+        const toolEvents = this.applyToolsFilters(events.filter(event => {
+            const type = event.type || '';
+            const subtype = event.subtype || '';
+            
+            const isHookToolEvent = type === 'hook' && (
+                subtype.includes('tool') || 
+                subtype.includes('pre_') || 
+                subtype.includes('post_')
+            );
+            const hasToolName = event.tool_name;
+            const hasToolsArray = event.tools && Array.isArray(event.tools);
+            const isLegacyHookEvent = type.startsWith('hook.') && (
+                type.includes('tool') || 
+                type.includes('pre') || 
+                type.includes('post')
+            );
+            
+            return isHookToolEvent || hasToolName || hasToolsArray || isLegacyHookEvent;
+        }));
+
+        const event = toolEvents[toolIndex];
+        if (!event) return;
+
+        // Extract tool information
+        let toolName = event.tool_name || 'Unknown Tool';
+        if (event.tools && Array.isArray(event.tools) && event.tools.length > 0) {
+            toolName = event.tools[0];
+        }
+        
+        let agentName = 'PM';
+        if (event.subagent_type) {
+            agentName = event.subagent_type;
+        } else if (event.agent_type && event.agent_type !== 'main' && event.agent_type !== 'unknown') {
+            agentName = event.agent_type;
+        }
+
+        const target = this.extractToolTarget(toolName, event.tool_parameters, event.tool_parameters);
+        
+        let operation = 'execution';
+        if (event.subtype) {
+            if (event.subtype.includes('pre_')) {
+                operation = 'pre-execution';
+            } else if (event.subtype.includes('post_')) {
+                operation = 'post-execution';
+            } else {
+                operation = event.subtype.replace(/_/g, ' ');
+            }
+        }
+
+        const content = `
+            <div class="structured-view-section">
+                <div class="structured-view-header">
+                    <h4>🔧 Tool Details</h4>
+                </div>
+                <div class="tool-details">
+                    <div class="tool-info">
+                        <div class="structured-field">
+                            <strong>Tool Name:</strong> ${toolName}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Agent:</strong> ${agentName}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Operation:</strong> ${operation}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Target:</strong> ${target}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Timestamp:</strong> ${new Date(event.timestamp).toLocaleString()}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Event Type:</strong> ${event.type}.${event.subtype || 'default'}
+                        </div>
+                        ${event.session_id ? `
+                            <div class="structured-field">
+                                <strong>Session ID:</strong> ${event.session_id}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${event.tool_parameters ? `
+                        <div class="parameters-section">
+                            <div class="structured-view-header">
+                                <h4>⚙️ Parameters</h4>
+                            </div>
+                            <div class="structured-data">
+                                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">${JSON.stringify(event.tool_parameters, null, 2)}</pre>
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+
+        this.moduleViewer.container.innerHTML = content;
+        
+        // Also show the event details in EventViewer
+        if (eventIndex >= 0) {
+            this.eventViewer.showEventDetails(eventIndex);
+        }
+    }
+
+    /**
+     * Show tool call details in module viewer with combined pre/post data
+     */
+    showToolCallDetails(toolCallKey) {
+        const toolCall = this.toolCalls.get(toolCallKey);
+        if (!toolCall) return;
+
+        const toolName = toolCall.tool_name || 'Unknown Tool';
+        const agentName = toolCall.agent_type || 'PM';
+        const timestamp = new Date(toolCall.timestamp).toLocaleString();
+
+        // Extract information from pre and post events
+        const preEvent = toolCall.pre_event;
+        const postEvent = toolCall.post_event;
+        
+        // Get parameters from pre-event
+        const parameters = preEvent?.tool_parameters || {};
+        const target = preEvent ? this.extractToolTarget(toolName, parameters, parameters) : 'Unknown target';
+        
+        // Get execution results from post-event
+        const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : 'Unknown';
+        const success = toolCall.success !== undefined ? toolCall.success : 'Unknown';
+        const exitCode = toolCall.exit_code !== undefined ? toolCall.exit_code : 'Unknown';
+        // Format result summary properly if it's an object
+        let resultSummary = toolCall.result_summary || 'No summary available';
+        let formattedResultSummary = '';
+        
+        if (typeof resultSummary === 'object' && resultSummary !== null) {
+            // Format the result summary object into human-readable text
+            const parts = [];
+            
+            if (resultSummary.exit_code !== undefined) {
+                parts.push(`Exit Code: ${resultSummary.exit_code}`);
+            }
+            
+            if (resultSummary.has_output !== undefined) {
+                parts.push(`Has Output: ${resultSummary.has_output ? 'Yes' : 'No'}`);
+            }
+            
+            if (resultSummary.has_error !== undefined) {
+                parts.push(`Has Error: ${resultSummary.has_error ? 'Yes' : 'No'}`);
+            }
+            
+            if (resultSummary.output_lines !== undefined) {
+                parts.push(`Output Lines: ${resultSummary.output_lines}`);
+            }
+            
+            if (resultSummary.output_preview) {
+                parts.push(`Output Preview: ${resultSummary.output_preview}`);
+            }
+            
+            if (resultSummary.error_preview) {
+                parts.push(`Error Preview: ${resultSummary.error_preview}`);
+            }
+            
+            formattedResultSummary = parts.join('\n');
+        } else {
+            formattedResultSummary = String(resultSummary);
+        }
+
+        // Status information
+        let statusIcon = '⏳';
+        let statusText = 'Running...';
+        let statusClass = 'tool-running';
+        
+        if (postEvent) {
+            if (success === true) {
+                statusIcon = '✅';
+                statusText = 'Success';
+                statusClass = 'tool-success';
+            } else if (success === false) {
+                statusIcon = '❌';
+                statusText = 'Failed';
+                statusClass = 'tool-failure';
+            } else {
+                statusIcon = '⏳';
+                statusText = 'Completed';
+                statusClass = 'tool-completed';
+            }
+        }
+
+        const content = `
+            <div class="structured-view-section">
+                <div class="structured-view-header">
+                    <h4>🔧 Tool Call Details</h4>
+                </div>
+                <div class="tool-call-details">
+                    <div class="tool-call-info ${statusClass}">
+                        <div class="structured-field">
+                            <strong>Tool Name:</strong> ${toolName}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Agent:</strong> ${agentName}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Status:</strong> ${statusIcon} ${statusText}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Target:</strong> ${target}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Started:</strong> ${timestamp}
+                        </div>
+                        <div class="structured-field">
+                            <strong>Duration:</strong> ${duration}
+                        </div>
+                        ${success !== 'Unknown' ? `
+                            <div class="structured-field">
+                                <strong>Success:</strong> ${success}
+                            </div>
+                        ` : ''}
+                        ${exitCode !== 'Unknown' ? `
+                            <div class="structured-field">
+                                <strong>Exit Code:</strong> ${exitCode}
+                            </div>
+                        ` : ''}
+                        ${toolCall.session_id ? `
+                            <div class="structured-field">
+                                <strong>Session ID:</strong> ${toolCall.session_id}
+                            </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${formattedResultSummary && formattedResultSummary !== 'No summary available' ? `
+                        <div class="result-section">
+                            <div class="structured-view-header">
+                                <h4>📊 Result Summary</h4>
+                                ${typeof resultSummary === 'object' && resultSummary !== null ? `
+                                    <button onclick="dashboard.toggleResultSummaryJson('${toolCallKey}')" style="font-size: 11px; padding: 4px 8px; margin-left: 10px;">Toggle JSON</button>
+                                ` : ''}
+                            </div>
+                            <div class="structured-data">
+                                <div class="result-summary" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.4;">
+                                    ${formattedResultSummary}
+                                </div>
+                                ${typeof resultSummary === 'object' && resultSummary !== null ? `
+                                    <div id="result-summary-json-${toolCallKey}" class="result-summary-json" style="display: none; white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f0f9ff; border-radius: 6px; font-family: monospace; font-size: 11px; line-height: 1.3; margin-top: 10px;">
+                                        ${JSON.stringify(resultSummary, null, 2)}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${Object.keys(parameters).length > 0 ? `
+                        <div class="parameters-section">
+                            <div class="structured-view-header">
+                                <h4>⚙️ Parameters</h4>
+                            </div>
+                            <div class="structured-data">
+                                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">${JSON.stringify(parameters, null, 2)}</pre>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="raw-data-section">
+                        <div class="structured-view-header">
+                            <h4>🔧 JSON Event Data</h4>
+                        </div>
+                        <div class="structured-data">
+                            <div style="margin-bottom: 15px;">
+                                <strong>Pre-execution Event:</strong>
+                                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 11px; line-height: 1.3; background: #f0f9ff; padding: 8px; border-radius: 4px; max-height: 300px; overflow-y: auto;">${preEvent ? JSON.stringify(preEvent, null, 2) : 'No pre-event data'}</pre>
+                            </div>
+                            <div>
+                                <strong>Post-execution Event:</strong>
+                                <pre style="white-space: pre-wrap; font-family: monospace; font-size: 11px; line-height: 1.3; background: #f0f9ff; padding: 8px; border-radius: 4px; max-height: 300px; overflow-y: auto;">${postEvent ? JSON.stringify(postEvent, null, 2) : 'No post-event data'}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.moduleViewer.container.innerHTML = content;
+    }
+
+
+    /**
+     * Toggle JSON visibility for result summary
+     */
+    toggleResultSummaryJson(toolCallKey) {
+        const jsonDiv = document.getElementById(`result-summary-json-${toolCallKey}`);
+        if (jsonDiv) {
+            jsonDiv.style.display = jsonDiv.style.display === 'none' ? 'block' : 'none';
+        }
+    }
+
+    /**
      * Show detailed file operations in module viewer
      */
     showFileDetails(filePath) {
@@ -911,10 +1860,13 @@ class Dashboard {
                 const operation = this.getFileOperationFromPair(pair);
                 const timestamp = pair.post_event?.timestamp || pair.pre_event?.timestamp;
                 
+                const agentInfo = this.extractAgentFromPair(pair);
+                
                 fileData.operations.push({
                     operation: operation,
                     timestamp: timestamp,
-                    agent: this.extractAgentFromPair(pair),
+                    agent: agentInfo.name,
+                    confidence: agentInfo.confidence,
                     sessionId: pair.session_id,
                     details: this.getFileOperationDetailsFromPair(pair)
                 });
@@ -928,6 +1880,129 @@ class Dashboard {
         if (this.fileOperations.size > 0) {
             console.log('File operations map:', Array.from(this.fileOperations.entries()));
         }
+    }
+
+    /**
+     * Update tool calls from events - pairs pre/post tool events into complete tool calls
+     */
+    updateToolCalls(events) {
+        // Clear existing data
+        this.toolCalls.clear();
+
+        console.log('updateToolCalls - processing', events.length, 'events');
+
+        // Group events by session and timestamp to match pre/post pairs
+        const toolCallPairs = new Map(); // Key: session_id + timestamp + tool_name
+        let toolOperationCount = 0;
+        
+        // First pass: collect all tool events and group them
+        events.forEach((event, index) => {
+            const isToolOp = this.isToolOperation(event);
+            if (isToolOp) toolOperationCount++;
+            
+            if (index < 5) { // Debug first 5 events with more detail
+                console.log(`Tool Event ${index}:`, {
+                    type: event.type,
+                    subtype: event.subtype,
+                    tool_name: event.tool_name,
+                    tool_parameters: event.tool_parameters,
+                    isToolOp: isToolOp
+                });
+            }
+            
+            if (isToolOp) {
+                const toolName = event.tool_name;
+                const sessionId = event.session_id || 'unknown';
+                const eventKey = `${sessionId}_${toolName}_${Math.floor(new Date(event.timestamp).getTime() / 1000)}`; // Group by second
+                
+                if (!toolCallPairs.has(eventKey)) {
+                    toolCallPairs.set(eventKey, {
+                        pre_event: null,
+                        post_event: null,
+                        tool_name: toolName,
+                        session_id: sessionId,
+                        operation_type: null,
+                        timestamp: null,
+                        duration_ms: null,
+                        success: null,
+                        exit_code: null,
+                        result_summary: null,
+                        agent_type: null
+                    });
+                }
+                
+                const pair = toolCallPairs.get(eventKey);
+                if (event.subtype === 'pre_tool' || (event.type === 'hook' && !event.subtype.includes('post'))) {
+                    pair.pre_event = event;
+                    pair.timestamp = event.timestamp;
+                    pair.operation_type = event.operation_type || 'tool_execution';
+                    pair.agent_type = event.agent_type || event.subagent_type || 'PM';
+                } else if (event.subtype === 'post_tool' || event.subtype.includes('post')) {
+                    pair.post_event = event;
+                    pair.duration_ms = event.duration_ms;
+                    pair.success = event.success;
+                    pair.exit_code = event.exit_code;
+                    pair.result_summary = event.result_summary;
+                    if (!pair.agent_type) {
+                        pair.agent_type = event.agent_type || event.subagent_type || 'PM';
+                    }
+                } else {
+                    // For events without clear pre/post distinction, treat as both
+                    pair.pre_event = event;
+                    pair.post_event = event;
+                    pair.timestamp = event.timestamp;
+                    pair.agent_type = event.agent_type || event.subagent_type || 'PM';
+                }
+            }
+        });
+        
+        console.log('updateToolCalls - found', toolOperationCount, 'tool operations in', toolCallPairs.size, 'tool call pairs');
+        
+        // Second pass: store complete tool calls
+        toolCallPairs.forEach((pair, key) => {
+            // Ensure we have at least a pre_event or post_event
+            if (pair.pre_event || pair.post_event) {
+                console.log('Tool call detected for:', pair.tool_name, 'from pair:', key);
+                this.toolCalls.set(key, pair);
+            } else {
+                console.log('No valid tool call found for pair:', key, pair);
+            }
+        });
+        
+        console.log('updateToolCalls - final result:', this.toolCalls.size, 'tool calls');
+        if (this.toolCalls.size > 0) {
+            console.log('Tool calls map:', Array.from(this.toolCalls.entries()));
+        }
+    }
+
+    /**
+     * Check if event is a tool operation
+     */
+    isToolOperation(event) {
+        const type = event.type || '';
+        const subtype = event.subtype || '';
+        
+        // Check for hook events with tool subtypes
+        const isHookToolEvent = type === 'hook' && (
+            subtype.includes('tool') || 
+            subtype.includes('pre_') || 
+            subtype.includes('post_')
+        );
+        
+        // Events with tool_name
+        const hasToolName = event.tool_name;
+        
+        // Events with tools array (multiple tools)
+        const hasToolsArray = event.tools && Array.isArray(event.tools);
+        
+        // Legacy hook events with tool patterns (backward compatibility)
+        const isLegacyHookEvent = type.startsWith('hook.') && (
+            type.includes('tool') || 
+            type.includes('pre') || 
+            type.includes('post')
+        );
+        
+        return isHookToolEvent || hasToolName || hasToolsArray || isLegacyHookEvent;
     }
 
     /**
@@ -1070,19 +2145,50 @@ class Dashboard {
     }
     
     /**
-     * Extract agent from paired events
+     * Extract agent from paired events using inference
      */
     extractAgentFromPair(pair) {
-        // Try to get agent from either event
-        const preAgent = pair.pre_event?.agent_type || pair.pre_event?.subagent_type;
-        const postAgent = pair.post_event?.agent_type || pair.post_event?.subagent_type;
+        // Try to get inference from either event
+        const preEvent = pair.pre_event;
+        const postEvent = pair.post_event;
+        
+        if (preEvent) {
+            const eventIndex = this.eventViewer.events.indexOf(preEvent);
+            const inference = this.getInferredAgent(eventIndex);
+            if (inference) {
+                return {
+                    name: inference.agentName,
+                    confidence: inference.confidence
+                };
+            }
+        }
+        
+        if (postEvent) {
+            const eventIndex = this.eventViewer.events.indexOf(postEvent);
+            const inference = this.getInferredAgent(eventIndex);
+            if (inference) {
+                return {
+                    name: inference.agentName,
+                    confidence: inference.confidence
+                };
+            }
+        }
+        
+        // Fallback to legacy logic
+        const preAgent = preEvent?.agent_type || preEvent?.subagent_type;
+        const postAgent = postEvent?.agent_type || postEvent?.subagent_type;
         
         // Prefer non-'main' and non-'unknown' agents
-        if (preAgent && preAgent !== 'main' && preAgent !== 'unknown') return preAgent;
-        if (postAgent && postAgent !== 'main' && postAgent !== 'unknown') return postAgent;
+        if (preAgent && preAgent !== 'main' && preAgent !== 'unknown') {
+            return { name: preAgent, confidence: 'legacy' };
+        }
+        if (postAgent && postAgent !== 'main' && postAgent !== 'unknown') {
+            return { name: postAgent, confidence: 'legacy' };
+        }
         
         // Fallback to any agent
-        return preAgent || postAgent || 'PM';
+        const agentName = preAgent || postAgent || 'PM';
+        return { name: agentName, confidence: 'fallback' };
     }
 
     /**
@@ -1192,7 +2298,6 @@ class Dashboard {
         // Try to make path relative to common base paths
         const commonPaths = [
             '/Users/masa/Projects/claude-mpm/',
-            process.cwd?.() || '',
             '.'
         ];
         
@@ -1277,6 +2382,42 @@ class Dashboard {
             // Type filter
             if (typeValue) {
                 const toolName = event.tool_name || '';
+                if (toolName !== typeValue) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+    }
+
+    /**
+     * Apply tools tab filtering for tool calls
+     */
+    applyToolCallFilters(toolCallsArray) {
+        const searchInput = document.getElementById('tools-search-input');
+        const typeFilter = document.getElementById('tools-type-filter');
+        
+        const searchText = searchInput ? searchInput.value.toLowerCase() : '';
+        const typeValue = typeFilter ? typeFilter.value : '';
+        
+        return toolCallsArray.filter(([key, toolCall]) => {
+            // Search filter
+            if (searchText) {
+                const searchableText = [
+                    toolCall.tool_name || '',
+                    toolCall.agent_type || '',
+                    'tool_call'
+                ].join(' ').toLowerCase();
+                
+                if (!searchableText.includes(searchText)) {
+                    return false;
+                }
+            }
+            
+            // Type filter
+            if (typeValue) {
+                const toolName = toolCall.tool_name || '';
                 if (toolName !== typeValue) {
                     return false;
                 }
@@ -1445,6 +2586,7 @@ class Dashboard {
     clearEvents() {
         this.eventViewer.clearEvents();
         this.fileOperations.clear();
+        this.toolCalls.clear();
         this.renderCurrentTab();
     }
 
@@ -1459,6 +2601,7 @@ class Dashboard {
      * Clear current selection
      */
     clearSelection() {
+        this.clearCardSelection();
         this.eventViewer.clearSelection();
         this.moduleViewer.clear();
     }
