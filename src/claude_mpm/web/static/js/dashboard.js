@@ -63,6 +63,9 @@ class Dashboard {
         // Initialize working directory for current session
         this.initializeWorkingDirectory();
         
+        // Watch for footer directory changes
+        this.watchFooterDirectory();
+        
         console.log('Claude MPM Dashboard initialized');
     }
 
@@ -3181,10 +3184,15 @@ class Dashboard {
             pathElement.title = `Click to change from ${dir}`;
         }
         
-        // Update footer
+        // Update footer (with flag to prevent observer loop)
         const footerDir = document.getElementById('footer-working-dir');
         if (footerDir) {
+            this._updatingFooter = true;
             footerDir.textContent = dir;
+            // Reset flag after a small delay to ensure observer has processed
+            setTimeout(() => {
+                this._updatingFooter = false;
+            }, 10);
         }
         
         // Store in session data if a session is selected
@@ -3247,6 +3255,42 @@ class Dashboard {
             // Set default working directory
             this.setWorkingDirectory(this.getDefaultWorkingDir());
         }
+    }
+    
+    /**
+     * Watch footer directory for changes and sync working directory
+     */
+    watchFooterDirectory() {
+        const footerDir = document.getElementById('footer-working-dir');
+        if (!footerDir) return;
+        
+        // Store observer reference for later use
+        this.footerDirObserver = new MutationObserver((mutations) => {
+            // Skip if we're updating from setWorkingDirectory
+            if (this._updatingFooter) return;
+            
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                    const newDir = footerDir.textContent.trim();
+                    // Only update if it's a valid directory path and different from current
+                    if (newDir && 
+                        newDir !== 'Unknown' && 
+                        newDir !== 'Not Connected' &&
+                        newDir.startsWith('/') &&
+                        newDir !== this.currentWorkingDir) {
+                        console.log(`Footer directory changed to: ${newDir}, syncing working directory`);
+                        this.setWorkingDirectory(newDir);
+                    }
+                }
+            });
+        });
+        
+        // Start observing
+        this.footerDirObserver.observe(footerDir, {
+            childList: true,
+            characterData: true,
+            subtree: true
+        });
     }
     
     /**
