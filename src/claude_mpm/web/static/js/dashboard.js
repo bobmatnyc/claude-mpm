@@ -378,24 +378,8 @@ class Dashboard {
      * Setup interactions between components
      */
     setupComponentInteractions() {
-        // Update footer when socket connection changes
-        this.socketClient.onConnection('connect', (socketId) => {
-            const socketIdEl = document.getElementById('socket-id');
-            if (socketIdEl) {
-                socketIdEl.textContent = `Socket: ${socketId.substring(0, 8)}...`;
-            }
-        });
-
-        this.socketClient.onConnection('disconnect', () => {
-            const socketIdEl = document.getElementById('socket-id');
-            if (socketIdEl) {
-                socketIdEl.textContent = 'Socket: Not connected';
-            }
-            const serverInfoEl = document.getElementById('server-info');
-            if (serverInfoEl) {
-                serverInfoEl.textContent = 'Server: Offline';
-            }
-        });
+        // Socket connection status is now handled in the header connection status badge
+        // Footer now focuses on session-specific information
 
         // Listen for socket events to update file operations and tool calls
         this.socketClient.onEventUpdate((events) => {
@@ -404,6 +388,11 @@ class Dashboard {
             // Process agent inference after events are updated
             this.processAgentInference();
             this.renderCurrentTab();
+            
+            // Auto-scroll events list if on events tab
+            if (this.currentTab === 'events') {
+                this.scrollListToBottom('events-list');
+            }
         });
 
         // Listen for connection status changes
@@ -572,14 +561,21 @@ class Dashboard {
     initializeFromURL() {
         const urlParams = new URLSearchParams(window.location.search);
         const defaultPort = urlParams.get('port') || '8765';
-        const autoConnect = urlParams.get('autoconnect') === 'true';
+        const autoConnect = urlParams.get('autoconnect');
         
         const portInput = document.getElementById('port-input');
         if (portInput) {
             portInput.value = defaultPort;
         }
         
-        if (autoConnect) {
+        // Auto-connect logic:
+        // - Connect if autoconnect=true (explicit)
+        // - Connect by default unless autoconnect=false (explicit)
+        // - Don't connect if already connected or connecting
+        const shouldAutoConnect = autoConnect === 'true' || (autoConnect !== 'false' && autoConnect === null);
+        
+        if (shouldAutoConnect && !this.socketClient.isConnected && !this.socketClient.isConnecting) {
+            console.log('Auto-connecting to Socket.IO server on page load...');
             this.socketClient.connect(defaultPort);
         }
     }
@@ -588,6 +584,7 @@ class Dashboard {
      * Switch to a different tab
      */
     switchTab(tabName) {
+        console.log(`[DEBUG] switchTab called with tabName: ${tabName}`);
         this.currentTab = tabName;
         
         // Update tab buttons
@@ -604,14 +601,27 @@ class Dashboard {
         });
         
         const activeTab = document.getElementById(`${tabName}-tab`);
+        console.log(`[DEBUG] Active tab element found:`, activeTab);
         if (activeTab) {
             activeTab.classList.add('active');
         }
         
         // Render content for the active tab
+        console.log(`[DEBUG] About to render current tab: ${tabName}`);
         this.renderCurrentTab();
         
-        console.log(`Switched to ${tabName} tab`);
+        // Auto-scroll to bottom after tab content is rendered
+        const listId = `${tabName}-list`;
+        console.log(`[DEBUG] About to scroll list with ID: ${listId}`);
+        this.scrollListToBottom(listId);
+        
+        // Fallback: Try again with longer delay in case content takes time to render
+        setTimeout(() => {
+            console.log(`[DEBUG] Fallback scroll attempt for ${listId}`);
+            this.scrollListToBottom(listId);
+        }, 200);
+        
+        console.log(`[DEBUG] Switched to ${tabName} tab`);
     }
 
     /**
@@ -1129,6 +1139,7 @@ class Dashboard {
         }).join('');
 
         agentsList.innerHTML = agentsHtml;
+        this.scrollListToBottom('agents-list');
     }
 
     /**
@@ -1258,6 +1269,7 @@ class Dashboard {
         }).join('');
 
         toolsList.innerHTML = toolsHtml;
+        this.scrollListToBottom('tools-list');
     }
 
     /**
@@ -1329,6 +1341,7 @@ class Dashboard {
         }).join('');
 
         filesList.innerHTML = filesHtml;
+        this.scrollListToBottom('files-list');
     }
 
     /**
@@ -2564,6 +2577,178 @@ class Dashboard {
     }
 
     /**
+     * Scroll a list container to the bottom
+     * @param {string} listId - The ID of the list container element
+     */
+    scrollListToBottom(listId) {
+        console.log(`[DEBUG] scrollListToBottom called with listId: ${listId}`);
+        
+        // Use setTimeout to ensure DOM updates are completed
+        setTimeout(() => {
+            const listElement = document.getElementById(listId);
+            console.log(`[DEBUG] Element found for ${listId}:`, listElement);
+            
+            if (listElement) {
+                const scrollHeight = listElement.scrollHeight;
+                const clientHeight = listElement.clientHeight;
+                const currentScrollTop = listElement.scrollTop;
+                const computedStyle = window.getComputedStyle(listElement);
+                
+                console.log(`[DEBUG] Scroll metrics for ${listId}:`);
+                console.log(`  - scrollHeight: ${scrollHeight}`);
+                console.log(`  - clientHeight: ${clientHeight}`);
+                console.log(`  - currentScrollTop: ${currentScrollTop}`);
+                console.log(`  - needsScroll: ${scrollHeight > clientHeight}`);
+                console.log(`  - overflowY: ${computedStyle.overflowY}`);
+                console.log(`  - height: ${computedStyle.height}`);
+                console.log(`  - maxHeight: ${computedStyle.maxHeight}`);
+                
+                if (scrollHeight > clientHeight) {
+                    // Method 1: Direct scrollTop assignment
+                    listElement.scrollTop = scrollHeight;
+                    console.log(`[DEBUG] Method 1 - Scroll applied to ${listId}, new scrollTop: ${listElement.scrollTop}`);
+                    
+                    // Method 2: Force layout recalculation and try again if needed
+                    if (listElement.scrollTop !== scrollHeight) {
+                        console.log(`[DEBUG] Method 1 failed, trying method 2 with layout recalculation`);
+                        listElement.offsetHeight; // Force reflow
+                        listElement.scrollTop = scrollHeight;
+                        console.log(`[DEBUG] Method 2 - new scrollTop: ${listElement.scrollTop}`);
+                    }
+                    
+                    // Method 3: scrollIntoView on last element if still not working
+                    if (listElement.scrollTop < scrollHeight - clientHeight - 10) {
+                        console.log(`[DEBUG] Methods 1-2 failed, trying method 3 with scrollIntoView`);
+                        const lastElement = listElement.lastElementChild;
+                        if (lastElement) {
+                            lastElement.scrollIntoView({ behavior: 'instant', block: 'end' });
+                            console.log(`[DEBUG] Method 3 - scrollIntoView applied on last element`);
+                        }
+                    }
+                } else {
+                    console.log(`[DEBUG] No scroll needed for ${listId} - content fits in container`);
+                }
+            } else {
+                console.error(`[DEBUG] Element not found for ID: ${listId}`);
+                // Log all elements with similar IDs to help debug
+                const allElements = document.querySelectorAll('[id*="list"]');
+                console.log(`[DEBUG] Available elements with 'list' in ID:`, Array.from(allElements).map(el => el.id));
+            }
+        }, 50);  // Small delay to ensure content is rendered
+    }
+
+    /**
+     * Test scroll functionality - adds dummy content and tries to scroll
+     * This is for debugging purposes only
+     * @returns {Promise<string>} Status message indicating test results
+     */
+    async testScrollFunctionality() {
+        console.log('[DEBUG] Testing scroll functionality...');
+        const results = [];
+        const listId = `${this.currentTab}-list`;
+        const listElement = document.getElementById(listId);
+        
+        if (!listElement) {
+            const errorMsg = `❌ Could not find list element: ${listId}`;
+            console.error(`[DEBUG] ${errorMsg}`);
+            
+            // Debug: Show available elements
+            const allElements = document.querySelectorAll('[id*="list"]');
+            const availableIds = Array.from(allElements).map(el => el.id);
+            console.log(`[DEBUG] Available elements with 'list' in ID:`, availableIds);
+            results.push(errorMsg);
+            results.push(`Available list IDs: ${availableIds.join(', ')}`);
+            return results.join('\n');
+        }
+        
+        // Get initial state
+        const initialScrollTop = listElement.scrollTop;
+        const initialScrollHeight = listElement.scrollHeight;
+        const initialClientHeight = listElement.clientHeight;
+        const computedStyle = window.getComputedStyle(listElement);
+        
+        results.push(`✅ Found list element: ${listId}`);
+        results.push(`📊 Initial state: scrollTop=${initialScrollTop}, scrollHeight=${initialScrollHeight}, clientHeight=${initialClientHeight}`);
+        results.push(`🎨 CSS: overflowY=${computedStyle.overflowY}, height=${computedStyle.height}, maxHeight=${computedStyle.maxHeight}`);
+        
+        // Test 1: Direct scroll without adding content
+        console.log('[DEBUG] Test 1: Direct scroll test');
+        listElement.scrollTop = 999999;
+        await new Promise(resolve => setTimeout(resolve, 50));
+        const directScrollResult = listElement.scrollTop;
+        results.push(`🧪 Test 1 - Direct scroll to 999999: scrollTop=${directScrollResult} ${directScrollResult > 0 ? '✅' : '❌'}`);
+        
+        // Reset scroll position
+        listElement.scrollTop = 0;
+        
+        // Test 2: Add visible content to force scrolling need
+        console.log('[DEBUG] Test 2: Adding test content');
+        const originalContent = listElement.innerHTML;
+        
+        // Add 15 large test items to definitely exceed container height
+        for (let i = 0; i < 15; i++) {
+            const testItem = document.createElement('div');
+            testItem.className = 'event-item test-scroll-item';
+            testItem.style.cssText = 'background: #fffacd !important; border: 2px solid #f39c12 !important; padding: 20px; margin: 10px 0; min-height: 60px;';
+            testItem.innerHTML = `<strong>🧪 Test Item ${i + 1}</strong><br>This is a test item to verify scrolling functionality.<br><em>Item height: ~80px total</em>`;
+            listElement.appendChild(testItem);
+        }
+        
+        // Force layout recalculation
+        listElement.offsetHeight;
+        
+        const afterContentScrollHeight = listElement.scrollHeight;
+        const afterContentClientHeight = listElement.clientHeight;
+        const needsScroll = afterContentScrollHeight > afterContentClientHeight;
+        
+        results.push(`📦 Added 15 test items (expected ~1200px total height)`);
+        results.push(`📊 After content: scrollHeight=${afterContentScrollHeight}, clientHeight=${afterContentClientHeight}`);
+        results.push(`🔍 Needs scroll: ${needsScroll ? 'YES ✅' : 'NO ❌'}`);
+        
+        if (needsScroll) {
+            // Test 3: Multiple scroll methods
+            console.log('[DEBUG] Test 3: Testing different scroll methods');
+            
+            // Method A: Direct scrollTop assignment
+            listElement.scrollTop = afterContentScrollHeight;
+            await new Promise(resolve => setTimeout(resolve, 50));
+            const methodAResult = listElement.scrollTop;
+            const methodASuccess = methodAResult > (afterContentScrollHeight - afterContentClientHeight - 50);
+            results.push(`🔧 Method A - scrollTop assignment: ${methodAResult} ${methodASuccess ? '✅' : '❌'}`);
+            
+            // Method B: scrollIntoView on last element
+            const lastElement = listElement.lastElementChild;
+            if (lastElement) {
+                lastElement.scrollIntoView({ behavior: 'instant', block: 'end' });
+                await new Promise(resolve => setTimeout(resolve, 50));
+                const methodBResult = listElement.scrollTop;
+                const methodBSuccess = methodBResult > (afterContentScrollHeight - afterContentClientHeight - 50);
+                results.push(`🔧 Method B - scrollIntoView: ${methodBResult} ${methodBSuccess ? '✅' : '❌'}`);
+            }
+            
+            // Method C: Using the existing scrollListToBottom method
+            console.log('[DEBUG] Test 4: Using scrollListToBottom method');
+            this.scrollListToBottom(listId);
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const methodCResult = listElement.scrollTop;
+            const methodCSuccess = methodCResult > (afterContentScrollHeight - afterContentClientHeight - 50);
+            results.push(`🔧 Method C - scrollListToBottom: ${methodCResult} ${methodCSuccess ? '✅' : '❌'}`);
+        }
+        
+        // Clean up test content after a visible delay
+        setTimeout(() => {
+            console.log('[DEBUG] Cleaning up test content...');
+            const testItems = listElement.querySelectorAll('.test-scroll-item');
+            testItems.forEach(item => item.remove());
+            results.push(`🧹 Cleaned up ${testItems.length} test items`);
+        }, 2000);
+        
+        const finalResult = results.join('\n');
+        console.log('[DEBUG] Test complete. Results:', finalResult);
+        return finalResult;
+    }
+
+    /**
      * Update connection status in UI
      */
     updateConnectionStatus(status, type) {
@@ -2643,6 +2828,154 @@ window.switchTab = function(tabName) {
     if (window.dashboard) {
         window.dashboard.switchTab(tabName);
     }
+};
+
+// Debug function for testing scroll functionality
+window.testScroll = async function() {
+    if (window.dashboard) {
+        console.log('🧪 Starting scroll functionality test...');
+        try {
+            const result = await window.dashboard.testScrollFunctionality();
+            console.log('📋 Test results:\n' + result);
+            
+            // Also display results in an alert for easier viewing
+            alert('Scroll Test Results:\n\n' + result);
+            
+            return result;
+        } catch (error) {
+            const errorMsg = `❌ Test failed with error: ${error.message}`;
+            console.error(errorMsg, error);
+            alert(errorMsg);
+            return errorMsg;
+        }
+    } else {
+        const errorMsg = '❌ Dashboard not initialized';
+        console.error(errorMsg);
+        alert(errorMsg);
+        return errorMsg;
+    }
+};
+
+// Simple direct scroll test function
+window.testDirectScroll = function() {
+    if (!window.dashboard) {
+        console.error('❌ Dashboard not initialized');
+        return 'Dashboard not initialized';
+    }
+    
+    const currentTab = window.dashboard.currentTab;
+    const listId = `${currentTab}-list`;
+    const element = document.getElementById(listId);
+    
+    if (!element) {
+        const msg = `❌ Element ${listId} not found`;
+        console.error(msg);
+        return msg;
+    }
+    
+    console.log(`🎯 Direct scroll test on ${listId}`);
+    console.log(`Before: scrollTop=${element.scrollTop}, scrollHeight=${element.scrollHeight}, clientHeight=${element.clientHeight}`);
+    
+    // Try direct assignment to maximum scroll
+    element.scrollTop = 999999;
+    
+    setTimeout(() => {
+        console.log(`After: scrollTop=${element.scrollTop}, scrollHeight=${element.scrollHeight}, clientHeight=${element.clientHeight}`);
+        const success = element.scrollTop > 0 || element.scrollHeight <= element.clientHeight;
+        const result = `${success ? '✅' : '❌'} Direct scroll test: scrollTop=${element.scrollTop}`;
+        console.log(result);
+        alert(result);
+        return result;
+    }, 50);
+    
+    return 'Test running...';
+};
+
+// CSS layout diagnostic function
+window.diagnoseCSSLayout = function() {
+    if (!window.dashboard) {
+        return 'Dashboard not initialized';
+    }
+    
+    const currentTab = window.dashboard.currentTab;
+    const listId = `${currentTab}-list`;
+    const results = [];
+    
+    // Check the full hierarchy
+    const containers = [
+        'events-wrapper',
+        'events-container', 
+        `${currentTab}-tab`,
+        listId
+    ];
+    
+    results.push(`🔍 CSS Layout Diagnosis for ${currentTab} tab:`);
+    results.push('');
+    
+    containers.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            const computed = window.getComputedStyle(element);
+            const rect = element.getBoundingClientRect();
+            
+            results.push(`📦 ${id}:`);
+            results.push(`  Display: ${computed.display}`);
+            results.push(`  Position: ${computed.position}`);
+            results.push(`  Width: ${computed.width} (${rect.width}px)`);
+            results.push(`  Height: ${computed.height} (${rect.height}px)`);
+            results.push(`  Max-height: ${computed.maxHeight}`);
+            results.push(`  Overflow-Y: ${computed.overflowY}`);
+            results.push(`  Flex: ${computed.flex}`);
+            results.push(`  Flex-direction: ${computed.flexDirection}`);
+            
+            if (element.scrollHeight !== element.clientHeight) {
+                results.push(`  📊 ScrollHeight: ${element.scrollHeight}, ClientHeight: ${element.clientHeight}`);
+                results.push(`  📊 ScrollTop: ${element.scrollTop} (can scroll: ${element.scrollHeight > element.clientHeight})`);
+            }
+            results.push('');
+        } else {
+            results.push(`❌ ${id}: Not found`);
+            results.push('');
+        }
+    });
+    
+    const diagnosis = results.join('\n');
+    console.log(diagnosis);
+    alert(diagnosis);
+    return diagnosis;
+};
+
+// Run all scroll diagnostics
+window.runScrollDiagnostics = async function() {
+    console.log('🔬 Running complete scroll diagnostics...');
+    
+    // Step 1: CSS Layout diagnosis
+    console.log('\n=== STEP 1: CSS Layout Diagnosis ===');
+    const cssResult = window.diagnoseCSSLayout();
+    
+    // Step 2: Direct scroll test
+    console.log('\n=== STEP 2: Direct Scroll Test ===');
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    const directResult = window.testDirectScroll();
+    
+    // Step 3: Full scroll functionality test
+    console.log('\n=== STEP 3: Full Scroll Functionality Test ===');
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    const fullResult = await window.testScroll();
+    
+    const summary = `
+🔬 SCROLL DIAGNOSTICS COMPLETE
+===============================
+
+Step 1 - CSS Layout: See console for details
+Step 2 - Direct Scroll: ${directResult}
+Step 3 - Full Test: See alert for details
+
+Check browser console for complete logs.
+    `;
+    
+    console.log(summary);
+    return summary;
 };
 
 // Initialize dashboard when DOM is loaded

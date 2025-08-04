@@ -52,6 +52,8 @@ class SessionManager {
         this.socketClient.onEventUpdate((events, sessions) => {
             this.sessions = sessions;
             this.updateSessionSelect();
+            // Update footer info when new events arrive
+            this.updateFooterInfo();
         });
 
         // Listen for connection status changes
@@ -76,7 +78,6 @@ class SessionManager {
         // Clear existing options except default ones
         sessionSelect.innerHTML = `
             <option value="">All Sessions</option>
-            <option value="current">Current Session</option>
         `;
 
         // Add sessions from the sessions map
@@ -148,25 +149,167 @@ class SessionManager {
         if (!footerSessionEl) return;
 
         let sessionInfo = 'All Sessions';
-        let workingDir = '';
-        let gitBranch = '';
+        let workingDir = 'Unknown';
+        let gitBranch = 'Unknown';
 
         if (this.selectedSessionId === 'current') {
             sessionInfo = this.currentSessionId ? 
                 `Current: ${this.currentSessionId.substring(0, 8)}...` : 
                 'Current: None';
+            
+            // For current session, try to extract info from recent events
+            if (this.currentSessionId) {
+                const sessionData = this.extractSessionInfoFromEvents(this.currentSessionId);
+                workingDir = sessionData.workingDir || 'Unknown';
+                gitBranch = sessionData.gitBranch || 'Unknown';
+            }
         } else if (this.selectedSessionId) {
             const session = this.sessions.get(this.selectedSessionId);
             if (session) {
                 sessionInfo = `${this.selectedSessionId.substring(0, 8)}...`;
                 workingDir = session.working_directory || session.workingDirectory || '';
                 gitBranch = session.git_branch || session.gitBranch || '';
+                
+                // If session doesn't have these values, extract from events
+                if (!workingDir || !gitBranch) {
+                    const sessionData = this.extractSessionInfoFromEvents(this.selectedSessionId);
+                    workingDir = workingDir || sessionData.workingDir || 'Unknown';
+                    gitBranch = gitBranch || sessionData.gitBranch || 'Unknown';
+                }
             }
         }
 
         footerSessionEl.textContent = sessionInfo;
-        if (footerWorkingDirEl) footerWorkingDirEl.textContent = workingDir || 'Unknown';
-        if (footerGitBranchEl) footerGitBranchEl.textContent = gitBranch || 'Unknown';
+        if (footerWorkingDirEl) footerWorkingDirEl.textContent = workingDir;
+        if (footerGitBranchEl) footerGitBranchEl.textContent = gitBranch;
+    }
+
+    /**
+     * Extract working directory and git branch from events for a specific session
+     * @param {string} sessionId - Session ID to extract info for
+     * @returns {Object} Object with workingDir and gitBranch properties
+     */
+    extractSessionInfoFromEvents(sessionId) {
+        let workingDir = '';
+        let gitBranch = '';
+
+        console.log(`[DEBUG] extractSessionInfoFromEvents called for sessionId: ${sessionId}`);
+
+        // Get events from the socket client
+        const socketClient = this.socketClient;
+        if (socketClient && socketClient.events) {
+            console.log(`[DEBUG] Total events available: ${socketClient.events.length}`);
+            
+            // Look for session start events or recent events with this session ID
+            const sessionEvents = socketClient.events.filter(event => 
+                event.data && event.data.session_id === sessionId
+            );
+
+            console.log(`[DEBUG] Events matching sessionId ${sessionId}: ${sessionEvents.length}`);
+
+            // Log a few sample events to see their structure
+            if (sessionEvents.length > 0) {
+                console.log(`[DEBUG] Sample events for session ${sessionId}:`);
+                
+                // Show first 3 events
+                sessionEvents.slice(0, 3).forEach((event, index) => {
+                    console.log(`[DEBUG] Event ${index + 1}:`, {
+                        type: event.type,
+                        timestamp: event.timestamp,
+                        data_keys: event.data ? Object.keys(event.data) : 'no data',
+                        full_event: event
+                    });
+                });
+
+                // Show last 3 events if different from first 3
+                if (sessionEvents.length > 3) {
+                    console.log(`[DEBUG] Last 3 events for session ${sessionId}:`);
+                    sessionEvents.slice(-3).forEach((event, index) => {
+                        console.log(`[DEBUG] Last Event ${index + 1}:`, {
+                            type: event.type,
+                            timestamp: event.timestamp,
+                            data_keys: event.data ? Object.keys(event.data) : 'no data',
+                            full_event: event
+                        });
+                    });
+                }
+            }
+
+            // Find the most recent event with working directory and git branch info
+            for (let i = sessionEvents.length - 1; i >= 0; i--) {
+                const event = sessionEvents[i];
+                if (event.data) {
+                    console.log(`[DEBUG] Examining event ${i} data:`, event.data);
+                    
+                    // Check for working directory info
+                    if (!workingDir) {
+                        if (event.data.working_directory) {
+                            workingDir = event.data.working_directory;
+                            console.log(`[DEBUG] Found working_directory: ${workingDir}`);
+                        } else if (event.data.cwd) {
+                            workingDir = event.data.cwd;
+                            console.log(`[DEBUG] Found cwd: ${workingDir}`);
+                        } else if (event.data.instance_info && event.data.instance_info.working_dir) {
+                            workingDir = event.data.instance_info.working_dir;
+                            console.log(`[DEBUG] Found instance_info.working_dir: ${workingDir}`);
+                        }
+                    }
+
+                    // Check for git branch info - check all possible field names
+                    if (!gitBranch) {
+                        const possibleBranchFields = [
+                            'git_branch',
+                            'gitBranch', 
+                            'branch',
+                            'git.branch',
+                            'vcs_branch',
+                            'current_branch'
+                        ];
+                        
+                        for (const field of possibleBranchFields) {
+                            if (event.data[field]) {
+                                gitBranch = event.data[field];
+                                console.log(`[DEBUG] Found git branch in field '${field}': ${gitBranch}`);
+                                break;
+                            }
+                        }
+                        
+                        // Check nested locations
+                        if (!gitBranch) {
+                            if (event.data.instance_info) {
+                                console.log(`[DEBUG] Checking instance_info for branch:`, event.data.instance_info);
+                                for (const field of possibleBranchFields) {
+                                    if (event.data.instance_info[field]) {
+                                        gitBranch = event.data.instance_info[field];
+                                        console.log(`[DEBUG] Found git branch in instance_info.${field}: ${gitBranch}`);
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (!gitBranch && event.data.git) {
+                                console.log(`[DEBUG] Checking git object:`, event.data.git);
+                                if (event.data.git.branch) {
+                                    gitBranch = event.data.git.branch;
+                                    console.log(`[DEBUG] Found git branch in git.branch: ${gitBranch}`);
+                                }
+                            }
+                        }
+                    }
+
+                    // If we have both, we can stop looking
+                    if (workingDir && gitBranch) {
+                        console.log(`[DEBUG] Found both workingDir and gitBranch, stopping search`);
+                        break;
+                    }
+                }
+            }
+        } else {
+            console.log(`[DEBUG] No socket client or events available`);
+        }
+
+        console.log(`[DEBUG] Final results - workingDir: '${workingDir}', gitBranch: '${gitBranch}'`);
+        return { workingDir, gitBranch };
     }
 
     /**
