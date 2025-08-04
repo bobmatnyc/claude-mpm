@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.3.0] - 2025-08-04
 
+### Added
+- **Session Resumption**: New `--resume` flag for continuing previous Claude conversations
+  - Resume last session: `claude-mpm run --resume`
+  - Resume specific session: `claude-mpm run --resume <session-id>`
+  - Compatible with monitoring: `claude-mpm run --resume --monitor`
+  - Maintains conversation context and history for improved Claude performance
+  - Graceful error handling for invalid session IDs
+  - Session continuity provides significant performance benefits for complex workflows
 
 ### Other Changes
 
