@@ -15,8 +15,8 @@ class Dashboard {
         this.currentTab = 'events';
         this.autoScroll = true;
         
-        // Working directory state
-        this.currentWorkingDir = '/Users/masa/Projects/claude-mpm';
+        // Working directory state - will be set properly during initialization
+        this.currentWorkingDir = null;
         
         // Selection state - tracks the currently selected card across all tabs
         this.selectedCard = {
@@ -59,6 +59,9 @@ class Dashboard {
         
         // Initialize agent inference system
         this.initializeAgentInference();
+        
+        // Initialize working directory for current session
+        this.initializeWorkingDirectory();
         
         console.log('Claude MPM Dashboard initialized');
     }
@@ -408,6 +411,30 @@ class Dashboard {
         // Listen for connection status changes
         document.addEventListener('socketConnectionStatus', (e) => {
             this.updateConnectionStatus(e.detail.status, e.detail.type);
+            
+            // Set up git branch listener when connected
+            if (e.detail.type === 'connected' && this.socketClient && this.socketClient.socket) {
+                // Remove any existing listener first
+                this.socketClient.socket.off('git_branch_response');
+                
+                // Add the listener
+                this.socketClient.socket.on('git_branch_response', (data) => {
+                    if (data.success) {
+                        const footerBranch = document.getElementById('footer-git-branch');
+                        if (footerBranch) {
+                            footerBranch.textContent = data.branch;
+                        }
+                    } else {
+                        const footerBranch = document.getElementById('footer-git-branch');
+                        if (footerBranch) {
+                            footerBranch.textContent = 'No Git';
+                        }
+                    }
+                });
+                
+                // Request git branch for current working directory
+                this.updateGitBranch(this.currentWorkingDir);
+            }
         });
 
         // Listen for session filter changes to update dropdown options
@@ -415,23 +442,6 @@ class Dashboard {
             console.log('Session filter changed, re-rendering current tab:', this.currentTab);
             this.renderCurrentTab();
         });
-        
-        // Listen for git branch responses
-        if (this.socketClient && this.socketClient.socket) {
-            this.socketClient.socket.on('git_branch_response', (data) => {
-                if (data.success) {
-                    const footerBranch = document.getElementById('footer-git-branch');
-                    if (footerBranch) {
-                        footerBranch.textContent = data.branch;
-                    }
-                } else {
-                    const footerBranch = document.getElementById('footer-git-branch');
-                    if (footerBranch) {
-                        footerBranch.textContent = 'No Git';
-                    }
-                }
-            });
-        }
     }
 
     /**
@@ -3149,7 +3159,7 @@ class Dashboard {
      * Show dialog to change working directory
      */
     showChangeDirDialog() {
-        const currentDir = this.currentWorkingDir || '/Users/masa/Projects/claude-mpm';
+        const currentDir = this.currentWorkingDir || this.getDefaultWorkingDir();
         const newDir = prompt('Enter new working directory:', currentDir);
         
         if (newDir && newDir !== currentDir) {
@@ -3212,19 +3222,47 @@ class Dashboard {
     }
     
     /**
+     * Get default working directory
+     */
+    getDefaultWorkingDir() {
+        // Try to get from footer first (may be set by server)
+        const footerDir = document.getElementById('footer-working-dir');
+        if (footerDir && footerDir.textContent && footerDir.textContent !== 'Unknown') {
+            return footerDir.textContent;
+        }
+        // Fallback to hardcoded default
+        return '/Users/masa/Projects/claude-mpm';
+    }
+    
+    /**
+     * Initialize working directory on dashboard load
+     */
+    initializeWorkingDirectory() {
+        // Check if there's a selected session
+        const sessionSelect = document.getElementById('session-select');
+        if (sessionSelect && sessionSelect.value) {
+            // Load working directory for selected session
+            this.loadWorkingDirectoryForSession(sessionSelect.value);
+        } else {
+            // Set default working directory
+            this.setWorkingDirectory(this.getDefaultWorkingDir());
+        }
+    }
+    
+    /**
      * Load working directory for a session
      * @param {string} sessionId - Session ID
      */
     loadWorkingDirectoryForSession(sessionId) {
         if (!sessionId) {
             // No session selected, use default
-            this.setWorkingDirectory('/Users/masa/Projects/claude-mpm');
+            this.setWorkingDirectory(this.getDefaultWorkingDir());
             return;
         }
         
         // Load from localStorage
         const sessionDirs = JSON.parse(localStorage.getItem('sessionWorkingDirs') || '{}');
-        const dir = sessionDirs[sessionId] || '/Users/masa/Projects/claude-mpm';
+        const dir = sessionDirs[sessionId] || this.getDefaultWorkingDir();
         this.setWorkingDirectory(dir);
     }
 }
