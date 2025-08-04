@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contextual Headers Test - Claude MPM</title>
+    <link rel="stylesheet" href="../src/claude_mpm/web/static/css/dashboard.css">
+    <style>
+        body {
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .test-title {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            font-weight: 600;
+            color: #4a5568;
+            margin: 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .test-content {
+            padding: 15px;
+            background: white;
+        }
+        .test-button {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .test-button:hover {
+            background: #3182ce;
+        }
+        #module-viewer-container {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            min-height: 300px;
+            margin-top: 15px;
+        }
+        #module-data-content {
+            padding: 15px;
+            background: white;
+            min-height: 250px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Contextual Headers Test</h1>
+        <p>This test demonstrates the new contextual headers in the structured data pane.</p>
+        
+        <div class="test-section">
+            <h3 class="test-title">Test Event Types</h3>
+            <div class="test-content">
+                <button class="test-button" onclick="testTodoEvent()">TodoWrite Event</button>
+                <button class="test-button" onclick="testAgentEvent()">Agent Event</button>
+                <button class="test-button" onclick="testHookEvent()">Hook/Tool Event</button>
+                <button class="test-button" onclick="testMemoryEvent()">Memory Event</button>
+                <button class="test-button" onclick="testFileEvent()">File Event</button>
+                <button class="test-button" onclick="testGenericEvent()">Generic Event</button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3 class="test-title">Module Viewer Output</h3>
+            <div class="test-content">
+                <div id="module-viewer-container">
+                    <div id="module-data-content">
+                        <p>Click a test button above to see the contextual header in action.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load the module viewer component -->
+    <script src="../src/claude_mpm/web/static/js/components/module-viewer.js"></script>
+    
+    <script>
+        // Initialize module viewer
+        const moduleViewer = new ModuleViewer('module-viewer-container');
+        
+        // Test event data
+        function testTodoEvent() {
+            const event = {
+                type: 'todo',
+                subtype: 'update',
+                timestamp: new Date().toISOString(),
+                id: 'todo-123',
+                data: {
+                    session_id: 'pm_session_456',
+                    tool_name: 'TodoWrite',
+                    todos: [
+                        { content: 'Implement contextual headers', status: 'completed', priority: 'high' },
+                        { content: 'Add CSS styling', status: 'completed', priority: 'medium' },
+                        { content: 'Test functionality', status: 'in_progress', priority: 'high' }
+                    ]
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+        
+        function testAgentEvent() {
+            const event = {
+                type: 'agent',
+                subtype: 'execution',
+                timestamp: new Date().toISOString(),
+                id: 'agent-789',
+                data: {
+                    agent_type: 'PM',
+                    name: 'Project Manager',
+                    session_id: 'pm_session_456',
+                    config: { role: 'manager', capabilities: ['planning', 'coordination'] },
+                    result: 'Task completed successfully'
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+        
+        function testHookEvent() {
+            const event = {
+                type: 'hook',
+                subtype: 'post_tool',
+                timestamp: new Date().toISOString(),
+                id: 'hook-456',
+                data: {
+                    tool_name: 'Edit',
+                    session_id: 'dev_session_789',
+                    tool_parameters: {
+                        file_path: '/Users/masa/Projects/claude-mpm/src/claude_mpm/web/static/js/components/module-viewer.js'
+                    },
+                    duration_ms: 125,
+                    success: true,
+                    exit_code: 0
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+        
+        function testMemoryEvent() {
+            const event = {
+                type: 'memory',
+                subtype: 'store',
+                timestamp: new Date().toISOString(),
+                id: 'memory-321',
+                data: {
+                    operation: 'store',
+                    key: 'project_context',
+                    value: { project: 'claude-mpm', phase: 'development' },
+                    namespace: 'session',
+                    metadata: { ttl: 3600 }
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+        
+        function testFileEvent() {
+            const event = {
+                type: 'file',
+                subtype: 'read',
+                timestamp: new Date().toISOString(),
+                id: 'file-654',
+                data: {
+                    file_path: '/Users/masa/Projects/claude-mpm/src/claude_mpm/web/static/css/dashboard.css',
+                    operation: 'read',
+                    size: 15420,
+                    success: true
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+        
+        function testGenericEvent() {
+            const event = {
+                type: 'session',
+                subtype: 'start',
+                timestamp: new Date().toISOString(),
+                id: 'session-999',
+                data: {
+                    session_id: 'test_session_999',
+                    working_directory: '/Users/masa/Projects/claude-mpm',
+                    git_branch: 'feature/contextual-headers',
+                    agent_type: 'Engineer'
+                }
+            };
+            moduleViewer.ingest(event);
+        }
+    </script>
+</body>
+</html>
