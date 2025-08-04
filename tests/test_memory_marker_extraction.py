@@ -239,6 +239,110 @@ def test_case_insensitive_markers():
     assert len(learnings['pattern']) == 2
 
 
+def test_memorize_trigger():
+    """Test that 'Memorize' trigger phrase works."""
+    hook = MemoryPostDelegationHook()
+    
+    text = """
+    I've learned something important about the architecture.
+    
+    # Memorize:
+    Type: architecture
+    Content: Services communicate through message queues for reliability
+    #
+    
+    This pattern ensures loose coupling between services.
+    """
+    
+    learnings = hook._extract_learnings(text)
+    
+    assert len(learnings['architecture']) == 1
+    assert learnings['architecture'][0] == "Services communicate through message queues for reliability"
+
+
+def test_remember_trigger():
+    """Test that 'Remember' trigger phrase works."""
+    hook = MemoryPostDelegationHook()
+    
+    text = """
+    I discovered a common mistake that should be avoided.
+    
+    # Remember:
+    Type: mistake
+    Content: Never expose internal IDs in public APIs
+    #
+    
+    This prevents security vulnerabilities.
+    """
+    
+    learnings = hook._extract_learnings(text)
+    
+    assert len(learnings['mistake']) == 1
+    assert learnings['mistake'][0] == "Never expose internal IDs in public APIs"
+
+
+def test_all_trigger_phrases():
+    """Test that all trigger phrases work together."""
+    hook = MemoryPostDelegationHook()
+    
+    text = """
+    # Add To Memory:
+    Type: pattern
+    Content: Use dependency injection for testability
+    #
+    
+    # Memorize:
+    Type: guideline
+    Content: Always validate user input at API boundaries
+    #
+    
+    # Remember:
+    Type: mistake
+    Content: Don't forget to handle edge cases in validation
+    #
+    """
+    
+    learnings = hook._extract_learnings(text)
+    
+    assert len(learnings['pattern']) == 1
+    assert len(learnings['guideline']) == 1
+    assert len(learnings['mistake']) == 1
+    assert learnings['pattern'][0] == "Use dependency injection for testability"
+    assert learnings['guideline'][0] == "Always validate user input at API boundaries"
+    assert learnings['mistake'][0] == "Don't forget to handle edge cases in validation"
+
+
+def test_trigger_phrases_case_insensitive():
+    """Test that all trigger phrases are case-insensitive."""
+    hook = MemoryPostDelegationHook()
+    
+    text = """
+    # memorize:
+    Type: strategy
+    Content: Use caching for frequently accessed data
+    #
+    
+    # REMEMBER:
+    Type: performance
+    Content: Database queries should use indexes
+    #
+    
+    # Remember:
+    Type: integration
+    Content: Always handle timeout scenarios gracefully
+    #
+    """
+    
+    learnings = hook._extract_learnings(text)
+    
+    assert len(learnings['strategy']) == 1
+    assert len(learnings['performance']) == 1
+    assert len(learnings['integration']) == 1
+    assert learnings['strategy'][0] == "Use caching for frequently accessed data"
+    assert learnings['performance'][0] == "Database queries should use indexes"
+    assert learnings['integration'][0] == "Always handle timeout scenarios gracefully"
+
+
 def test_whitespace_handling():
     """Test that extra whitespace is handled correctly."""
     hook = MemoryPostDelegationHook()
@@ -293,6 +397,64 @@ def test_malformed_blocks():
     # Should only extract the valid entry
     assert len(learnings['pattern']) == 1
     assert learnings['pattern'][0] == "Valid entry for comparison"
+
+
+def test_integration_all_trigger_phrases():
+    """Integration test that all trigger phrases work in a realistic scenario."""
+    hook = MemoryPostDelegationHook()
+    
+    # Simulate a realistic agent response with multiple learnings using different triggers
+    agent_response = """
+    I've completed the authentication system implementation. Here's what I learned:
+    
+    First, about the pattern we should follow:
+    # Add To Memory:
+    Type: pattern
+    Content: Always use JWT with refresh tokens for web applications
+    #
+    
+    Something important to memorize for future reference:
+    # Memorize:
+    Type: architecture
+    Content: Authentication service should be stateless and horizontally scalable
+    #
+    
+    And let me remember this mistake I made initially:
+    # Remember:
+    Type: mistake
+    Content: Don't store sensitive data in JWT payload
+    #
+    
+    Also, a guideline for the team:
+    # memorize:
+    Type: guideline
+    Content: Use rate limiting on all authentication endpoints
+    #
+    
+    Performance consideration to remember:
+    # REMEMBER:
+    Type: performance
+    Content: Cache user permissions to reduce database queries
+    #
+    
+    The implementation is complete and follows our security standards.
+    """
+    
+    learnings = hook._extract_learnings(agent_response)
+    
+    # Verify all learnings were extracted correctly
+    assert len(learnings['pattern']) == 1
+    assert len(learnings['architecture']) == 1
+    assert len(learnings['mistake']) == 1
+    assert len(learnings['guideline']) == 1
+    assert len(learnings['performance']) == 1
+    
+    # Verify content is correct
+    assert learnings['pattern'][0] == "Always use JWT with refresh tokens for web applications"
+    assert learnings['architecture'][0] == "Authentication service should be stateless and horizontally scalable"
+    assert learnings['mistake'][0] == "Don't store sensitive data in JWT payload"
+    assert learnings['guideline'][0] == "Use rate limiting on all authentication endpoints"
+    assert learnings['performance'][0] == "Cache user permissions to reduce database queries"
 
 
 if __name__ == "__main__":
