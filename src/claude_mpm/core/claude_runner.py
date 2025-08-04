@@ -95,7 +95,7 @@ class ClaudeRunner:
             except Exception as e:
                 self.logger.debug(f"Failed to create session log file: {e}")
         
-        # Initialize WebSocket server reference
+        # Initialize Socket.IO server reference
         self.websocket_server = None
     
     def setup_agents(self) -> bool:
@@ -152,13 +152,14 @@ class ClaudeRunner:
     
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode."""
-        # Start WebSocket server if enabled
+        # Connect to Socket.IO server if enabled
         if self.enable_websocket:
             try:
-                # Lazy import to avoid circular dependencies
-                from claude_mpm.services.websocket_server import WebSocketServer
-                self.websocket_server = WebSocketServer(port=self.websocket_port)
+                # Use Socket.IO client proxy to connect to monitoring server
+                from claude_mpm.services.socketio_server import SocketIOClientProxy
+                self.websocket_server = SocketIOClientProxy(port=self.websocket_port)
                 self.websocket_server.start()
+                self.logger.info("Connected to Socket.IO monitoring server")
                 
                 # Generate session ID
                 session_id = str(uuid.uuid4())
@@ -171,7 +172,7 @@ class ClaudeRunner:
                     working_dir=working_dir
                 )
             except Exception as e:
-                self.logger.warning(f"Failed to start WebSocket server: {e}")
+                self.logger.warning(f"Failed to connect to Socket.IO server: {e}")
                 self.websocket_server = None
         
         # Get version
@@ -329,13 +330,14 @@ class ClaudeRunner:
         """Run Claude with a single prompt and return success status."""
         start_time = time.time()
         
-        # Start WebSocket server if enabled
+        # Connect to Socket.IO server if enabled
         if self.enable_websocket:
             try:
-                # Lazy import to avoid circular dependencies
-                from claude_mpm.services.websocket_server import WebSocketServer
-                self.websocket_server = WebSocketServer(port=self.websocket_port)
+                # Use Socket.IO client proxy to connect to monitoring server
+                from claude_mpm.services.socketio_server import SocketIOClientProxy
+                self.websocket_server = SocketIOClientProxy(port=self.websocket_port)
                 self.websocket_server.start()
+                self.logger.info("Connected to Socket.IO monitoring server")
                 
                 # Generate session ID
                 session_id = str(uuid.uuid4())
@@ -348,7 +350,7 @@ class ClaudeRunner:
                     working_dir=working_dir
                 )
             except Exception as e:
-                self.logger.warning(f"Failed to start WebSocket server: {e}")
+                self.logger.warning(f"Failed to connect to Socket.IO server: {e}")
                 self.websocket_server = None
         
         # Check for /mpm: commands

@@ -15,6 +15,9 @@ class Dashboard {
         this.currentTab = 'events';
         this.autoScroll = true;
         
+        // Working directory state
+        this.currentWorkingDir = '/Users/masa/Projects/claude-mpm';
+        
         // Selection state - tracks the currently selected card across all tabs
         this.selectedCard = {
             tab: null,        // which tab the selection is in
@@ -412,6 +415,23 @@ class Dashboard {
             console.log('Session filter changed, re-rendering current tab:', this.currentTab);
             this.renderCurrentTab();
         });
+        
+        // Listen for git branch responses
+        if (this.socketClient && this.socketClient.socket) {
+            this.socketClient.socket.on('git_branch_response', (data) => {
+                if (data.success) {
+                    const footerBranch = document.getElementById('footer-git-branch');
+                    if (footerBranch) {
+                        footerBranch.textContent = data.branch;
+                    }
+                } else {
+                    const footerBranch = document.getElementById('footer-git-branch');
+                    if (footerBranch) {
+                        footerBranch.textContent = 'No Git';
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -436,9 +456,33 @@ class Dashboard {
             });
         }
 
+        // Connection toggle button
+        const connectionToggleBtn = document.getElementById('connection-toggle-btn');
+        if (connectionToggleBtn) {
+            connectionToggleBtn.addEventListener('click', () => {
+                this.toggleConnectionControls();
+            });
+        }
+
+        // Working directory controls
+        const changeDirBtn = document.getElementById('change-dir-btn');
+        const workingDirPath = document.getElementById('working-dir-path');
+        
+        if (changeDirBtn) {
+            changeDirBtn.addEventListener('click', () => {
+                this.showChangeDirDialog();
+            });
+        }
+        
+        if (workingDirPath) {
+            workingDirPath.addEventListener('click', () => {
+                this.showChangeDirDialog();
+            });
+        }
+        
         // Action buttons
         const clearBtn = document.querySelector('button[onclick="clearEvents()"]');
-        const exportBtn = document.querySelector('button[onclick="exportEvents()"]');
+        const exportBtn = document.getElementById('export-btn');
         
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
@@ -1936,9 +1980,23 @@ class Dashboard {
         const fileData = this.fileOperations.get(filePath);
         if (!fileData) return;
 
+        // Filter operations by selected session if applicable
+        let operations = fileData.operations;
+        if (this.selectedSessionId) {
+            operations = operations.filter(op => op.sessionId === this.selectedSessionId);
+            if (operations.length === 0) {
+                // No operations from this session
+                this.moduleViewer.showErrorMessage(
+                    'No Operations in Selected Session',
+                    `This file has no operations from the selected session.`
+                );
+                return;
+            }
+        }
+
         // Get file name from path for header
         const fileName = filePath.split('/').pop() || filePath;
-        const lastOp = fileData.operations[fileData.operations.length - 1];
+        const lastOp = operations[operations.length - 1];
         const headerTimestamp = this.formatTimestamp(lastOp.timestamp);
         
         // Create contextual header matching module-viewer pattern
@@ -1955,12 +2013,20 @@ class Dashboard {
                         <strong>Full Path:</strong> ${filePath}
                     </div>
                     <div class="operations-list">
-                        ${fileData.operations.map(op => `
+                        ${operations.map(op => `
                             <div class="operation-item">
                                 <div class="operation-header">
                                     <span class="operation-icon">${this.getOperationIcon(op.operation)}</span>
                                     <span class="operation-type">${op.operation}</span>
                                     <span class="operation-timestamp">${new Date(op.timestamp).toLocaleString()}</span>
+                                    ${(['edit', 'write'].includes(op.operation)) ? `
+                                        <span class="git-diff-icon" 
+                                              onclick="showGitDiffModal('${filePath}', '${op.timestamp}', ${op.workingDirectory ? `'${op.workingDirectory}'` : 'null'})"
+                                              title="View git diff for this file operation"
+                                              style="margin-left: 8px; cursor: pointer; font-size: 16px;">
+                                            📋
+                                        </span>
+                                    ` : ''}
                                 </div>
                                 <div class="operation-details">
                                     <strong>Agent:</strong> ${op.agent}<br>
@@ -2061,6 +2127,7 @@ class Dashboard {
                 const timestamp = pair.post_event?.timestamp || pair.pre_event?.timestamp;
                 
                 const agentInfo = this.extractAgentFromPair(pair);
+                const workingDirectory = this.extractWorkingDirectoryFromPair(pair);
                 
                 fileData.operations.push({
                     operation: operation,
@@ -2068,7 +2135,8 @@ class Dashboard {
                     agent: agentInfo.name,
                     confidence: agentInfo.confidence,
                     sessionId: pair.session_id,
-                    details: this.getFileOperationDetailsFromPair(pair)
+                    details: this.getFileOperationDetailsFromPair(pair),
+                    workingDirectory: workingDirectory
                 });
                 fileData.lastOperation = timestamp;
             } else {
@@ -2392,6 +2460,37 @@ class Dashboard {
     }
 
     /**
+     * Extract working directory from event pair
+     */
+    extractWorkingDirectoryFromPair(pair) {
+        // Try to get working directory from either event's data
+        const preEvent = pair.pre_event;
+        const postEvent = pair.post_event;
+        
+        // Check pre_event first
+        if (preEvent?.data?.working_directory) {
+            return preEvent.data.working_directory;
+        }
+        
+        // Check post_event
+        if (postEvent?.data?.working_directory) {
+            return postEvent.data.working_directory;
+        }
+        
+        // Check tool_parameters for working directory
+        if (preEvent?.tool_parameters?.working_dir) {
+            return preEvent.tool_parameters.working_dir;
+        }
+        
+        if (postEvent?.tool_parameters?.working_dir) {
+            return postEvent.tool_parameters.working_dir;
+        }
+        
+        // Fallback to null (will use default behavior in showGitDiffModal)
+        return null;
+    }
+
+    /**
      * Get file operation details
      */
     getFileOperationDetails(event) {
@@ -2659,6 +2758,27 @@ class Dashboard {
         const typeValue = typeFilter ? typeFilter.value : '';
         
         return fileOperations.filter(([filePath, fileData]) => {
+            // Session filter - filter operations within each file
+            if (this.selectedSessionId) {
+                // Filter operations for this file by session
+                const sessionOperations = fileData.operations.filter(op => 
+                    op.sessionId === this.selectedSessionId
+                );
+                
+                // If no operations from this session, exclude the file
+                if (sessionOperations.length === 0) {
+                    return false;
+                }
+                
+                // Update the fileData to only include session-specific operations
+                // (Note: This creates a filtered view without modifying the original)
+                fileData = {
+                    ...fileData,
+                    operations: sessionOperations,
+                    lastOperation: sessionOperations[sessionOperations.length - 1]?.timestamp || fileData.lastOperation
+                };
+            }
+            
             // Search filter
             if (searchText) {
                 const searchableText = [
@@ -2992,12 +3112,120 @@ class Dashboard {
     }
 
     /**
+     * Toggle connection controls visibility
+     */
+    toggleConnectionControls() {
+        const controlsRow = document.getElementById('connection-controls-row');
+        const toggleBtn = document.getElementById('connection-toggle-btn');
+        
+        if (controlsRow && toggleBtn) {
+            const isVisible = controlsRow.classList.contains('show');
+            
+            if (isVisible) {
+                controlsRow.classList.remove('show');
+                controlsRow.style.display = 'none';
+                toggleBtn.textContent = 'Connection Settings';
+            } else {
+                controlsRow.style.display = 'flex';
+                // Use setTimeout to ensure display change is applied before adding animation class
+                setTimeout(() => {
+                    controlsRow.classList.add('show');
+                }, 10);
+                toggleBtn.textContent = 'Hide Connection Settings';
+            }
+        }
+    }
+
+    /**
      * Clear current selection
      */
     clearSelection() {
         this.clearCardSelection();
         this.eventViewer.clearSelection();
         this.moduleViewer.clear();
+    }
+    
+    /**
+     * Show dialog to change working directory
+     */
+    showChangeDirDialog() {
+        const currentDir = this.currentWorkingDir || '/Users/masa/Projects/claude-mpm';
+        const newDir = prompt('Enter new working directory:', currentDir);
+        
+        if (newDir && newDir !== currentDir) {
+            this.setWorkingDirectory(newDir);
+        }
+    }
+    
+    /**
+     * Set the working directory for the current session
+     * @param {string} dir - New working directory path
+     */
+    setWorkingDirectory(dir) {
+        this.currentWorkingDir = dir;
+        
+        // Update UI
+        const pathElement = document.getElementById('working-dir-path');
+        if (pathElement) {
+            pathElement.textContent = dir;
+            pathElement.title = `Click to change from ${dir}`;
+        }
+        
+        // Update footer
+        const footerDir = document.getElementById('footer-working-dir');
+        if (footerDir) {
+            footerDir.textContent = dir;
+        }
+        
+        // Store in session data if a session is selected
+        const sessionSelect = document.getElementById('session-select');
+        if (sessionSelect && sessionSelect.value) {
+            const sessionId = sessionSelect.value;
+            // Store working directory per session in localStorage
+            const sessionDirs = JSON.parse(localStorage.getItem('sessionWorkingDirs') || '{}');
+            sessionDirs[sessionId] = dir;
+            localStorage.setItem('sessionWorkingDirs', JSON.stringify(sessionDirs));
+        }
+        
+        console.log(`Working directory set to: ${dir}`);
+        
+        // Request git branch for the new directory
+        this.updateGitBranch(dir);
+    }
+    
+    /**
+     * Update git branch display for current working directory
+     * @param {string} dir - Working directory path
+     */
+    updateGitBranch(dir) {
+        if (!this.socketClient || !this.socketClient.socket || !this.socketClient.socket.connected) {
+            // Not connected, set to unknown
+            const footerBranch = document.getElementById('footer-git-branch');
+            if (footerBranch) {
+                footerBranch.textContent = 'Not Connected';
+            }
+            return;
+        }
+        
+        // Request git branch from server
+        this.socketClient.socket.emit('get_git_branch', dir);
+    }
+    
+    /**
+     * Load working directory for a session
+     * @param {string} sessionId - Session ID
+     */
+    loadWorkingDirectoryForSession(sessionId) {
+        if (!sessionId) {
+            // No session selected, use default
+            this.setWorkingDirectory('/Users/masa/Projects/claude-mpm');
+            return;
+        }
+        
+        // Load from localStorage
+        const sessionDirs = JSON.parse(localStorage.getItem('sessionWorkingDirs') || '{}');
+        const dir = sessionDirs[sessionId] || '/Users/masa/Projects/claude-mpm';
+        this.setWorkingDirectory(dir);
     }
 }
 
@@ -3210,6 +3438,12 @@ Check browser console for complete logs.
 window.showGitDiffModal = function(filePath, timestamp, workingDir) {
     console.log(`🔍 Showing git diff for: ${filePath}`);
     
+    // Use the dashboard's current working directory if not provided
+    if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
+        workingDir = window.dashboard.currentWorkingDir;
+        console.log(`Using dashboard working directory: ${workingDir}`);
+    }
+    
     // Create modal if it doesn't exist
     let modal = document.getElementById('git-diff-modal');
     if (!modal) {
@@ -3220,8 +3454,8 @@ window.showGitDiffModal = function(filePath, timestamp, workingDir) {
     // Update modal content
     updateGitDiffModal(modal, filePath, timestamp, workingDir);
     
-    // Show the modal
-    modal.style.display = 'block';
+    // Show the modal as flex container
+    modal.style.display = 'flex';
     document.body.style.overflow = 'hidden'; // Prevent background scrolling
 };
 
@@ -3275,7 +3509,9 @@ function createGitDiffModal() {
                             </button>
                         </div>
                     </div>
-                    <pre class="git-diff-display"><code class="git-diff-code"></code></pre>
+                    <div class="git-diff-scroll-wrapper">
+                        <pre class="git-diff-display"><code class="git-diff-code"></code></pre>
+                    </div>
                 </div>
             </div>
         </div>
@@ -3312,7 +3548,31 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
     modal.querySelector('.git-diff-content-area').style.display = 'none';
     
     try {
-        // Fetch git diff from the backend
+        // Get the Socket.IO server port with multiple fallbacks
+        let port = 8765; // Default fallback
+        
+        // Try to get port from socketClient first
+        if (window.dashboard && window.dashboard.socketClient && window.dashboard.socketClient.port) {
+            port = window.dashboard.socketClient.port;
+        }
+        // Fallback to port input field if socketClient port is not available
+        else {
+            const portInput = document.getElementById('port-input');
+            if (portInput && portInput.value) {
+                port = portInput.value;
+            }
+        }
+        
+        console.log('🔧 Git diff modal debug info:', {
+            filePath,
+            timestamp,
+            workingDir,
+            port,
+            socketClientPort: window.dashboard?.socketClient?.port,
+            portInputValue: document.getElementById('port-input')?.value
+        });
+        
+        // Build URL parameters
         const params = new URLSearchParams({
             file: filePath
         });
@@ -3324,31 +3584,111 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             params.append('working_dir', workingDir);
         }
         
-        // Get the Socket.IO server port from dashboard
-        const port = window.dashboard && window.dashboard.socketClient 
-            ? window.dashboard.socketClient.port 
-            : 8765;
+        const requestUrl = `http://localhost:${port}/api/git-diff?${params}`;
+        console.log('🌐 Making git diff request to:', requestUrl);
+        
+        // Test server connectivity first
+        try {
+            const healthResponse = await fetch(`http://localhost:${port}/health`, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                mode: 'cors'
+            });
             
-        const response = await fetch(`http://localhost:${port}/api/git-diff?${params}`);
+            if (!healthResponse.ok) {
+                throw new Error(`Server health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
+            }
+            
+            console.log('✅ Server health check passed');
+        } catch (healthError) {
+            throw new Error(`Cannot reach server at localhost:${port}. Health check failed: ${healthError.message}`);
+        }
+        
+        // Make the actual git diff request
+        const response = await fetch(requestUrl, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            mode: 'cors'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const result = await response.json();
+        console.log('📦 Git diff response:', result);
         
         // Hide loading
         modal.querySelector('.git-diff-loading').style.display = 'none';
         
         if (result.success) {
+            console.log('📊 Displaying successful git diff');
             // Show successful diff
             displayGitDiff(modal, result);
         } else {
+            console.log('⚠️ Displaying git diff error:', result);
             // Show error
             displayGitDiffError(modal, result);
         }
         
     } catch (error) {
-        console.error('Failed to fetch git diff:', error);
+        console.error('❌ Failed to fetch git diff:', error);
+        console.error('Error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack,
+            filePath,
+            timestamp,
+            workingDir
+        });
+        
         modal.querySelector('.git-diff-loading').style.display = 'none';
+        
+        // Create detailed error message based on error type
+        let errorMessage = `Network error: ${error.message}`;
+        let suggestions = [];
+        
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Failed to connect to the monitoring server';
+            suggestions = [
+                'Check if the monitoring server is running on port 8765',
+                'Verify the port configuration in the dashboard',
+                'Check browser console for CORS or network errors',
+                'Try refreshing the page and reconnecting'
+            ];
+        } else if (error.message.includes('health check failed')) {
+            errorMessage = error.message;
+            suggestions = [
+                'The server may be starting up - try again in a few seconds',
+                'Check if another process is using port 8765',
+                'Restart the claude-mpm monitoring server'
+            ];
+        } else if (error.message.includes('HTTP')) {
+            errorMessage = `Server error: ${error.message}`;
+            suggestions = [
+                'The server encountered an internal error',
+                'Check the server logs for more details',
+                'Try with a different file or working directory'
+            ];
+        }
+        
         displayGitDiffError(modal, {
-            error: `Network error: ${error.message}`,
-            file_path: filePath
+            error: errorMessage,
+            file_path: filePath,
+            working_dir: workingDir,
+            suggestions: suggestions,
+            debug_info: {
+                error_type: error.name,
+                original_message: error.message,
+                port: window.dashboard?.socketClient?.port || document.getElementById('port-input')?.value || '8765',
+                timestamp: new Date().toISOString()
+            }
         });
     }
 }
@@ -3390,20 +3730,108 @@ function highlightGitDiff(diffText) {
 }
 
 function displayGitDiff(modal, result) {
+    console.log('📝 displayGitDiff called with:', result);
     const contentArea = modal.querySelector('.git-diff-content-area');
     const commitHashElement = modal.querySelector('.commit-hash');
     const methodElement = modal.querySelector('.diff-method');
     const codeElement = modal.querySelector('.git-diff-code');
     
+    console.log('🔍 Elements found:', {
+        contentArea: !!contentArea,
+        commitHashElement: !!commitHashElement,
+        methodElement: !!methodElement,
+        codeElement: !!codeElement
+    });
+    
     // Update metadata
-    commitHashElement.textContent = `Commit: ${result.commit_hash}`;
-    methodElement.textContent = `Method: ${result.method}`;
+    if (commitHashElement) commitHashElement.textContent = `Commit: ${result.commit_hash}`;
+    if (methodElement) methodElement.textContent = `Method: ${result.method}`;
     
     // Update diff content with basic syntax highlighting
-    codeElement.innerHTML = highlightGitDiff(result.diff);
+    if (codeElement && result.diff) {
+        console.log('💡 Setting diff content, length:', result.diff.length);
+        codeElement.innerHTML = highlightGitDiff(result.diff);
+        
+        // Force scrolling to work by setting explicit heights
+        const wrapper = modal.querySelector('.git-diff-scroll-wrapper');
+        if (wrapper) {
+            // Give it a moment for content to render
+            setTimeout(() => {
+                const modalContent = modal.querySelector('.modal-content');
+                const header = modal.querySelector('.git-diff-header');
+                const toolbar = modal.querySelector('.git-diff-toolbar');
+                
+                const modalHeight = modalContent?.offsetHeight || 0;
+                const headerHeight = header?.offsetHeight || 0;
+                const toolbarHeight = toolbar?.offsetHeight || 0;
+                
+                const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
+                
+                console.log('🎯 Setting explicit scroll height:', {
+                    modalHeight,
+                    headerHeight,
+                    toolbarHeight,
+                    availableHeight
+                });
+                
+                wrapper.style.maxHeight = `${availableHeight}px`;
+                wrapper.style.overflowY = 'auto';
+            }, 50);
+        }
+    } else {
+        console.warn('⚠️ Missing codeElement or diff data');
+    }
     
     // Show content area
-    contentArea.style.display = 'block';
+    if (contentArea) {
+        contentArea.style.display = 'block';
+        console.log('✅ Content area displayed');
+        
+        // Debug height information and force scrolling test
+        setTimeout(() => {
+            const modal = document.querySelector('.modal-content.git-diff-content');
+            const body = document.querySelector('.git-diff-body');
+            const wrapper = document.querySelector('.git-diff-scroll-wrapper');
+            const display = document.querySelector('.git-diff-display');
+            const code = document.querySelector('.git-diff-code');
+            
+            console.log('🔍 Height debugging:', {
+                modalHeight: modal?.offsetHeight,
+                bodyHeight: body?.offsetHeight,
+                wrapperHeight: wrapper?.offsetHeight,
+                wrapperScrollHeight: wrapper?.scrollHeight,
+                displayHeight: display?.offsetHeight,
+                displayScrollHeight: display?.scrollHeight,
+                codeHeight: code?.offsetHeight,
+                wrapperStyle: wrapper ? window.getComputedStyle(wrapper).overflow : null,
+                bodyStyle: body ? window.getComputedStyle(body).overflow : null
+            });
+            
+            // Force test - add a lot of content to test scrolling
+            if (code && code.textContent.length < 1000) {
+                console.log('🧪 Adding test content for scrolling...');
+                code.innerHTML = code.innerHTML + '\n\n' + '// TEST SCROLLING\n'.repeat(100);
+            }
+            
+            // Force fix scrolling with inline styles
+            if (wrapper) {
+                console.log('🔧 Applying scrolling fix...');
+                wrapper.style.height = '100%';
+                wrapper.style.overflow = 'auto';
+                wrapper.style.maxHeight = 'calc(100% - 60px)'; // Account for toolbar
+            }
+            
+            // Also check parent heights
+            const contentArea = document.querySelector('.git-diff-content-area');
+            if (contentArea) {
+                const computedStyle = window.getComputedStyle(contentArea);
+                console.log('📏 Content area height:', computedStyle.height);
+                if (computedStyle.height === 'auto' || !computedStyle.height) {
+                    contentArea.style.height = '100%';
+                }
+            }
+        }, 100);
+    }
 }
 
 function displayGitDiffError(modal, result) {

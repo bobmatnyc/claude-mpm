@@ -73,6 +73,8 @@ claude-mpm run [options]
 
 **Options:**
 - `--non-interactive` - Exit after response
+- `--resume [SESSION_ID]` - Resume a session (last session if no ID specified)
+- `--monitor` - Launch with real-time monitoring dashboard
 - `--timeout SECONDS` - Command timeout
 - `--no-parallel` - Disable parallel execution
 - `--memory-limit MB` - Memory limit for subprocess
@@ -83,7 +85,16 @@ claude-mpm run [options]
 # Basic non-interactive
 claude-mpm run -i "Explain Python decorators" --non-interactive
 
-# With options
+# Resume last session
+claude-mpm run --resume -i "Continue where we left off"
+
+# Resume specific session
+claude-mpm run --resume session-abc123 -i "Build on our previous work"
+
+# Resume with monitoring
+claude-mpm run --resume --monitor -i "Let's continue with monitoring enabled"
+
+# With advanced options
 claude-mpm run -i "Complex task" \
   --timeout 600 \
   --memory-limit 4096 \
@@ -171,6 +182,37 @@ logging:
 | 5 | Framework Error | Framework loading failed |
 | 124 | Timeout | Command timed out |
 | 130 | Interrupted | User interrupted (Ctrl+C) |
+
+## Session Management
+
+### `--resume` Flag
+
+The `--resume` flag enables you to continue previous Claude conversations, maintaining context and improving performance by avoiding the need to restart conversations.
+
+**Usage Patterns:**
+```bash
+# Resume the most recent interactive session
+claude-mpm run --resume
+
+# Resume a specific session by ID
+claude-mpm run --resume <session-id>
+
+# Combine with other flags
+claude-mpm run --resume --monitor
+```
+
+**Behavior:**
+- **Without session ID**: Resumes the most recent interactive session
+- **With session ID**: Resumes the specified session
+- **No sessions available**: Shows helpful message: "No recent interactive sessions found to resume"
+- **Invalid session ID**: Shows error with guidance: "Session not found. Use `claude-mpm sessions` to list available sessions"
+- **Compatible with monitoring**: Works seamlessly with `--monitor` flag
+
+**Benefits:**
+- **Context Continuity**: Claude remembers the conversation history
+- **Improved Performance**: Avoids re-explaining project context
+- **Better Results**: Claude can build on previous understanding
+- **Seamless Workflow**: Pick up exactly where you left off
 
 ## Advanced Usage
 

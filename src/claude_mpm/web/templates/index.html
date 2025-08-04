@@ -148,23 +148,36 @@
                 </div>
             </div>
             
-            <!-- Row 2: Connection Controls and Session Selection -->
-            <div class="header-row">
-                <div class="connection-controls">
-                    <button id="connect-btn">Connect</button>
-                    <button id="disconnect-btn" class="btn-secondary">Disconnect</button>
-                    <input type="text" id="port-input" value="8765" placeholder="Port">
-                </div>
+            <!-- Row 2: Main Controls (Always Visible) -->
+            <div class="header-row main-controls">
                 <div class="session-group">
                     <label>Session:</label>
                     <select id="session-select" class="session-select">
                         <option value="">All Sessions</option>
                     </select>
-                    <button class="btn-secondary">Refresh</button>
+                </div>
+                <div class="working-dir-group">
+                    <label>Working Dir:</label>
+                    <div class="working-dir-display">
+                        <span id="working-dir-path" class="working-dir-path" title="Click to change">/Users/masa/Projects/claude-mpm</span>
+                        <button id="change-dir-btn" class="btn-icon" title="Change working directory">📁</button>
+                    </div>
                 </div>
                 <div class="action-buttons">
-                    <button class="btn-secondary">Clear</button>
-                    <button class="btn-success">Export</button>
+                    <button id="export-btn" class="btn-success">Export</button>
+                </div>
+                <div class="connection-toggle">
+                    <button id="connection-toggle-btn" class="btn-secondary">Connection Settings</button>
+                </div>
+            </div>
+            
+            <!-- Row 3: Connection Controls (Hidden by Default) -->
+            <div class="header-row connection-controls-row" id="connection-controls-row" style="display: none;">
+                <div class="connection-controls">
+                    <button id="connect-btn">Connect</button>
+                    <button id="disconnect-btn" class="btn-secondary">Disconnect</button>
+                    <input type="text" id="port-input" value="8765" placeholder="Port">
+                    <label>Session:</label>
                 </div>
             </div>
         </div>

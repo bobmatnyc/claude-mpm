@@ -117,6 +117,52 @@ class SessionManager:
         if expired:
             self._save_sessions()
     
+    def get_recent_sessions(self, limit: int = 10, context: Optional[str] = None) -> list:
+        """Get recent sessions sorted by last used time.
+        
+        Args:
+            limit: Maximum number of sessions to return
+            context: Filter by context (optional)
+            
+        Returns:
+            List of session data dictionaries sorted by last_used descending
+        """
+        sessions = list(self.active_sessions.values())
+        
+        # Filter by context if specified
+        if context:
+            sessions = [s for s in sessions if s.get("context") == context]
+        
+        # Sort by last_used descending (most recent first)
+        sessions.sort(key=lambda s: datetime.fromisoformat(s["last_used"]), reverse=True)
+        
+        return sessions[:limit]
+    
+    def get_session_by_id(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Get session data by ID.
+        
+        Args:
+            session_id: Session ID to look up
+            
+        Returns:
+            Session data dictionary or None if not found
+        """
+        return self.active_sessions.get(session_id)
+    
+    def get_last_interactive_session(self) -> Optional[str]:
+        """Get the most recently used interactive session ID.
+        
+        WHY: For --resume without arguments, we want to resume the last
+        interactive session (context="default" for regular Claude runs).
+        
+        Returns:
+            Session ID of most recent interactive session, or None if none found
+        """
+        recent_sessions = self.get_recent_sessions(limit=1, context="default")
+        if recent_sessions:
+            return recent_sessions[0]["id"]
+        return None
+    
     def _save_sessions(self):
         """Save sessions to disk."""
         session_file = self.session_dir / "active_sessions.json"

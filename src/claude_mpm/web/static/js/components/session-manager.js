@@ -32,6 +32,11 @@ class SessionManager {
             sessionSelect.addEventListener('change', (e) => {
                 this.selectedSessionId = e.target.value;
                 this.onSessionFilterChanged();
+                
+                // Load working directory for this session
+                if (window.dashboard && window.dashboard.loadWorkingDirectoryForSession) {
+                    window.dashboard.loadWorkingDirectoryForSession(e.target.value);
+                }
             });
         }
 
