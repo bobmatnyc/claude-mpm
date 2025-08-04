@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claude MPM Socket.IO Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHJ4PSI2IiBmaWxsPSIjNDI5OWUxIi8+CiAgPHRleHQgeD0iMTYiIHk9IjIxIiBmb250LWZhbWlseT0iSGVsdmV0aWNhLCBBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxMCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5NUE08L3RleHQ+Cjwvc3ZnPgo=">
     
     <!-- External Dependencies -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -158,7 +159,6 @@
                     <label>Session:</label>
                     <select id="session-select" class="session-select">
                         <option value="">All Sessions</option>
-                        <option value="current">Current Session</option>
                     </select>
                     <button class="btn-secondary">Refresh</button>
                 </div>
@@ -298,14 +298,6 @@
             <div class="footer-item">
                 <span class="footer-label">Branch:</span>
                 <span class="footer-value" id="footer-git-branch">Unknown</span>
-            </div>
-            <span class="footer-divider">|</span>
-            <div class="footer-item">
-                <span class="footer-label" id="socket-id">Socket: Not connected</span>
-            </div>
-            <span class="footer-divider">|</span>
-            <div class="footer-item">
-                <span class="footer-label" id="server-info">Server: Offline</span>
             </div>
         </div>
     </div>

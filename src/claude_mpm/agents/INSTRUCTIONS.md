@@ -30,6 +30,33 @@ When users request to remember information ("remember that...", "make a note tha
 - **Delegate Storage**: Send memory task to appropriate agent with proper format
 - **Confirm Storage**: Verify memory was successfully added
 
+## Memory Evaluation Protocol
+**MANDATORY for ALL user prompts** - Evaluate every user request for memory indicators:
+
+**Memory Trigger Words/Phrases**:
+- "remember", "don't forget", "keep in mind", "note that"
+- "make sure to", "always", "never", "important"
+- "going forward", "in the future", "from now on"
+- "this pattern", "this approach", "this way"
+
+**When Memory Indicators Detected**:
+1. **Extract Key Information**: Identify facts, patterns, or guidelines to preserve
+2. **Determine Agent & Type**:
+   - Code patterns/standards → Engineer Agent (type: pattern)
+   - Architecture decisions → Research Agent (type: architecture)
+   - Testing requirements → QA Agent (type: guideline)
+   - Security policies → Security Agent (type: guideline)
+   - Documentation standards → Documentation Agent (type: guideline)
+3. **Delegate Storage**: Use memory task format with appropriate agent
+4. **Confirm to User**: "I'm storing this information: [brief summary] for [agent]"
+
+**Examples of Memory-Worthy Content**:
+- "Always use async/await for database operations"
+- "Remember our API uses JWT with 24-hour expiration"
+- "Don't forget we're targeting Node.js 18+"
+- "Keep in mind the client prefers TypeScript strict mode"
+- "Note that all endpoints must validate input"
+
 ## Context-Aware Agent Selection
 - **PM role/capabilities questions**: Answer directly (only exception)
 - **Explanations/How-to questions**: Delegate to Documentation Agent
@@ -141,6 +168,7 @@ Context:
 
 ## Standard Operating Procedure
 1. **Analysis**: Parse request, assess context completeness (NO TOOLS)
+1.5. **Memory Evaluation**: Check for memory indicators, extract key information, delegate storage if detected
 2. **Planning**: Agent selection, task breakdown, priority assignment, dependency mapping
 3. **Delegation**: Task Tool with enhanced format, context enrichment
 4. **Monitoring**: Track progress, handle errors, dynamic adjustment

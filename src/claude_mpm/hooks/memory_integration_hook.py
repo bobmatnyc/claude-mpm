@@ -123,14 +123,24 @@ class MemoryPostDelegationHook(PostDelegationHook):
     extracts structured learnings from their outputs using explicit markers,
     building up project-specific knowledge over time.
     
-    DESIGN DECISION: We use explicit markers (# Add To Memory: ... #) to give
-    agents full control over what gets memorized. This is more reliable than
-    pattern matching and allows multiple learnings per response.
+    DESIGN DECISION: We use explicit markers to give agents full control over
+    what gets memorized. This is more reliable than pattern matching and allows
+    multiple learnings per response. Supports multiple trigger phrases for flexibility.
     
-    Format:
+    Supported formats:
     # Add To Memory:
     Type: pattern
     Content: All services use dependency injection for flexibility
+    #
+    
+    # Memorize:
+    Type: guideline
+    Content: Always validate input parameters before processing
+    #
+    
+    # Remember:
+    Type: mistake
+    Content: Never hardcode configuration values
     #
     """
     
@@ -234,9 +244,9 @@ class MemoryPostDelegationHook(PostDelegationHook):
         concise and actionable. Longer entries tend to be less useful as
         quick reference points.
         
-        DESIGN DECISION: Using explicit markers (# Add To Memory: ... #) gives
-        agents full control and makes extraction reliable. We support multiple
-        memory additions in a single response.
+        DESIGN DECISION: Using explicit markers gives agents full control and makes
+        extraction reliable. We support multiple memory additions in a single response
+        and multiple trigger phrases (Add To Memory, Memorize, Remember) for flexibility.
         
         Args:
             text: The text to extract learnings from
@@ -247,10 +257,10 @@ class MemoryPostDelegationHook(PostDelegationHook):
         learnings = {learning_type: [] for learning_type in self.type_mapping.keys()}
         seen_learnings = set()  # Avoid duplicates
         
-        # Pattern to find memory blocks
-        # Matches: # Add To Memory:\n...\n#
-        # The (?:(?!#\s*Add\s+To\s+Memory:).) ensures we don't match across blocks
-        memory_pattern = r'#\s*Add\s+To\s+Memory:\s*\n((?:(?!#\s*Add\s+To\s+Memory:)(?!^\s*#\s*$).)*?)\n\s*#\s*$'
+        # Pattern to find memory blocks with multiple trigger phrases
+        # Matches: # Add To Memory: / # Memorize: / # Remember:\n...\n#
+        # Only matches complete blocks with proper closing markers
+        memory_pattern = r'#\s*(?:Add\s+To\s+Memory|Memorize|Remember):\s*\n((?:[^#](?:[^#]|#(?!\s*(?:Add\s+To\s+Memory|Memorize|Remember):))*?)?)\n\s*#\s*$'
         matches = re.finditer(memory_pattern, text, re.MULTILINE | re.DOTALL | re.IGNORECASE)
         
         for match in matches:

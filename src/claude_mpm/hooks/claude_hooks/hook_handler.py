@@ -15,6 +15,7 @@ WHY connection pooling approach:
 import json
 import sys
 import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from collections import deque
@@ -59,6 +60,10 @@ class ClaudeHookHandler:
         self.active_delegations = {}
         # Use deque to limit memory usage (keep last 100 delegations)
         self.delegation_history = deque(maxlen=100)
+        
+        # Git branch cache (to avoid repeated subprocess calls)
+        self._git_branch_cache = {}
+        self._git_branch_cache_time = {}
         
         # Initialize fallback server instance if available (but don't start it)
         if SERVER_AVAILABLE:
@@ -107,6 +112,63 @@ class ClaudeHookHandler:
                     return agent_type
         
         return 'unknown'
+    
+    def _get_git_branch(self, working_dir: str = None) -> str:
+        """Get git branch for the given directory with caching.
+        
+        WHY caching approach:
+        - Avoids repeated subprocess calls which are expensive
+        - Caches results for 30 seconds per directory
+        - Falls back gracefully if git command fails
+        - Returns 'Unknown' for non-git directories
+        """
+        # Use current working directory if not specified
+        if not working_dir:
+            working_dir = os.getcwd()
+        
+        # Check cache first (cache for 30 seconds)
+        current_time = datetime.now().timestamp()
+        cache_key = working_dir
+        
+        if (cache_key in self._git_branch_cache 
+            and cache_key in self._git_branch_cache_time
+            and current_time - self._git_branch_cache_time[cache_key] < 30):
+            return self._git_branch_cache[cache_key]
+        
+        # Try to get git branch
+        try:
+            # Change to the working directory temporarily
+            original_cwd = os.getcwd()
+            os.chdir(working_dir)
+            
+            # Run git command to get current branch
+            result = subprocess.run(
+                ['git', 'branch', '--show-current'],
+                capture_output=True,
+                text=True,
+                timeout=2  # Quick timeout to avoid hanging
+            )
+            
+            # Restore original directory
+            os.chdir(original_cwd)
+            
+            if result.returncode == 0 and result.stdout.strip():
+                branch = result.stdout.strip()
+                # Cache the result
+                self._git_branch_cache[cache_key] = branch
+                self._git_branch_cache_time[cache_key] = current_time
+                return branch
+            else:
+                # Not a git repository or no branch
+                self._git_branch_cache[cache_key] = 'Unknown'
+                self._git_branch_cache_time[cache_key] = current_time
+                return 'Unknown'
+                
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, OSError):
+            # Git not available or command failed
+            self._git_branch_cache[cache_key] = 'Unknown'
+            self._git_branch_cache_time[cache_key] = current_time
+            return 'Unknown'
     
     def _get_socketio_client(self):
         """Get or create Socket.IO client.
@@ -255,6 +317,10 @@ class ClaudeHookHandler:
         if prompt.startswith('/mpm') and not DEBUG:
             return
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         # Extract comprehensive prompt data
         prompt_data = {
             'event_type': 'user_prompt',
@@ -262,7 +328,8 @@ class ClaudeHookHandler:
             'prompt_preview': prompt[:200] if len(prompt) > 200 else prompt,
             'prompt_length': len(prompt),
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'is_command': prompt.startswith('/'),
             'contains_code': '```' in prompt or 'python' in prompt.lower() or 'javascript' in prompt.lower(),
@@ -289,13 +356,18 @@ class ClaudeHookHandler:
         # Classify tool operation
         operation_type = self._classify_tool_operation(tool_name, tool_input)
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         pre_tool_data = {
             'event_type': 'pre_tool',
             'tool_name': tool_name,
             'operation_type': operation_type,
             'tool_parameters': tool_params,
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'parameter_count': len(tool_input) if isinstance(tool_input, dict) else 0,
             'is_file_operation': tool_name in ['Write', 'Edit', 'MultiEdit', 'Read', 'LS', 'Glob'],
@@ -338,6 +410,10 @@ class ClaudeHookHandler:
         # Calculate duration if timestamps are available
         duration = self._calculate_duration(event)
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         post_tool_data = {
             'event_type': 'post_tool',
             'tool_name': tool_name,
@@ -347,7 +423,8 @@ class ClaudeHookHandler:
             'duration_ms': duration,
             'result_summary': result_data,
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'has_output': bool(result_data.get('output')),
             'has_error': bool(result_data.get('error')),
@@ -546,6 +623,10 @@ class ClaudeHookHandler:
         notification_type = event.get('notification_type', 'unknown')
         message = event.get('message', '')
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         notification_data = {
             'event_type': 'notification',
             'notification_type': notification_type,
@@ -553,7 +634,8 @@ class ClaudeHookHandler:
             'message_preview': message[:200] if len(message) > 200 else message,
             'message_length': len(message),
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'is_user_input_request': 'input' in message.lower() or 'waiting' in message.lower(),
             'is_error_notification': 'error' in message.lower() or 'failed' in message.lower(),
@@ -575,12 +657,17 @@ class ClaudeHookHandler:
         reason = event.get('reason', 'unknown')
         stop_type = event.get('stop_type', 'normal')
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         stop_data = {
             'event_type': 'stop',
             'reason': reason,
             'stop_type': stop_type,
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'is_user_initiated': reason in ['user_stop', 'user_cancel', 'interrupt'],
             'is_error_stop': reason in ['error', 'timeout', 'failed'],
@@ -621,13 +708,18 @@ class ClaudeHookHandler:
             elif 'pm' in task_desc or 'project' in task_desc:
                 agent_type = 'pm'
         
+        # Get working directory and git branch
+        working_dir = event.get('cwd', '')
+        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        
         subagent_stop_data = {
             'event_type': 'subagent_stop',
             'agent_type': agent_type,
             'agent_id': agent_id,
             'reason': reason,
             'session_id': event.get('session_id', ''),
-            'working_directory': event.get('cwd', ''),
+            'working_directory': working_dir,
+            'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'is_successful_completion': reason in ['completed', 'finished', 'done'],
             'is_error_termination': reason in ['error', 'timeout', 'failed', 'blocked'],

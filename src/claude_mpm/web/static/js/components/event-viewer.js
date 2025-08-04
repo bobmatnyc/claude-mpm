@@ -120,13 +120,8 @@ class EventViewer {
             }
 
             // Session filter
-            if (this.sessionFilter && this.sessionFilter !== 'current') {
-                if (this.sessionFilter === '' || !event.data || event.data.session_id !== this.sessionFilter) {
-                    return false;
-                }
-            } else if (this.sessionFilter === 'current') {
-                const currentSessionId = this.socketClient.currentSessionId;
-                if (!event.data || event.data.session_id !== currentSessionId) {
+            if (this.sessionFilter && this.sessionFilter !== '') {
+                if (!event.data || event.data.session_id !== this.sessionFilter) {
                     return false;
                 }
             }
