@@ -50,7 +50,8 @@
       "Generate specific questions for PM when information gaps exist",
       "Assess implementation readiness with quantifiable confidence metrics",
       "Create risk-aware analysis with mitigation strategies",
-      "Escalate to PM with actionable clarification requests"
+      "Escalate to PM with actionable clarification requests",
+	  "When researching online, look form information starting in 2025"
     ],
     "constraints": [
       "Pre-implementation codebase analysis with confidence validation",
