@@ -22,6 +22,7 @@ class EventViewer {
         
         // Event type tracking
         this.eventTypeCount = {};
+        this.availableEventTypes = new Set();
         this.errorCount = 0;
         this.eventsThisMinute = 0;
         this.lastMinute = new Date().getMinutes();
@@ -114,9 +115,12 @@ class EventViewer {
                 }
             }
 
-            // Type filter
-            if (this.typeFilter && event.type !== this.typeFilter) {
-                return false;
+            // Type filter - now handles both full hook types (like "hook.user_prompt") and main types
+            if (this.typeFilter) {
+                const eventType = event.type || '';
+                if (eventType !== this.typeFilter) {
+                    return false;
+                }
             }
 
             // Session filter
@@ -134,9 +138,61 @@ class EventViewer {
     }
 
     /**
+     * Update available event types and populate dropdown
+     */
+    updateEventTypeDropdown() {
+        const dropdown = document.getElementById('events-type-filter');
+        if (!dropdown) return;
+
+        // Extract unique event types from current events
+        const eventTypes = new Set();
+        this.events.forEach(event => {
+            if (event.type) {
+                eventTypes.add(event.type);
+            }
+        });
+
+        // Check if event types have changed
+        const currentTypes = Array.from(eventTypes).sort();
+        const previousTypes = Array.from(this.availableEventTypes).sort();
+        
+        if (JSON.stringify(currentTypes) === JSON.stringify(previousTypes)) {
+            return; // No change needed
+        }
+
+        // Update our tracking
+        this.availableEventTypes = eventTypes;
+
+        // Store the current selection
+        const currentSelection = dropdown.value;
+
+        // Clear existing options except "All Events"
+        dropdown.innerHTML = '<option value="">All Events</option>';
+
+        // Add new options sorted alphabetically
+        const sortedTypes = Array.from(eventTypes).sort();
+        sortedTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = type;
+            dropdown.appendChild(option);
+        });
+
+        // Restore selection if it still exists
+        if (currentSelection && eventTypes.has(currentSelection)) {
+            dropdown.value = currentSelection;
+        } else if (currentSelection && !eventTypes.has(currentSelection)) {
+            // If the previously selected type no longer exists, clear the filter
+            dropdown.value = '';
+            this.typeFilter = '';
+        }
+    }
+
+    /**
      * Update the display with current events
      */
     updateDisplay() {
+        this.updateEventTypeDropdown();
         this.applyFilters();
     }
 
