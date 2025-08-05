@@ -590,6 +590,266 @@ class AgentMemoryManager(LoggerMixin):
             self.logger.error(f"Error saving memory for {agent_id}: {e}")
             return False
     
+    def optimize_memory(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Optimize agent memory by consolidating/cleaning memories.
+        
+        WHY: Over time, memory files accumulate redundant or outdated information.
+        This method delegates to the memory optimizer service to clean up and
+        consolidate memories while preserving important information.
+        
+        Args:
+            agent_id: Optional specific agent ID. If None, optimizes all agents.
+            
+        Returns:
+            Dict containing optimization results and statistics
+        """
+        try:
+            from claude_mpm.services.memory_optimizer import MemoryOptimizer
+            optimizer = MemoryOptimizer(self.config)
+            
+            if agent_id:
+                result = optimizer.optimize_agent_memory(agent_id)
+                self.logger.info(f"Optimized memory for agent: {agent_id}")
+            else:
+                result = optimizer.optimize_all_memories()
+                self.logger.info("Optimized all agent memories")
+            
+            return result
+        except Exception as e:
+            self.logger.error(f"Error optimizing memory: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def build_memories_from_docs(self, force_rebuild: bool = False) -> Dict[str, Any]:
+        """Build agent memories from project documentation.
+        
+        WHY: Project documentation contains valuable knowledge that should be
+        extracted and assigned to appropriate agents for better context awareness.
+        
+        Args:
+            force_rebuild: If True, rebuilds even if docs haven't changed
+            
+        Returns:
+            Dict containing build results and statistics
+        """
+        try:
+            from claude_mpm.services.memory_builder import MemoryBuilder
+            builder = MemoryBuilder(self.config)
+            
+            result = builder.build_from_documentation(force_rebuild)
+            self.logger.info("Built memories from documentation")
+            
+            return result
+        except Exception as e:
+            self.logger.error(f"Error building memories from docs: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def route_memory_command(self, content: str, context: Optional[Dict] = None) -> Dict[str, Any]:
+        """Route memory command to appropriate agent via PM delegation.
+        
+        WHY: Memory commands like "remember this for next time" need to be analyzed
+        to determine which agent should store the information. This method provides
+        routing logic for PM agent delegation.
+        
+        Args:
+            content: The content to be remembered
+            context: Optional context for routing decisions
+            
+        Returns:
+            Dict containing routing decision and reasoning
+        """
+        try:
+            from claude_mpm.services.memory_router import MemoryRouter
+            router = MemoryRouter(self.config)
+            
+            routing_result = router.analyze_and_route(content, context)
+            self.logger.debug(f"Routed memory command: {routing_result['target_agent']}")
+            
+            return routing_result
+        except Exception as e:
+            self.logger.error(f"Error routing memory command: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def get_memory_status(self) -> Dict[str, Any]:
+        """Get comprehensive memory system status.
+        
+        WHY: Provides detailed overview of memory system health, file sizes,
+        optimization opportunities, and agent-specific statistics for monitoring
+        and maintenance purposes.
+        
+        Returns:
+            Dict containing comprehensive memory system status
+        """
+        try:
+            status = {
+                "system_enabled": self.memory_enabled,
+                "auto_learning": self.auto_learning,
+                "memory_directory": str(self.memories_dir),
+                "total_agents": 0,
+                "total_size_kb": 0,
+                "agents": {},
+                "optimization_opportunities": [],
+                "system_health": "healthy"
+            }
+            
+            if not self.memories_dir.exists():
+                status["system_health"] = "no_memory_dir"
+                return status
+            
+            memory_files = list(self.memories_dir.glob("*_agent.md"))
+            status["total_agents"] = len(memory_files)
+            
+            total_size = 0
+            for file_path in memory_files:
+                stat = file_path.stat()
+                size_kb = stat.st_size / 1024
+                total_size += stat.st_size
+                
+                agent_id = file_path.stem.replace('_agent', '')
+                limits = self._get_agent_limits(agent_id)
+                
+                # Analyze file content
+                try:
+                    content = file_path.read_text()
+                    section_count = len([line for line in content.splitlines() if line.startswith('## ')])
+                    learning_count = len([line for line in content.splitlines() if line.strip().startswith('- ')])
+                    
+                    agent_status = {
+                        "size_kb": round(size_kb, 2),
+                        "size_limit_kb": limits['max_file_size_kb'],
+                        "size_utilization": min(100, round((size_kb / limits['max_file_size_kb']) * 100, 1)),
+                        "sections": section_count,
+                        "items": learning_count,
+                        "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "auto_learning": self._get_agent_auto_learning(agent_id)
+                    }
+                    
+                    # Check for optimization opportunities
+                    if size_kb > limits['max_file_size_kb'] * 0.8:
+                        status["optimization_opportunities"].append(f"{agent_id}: High memory usage ({size_kb:.1f}KB)")
+                    
+                    if section_count > limits['max_sections'] * 0.8:
+                        status["optimization_opportunities"].append(f"{agent_id}: Many sections ({section_count})")
+                    
+                    status["agents"][agent_id] = agent_status
+                    
+                except Exception as e:
+                    status["agents"][agent_id] = {"error": str(e)}
+            
+            status["total_size_kb"] = round(total_size / 1024, 2)
+            
+            # Determine overall system health
+            if len(status["optimization_opportunities"]) > 3:
+                status["system_health"] = "needs_optimization"
+            elif status["total_size_kb"] > 100:  # More than 100KB total
+                status["system_health"] = "high_usage"
+            
+            return status
+            
+        except Exception as e:
+            self.logger.error(f"Error getting memory status: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def cross_reference_memories(self, query: Optional[str] = None) -> Dict[str, Any]:
+        """Find common patterns and cross-references across agent memories.
+        
+        WHY: Different agents may have learned similar or related information.
+        Cross-referencing helps identify knowledge gaps, redundancies, and
+        opportunities for knowledge sharing between agents.
+        
+        Args:
+            query: Optional query to filter cross-references
+            
+        Returns:
+            Dict containing cross-reference analysis results
+        """
+        try:
+            cross_refs = {
+                "common_patterns": [],
+                "knowledge_gaps": [],
+                "redundancies": [],
+                "agent_correlations": {},
+                "query_matches": [] if query else None
+            }
+            
+            if not self.memories_dir.exists():
+                return cross_refs
+            
+            memory_files = list(self.memories_dir.glob("*_agent.md"))
+            agent_memories = {}
+            
+            # Load all agent memories
+            for file_path in memory_files:
+                agent_id = file_path.stem.replace('_agent', '')
+                try:
+                    content = file_path.read_text()
+                    agent_memories[agent_id] = content
+                except Exception as e:
+                    self.logger.warning(f"Error reading memory for {agent_id}: {e}")
+                    continue
+            
+            # Find common patterns across agents
+            all_lines = []
+            agent_lines = {}
+            
+            for agent_id, content in agent_memories.items():
+                lines = [line.strip() for line in content.splitlines() 
+                        if line.strip().startswith('- ')]
+                agent_lines[agent_id] = lines
+                all_lines.extend([(line, agent_id) for line in lines])
+            
+            # Look for similar content (basic similarity check)
+            line_counts = {}
+            for line, agent_id in all_lines:
+                # Normalize line for comparison
+                normalized = line.lower().replace('- ', '').strip()
+                if len(normalized) > 20:  # Only check substantial lines
+                    if normalized not in line_counts:
+                        line_counts[normalized] = []
+                    line_counts[normalized].append(agent_id)
+            
+            # Find patterns appearing in multiple agents
+            for line, agents in line_counts.items():
+                if len(set(agents)) > 1:  # Appears in multiple agents
+                    cross_refs["common_patterns"].append({
+                        "pattern": line[:100] + "..." if len(line) > 100 else line,
+                        "agents": list(set(agents)),
+                        "count": len(agents)
+                    })
+            
+            # Query-specific matches
+            if query:
+                query_lower = query.lower()
+                for agent_id, content in agent_memories.items():
+                    matches = []
+                    for line in content.splitlines():
+                        if query_lower in line.lower():
+                            matches.append(line.strip())
+                    
+                    if matches:
+                        cross_refs["query_matches"].append({
+                            "agent": agent_id,
+                            "matches": matches[:5]  # Limit to first 5 matches
+                        })
+            
+            # Calculate agent correlations (agents with similar knowledge domains)
+            for agent_a in agent_memories:
+                for agent_b in agent_memories:
+                    if agent_a < agent_b:  # Avoid duplicates
+                        common_count = len([
+                            line for line in line_counts.values()
+                            if agent_a in line and agent_b in line
+                        ])
+                        
+                        if common_count > 0:
+                            correlation_key = f"{agent_a}+{agent_b}"
+                            cross_refs["agent_correlations"][correlation_key] = common_count
+            
+            return cross_refs
+            
+        except Exception as e:
+            self.logger.error(f"Error cross-referencing memories: {e}")
+            return {"success": False, "error": str(e)}
+
     def _ensure_memories_directory(self):
         """Ensure memories directory exists with README.
         

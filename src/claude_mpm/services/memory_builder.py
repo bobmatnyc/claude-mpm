@@ -1,0 +1,491 @@
+#!/usr/bin/env python3
+"""
+Memory Builder Service
+=====================
+
+Builds agent memories from project documentation by parsing and extracting
+memory-worthy content for appropriate agents.
+
+This service provides:
+- Documentation parsing (CLAUDE.md, QA.md, STRUCTURE.md, etc.)
+- Content extraction and categorization
+- Agent assignment based on content type
+- Concise memory entry creation (< 100 chars)
+- Batch building from multiple docs
+
+WHY: Project documentation contains valuable patterns, guidelines, and knowledge
+that agents should be aware of. This service automatically extracts and assigns
+relevant information to appropriate agents.
+
+DESIGN DECISION: Focuses on extracting actionable insights rather than copying
+documentation verbatim. Creates concise learnings that fit memory constraints
+while preserving essential information.
+"""
+
+import re
+from pathlib import Path
+from typing import Dict, List, Optional, Any, Tuple
+from datetime import datetime
+
+from claude_mpm.core import LoggerMixin
+from claude_mpm.core.config import Config
+from claude_mpm.utils.paths import PathResolver
+from claude_mpm.services.memory_router import MemoryRouter
+
+
+class MemoryBuilder(LoggerMixin):
+    """Builds agent memories from project documentation.
+    
+    WHY: Documentation contains patterns and guidelines that agents should know
+    about. Manual memory creation is time-consuming and prone to inconsistency.
+    This service automates the extraction and assignment process.
+    
+    DESIGN DECISION: Uses pattern matching and content analysis to extract
+    actionable insights rather than copying raw documentation. Focuses on
+    creating learnings that will actually be useful to agents.
+    """
+    
+    # Documentation files to process
+    DOC_FILES = {
+        'CLAUDE.md': {
+            'priority': 'high',
+            'sections': ['development guidelines', 'key components', 'common issues'],
+            'agents': ['pm', 'engineer']
+        },
+        'docs/STRUCTURE.md': {
+            'priority': 'high', 
+            'sections': ['file placement', 'design patterns', 'directory structure'],
+            'agents': ['engineer', 'documentation']
+        },
+        'docs/QA.md': {
+            'priority': 'high',
+            'sections': ['testing', 'quality assurance', 'validation'],
+            'agents': ['qa', 'engineer']
+        },
+        'docs/DEPLOY.md': {
+            'priority': 'medium',
+            'sections': ['deployment', 'versioning', 'release'],
+            'agents': ['engineer', 'pm']
+        },
+        'docs/VERSIONING.md': {
+            'priority': 'medium',
+            'sections': ['version management', 'semantic versioning'],
+            'agents': ['engineer', 'pm']
+        }
+    }
+    
+    # Patterns for extracting actionable content
+    EXTRACTION_PATTERNS = {
+        'guidelines': [
+            r'(?:must|should|always|never|avoid|ensure|remember to)\s+(.+?)(?:\.|$)',
+            r'(?:important|note|warning|tip):\s*(.+?)(?:\.|$)',
+            r'(?:do not|don\'t)\s+(.+?)(?:\.|$)'
+        ],
+        'patterns': [
+            r'(?:pattern|approach|strategy|method):\s*(.+?)(?:\.|$)',
+            r'(?:use|implement|follow)\s+(.+?)\s+(?:pattern|approach|for)',
+            r'(?:follows|uses|implements)\s+(.+?)\s+(?:pattern|architecture)'
+        ],
+        'mistakes': [
+            r'(?:common\s+)?(?:mistake|error|issue|problem):\s*(.+?)(?:\.|$)',
+            r'(?:avoid|never|don\'t)\s+(.+?)(?:\.|$)',
+            r'(?:pitfall|gotcha|warning):\s*(.+?)(?:\.|$)'
+        ],
+        'architecture': [
+            r'(?:architecture|structure|design):\s*(.+?)(?:\.|$)',
+            r'(?:component|service|module)\s+(.+?)\s+(?:provides|handles|manages)',
+            r'(?:uses|implements|follows)\s+(.+?)\s+(?:architecture|pattern)'
+        ]
+    }
+    
+    def __init__(self, config: Optional[Config] = None):
+        """Initialize the memory builder.
+        
+        Args:
+            config: Optional Config object
+        """
+        super().__init__()
+        self.config = config or Config()
+        self.project_root = PathResolver.get_project_root()
+        self.memories_dir = self.project_root / ".claude-mpm" / "memories"
+        self.router = MemoryRouter(config)
+    
+    def build_from_documentation(self, force_rebuild: bool = False) -> Dict[str, Any]:
+        """Build agent memories from project documentation.
+        
+        WHY: Documentation contains project-specific knowledge that agents need.
+        This method extracts and assigns relevant information to appropriate agents.
+        
+        Args:
+            force_rebuild: If True, rebuilds even if docs haven't changed
+            
+        Returns:
+            Dict containing build results and statistics
+        """
+        try:
+            results = {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "files_processed": 0,
+                "memories_created": 0,
+                "memories_updated": 0,
+                "agents_affected": set(),
+                "files": {},
+                "errors": []
+            }
+            
+            # Process each documentation file
+            for doc_path, doc_config in self.DOC_FILES.items():
+                file_path = self.project_root / doc_path
+                
+                if not file_path.exists():
+                    self.logger.debug(f"Documentation file not found: {doc_path}")
+                    continue
+                
+                # Check if rebuild is needed
+                if not force_rebuild and not self._needs_rebuild(file_path):
+                    self.logger.debug(f"Skipping {doc_path} - no changes detected")
+                    continue
+                
+                file_result = self._process_documentation_file(file_path, doc_config)
+                results["files"][doc_path] = file_result
+                
+                # Aggregate results
+                if file_result.get("success"):
+                    results["files_processed"] += 1
+                    results["memories_created"] += file_result.get("memories_created", 0)
+                    results["memories_updated"] += file_result.get("memories_updated", 0)
+                    results["agents_affected"].update(file_result.get("agents_affected", []))
+                else:
+                    results["errors"].append(f"{doc_path}: {file_result.get('error', 'Unknown error')}")
+            
+            # Convert set to list for JSON serialization
+            results["agents_affected"] = list(results["agents_affected"])
+            results["total_agents_affected"] = len(results["agents_affected"])
+            
+            self.logger.info(f"Built memories from documentation: {results['files_processed']} files, {results['memories_created']} memories created")
+            return results
+            
+        except Exception as e:
+            self.logger.error(f"Error building memories from documentation: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+    
+    def extract_from_text(self, text: str, source: str) -> List[Dict[str, Any]]:
+        """Extract memory-worthy content from text.
+        
+        WHY: Provides reusable text extraction logic that can be used for
+        custom documentation or other text sources beyond standard files.
+        
+        Args:
+            text: Text content to analyze
+            source: Source identifier for context
+            
+        Returns:
+            List of extracted memory items with metadata
+        """
+        try:
+            extracted_items = []
+            
+            # Process each extraction pattern type
+            for pattern_type, patterns in self.EXTRACTION_PATTERNS.items():
+                for pattern in patterns:
+                    matches = re.finditer(pattern, text, re.IGNORECASE | re.MULTILINE)
+                    
+                    for match in matches:
+                        content = match.group(1).strip()
+                        
+                        # Clean and validate content
+                        content = self._clean_extracted_content(content)
+                        if not self._is_valid_memory_content(content):
+                            continue
+                        
+                        # Route to appropriate agent
+                        routing_result = self.router.analyze_and_route(content)
+                        
+                        extracted_item = {
+                            "content": content,
+                            "type": pattern_type,
+                            "source": source,
+                            "target_agent": routing_result.get("target_agent", "pm"),
+                            "section": routing_result.get("section", "Recent Learnings"),
+                            "confidence": routing_result.get("confidence", 0.5),
+                            "pattern_matched": pattern
+                        }
+                        
+                        extracted_items.append(extracted_item)
+            
+            # Remove near-duplicates
+            unique_items = self._deduplicate_extracted_items(extracted_items)
+            
+            self.logger.debug(f"Extracted {len(unique_items)} unique items from {source}")
+            return unique_items
+            
+        except Exception as e:
+            self.logger.error(f"Error extracting content from text: {e}")
+            return []
+    
+    def build_agent_memory_from_items(self, agent_id: str, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Build or update agent memory from extracted items.
+        
+        WHY: Extracted items need to be properly integrated into agent memory
+        files while respecting existing content and size limits.
+        
+        Args:
+            agent_id: Target agent identifier
+            items: List of extracted memory items
+            
+        Returns:
+            Dict containing update results
+        """
+        try:
+            from claude_mpm.services.agent_memory_manager import get_memory_manager
+            memory_manager = get_memory_manager(self.config)
+            
+            result = {
+                "success": True,
+                "agent_id": agent_id,
+                "items_processed": 0,
+                "items_added": 0,
+                "items_skipped": 0,
+                "sections_updated": set(),
+                "errors": []
+            }
+            
+            # Filter items for this agent
+            agent_items = [item for item in items if item.get("target_agent") == agent_id]
+            
+            for item in agent_items:
+                result["items_processed"] += 1
+                
+                try:
+                    # Add to memory
+                    section = item.get("section", "Recent Learnings")
+                    content = item.get("content", "")
+                    
+                    success = memory_manager.update_agent_memory(agent_id, section, content)
+                    
+                    if success:
+                        result["items_added"] += 1
+                        result["sections_updated"].add(section)
+                    else:
+                        result["items_skipped"] += 1
+                        result["errors"].append(f"Failed to add: {content[:50]}...")
+                        
+                except Exception as e:
+                    result["items_skipped"] += 1
+                    result["errors"].append(f"Error processing item: {str(e)}")
+            
+            # Convert set to list
+            result["sections_updated"] = list(result["sections_updated"])
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error building memory for {agent_id}: {e}")
+            return {
+                "success": False,
+                "agent_id": agent_id,
+                "error": str(e)
+            }
+    
+    def _process_documentation_file(self, file_path: Path, doc_config: Dict[str, Any]) -> Dict[str, Any]:
+        """Process a single documentation file.
+        
+        Args:
+            file_path: Path to documentation file
+            doc_config: Configuration for this file type
+            
+        Returns:
+            Processing results
+        """
+        try:
+            # Read file content
+            content = file_path.read_text(encoding='utf-8')
+            
+            # Extract memory items
+            extracted_items = self.extract_from_text(content, str(file_path.relative_to(self.project_root)))
+            
+            result = {
+                "success": True,
+                "file_path": str(file_path),
+                "content_length": len(content),
+                "items_extracted": len(extracted_items),
+                "memories_created": 0,
+                "memories_updated": 0,
+                "agents_affected": [],
+                "agent_results": {}
+            }
+            
+            # Group items by target agent
+            agent_items = {}
+            for item in extracted_items:
+                agent = item.get("target_agent", "pm")
+                if agent not in agent_items:
+                    agent_items[agent] = []
+                agent_items[agent].append(item)
+            
+            # Update each agent's memory
+            for agent_id, items in agent_items.items():
+                agent_result = self.build_agent_memory_from_items(agent_id, items)
+                result["agent_results"][agent_id] = agent_result
+                
+                if agent_result.get("success"):
+                    result["agents_affected"].append(agent_id)
+                    result["memories_created"] += agent_result.get("items_added", 0)
+            
+            # Update last processed timestamp
+            self._update_last_processed(file_path)
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error processing documentation file {file_path}: {e}")
+            return {
+                "success": False,
+                "file_path": str(file_path),
+                "error": str(e)
+            }
+    
+    def _needs_rebuild(self, file_path: Path) -> bool:
+        """Check if documentation file needs to be processed.
+        
+        Args:
+            file_path: Path to documentation file
+            
+        Returns:
+            True if file needs processing
+        """
+        # Check if file was modified since last processing
+        try:
+            last_processed_file = self.memories_dir / ".last_processed.json"
+            
+            if not last_processed_file.exists():
+                return True
+            
+            import json
+            last_processed = json.loads(last_processed_file.read_text())
+            
+            file_key = str(file_path.relative_to(self.project_root))
+            if file_key not in last_processed:
+                return True
+            
+            last_processed_time = datetime.fromisoformat(last_processed[file_key])
+            file_modified_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+            
+            return file_modified_time > last_processed_time
+            
+        except Exception as e:
+            self.logger.debug(f"Error checking rebuild status for {file_path}: {e}")
+            return True  # Default to rebuilding if we can't determine
+    
+    def _update_last_processed(self, file_path: Path):
+        """Update last processed timestamp for file.
+        
+        Args:
+            file_path: Path to documentation file
+        """
+        try:
+            self.memories_dir.mkdir(parents=True, exist_ok=True)
+            last_processed_file = self.memories_dir / ".last_processed.json"
+            
+            # Load existing data
+            if last_processed_file.exists():
+                import json
+                last_processed = json.loads(last_processed_file.read_text())
+            else:
+                last_processed = {}
+            
+            # Update timestamp
+            file_key = str(file_path.relative_to(self.project_root))
+            last_processed[file_key] = datetime.now().isoformat()
+            
+            # Save back
+            import json
+            last_processed_file.write_text(json.dumps(last_processed, indent=2))
+            
+        except Exception as e:
+            self.logger.warning(f"Error updating last processed timestamp: {e}")
+    
+    def _clean_extracted_content(self, content: str) -> str:
+        """Clean and normalize extracted content.
+        
+        Args:
+            content: Raw extracted content
+            
+        Returns:
+            Cleaned content string
+        """
+        # Remove markdown formatting
+        content = re.sub(r'[*_`#]+', '', content)
+        
+        # Remove extra whitespace
+        content = re.sub(r'\s+', ' ', content).strip()
+        
+        # Remove common prefixes that don't add value
+        content = re.sub(r'^(?:note:|tip:|important:|warning:)\s*', '', content, flags=re.IGNORECASE)
+        
+        # Truncate to memory limit (with ellipsis if needed)
+        if len(content) > 95:  # Leave room for ellipsis
+            content = content[:95] + "..."
+        
+        return content
+    
+    def _is_valid_memory_content(self, content: str) -> bool:
+        """Validate if content is suitable for memory storage.
+        
+        Args:
+            content: Content to validate
+            
+        Returns:
+            True if content is valid for memory
+        """
+        # Must have minimum length
+        if len(content) < 10:
+            return False
+        
+        # Must contain actionable information
+        actionable_words = ['use', 'avoid', 'ensure', 'follow', 'implement', 'check', 'must', 'should', 'never', 'always']
+        if not any(word in content.lower() for word in actionable_words):
+            return False
+        
+        # Avoid overly generic content
+        generic_phrases = ['this is', 'this document', 'see above', 'as mentioned', 'for more info']
+        if any(phrase in content.lower() for phrase in generic_phrases):
+            return False
+        
+        return True
+    
+    def _deduplicate_extracted_items(self, items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Remove near-duplicate extracted items.
+        
+        Args:
+            items: List of extracted items
+            
+        Returns:
+            Deduplicated list
+        """
+        from difflib import SequenceMatcher
+        
+        unique_items = []
+        
+        for item in items:
+            content = item.get("content", "")
+            is_duplicate = False
+            
+            # Check against existing unique items
+            for unique_item in unique_items:
+                unique_content = unique_item.get("content", "")
+                similarity = SequenceMatcher(None, content.lower(), unique_content.lower()).ratio()
+                
+                if similarity > 0.8:  # 80% similarity threshold
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                unique_items.append(item)
+        
+        return unique_items

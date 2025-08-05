@@ -57,6 +57,21 @@ def manage_memory(args):
         elif args.memory_command == "clean":
             _clean_memory(args, memory_manager)
         
+        elif args.memory_command == "optimize":
+            _optimize_memory(args, memory_manager)
+        
+        elif args.memory_command == "build":
+            _build_memory(args, memory_manager)
+        
+        elif args.memory_command == "cross-ref":
+            _cross_reference_memory(args, memory_manager)
+        
+        elif args.memory_command == "route":
+            _route_memory_command(args, memory_manager)
+        
+        elif args.memory_command == "show":
+            _show_memories(args, memory_manager)
+        
     except Exception as e:
         logger.error(f"Error managing memory: {e}")
         print(f"❌ Error: {e}")
@@ -67,16 +82,102 @@ def manage_memory(args):
 
 def _show_status(memory_manager):
     """
-    Show memory file status.
+    Show comprehensive memory system status.
     
-    WHY: Users need to see what memory files exist, their sizes, and
-    when they were last updated to understand the memory system state.
+    WHY: Users need to see memory system health, file sizes, optimization
+    opportunities, and agent-specific statistics to understand the system state.
     
     Args:
         memory_manager: AgentMemoryManager instance
     """
-    print("Agent Memory Status")
+    print("Agent Memory System Status")
     print("-" * 80)
+    
+    try:
+        # Get comprehensive status from memory manager
+        status = memory_manager.get_memory_status()
+        
+        if not status.get("success", True):
+            print(f"❌ Error getting status: {status.get('error', 'Unknown error')}")
+            return
+        
+        # Show system overview
+        system_health = status.get("system_health", "unknown")
+        health_emoji = {
+            "healthy": "✅",
+            "needs_optimization": "⚠️",
+            "high_usage": "📊",
+            "no_memory_dir": "📁"
+        }.get(system_health, "❓")
+        
+        print(f"🧠 Memory System Health: {health_emoji} {system_health}")
+        print(f"📁 Memory Directory: {status.get('memory_directory', 'Unknown')}")
+        print(f"🔧 System Enabled: {'Yes' if status.get('system_enabled', True) else 'No'}")
+        print(f"📚 Auto Learning: {'Yes' if status.get('auto_learning', False) else 'No'}")
+        print(f"📊 Total Agents: {status.get('total_agents', 0)}")
+        print(f"💾 Total Size: {status.get('total_size_kb', 0):.1f} KB")
+        print()
+        
+        # Show optimization opportunities
+        opportunities = status.get("optimization_opportunities", [])
+        if opportunities:
+            print(f"⚠️  Optimization Opportunities ({len(opportunities)}):")
+            for opportunity in opportunities[:5]:  # Show top 5
+                print(f"   • {opportunity}")
+            if len(opportunities) > 5:
+                print(f"   ... and {len(opportunities) - 5} more")
+            print()
+        
+        # Show per-agent details
+        agents = status.get("agents", {})
+        if agents:
+            print(f"📋 Agent Memory Details:")
+            for agent_id, agent_info in sorted(agents.items()):
+                if "error" in agent_info:
+                    print(f"   ❌ {agent_id}: Error - {agent_info['error']}")
+                    continue
+                
+                size_kb = agent_info.get("size_kb", 0)
+                size_limit = agent_info.get("size_limit_kb", 8)
+                utilization = agent_info.get("size_utilization", 0)
+                sections = agent_info.get("sections", 0)
+                items = agent_info.get("items", 0)
+                last_modified = agent_info.get("last_modified", "Unknown")
+                auto_learning = agent_info.get("auto_learning", False)
+                
+                # Format last modified time
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(last_modified.replace('Z', '+00:00'))
+                    last_modified_str = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except:
+                    last_modified_str = last_modified
+                
+                # Status indicator based on usage
+                if utilization > 90:
+                    status_emoji = "🔴"  # High usage
+                elif utilization > 70:
+                    status_emoji = "🟡"  # Medium usage
+                else:
+                    status_emoji = "🟢"  # Low usage
+                
+                print(f"   {status_emoji} {agent_id}")
+                print(f"      Size: {size_kb:.1f} KB / {size_limit} KB ({utilization:.1f}%)")
+                print(f"      Content: {sections} sections, {items} items")
+                print(f"      Auto-learning: {'On' if auto_learning else 'Off'}")
+                print(f"      Last modified: {last_modified_str}")
+        else:
+            print("📭 No agent memories found")
+            
+    except Exception as e:
+        print(f"❌ Error showing status: {e}")
+        # Fallback to basic status display
+        _show_basic_status(memory_manager)
+
+
+def _show_basic_status(memory_manager):
+    """Fallback basic status display if comprehensive status fails."""
+    print("\n--- Basic Status (Fallback) ---")
     
     memory_dir = memory_manager.memories_dir
     if not memory_dir.exists():
@@ -93,7 +194,6 @@ def _show_status(memory_manager):
     
     print(f"📁 Memory directory: {memory_dir}")
     print(f"📊 Total memory files: {len(memory_files)}")
-    print()
     
     total_size = 0
     for file_path in sorted(memory_files):
@@ -101,26 +201,8 @@ def _show_status(memory_manager):
         size_kb = stat.st_size / 1024
         total_size += stat.st_size
         
-        # Extract agent ID from filename (remove '_agent' suffix)
         agent_id = file_path.stem.replace('_agent', '')
-        
-        # Try to count sections in markdown file
-        try:
-            content = file_path.read_text()
-            # Count level 2 headers (sections)
-            section_count = len([line for line in content.splitlines() if line.startswith('## ')])
-            # Count bullet points (learnings)
-            learning_count = len([line for line in content.splitlines() if line.strip().startswith('- ')])
-        except:
-            section_count = "?"
-            learning_count = "?"
-        
-        print(f"🧠 {agent_id}")
-        print(f"   Size: {size_kb:.1f} KB")
-        print(f"   Sections: {section_count}")
-        print(f"   Items: {learning_count}")
-        print(f"   Last modified: {datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')}")
-        print()
+        print(f"   {agent_id}: {size_kb:.1f} KB")
     
     print(f"💾 Total size: {total_size / 1024:.1f} KB")
 
@@ -230,3 +312,471 @@ def _clean_memory(args, memory_manager):
     print("   - Memory files older than 30 days with no recent access")
     print("   - Corrupted memory files")
     print("   - Memory files for non-existent agents")
+
+
+def _optimize_memory(args, memory_manager):
+    """
+    Optimize memory files by removing duplicates and consolidating similar items.
+    
+    WHY: Memory files can become cluttered over time with duplicate or redundant
+    information. This command provides automated cleanup while preserving
+    important learnings.
+    
+    Args:
+        args: Command arguments with optional agent_id
+        memory_manager: AgentMemoryManager instance
+    """
+    print("🔧 Memory Optimization")
+    print("-" * 80)
+    
+    agent_id = getattr(args, 'agent_id', None)
+    
+    try:
+        if agent_id:
+            print(f"📊 Optimizing memory for agent: {agent_id}")
+            result = memory_manager.optimize_memory(agent_id)
+        else:
+            print("📊 Optimizing all agent memories...")
+            result = memory_manager.optimize_memory()
+        
+        if result.get("success"):
+            if agent_id:
+                # Single agent results
+                _display_single_optimization_result(result)
+            else:
+                # All agents results
+                _display_bulk_optimization_results(result)
+        else:
+            print(f"❌ Optimization failed: {result.get('error', 'Unknown error')}")
+            
+    except Exception as e:
+        print(f"❌ Error during optimization: {e}")
+
+
+def _build_memory(args, memory_manager):
+    """
+    Build agent memories from project documentation.
+    
+    WHY: Project documentation contains valuable patterns and guidelines that
+    agents should be aware of. This command automatically extracts and assigns
+    relevant information to appropriate agents.
+    
+    Args:
+        args: Command arguments with optional force_rebuild flag
+        memory_manager: AgentMemoryManager instance
+    """
+    print("📚 Memory Building from Documentation")
+    print("-" * 80)
+    
+    force_rebuild = getattr(args, 'force_rebuild', False)
+    
+    try:
+        print("🔍 Analyzing project documentation...")
+        result = memory_manager.build_memories_from_docs(force_rebuild)
+        
+        if result.get("success"):
+            print(f"✅ Successfully processed documentation")
+            print(f"   Files processed: {result.get('files_processed', 0)}")
+            print(f"   Memories created: {result.get('memories_created', 0)}")
+            print(f"   Memories updated: {result.get('memories_updated', 0)}")
+            print(f"   Agents affected: {result.get('total_agents_affected', 0)}")
+            
+            if result.get('agents_affected'):
+                print(f"   Affected agents: {', '.join(result['agents_affected'])}")
+            
+            # Show file-specific results
+            files_results = result.get('files', {})
+            if files_results:
+                print("\n📄 File processing details:")
+                for file_path, file_result in files_results.items():
+                    if file_result.get('success'):
+                        extracted = file_result.get('items_extracted', 0)
+                        created = file_result.get('memories_created', 0)
+                        print(f"   {file_path}: {extracted} items extracted, {created} memories created")
+            
+            if result.get('errors'):
+                print("\n⚠️  Errors encountered:")
+                for error in result['errors']:
+                    print(f"   {error}")
+                    
+        else:
+            print(f"❌ Build failed: {result.get('error', 'Unknown error')}")
+            
+    except Exception as e:
+        print(f"❌ Error building memories: {e}")
+
+
+def _cross_reference_memory(args, memory_manager):
+    """
+    Find cross-references and common patterns across agent memories.
+    
+    WHY: Different agents may have learned similar information or there may be
+    knowledge gaps that can be identified through cross-referencing.
+    
+    Args:
+        args: Command arguments with optional query
+        memory_manager: AgentMemoryManager instance
+    """
+    print("🔗 Memory Cross-Reference Analysis")
+    print("-" * 80)
+    
+    query = getattr(args, 'query', None)
+    
+    try:
+        if query:
+            print(f"🔍 Searching for: '{query}'")
+        else:
+            print("🔍 Analyzing all agent memories for patterns...")
+            
+        result = memory_manager.cross_reference_memories(query)
+        
+        if result.get("success") is False:
+            print(f"❌ Analysis failed: {result.get('error', 'Unknown error')}")
+            return
+        
+        # Display common patterns
+        common_patterns = result.get("common_patterns", [])
+        if common_patterns:
+            print(f"\n🔄 Common patterns found ({len(common_patterns)}):")
+            for pattern in common_patterns[:10]:  # Show top 10
+                agents = ', '.join(pattern['agents'])
+                print(f"   • {pattern['pattern']}")
+                print(f"     Found in: {agents} ({pattern['count']} instances)")
+        else:
+            print("\n🔄 No common patterns found")
+        
+        # Display query matches if query was provided
+        if query and result.get("query_matches"):
+            print(f"\n🎯 Query matches for '{query}':")
+            for match in result["query_matches"]:
+                print(f"   📋 {match['agent']}:")
+                for line in match['matches'][:3]:  # Show first 3 matches
+                    print(f"      • {line}")
+        
+        # Display agent correlations
+        correlations = result.get("agent_correlations", {})
+        if correlations:
+            print(f"\n🤝 Agent knowledge correlations:")
+            sorted_correlations = sorted(correlations.items(), key=lambda x: x[1], reverse=True)
+            for agents, count in sorted_correlations[:5]:  # Show top 5
+                print(f"   {agents}: {count} common items")
+        else:
+            print("\n🤝 No significant correlations found")
+            
+    except Exception as e:
+        print(f"❌ Error during cross-reference analysis: {e}")
+
+
+def _show_memories(args, memory_manager):
+    """
+    Show agent memories in a user-friendly format with cross-references and patterns.
+    
+    WHY: Users need to see agent memories in a readable format to understand
+    what agents have learned and identify common patterns across agents.
+    
+    Args:
+        args: Command arguments with optional agent_id and format
+        memory_manager: AgentMemoryManager instance
+    """
+    print("🧠 Agent Memories Display")
+    print("-" * 80)
+    
+    agent_id = getattr(args, 'agent_id', None)
+    format_type = getattr(args, 'format', 'summary')
+    
+    try:
+        if agent_id:
+            _show_single_agent_memory(agent_id, format_type, memory_manager)
+        else:
+            _show_all_agent_memories(format_type, memory_manager)
+            
+    except Exception as e:
+        print(f"❌ Error showing memories: {e}")
+
+
+def _show_single_agent_memory(agent_id, format_type, memory_manager):
+    """Show memory for a single agent in the specified format."""
+    memory_content = memory_manager.load_agent_memory(agent_id)
+    
+    if not memory_content:
+        print(f"📭 No memory found for agent: {agent_id}")
+        return
+    
+    print(f"🤖 Agent: {agent_id}")
+    print("-" * 40)
+    
+    if format_type == 'full':
+        print(memory_content)
+    else:
+        # Parse and display memory sections
+        sections = _parse_memory_content(memory_content)
+        
+        for section_name, items in sections.items():
+            if items:
+                print(f"\n📚 {section_name} ({len(items)} items):")
+                for i, item in enumerate(items[:5], 1):  # Show first 5 items
+                    print(f"   {i}. {item}")
+                if len(items) > 5:
+                    print(f"   ... and {len(items) - 5} more")
+
+
+def _show_all_agent_memories(format_type, memory_manager):
+    """Show memories for all agents with cross-references."""
+    # Get all available agent memory files
+    memory_dir = memory_manager.memories_dir
+    if not memory_dir.exists():
+        print("📁 No memory directory found")
+        return
+    
+    memory_files = list(memory_dir.glob("*_agent.md"))
+    if not memory_files:
+        print("📭 No agent memories found")
+        return
+    
+    print(f"📊 Found memories for {len(memory_files)} agents")
+    print()
+    
+    agent_memories = {}
+    total_items = 0
+    
+    # Load all agent memories
+    for file_path in sorted(memory_files):
+        agent_id = file_path.stem.replace('_agent', '')
+        try:
+            memory_content = memory_manager.load_agent_memory(agent_id)
+            if memory_content:
+                sections = _parse_memory_content(memory_content)
+                agent_memories[agent_id] = sections
+                
+                # Count items
+                item_count = sum(len(items) for items in sections.values())
+                total_items += item_count
+                
+                if format_type == 'summary':
+                    print(f"🤖 {agent_id}")
+                    print(f"   📚 {len(sections)} sections, {item_count} total items")
+                    
+                    # Show section summary
+                    for section_name, items in sections.items():
+                        if items:
+                            print(f"      • {section_name}: {len(items)} items")
+                    print()
+                elif format_type == 'detailed':
+                    print(f"🤖 {agent_id}")
+                    print(f"   📚 {len(sections)} sections, {item_count} total items")
+                    
+                    for section_name, items in sections.items():
+                        if items:
+                            print(f"\n   📖 {section_name}:")
+                            for item in items[:3]:  # Show first 3 items
+                                print(f"      • {item}")
+                            if len(items) > 3:
+                                print(f"      ... and {len(items) - 3} more")
+                    print()
+        except Exception as e:
+            print(f"❌ Error loading memory for {agent_id}: {e}")
+    
+    print(f"📊 Total: {total_items} memory items across {len(agent_memories)} agents")
+    
+    # Show cross-references if we have multiple agents
+    if len(agent_memories) > 1:
+        print("\n🔗 Cross-References and Common Patterns:")
+        _find_common_patterns(agent_memories)
+
+
+def _parse_memory_content(content):
+    """Parse memory content into sections and items."""
+    sections = {}
+    current_section = None
+    current_items = []
+    
+    for line in content.split('\n'):
+        line = line.strip()
+        
+        if line.startswith('## ') and not line.startswith('## Memory Usage'):
+            # New section
+            if current_section and current_items:
+                sections[current_section] = current_items.copy()
+            
+            current_section = line[3:].strip()
+            current_items = []
+        elif line.startswith('- ') and current_section:
+            # Item in current section
+            item = line[2:].strip()
+            if item and len(item) > 5:  # Filter out very short items
+                current_items.append(item)
+    
+    # Add final section
+    if current_section and current_items:
+        sections[current_section] = current_items
+    
+    return sections
+
+
+def _find_common_patterns(agent_memories):
+    """Find common patterns across agent memories."""
+    pattern_count = {}
+    agent_patterns = {}
+    
+    # Collect all patterns and which agents have them
+    for agent_id, sections in agent_memories.items():
+        agent_patterns[agent_id] = set()
+        
+        for section_name, items in sections.items():
+            for item in items:
+                # Normalize item for comparison (lowercase, basic cleanup)
+                normalized = item.lower().strip()
+                if len(normalized) > 10:  # Skip very short items
+                    pattern_count[normalized] = pattern_count.get(normalized, 0) + 1
+                    agent_patterns[agent_id].add(normalized)
+    
+    # Find patterns that appear in multiple agents
+    common_patterns = [(pattern, count) for pattern, count in pattern_count.items() if count > 1]
+    common_patterns.sort(key=lambda x: x[1], reverse=True)
+    
+    if common_patterns:
+        print("\n🔄 Most Common Patterns:")
+        for pattern, count in common_patterns[:5]:
+            # Find which agents have this pattern
+            agents_with_pattern = [agent for agent, patterns in agent_patterns.items() 
+                                   if pattern in patterns]
+            print(f"   • {pattern[:80]}{'...' if len(pattern) > 80 else ''}")
+            print(f"     Found in: {', '.join(agents_with_pattern)} ({count} agents)")
+            print()
+    else:
+        print("   No common patterns found across agents")
+    
+    # Show agent similarities
+    print("\n🤝 Agent Knowledge Similarity:")
+    agents = list(agent_memories.keys())
+    for i, agent1 in enumerate(agents):
+        for agent2 in agents[i+1:]:
+            common_items = len(agent_patterns[agent1] & agent_patterns[agent2])
+            if common_items > 0:
+                total_items = len(agent_patterns[agent1] | agent_patterns[agent2])
+                similarity = (common_items / total_items) * 100 if total_items > 0 else 0
+                print(f"   {agent1} ↔ {agent2}: {common_items} common items ({similarity:.1f}% similarity)")
+
+
+def _route_memory_command(args, memory_manager):
+    """
+    Test memory command routing logic.
+    
+    WHY: Users and developers need to understand how memory commands are routed
+    to appropriate agents for debugging and customization purposes.
+    
+    Args:
+        args: Command arguments with content to route
+        memory_manager: AgentMemoryManager instance
+    """
+    print("🎯 Memory Command Routing Test")
+    print("-" * 80)
+    
+    content = getattr(args, 'content', None)
+    if not content:
+        print("❌ No content provided for routing analysis")
+        print("   Usage: memory route --content 'your content here'")
+        return
+        
+    try:
+        print(f"📝 Analyzing content: '{content[:100]}{'...' if len(content) > 100 else ''}'")
+        
+        result = memory_manager.route_memory_command(content)
+        
+        if result.get("success") is False:
+            print(f"❌ Routing failed: {result.get('error', 'Unknown error')}")
+            return
+        
+        target_agent = result.get("target_agent", "unknown")
+        section = result.get("section", "unknown")
+        confidence = result.get("confidence", 0.0)
+        reasoning = result.get("reasoning", "No reasoning provided")
+        
+        print(f"\n🎯 Routing Decision:")
+        print(f"   Target Agent: {target_agent}")
+        print(f"   Section: {section}")
+        print(f"   Confidence: {confidence:.2f}")
+        print(f"   Reasoning: {reasoning}")
+        
+        # Show agent scores if available
+        agent_scores = result.get("agent_scores", {})
+        if agent_scores:
+            print(f"\n📊 Agent Relevance Scores:")
+            sorted_scores = sorted(
+                [(agent, data['score']) for agent, data in agent_scores.items()],
+                key=lambda x: x[1], reverse=True
+            )
+            for agent, score in sorted_scores[:5]:  # Show top 5
+                print(f"   {agent}: {score:.3f}")
+                # Show matched keywords if available
+                if agent in agent_scores and agent_scores[agent].get('matched_keywords'):
+                    keywords = ', '.join(agent_scores[agent]['matched_keywords'][:3])
+                    print(f"      Keywords: {keywords}")
+        
+    except Exception as e:
+        print(f"❌ Error routing memory command: {e}")
+
+
+def _display_single_optimization_result(result):
+    """Display optimization results for a single agent."""
+    agent_id = result.get("agent_id", "unknown")
+    original_size = result.get("original_size", 0)
+    optimized_size = result.get("optimized_size", 0)
+    size_reduction = result.get("size_reduction", 0)
+    size_reduction_percent = result.get("size_reduction_percent", 0)
+    
+    print(f"✅ Optimization completed for {agent_id}")
+    print(f"   Original size: {original_size:,} bytes")
+    print(f"   Optimized size: {optimized_size:,} bytes")
+    print(f"   Size reduction: {size_reduction:,} bytes ({size_reduction_percent}%)")
+    
+    duplicates = result.get("duplicates_removed", 0)
+    consolidated = result.get("items_consolidated", 0)
+    reordered = result.get("items_reordered", 0)
+    
+    if duplicates > 0:
+        print(f"   Duplicates removed: {duplicates}")
+    if consolidated > 0:
+        print(f"   Items consolidated: {consolidated}")
+    if reordered > 0:
+        print(f"   Sections reordered: {reordered}")
+    
+    backup_path = result.get("backup_created")
+    if backup_path:
+        print(f"   Backup created: {backup_path}")
+
+
+def _display_bulk_optimization_results(result):
+    """Display optimization results for all agents."""
+    summary = result.get("summary", {})
+    
+    print(f"✅ Bulk optimization completed")
+    print(f"   Agents processed: {summary.get('agents_processed', 0)}")
+    print(f"   Agents optimized: {summary.get('agents_optimized', 0)}")
+    print(f"   Total size before: {summary.get('total_size_before', 0):,} bytes")
+    print(f"   Total size after: {summary.get('total_size_after', 0):,} bytes")
+    print(f"   Total reduction: {summary.get('total_size_reduction', 0):,} bytes ({summary.get('total_size_reduction_percent', 0)}%)")
+    print(f"   Total duplicates removed: {summary.get('total_duplicates_removed', 0)}")
+    print(f"   Total items consolidated: {summary.get('total_items_consolidated', 0)}")
+    
+    # Show per-agent summary
+    agents_results = result.get("agents", {})
+    if agents_results:
+        print(f"\n📊 Per-agent results:")
+        for agent_id, agent_result in agents_results.items():
+            if agent_result.get("success"):
+                reduction = agent_result.get("size_reduction_percent", 0)
+                duplicates = agent_result.get("duplicates_removed", 0)
+                consolidated = agent_result.get("items_consolidated", 0)
+                
+                status_parts = []
+                if duplicates > 0:
+                    status_parts.append(f"{duplicates} dupes")
+                if consolidated > 0:
+                    status_parts.append(f"{consolidated} consolidated")
+                
+                status = f" ({', '.join(status_parts)})" if status_parts else ""
+                print(f"   {agent_id}: {reduction}% reduction{status}")
+            else:
+                error = agent_result.get("error", "Unknown error")
+                print(f"   {agent_id}: ❌ {error}")
