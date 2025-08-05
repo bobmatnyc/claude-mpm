@@ -407,6 +407,68 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         help="Clean up old/unused memory files"
     )
     
+    # Optimize command
+    optimize_parser = memory_subparsers.add_parser(
+        MemoryCommands.OPTIMIZE.value,
+        help="Optimize memory files by removing duplicates and consolidating similar items"
+    )
+    optimize_parser.add_argument(
+        "agent_id",
+        nargs="?",
+        help="Agent ID to optimize (optimize all if not specified)"
+    )
+    
+    # Build command
+    build_parser = memory_subparsers.add_parser(
+        MemoryCommands.BUILD.value,
+        help="Build agent memories from project documentation"
+    )
+    build_parser.add_argument(
+        "--force-rebuild",
+        action="store_true",
+        help="Force rebuild even if docs haven't changed"
+    )
+    
+    # Cross-reference command
+    cross_ref_parser = memory_subparsers.add_parser(
+        MemoryCommands.CROSS_REF.value,
+        help="Find cross-references and common patterns across agent memories"
+    )
+    cross_ref_parser.add_argument(
+        "--query",
+        type=str,
+        help="Optional search query to filter cross-references"
+    )
+    
+    # Route command
+    route_parser = memory_subparsers.add_parser(
+        MemoryCommands.ROUTE.value,
+        help="Test memory command routing logic"
+    )
+    route_parser.add_argument(
+        "--content",
+        type=str,
+        required=True,
+        help="Content to analyze for routing"
+    )
+    
+    # Show command
+    show_parser = memory_subparsers.add_parser(
+        MemoryCommands.SHOW.value,
+        help="Show agent memories in user-friendly format with cross-references"
+    )
+    show_parser.add_argument(
+        "agent_id",
+        nargs="?",
+        help="Agent ID to show memory for (show all if not specified)"
+    )
+    show_parser.add_argument(
+        "--format",
+        choices=["summary", "detailed", "full"],
+        default="summary",
+        help="Display format: summary (default), detailed, or full"
+    )
+    
     return parser
 
 

@@ -62,6 +62,11 @@ class MemoryCommands(str, Enum):
     VIEW = "view"
     ADD = "add"
     CLEAN = "clean"
+    OPTIMIZE = "optimize"
+    BUILD = "build"
+    CROSS_REF = "cross-ref"
+    ROUTE = "route"
+    SHOW = "show"
 
 
 class CLIFlags(str, Enum):
