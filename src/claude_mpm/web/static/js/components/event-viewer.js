@@ -39,7 +39,8 @@ class EventViewer {
         
         // Subscribe to socket events
         this.socketClient.onEventUpdate((events, sessions) => {
-            this.events = events;
+            // Ensure we always have a valid events array
+            this.events = Array.isArray(events) ? events : [];
             this.updateDisplay();
         });
     }
@@ -101,6 +102,12 @@ class EventViewer {
      * Apply filters to events
      */
     applyFilters() {
+        // Defensive check to ensure events array exists
+        if (!this.events || !Array.isArray(this.events)) {
+            console.warn('EventViewer: events array is not initialized, using empty array');
+            this.events = [];
+        }
+        
         this.filteredEvents = this.events.filter(event => {
             // Search filter
             if (this.searchFilter) {
@@ -149,6 +156,12 @@ class EventViewer {
         // Extract unique event types from current events
         // Use the same logic as formatEventType to get full event type names
         const eventTypes = new Set();
+        // Defensive check to ensure events array exists
+        if (!this.events || !Array.isArray(this.events)) {
+            console.warn('EventViewer: events array is not initialized in updateEventTypeDropdown');
+            this.events = [];
+        }
+        
         this.events.forEach(event => {
             if (event.type && event.type.trim() !== '') {
                 // Combine type and subtype if subtype exists, otherwise just use type
@@ -246,7 +259,8 @@ class EventViewer {
         this.filteredEventElements = Array.from(eventsList.querySelectorAll('.event-item'));
 
         // Update Dashboard navigation items if we're in the events tab
-        if (window.dashboard && window.dashboard.currentTab === 'events') {
+        if (window.dashboard && window.dashboard.currentTab === 'events' && 
+            window.dashboard.tabNavigation && window.dashboard.tabNavigation.events) {
             window.dashboard.tabNavigation.events.items = this.filteredEventElements;
         }
 
@@ -436,6 +450,11 @@ class EventViewer {
      * @param {number} index - Index of event to show
      */
     showEventDetails(index) {
+        // Defensive checks
+        if (!this.filteredEvents || !Array.isArray(this.filteredEvents)) {
+            console.warn('EventViewer: filteredEvents array is not initialized');
+            return;
+        }
         if (index < 0 || index >= this.filteredEvents.length) return;
 
         // Update selection
@@ -447,8 +466,12 @@ class EventViewer {
         // Coordinate with Dashboard unified navigation system
         if (window.dashboard) {
             // Update the dashboard's navigation state for events tab
-            window.dashboard.tabNavigation.events.selectedIndex = index;
-            window.dashboard.selectCard('events', index, 'event', event);
+            if (window.dashboard.tabNavigation && window.dashboard.tabNavigation.events) {
+                window.dashboard.tabNavigation.events.selectedIndex = index;
+            }
+            if (window.dashboard.selectCard) {
+                window.dashboard.selectCard('events', index, 'event', event);
+            }
         }
         
         // Update visual selection (this will be handled by Dashboard.updateCardSelectionUI())
@@ -482,8 +505,12 @@ class EventViewer {
         
         // Coordinate with Dashboard unified navigation system
         if (window.dashboard) {
-            window.dashboard.tabNavigation.events.selectedIndex = -1;
-            window.dashboard.clearCardSelection();
+            if (window.dashboard.tabNavigation && window.dashboard.tabNavigation.events) {
+                window.dashboard.tabNavigation.events.selectedIndex = -1;
+            }
+            if (window.dashboard.clearCardSelection) {
+                window.dashboard.clearCardSelection();
+            }
         }
         
         // Notify other components
@@ -497,6 +524,12 @@ class EventViewer {
         // Update event type counts
         this.eventTypeCount = {};
         this.errorCount = 0;
+        
+        // Defensive check to ensure events array exists
+        if (!this.events || !Array.isArray(this.events)) {
+            console.warn('EventViewer: events array is not initialized in updateMetrics');
+            this.events = [];
+        }
         
         this.events.forEach(event => {
             const type = event.type || 'unknown';
@@ -585,6 +618,22 @@ class EventViewer {
             type: this.typeFilter,
             session: this.sessionFilter
         };
+    }
+
+    /**
+     * Get filtered events (used by HUD and other components)
+     * @returns {Array} Array of filtered events
+     */
+    getFilteredEvents() {
+        return this.filteredEvents;
+    }
+
+    /**
+     * Get all events (unfiltered, used by HUD for complete visualization)
+     * @returns {Array} Array of all events
+     */
+    getAllEvents() {
+        return this.events;
     }
 }
 

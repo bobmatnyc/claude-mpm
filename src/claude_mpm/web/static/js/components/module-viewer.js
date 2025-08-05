@@ -883,6 +883,360 @@ class ModuleViewer {
     }
 
     /**
+     * Show tool call details (backward compatibility method)
+     * @param {Object} toolCall - The tool call data
+     * @param {string} toolCallKey - The tool call key
+     */
+    showToolCall(toolCall, toolCallKey) {
+        if (!toolCall) {
+            this.showEmptyState();
+            return;
+        }
+
+        const toolName = toolCall.tool_name || 'Unknown Tool';
+        const agentName = toolCall.agent_type || 'PM';
+        const timestamp = this.formatTimestamp(toolCall.timestamp);
+
+        // Extract information from pre and post events
+        const preEvent = toolCall.pre_event;
+        const postEvent = toolCall.post_event;
+        
+        // Get parameters from pre-event
+        const parameters = preEvent?.tool_parameters || {};
+        const target = preEvent ? this.extractToolTarget(toolName, parameters) : 'Unknown target';
+        
+        // Get execution results from post-event
+        const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : '-';
+        const success = toolCall.success !== undefined ? toolCall.success : null;
+        const exitCode = toolCall.exit_code !== undefined ? toolCall.exit_code : null;
+        
+        // Format result summary
+        let resultSummary = toolCall.result_summary || 'No summary available';
+        let formattedResultSummary = '';
+        
+        if (typeof resultSummary === 'object' && resultSummary !== null) {
+            const parts = [];
+            if (resultSummary.exit_code !== undefined) {
+                parts.push(`Exit Code: ${resultSummary.exit_code}`);
+            }
+            if (resultSummary.has_output !== undefined) {
+                parts.push(`Has Output: ${resultSummary.has_output ? 'Yes' : 'No'}`);
+            }
+            if (resultSummary.has_error !== undefined) {
+                parts.push(`Has Error: ${resultSummary.has_error ? 'Yes' : 'No'}`);
+            }
+            if (resultSummary.output_lines !== undefined) {
+                parts.push(`Output Lines: ${resultSummary.output_lines}`);
+            }
+            if (resultSummary.output_preview) {
+                parts.push(`Output Preview: ${resultSummary.output_preview}`);
+            }
+            if (resultSummary.error_preview) {
+                parts.push(`Error Preview: ${resultSummary.error_preview}`);
+            }
+            formattedResultSummary = parts.join('\n');
+        } else {
+            formattedResultSummary = String(resultSummary);
+        }
+
+        // Status information
+        let statusIcon = '⏳';
+        let statusText = 'Running...';
+        let statusClass = 'tool-running';
+        
+        if (postEvent) {
+            if (success === true) {
+                statusIcon = '✅';
+                statusText = 'Success';
+                statusClass = 'tool-success';
+            } else if (success === false) {
+                statusIcon = '❌';
+                statusText = 'Failed';
+                statusClass = 'tool-failure';
+            } else {
+                statusIcon = '⏳';
+                statusText = 'Completed';
+                statusClass = 'tool-completed';
+            }
+        }
+
+        // Create contextual header
+        const contextualHeader = `
+            <div class="contextual-header">
+                <h3 class="contextual-header-text">${toolName}: ${agentName} ${timestamp}</h3>
+            </div>
+        `;
+
+        // Special handling for TodoWrite
+        if (toolName === 'TodoWrite' && parameters.todos) {
+            const todoContent = `
+                <div class="todo-checklist">
+                    ${parameters.todos.map(todo => {
+                        const statusIcon = this.getTodoStatusIcon(todo.status);
+                        const priorityIcon = this.getTodoPriorityIcon(todo.priority);
+                        
+                        return `
+                            <div class="todo-item todo-${todo.status || 'pending'}">
+                                <span class="todo-status">${statusIcon}</span>
+                                <span class="todo-content">${todo.content || 'No content'}</span>
+                                <span class="todo-priority priority-${todo.priority || 'medium'}">${priorityIcon}</span>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+            
+            if (this.dataContainer) {
+                this.dataContainer.innerHTML = contextualHeader + todoContent;
+            }
+        } else {
+            // For other tools, show detailed information
+            const content = `
+                <div class="structured-view-section">
+                    <div class="tool-call-details">
+                        <div class="tool-call-info ${statusClass}">
+                            <div class="structured-field">
+                                <strong>Tool Name:</strong> ${toolName}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Agent:</strong> ${agentName}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Status:</strong> ${statusIcon} ${statusText}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Target:</strong> ${target}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Started:</strong> ${new Date(toolCall.timestamp).toLocaleString()}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Duration:</strong> ${duration}
+                            </div>
+                            ${success !== null ? `
+                                <div class="structured-field">
+                                    <strong>Success:</strong> ${success}
+                                </div>
+                            ` : ''}
+                            ${exitCode !== null ? `
+                                <div class="structured-field">
+                                    <strong>Exit Code:</strong> ${exitCode}
+                                </div>
+                            ` : ''}
+                            ${toolCall.session_id ? `
+                                <div class="structured-field">
+                                    <strong>Session ID:</strong> ${toolCall.session_id}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        ${formattedResultSummary && formattedResultSummary !== 'No summary available' ? `
+                            <div class="result-section">
+                                <div class="structured-view-header">
+                                    <h4>📊 Result Summary</h4>
+                                </div>
+                                <div class="structured-data">
+                                    <div class="result-summary" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto; padding: 10px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; line-height: 1.4;">
+                                        ${formattedResultSummary}
+                                    </div>
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${Object.keys(parameters).length > 0 && toolName !== 'TodoWrite' ? `
+                            <div class="parameters-section">
+                                <div class="structured-view-header">
+                                    <h4>⚙️ Parameters</h4>
+                                </div>
+                                <div class="structured-data">
+                                    <pre style="white-space: pre-wrap; font-family: monospace; font-size: 12px; line-height: 1.4;">${JSON.stringify(parameters, null, 2)}</pre>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            
+            if (this.dataContainer) {
+                this.dataContainer.innerHTML = contextualHeader + content;
+            }
+        }
+
+        // Show JSON data in bottom pane
+        if (this.jsonContainer) {
+            const toolCallData = {
+                toolCall: toolCall,
+                preEvent: preEvent,
+                postEvent: postEvent
+            };
+            this.jsonContainer.innerHTML = `<pre>${JSON.stringify(toolCallData, null, 2)}</pre>`;
+        }
+    }
+
+    /**
+     * Show file operations details (backward compatibility method)
+     * @param {Object} fileData - The file operations data
+     * @param {string} filePath - The file path
+     */
+    showFileOperations(fileData, filePath) {
+        if (!fileData || !filePath) {
+            this.showEmptyState();
+            return;
+        }
+
+        // Get file name from path for header
+        const fileName = filePath.split('/').pop() || filePath;
+        const operations = fileData.operations || [];
+        const lastOp = operations[operations.length - 1];
+        const headerTimestamp = lastOp ? this.formatTimestamp(lastOp.timestamp) : '';
+        
+        // Create contextual header
+        const contextualHeader = `
+            <div class="contextual-header">
+                <h3 class="contextual-header-text">File: ${fileName} ${headerTimestamp}</h3>
+            </div>
+        `;
+
+        const content = `
+            <div class="structured-view-section">
+                <div class="file-details">
+                    <div class="file-path-display">
+                        <strong>Full Path:</strong> ${filePath}
+                    </div>
+                    <div class="operations-list">
+                        ${operations.map(op => `
+                            <div class="operation-item">
+                                <div class="operation-header">
+                                    <span class="operation-icon">${this.getOperationIcon(op.operation)}</span>
+                                    <span class="operation-type">${op.operation}</span>
+                                    <span class="operation-timestamp">${new Date(op.timestamp).toLocaleString()}</span>
+                                    ${(['edit', 'write'].includes(op.operation)) ? `
+                                        <span class="git-diff-icon" 
+                                              onclick="showGitDiffModal('${filePath}', '${op.timestamp}')"
+                                              title="View git diff for this file operation"
+                                              style="margin-left: 8px; cursor: pointer; font-size: 16px;">
+                                            📋
+                                        </span>
+                                    ` : ''}
+                                </div>
+                                <div class="operation-details">
+                                    <strong>Agent:</strong> ${op.agent}<br>
+                                    <strong>Session:</strong> ${op.sessionId ? op.sessionId.substring(0, 8) + '...' : 'Unknown'}
+                                    ${op.details ? `<br><strong>Details:</strong> ${op.details}` : ''}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Show structured data in top pane
+        if (this.dataContainer) {
+            this.dataContainer.innerHTML = contextualHeader + content;
+        }
+        
+        // Show JSON data in bottom pane
+        if (this.jsonContainer) {
+            this.jsonContainer.innerHTML = `<pre>${JSON.stringify(fileData, null, 2)}</pre>`;
+        }
+    }
+
+    /**
+     * Show error message (backward compatibility method)
+     * @param {string} title - Error title
+     * @param {string} message - Error message
+     */
+    showErrorMessage(title, message) {
+        const content = `
+            <div class="module-error">
+                <div class="error-header">
+                    <h3>❌ ${title}</h3>
+                </div>
+                <div class="error-message">
+                    <p>${message}</p>
+                </div>
+            </div>
+        `;
+        
+        if (this.dataContainer) {
+            this.dataContainer.innerHTML = content;
+        }
+        
+        if (this.jsonContainer) {
+            this.jsonContainer.innerHTML = `
+                <div class="module-empty">
+                    <p>No additional data available</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Show agent event details (backward compatibility method)
+     * @param {Object} event - The agent event
+     * @param {number} index - Event index
+     */
+    showAgentEvent(event, index) {
+        // Use the existing showEventDetails method which handles agent events
+        this.showEventDetails(event);
+    }
+
+    /**
+     * Extract tool target from tool name and parameters
+     * @param {string} toolName - Name of the tool
+     * @param {Object} parameters - Tool parameters
+     * @returns {string} - Tool target description
+     */
+    extractToolTarget(toolName, parameters) {
+        if (!parameters) return 'Unknown target';
+        
+        switch (toolName) {
+            case 'Write':
+            case 'Read':
+            case 'Edit':
+            case 'MultiEdit':
+                return parameters.file_path || 'Unknown file';
+            case 'Bash':
+                return parameters.command ? `Command: ${parameters.command.substring(0, 50)}...` : 'Unknown command';
+            case 'Grep':
+                return parameters.pattern ? `Pattern: ${parameters.pattern}` : 'Unknown pattern';
+            case 'Glob':
+                return parameters.pattern ? `Pattern: ${parameters.pattern}` : 'Unknown glob';
+            case 'TodoWrite':
+                return `${parameters.todos?.length || 0} todos`;
+            case 'Task':
+                return parameters.subagent_type || 'Subagent delegation';
+            default:
+                // Try to find a meaningful parameter
+                if (parameters.file_path) return parameters.file_path;
+                if (parameters.pattern) return `Pattern: ${parameters.pattern}`;
+                if (parameters.command) return `Command: ${parameters.command.substring(0, 50)}...`;
+                if (parameters.path) return parameters.path;
+                return 'Unknown target';
+        }
+    }
+
+    /**
+     * Get operation icon for file operations
+     * @param {string} operation - Operation type
+     * @returns {string} - Icon for the operation
+     */
+    getOperationIcon(operation) {
+        const icons = {
+            'read': '👁️',
+            'write': '✏️',
+            'edit': '📝',
+            'multiedit': '📝',
+            'create': '🆕',
+            'delete': '🗑️',
+            'move': '📦',
+            'copy': '📋'
+        };
+        return icons[operation?.toLowerCase()] || '📄';
+    }
+
+    /**
      * Get current event
      */
     getCurrentEvent() {

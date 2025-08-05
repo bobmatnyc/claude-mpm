@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Integration Test</title>
+</head>
+<body>
+    <div id="test-container">
+        <h1>Dashboard Module Integration Test</h1>
+        <div id="test-results"></div>
+        
+        <!-- Minimal DOM elements required by dashboard -->
+        <div id="connection-status"></div>
+        <div id="session-select"></div>
+        <div id="events-list"></div>
+        <div id="agents-list"></div>
+        <div id="tools-list"></div>
+        <div id="files-list"></div>
+        <div id="module-data-content"></div>
+        <div id="module-json-content"></div>
+        <div id="working-dir-path">/test/dir</div>
+        <div id="footer-session"></div>
+        <div id="footer-working-dir"></div>
+        <div id="footer-git-branch"></div>
+        <div id="hud-toggle-btn"></div>
+        <div id="change-dir-btn"></div>
+        
+        <!-- Tab buttons -->
+        <button class="tab-button active" data-tab="events">📊 Events</button>
+        <button class="tab-button" data-tab="agents">🤖 Agents</button>
+        <button class="tab-button" data-tab="tools">🔧 Tools</button>
+        <button class="tab-button" data-tab="files">📁 Files</button>
+        
+        <!-- Search inputs -->
+        <input type="text" id="events-search-input">
+        <input type="text" id="agents-search-input">
+        <input type="text" id="tools-search-input">
+        <input type="text" id="files-search-input">
+        
+        <!-- Filter selects -->
+        <select id="events-type-filter"></select>
+        <select id="agents-type-filter"></select>
+        <select id="tools-type-filter"></select>
+        <select id="files-type-filter"></select>
+    </div>
+
+    <!-- Load external dependencies first -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    
+    <!-- Load the dashboard modules -->
+    <script src="src/claude_mpm/web/static/js/socket-client.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/event-viewer.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/module-viewer.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/session-manager.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/hud-library-loader.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/hud-visualizer.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/socket-manager.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/agent-inference.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/ui-state-manager.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/working-directory.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/file-tool-tracker.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/event-processor.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/hud-manager.js"></script>
+    <script src="src/claude_mpm/web/static/js/components/export-manager.js"></script>
+    <script src="src/claude_mpm/web/static/js/dashboard.js"></script>
+
+    <script>
+        // Test script to verify module integration
+        document.addEventListener('DOMContentLoaded', function() {
+            const results = document.getElementById('test-results');
+            const tests = [];
+            
+            try {
+                // Test 1: Check if all classes are defined
+                tests.push(checkClassExists('SocketClient', window.SocketClient));
+                tests.push(checkClassExists('EventViewer', window.EventViewer));
+                tests.push(checkClassExists('SessionManager', window.SessionManager));
+                tests.push(checkClassExists('SocketManager', window.SocketManager));
+                tests.push(checkClassExists('AgentInference', window.AgentInference));
+                tests.push(checkClassExists('UIStateManager', window.UIStateManager));
+                tests.push(checkClassExists('WorkingDirectoryManager', window.WorkingDirectoryManager));
+                tests.push(checkClassExists('FileToolTracker', window.FileToolTracker));
+                tests.push(checkClassExists('EventProcessor', window.EventProcessor));
+                tests.push(checkClassExists('HUDManager', window.HUDManager));
+                tests.push(checkClassExists('ExportManager', window.ExportManager));
+                tests.push(checkClassExists('Dashboard', window.Dashboard));
+                
+                // Test 2: Check if dashboard is properly initialized
+                tests.push(checkDashboardInitialization());
+                
+                // Test 3: Check if all required methods exist
+                tests.push(checkDashboardMethods());
+                
+                // Test 4: Check session manager integration
+                tests.push(checkSessionManagerIntegration());
+                
+            } catch (error) {
+                tests.push({
+                    name: 'Error during testing',
+                    passed: false,
+                    error: error.message
+                });
+            }
+            
+            // Display results
+            displayTestResults(tests, results);
+        });
+        
+        function checkClassExists(name, classRef) {
+            return {
+                name: `${name} class exists`,
+                passed: typeof classRef === 'function'
+            };
+        }
+        
+        function checkDashboardInitialization() {
+            return {
+                name: 'Dashboard initialized',
+                passed: window.dashboard && typeof window.dashboard === 'object'
+            };
+        }
+        
+        function checkDashboardMethods() {
+            const requiredMethods = [
+                'switchTab', 'selectCard', 'clearEvents', 'exportEvents',
+                'clearSelection', 'toggleHUD', 'renderCurrentTab'
+            ];
+            
+            const missingMethods = [];
+            if (window.dashboard) {
+                requiredMethods.forEach(method => {
+                    if (typeof window.dashboard[method] !== 'function') {
+                        missingMethods.push(method);
+                    }
+                });
+            }
+            
+            return {
+                name: 'Dashboard methods exist',
+                passed: missingMethods.length === 0,
+                details: missingMethods.length > 0 ? `Missing: ${missingMethods.join(', ')}` : 'All methods present'
+            };
+        }
+        
+        function checkSessionManagerIntegration() {
+            const hasGetEventsForSession = window.sessionManager && 
+                typeof window.sessionManager.getEventsForSession === 'function';
+            
+            return {
+                name: 'SessionManager has getEventsForSession method',
+                passed: hasGetEventsForSession
+            };
+        }
+        
+        function displayTestResults(tests, container) {
+            const html = tests.map(test => {
+                const status = test.passed ? '✅ PASS' : '❌ FAIL';
+                const details = test.details ? `<br><small>${test.details}</small>` : '';
+                const error = test.error ? `<br><small style="color: red;">Error: ${test.error}</small>` : '';
+                
+                return `<div style="margin: 10px 0; padding: 10px; border: 1px solid ${test.passed ? 'green' : 'red'}; border-radius: 4px;">
+                    <strong>${status} ${test.name}</strong>
+                    ${details}
+                    ${error}
+                </div>`;
+            }).join('');
+            
+            const passCount = tests.filter(t => t.passed).length;
+            const totalCount = tests.length;
+            
+            container.innerHTML = `
+                <h2>Test Results: ${passCount}/${totalCount} passed</h2>
+                ${html}
+            `;
+        }
+    </script>
+</body>
+</html>
