@@ -379,7 +379,8 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     )
     view_parser.add_argument(
         "agent_id",
-        help="Agent ID to view memory for"
+        nargs="?",
+        help="Agent ID to view memory for (optional - shows all agents if not provided)"
     )
     
     # Add command
