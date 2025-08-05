@@ -78,7 +78,7 @@ print_info "Framework path: $PROJECT_ROOT"
 
 # Check if this is a claude-mpm specific command or should be passed to claude
 MPM_PREFIX="--mpm:"
-MPM_COMMANDS=("run" "tickets" "info" "agents" "ui")
+MPM_COMMANDS=("run" "tickets" "info" "agents" "ui" "memory")
 FIRST_ARG="${1:-}"
 
 # Check if first argument is an MPM command (with or without prefix)
