@@ -1,0 +1,396 @@
+{
+  "timestamp": "2025-08-05T01:10:21.377689",
+  "summary": {
+    "total": 64,
+    "passed": 63,
+    "failed": 1,
+    "warnings": 0,
+    "success_rate": 98.4
+  },
+  "results": [
+    {
+      "test": "Init Check: initializeCytoscape()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374870"
+    },
+    {
+      "test": "Init Check: cytoscape.use(cytoscapeDagre)",
+      "status": "FAIL",
+      "details": "Initialization code missing",
+      "timestamp": "2025-08-05T01:10:21.374901"
+    },
+    {
+      "test": "Init Check: cytoscape({",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374910"
+    },
+    {
+      "test": "Init Check: container: this.container",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374916"
+    },
+    {
+      "test": "Init Check: elements: []",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374922"
+    },
+    {
+      "test": "Init Check: style: [",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374931"
+    },
+    {
+      "test": "Init Check: layout: this.layoutConfig",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.374936"
+    },
+    {
+      "test": "Style Selector: selector: 'node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375222"
+    },
+    {
+      "test": "Style Selector: selector: 'edge'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375238"
+    },
+    {
+      "test": "Style Selector: selector: '.pm-node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375244"
+    },
+    {
+      "test": "Style Selector: selector: '.agent-node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375250"
+    },
+    {
+      "test": "Style Selector: selector: '.tool-node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375255"
+    },
+    {
+      "test": "Style Selector: selector: '.todo-node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375260"
+    },
+    {
+      "test": "Style Selector: selector: 'node:active'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375266"
+    },
+    {
+      "test": "Style Property: 'background-color': 'data(color)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375276"
+    },
+    {
+      "test": "Style Property: 'border-color': 'data(borderColor)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375281"
+    },
+    {
+      "test": "Style Property: 'label': 'data(label)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375286"
+    },
+    {
+      "test": "Style Property: 'shape': 'data(shape)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375290"
+    },
+    {
+      "test": "Style Property: 'width': 'data(width)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375294"
+    },
+    {
+      "test": "Style Property: 'height': 'data(height)'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375299"
+    },
+    {
+      "test": "Relationship Pattern: tool_call",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375520"
+    },
+    {
+      "test": "Relationship Pattern: agent",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375531"
+    },
+    {
+      "test": "Relationship Pattern: todo",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375539"
+    },
+    {
+      "test": "Relationship Pattern: findParentNode(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375548"
+    },
+    {
+      "test": "Relationship Pattern: addEdge(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375558"
+    },
+    {
+      "test": "Relationship Pattern: sessionId === sessionId",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375567"
+    },
+    {
+      "test": "Relationship Pattern: nodeTypes.includes(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375575"
+    },
+    {
+      "test": "Resize Check: ResizeObserver",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375621"
+    },
+    {
+      "test": "Resize Check: setupResizeHandler",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375625"
+    },
+    {
+      "test": "Resize Check: this.cy.resize()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375629"
+    },
+    {
+      "test": "Resize Check: this.cy.fit()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375633"
+    },
+    {
+      "test": "Resize Check: resizeObserver.observe",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375636"
+    },
+    {
+      "test": "Interaction Check: this.cy.on('tap', 'node'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375670"
+    },
+    {
+      "test": "Interaction Check: highlightConnectedNodes(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375674"
+    },
+    {
+      "test": "Interaction Check: node.neighborhood()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375681"
+    },
+    {
+      "test": "Interaction Check: style('opacity'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375690"
+    },
+    {
+      "test": "Interaction Check: addEventListener('click'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375693"
+    },
+    {
+      "test": "Control Check: hud-reset-layout",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375722"
+    },
+    {
+      "test": "Control Check: hud-center-view",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375727"
+    },
+    {
+      "test": "Control Check: resetLayout()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375730"
+    },
+    {
+      "test": "Control Check: centerView()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375734"
+    },
+    {
+      "test": "Control Check: this.cy.layout(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375744"
+    },
+    {
+      "test": "Control Check: this.cy.fit()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375748"
+    },
+    {
+      "test": "Control Check: this.cy.center()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.375757"
+    },
+    {
+      "test": "Session Check: updateHUDButtonState",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.376888"
+    },
+    {
+      "test": "Session Check: selectedSession",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.376941"
+    },
+    {
+      "test": "Session Check: hudToggleBtn.disabled",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.376995"
+    },
+    {
+      "test": "Session Check: Select a session to enable HUD",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377039"
+    },
+    {
+      "test": "Session Check: Toggle HUD visualizer",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377072"
+    },
+    {
+      "test": "Performance Check: if (!this.isActive)",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377185"
+    },
+    {
+      "test": "Performance Check: nodes.has(id)",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377197"
+    },
+    {
+      "test": "Performance Check: return;",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377201"
+    },
+    {
+      "test": "Performance Check: Map(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377202"
+    },
+    {
+      "test": "Performance Check: setTimeout(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377207"
+    },
+    {
+      "test": "Error Handling",
+      "status": "PASS",
+      "details": "Error handling patterns found",
+      "timestamp": "2025-08-05T01:10:21.377252"
+    },
+    {
+      "test": "Memory Check: clear()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377291"
+    },
+    {
+      "test": "Memory Check: nodes.clear()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377303"
+    },
+    {
+      "test": "Memory Check: this.cy.elements().remove()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377310"
+    },
+    {
+      "test": "Memory Check: deactivate()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377315"
+    },
+    {
+      "test": "Memory Check: this.isActive = false",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377316"
+    },
+    {
+      "test": "Color Check: darkenColor(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377351"
+    },
+    {
+      "test": "Color Check: parseInt(color.replace",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377360"
+    },
+    {
+      "test": "Color Check: Math.round(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377372"
+    },
+    {
+      "test": "Color Check: toString(16)",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T01:10:21.377384"
+    }
+  ]
+}

@@ -474,24 +474,48 @@ def _show_memories(args, memory_manager):
     WHY: Users need to see agent memories in a readable format to understand
     what agents have learned and identify common patterns across agents.
     
+    DESIGN DECISION: Added --raw flag to output structured JSON data for
+    programmatic processing, enabling external tools and scripts to access
+    all agent memories in a structured format.
+    
     Args:
-        args: Command arguments with optional agent_id and format
+        args: Command arguments with optional agent_id, format, and raw flag
         memory_manager: AgentMemoryManager instance
     """
-    print("🧠 Agent Memories Display")
-    print("-" * 80)
-    
     agent_id = getattr(args, 'agent_id', None)
     format_type = getattr(args, 'format', 'detailed')
+    raw_output = getattr(args, 'raw', False)
     
     try:
-        if agent_id:
-            _show_single_agent_memory(agent_id, format_type, memory_manager)
+        if raw_output:
+            # Output structured JSON data
+            if agent_id:
+                # Get single agent memory in raw format
+                _output_single_agent_raw(agent_id, memory_manager)
+            else:
+                # Get all agent memories in raw format
+                _output_all_memories_raw(memory_manager)
         else:
-            _show_all_agent_memories(format_type, memory_manager)
+            # Normal user-friendly display
+            print("🧠 Agent Memories Display")
+            print("-" * 80)
             
+            if agent_id:
+                _show_single_agent_memory(agent_id, format_type, memory_manager)
+            else:
+                _show_all_agent_memories(format_type, memory_manager)
+                
     except Exception as e:
-        print(f"❌ Error showing memories: {e}")
+        if raw_output:
+            # Output error in JSON format for consistency
+            error_output = {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+        else:
+            print(f"❌ Error showing memories: {e}")
 
 
 def _show_single_agent_memory(agent_id, format_type, memory_manager):
@@ -780,3 +804,78 @@ def _display_bulk_optimization_results(result):
             else:
                 error = agent_result.get("error", "Unknown error")
                 print(f"   {agent_id}: ❌ {error}")
+
+
+def _output_all_memories_raw(memory_manager):
+    """
+    Output all agent memories in raw JSON format.
+    
+    WHY: Provides programmatic access to all agent memories for external tools,
+    scripts, or APIs that need to process or analyze the complete memory state.
+    
+    Args:
+        memory_manager: AgentMemoryManager instance
+    """
+    try:
+        raw_data = memory_manager.get_all_memories_raw()
+        print(json.dumps(raw_data, indent=2, ensure_ascii=False))
+    except Exception as e:
+        error_output = {
+            "success": False,
+            "error": f"Failed to retrieve all memories: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(json.dumps(error_output, indent=2))
+
+
+def _output_single_agent_raw(agent_id, memory_manager):
+    """
+    Output single agent memory in raw JSON format.
+    
+    WHY: Provides programmatic access to a specific agent's memory for
+    targeted analysis or processing by external tools.
+    
+    Args:
+        agent_id: ID of the agent to retrieve memory for
+        memory_manager: AgentMemoryManager instance
+    """
+    try:
+        # Get all memories and extract the specific agent
+        all_memories = memory_manager.get_all_memories_raw()
+        
+        if not all_memories.get("success", False):
+            error_output = {
+                "success": False,
+                "error": all_memories.get("error", "Failed to retrieve memories"),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+            return
+        
+        agents = all_memories.get("agents", {})
+        if agent_id not in agents:
+            error_output = {
+                "success": False,
+                "error": f"No memory found for agent: {agent_id}",
+                "available_agents": list(agents.keys()),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+            return
+        
+        # Return single agent data with metadata
+        single_agent_output = {
+            "success": True,
+            "timestamp": all_memories["timestamp"],
+            "agent": agents[agent_id]
+        }
+        
+        print(json.dumps(single_agent_output, indent=2, ensure_ascii=False))
+        
+    except Exception as e:
+        error_output = {
+            "success": False,
+            "error": f"Failed to retrieve memory for agent {agent_id}: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(json.dumps(error_output, indent=2))

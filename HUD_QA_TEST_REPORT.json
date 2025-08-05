@@ -1,0 +1,588 @@
+{
+  "timestamp": "2025-08-05T00:41:23.781159",
+  "summary": {
+    "total": 96,
+    "passed": 95,
+    "failed": 1,
+    "skipped": 0,
+    "success_rate": 99.0
+  },
+  "results": [
+    {
+      "test": "File Exists: src/claude_mpm/web/static/js/components/hud-visualizer.js",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.772903"
+    },
+    {
+      "test": "File Exists: src/claude_mpm/web/templates/index.html",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773252"
+    },
+    {
+      "test": "File Exists: src/claude_mpm/web/static/css/dashboard.css",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773263"
+    },
+    {
+      "test": "File Exists: src/claude_mpm/web/static/js/dashboard.js",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773272"
+    },
+    {
+      "test": "HTML Element: id=\"hud-toggle-btn\"",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773465"
+    },
+    {
+      "test": "HTML Element: id=\"hud-visualizer\"",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773469"
+    },
+    {
+      "test": "HTML Element: id=\"hud-cytoscape\"",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773473"
+    },
+    {
+      "test": "HTML Element: id=\"hud-reset-layout\"",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773476"
+    },
+    {
+      "test": "HTML Element: id=\"hud-center-view\"",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773480"
+    },
+    {
+      "test": "HTML Element: cytoscape@3.26.0",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773481"
+    },
+    {
+      "test": "HTML Element: cytoscape-dagre@2.5.0",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773482"
+    },
+    {
+      "test": "CSS Class: .hud-visualizer",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773650"
+    },
+    {
+      "test": "CSS Class: .hud-header",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773660"
+    },
+    {
+      "test": "CSS Class: .hud-controls",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773669"
+    },
+    {
+      "test": "CSS Class: .hud-content",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773679"
+    },
+    {
+      "test": "CSS Class: .hud-mode",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773690"
+    },
+    {
+      "test": "CSS Class: .btn-hud-active",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773699"
+    },
+    {
+      "test": "HUD JS Method: class HUDVisualizer",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773822"
+    },
+    {
+      "test": "HUD JS Method: initialize()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773825"
+    },
+    {
+      "test": "HUD JS Method: addNode(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773829"
+    },
+    {
+      "test": "HUD JS Method: addEdge(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773833"
+    },
+    {
+      "test": "HUD JS Method: processEvent(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773837"
+    },
+    {
+      "test": "HUD JS Method: activate()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773840"
+    },
+    {
+      "test": "HUD JS Method: deactivate()",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.773843"
+    },
+    {
+      "test": "HUD JS Method: toggleHUD()",
+      "status": "FAIL",
+      "details": "Method not found",
+      "timestamp": "2025-08-05T00:41:20.773849"
+    },
+    {
+      "test": "Dashboard HUD Integration: hudVisualizer",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774553"
+    },
+    {
+      "test": "Dashboard HUD Integration: toggleHUD",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774562"
+    },
+    {
+      "test": "Dashboard HUD Integration: updateHUDDisplay",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774594"
+    },
+    {
+      "test": "Dashboard HUD Integration: updateHUDButtonState",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774596"
+    },
+    {
+      "test": "Dashboard HUD Integration: processExistingEventsForHUD",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774617"
+    },
+    {
+      "test": "Node Type: PM",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774646"
+    },
+    {
+      "test": "Node Property: PM.color",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774650"
+    },
+    {
+      "test": "Node Property: PM.shape",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774652"
+    },
+    {
+      "test": "Node Property: PM.width",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774654"
+    },
+    {
+      "test": "Node Property: PM.height",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774656"
+    },
+    {
+      "test": "Node Property: PM.icon",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774658"
+    },
+    {
+      "test": "Node Type: AGENT",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774660"
+    },
+    {
+      "test": "Node Property: AGENT.color",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774662"
+    },
+    {
+      "test": "Node Property: AGENT.shape",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774663"
+    },
+    {
+      "test": "Node Property: AGENT.width",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774665"
+    },
+    {
+      "test": "Node Property: AGENT.height",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774667"
+    },
+    {
+      "test": "Node Property: AGENT.icon",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774668"
+    },
+    {
+      "test": "Node Type: TOOL",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774670"
+    },
+    {
+      "test": "Node Property: TOOL.color",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774672"
+    },
+    {
+      "test": "Node Property: TOOL.shape",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774675"
+    },
+    {
+      "test": "Node Property: TOOL.width",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774677"
+    },
+    {
+      "test": "Node Property: TOOL.height",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774679"
+    },
+    {
+      "test": "Node Property: TOOL.icon",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774681"
+    },
+    {
+      "test": "Node Type: TODO",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774683"
+    },
+    {
+      "test": "Node Property: TODO.color",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774685"
+    },
+    {
+      "test": "Node Property: TODO.shape",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774686"
+    },
+    {
+      "test": "Node Property: TODO.width",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774688"
+    },
+    {
+      "test": "Node Property: TODO.height",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774690"
+    },
+    {
+      "test": "Node Property: TODO.icon",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774692"
+    },
+    {
+      "test": "CDN Dependency: cytoscape@3.26.0/dist/cytoscape.min.js",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774763"
+    },
+    {
+      "test": "CDN Dependency: cytoscape-dagre@2.5.0/cytoscape-dagre.js",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774765"
+    },
+    {
+      "test": "CDN Dependency: dagre@0.8.5/dist/dagre.min.js",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774767"
+    },
+    {
+      "test": "Layout Property: name: 'dagre'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774790"
+    },
+    {
+      "test": "Layout Property: rankDir: 'TB'",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774792"
+    },
+    {
+      "test": "Layout Property: animate: true",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774793"
+    },
+    {
+      "test": "Layout Property: fit: true",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774795"
+    },
+    {
+      "test": "Layout Property: padding:",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774796"
+    },
+    {
+      "test": "Layout Property: rankSep:",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774797"
+    },
+    {
+      "test": "Layout Property: nodeSep:",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774798"
+    },
+    {
+      "test": "Processing Method: processEvent(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774824"
+    },
+    {
+      "test": "Processing Method: createEventRelationships(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774828"
+    },
+    {
+      "test": "Processing Method: findParentNode(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774832"
+    },
+    {
+      "test": "Processing Method: addNode(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774836"
+    },
+    {
+      "test": "Processing Method: addEdge(",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774842"
+    },
+    {
+      "test": "Event Handler: tool_call",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774847"
+    },
+    {
+      "test": "Event Handler: agent",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774851"
+    },
+    {
+      "test": "Event Handler: todo",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774855"
+    },
+    {
+      "test": "Event Handler: user_prompt",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774859"
+    },
+    {
+      "test": "Event Handler: claude_response",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:20.774864"
+    },
+    {
+      "test": "Server Startup",
+      "status": "PASS",
+      "details": "Socket.IO server started successfully",
+      "timestamp": "2025-08-05T00:41:23.779612"
+    },
+    {
+      "test": "Event Field: user_prompt_start.hook_event_name",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779690"
+    },
+    {
+      "test": "Event Field: user_prompt_start.session_id",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779694"
+    },
+    {
+      "test": "Event Field: user_prompt_start.timestamp",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779696"
+    },
+    {
+      "test": "Event Field: user_prompt_start.data",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779698"
+    },
+    {
+      "test": "Event Field: claude_response_end.hook_event_name",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779700"
+    },
+    {
+      "test": "Event Field: claude_response_end.session_id",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779702"
+    },
+    {
+      "test": "Event Field: claude_response_end.timestamp",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779703"
+    },
+    {
+      "test": "Event Field: claude_response_end.data",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779704"
+    },
+    {
+      "test": "Event Field: tool_call_start.hook_event_name",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779705"
+    },
+    {
+      "test": "Event Field: tool_call_start.session_id",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779707"
+    },
+    {
+      "test": "Event Field: tool_call_start.timestamp",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779710"
+    },
+    {
+      "test": "Event Field: tool_call_start.data",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779711"
+    },
+    {
+      "test": "Event Field: agent_delegation_start.hook_event_name",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779712"
+    },
+    {
+      "test": "Event Field: agent_delegation_start.session_id",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779714"
+    },
+    {
+      "test": "Event Field: agent_delegation_start.timestamp",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779715"
+    },
+    {
+      "test": "Event Field: agent_delegation_start.data",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779716"
+    },
+    {
+      "test": "Event Field: todo_write_start.hook_event_name",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779717"
+    },
+    {
+      "test": "Event Field: todo_write_start.session_id",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779718"
+    },
+    {
+      "test": "Event Field: todo_write_start.timestamp",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779720"
+    },
+    {
+      "test": "Event Field: todo_write_start.data",
+      "status": "PASS",
+      "details": "",
+      "timestamp": "2025-08-05T00:41:23.779721"
+    },
+    {
+      "test": "Socket Event Simulation",
+      "status": "PASS",
+      "details": "Generated 5 test events",
+      "timestamp": "2025-08-05T00:41:23.779723"
+    }
+  ]
+}

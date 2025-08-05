@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUD Blank Screen Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .debug-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .debug-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .debug-button:hover {
+            background: #0056b3;
+        }
+        .debug-output {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .test-container {
+            width: 100%;
+            height: 400px;
+            border: 2px solid #007bff;
+            background: #f0f8ff;
+            position: relative;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐛 HUD Blank Screen Debug Test</h1>
+        <p>This page helps debug the blank screen issue in the HUD visualizer by testing Cytoscape.js functionality step by step.</p>
+        
+        <div class="debug-section">
+            <h3>📋 Debug Steps</h3>
+            <button class="debug-button" onclick="runFullDiagnostic()">🔍 Run Full Diagnostic</button>
+            <button class="debug-button" onclick="testLibraryLoading()">📚 Test Library Loading</button>
+            <button class="debug-button" onclick="testContainerCreation()">📦 Test Container Creation</button>
+            <button class="debug-button" onclick="testCytoscapeInitialization()">🔬 Test Cytoscape Init</button>
+            <button class="debug-button" onclick="testNodeCreation()">➕ Test Node Creation</button>
+            <button class="debug-button" onclick="testLayoutAndFit()">📐 Test Layout & Fit</button>
+            <button class="debug-button" onclick="clearOutput()">🧹 Clear Output</button>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📊 Test Results</h3>
+            <div id="status-container"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>🖼️ Test Container</h3>
+            <div id="test-cytoscape" class="test-container"></div>
+        </div>
+        
+        <div class="debug-section">
+            <h3>📝 Debug Output</h3>
+            <div id="debug-output" class="debug-output">Debug output will appear here...\n</div>
+        </div>
+    </div>
+
+    <script>
+        let testCy = null;
+        let debugOutput = document.getElementById('debug-output');
+        let statusContainer = document.getElementById('status-container');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            debugOutput.innerHTML += `[${timestamp}] ${message}\n`;
+            debugOutput.scrollTop = debugOutput.scrollHeight;
+            console.log(`[HUD-DEBUG] ${message}`);
+        }
+        
+        function addStatus(message, type = 'info') {
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status ${type}`;
+            statusDiv.textContent = message;
+            statusContainer.appendChild(statusDiv);
+        }
+        
+        function clearOutput() {
+            debugOutput.innerHTML = 'Debug output cleared...\n';
+            statusContainer.innerHTML = '';
+        }
+        
+        async function runFullDiagnostic() {
+            log('🚀 Starting full HUD diagnostic...', 'info');
+            clearOutput();
+            
+            try {
+                await testLibraryLoading();
+                await sleep(500);
+                await testContainerCreation();
+                await sleep(500);
+                await testCytoscapeInitialization();
+                await sleep(500);
+                await testNodeCreation();
+                await sleep(500);
+                await testLayoutAndFit();
+                
+                log('✅ Full diagnostic completed!', 'success');
+                addStatus('Full diagnostic completed successfully', 'success');
+            } catch (error) {
+                log(`❌ Diagnostic failed: ${error.message}`, 'error');
+                addStatus(`Diagnostic failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLibraryLoading() {
+            log('📚 Testing library loading...', 'info');
+            
+            try {
+                // Check if libraries are already loaded
+                if (typeof window.cytoscape !== 'undefined') {
+                    log('✅ Cytoscape.js already loaded', 'success');
+                    addStatus('Cytoscape.js: Already loaded', 'success');
+                } else {
+                    log('📥 Loading Cytoscape.js from CDN...', 'info');
+                    await loadScript('https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js');
+                    log('✅ Cytoscape.js loaded successfully', 'success');
+                    addStatus('Cytoscape.js: Loaded from CDN', 'success');
+                }
+                
+                if (typeof window.dagre !== 'undefined') {
+                    log('✅ Dagre already loaded', 'success');
+                    addStatus('Dagre: Already loaded', 'success');
+                } else {
+                    log('📥 Loading Dagre from CDN...', 'info');
+                    await loadScript('https://unpkg.com/dagre@0.8.5/dist/dagre.min.js');
+                    log('✅ Dagre loaded successfully', 'success');
+                    addStatus('Dagre: Loaded from CDN', 'success');
+                }
+                
+                if (typeof window.cytoscapeDagre !== 'undefined') {
+                    log('✅ Cytoscape-dagre already loaded', 'success');
+                    addStatus('Cytoscape-dagre: Already loaded', 'success');
+                } else {
+                    log('📥 Loading Cytoscape-dagre from CDN...', 'info');
+                    await loadScript('https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js');
+                    log('✅ Cytoscape-dagre loaded successfully', 'success');
+                    addStatus('Cytoscape-dagre: Loaded from CDN', 'success');
+                }
+                
+                // Register dagre extension
+                if (window.cytoscape && window.cytoscapeDagre) {
+                    window.cytoscape.use(window.cytoscapeDagre);
+                    log('✅ Dagre extension registered with Cytoscape', 'success');
+                    addStatus('Dagre extension: Registered', 'success');
+                }
+                
+                return true;
+            } catch (error) {
+                log(`❌ Library loading failed: ${error.message}`, 'error');
+                addStatus('Library loading failed', 'error');
+                throw error;
+            }
+        }
+        
+        async function testContainerCreation() {
+            log('📦 Testing container creation...', 'info');
+            
+            try {
+                const container = document.getElementById('test-cytoscape');
+                if (!container) {
+                    throw new Error('Test container not found');
+                }
+                
+                const rect = container.getBoundingClientRect();
+                log(`📏 Container dimensions: ${rect.width}x${rect.height}`, 'info');
+                
+                if (rect.width === 0 || rect.height === 0) {
+                    throw new Error('Container has zero dimensions');
+                }
+                
+                // Add visual indication
+                container.style.background = '#e8f5e8';
+                container.innerHTML = '<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #28a745; font-weight: bold;">✅ Container Ready</div>';
+                
+                log('✅ Container is ready and visible', 'success');
+                addStatus('Container: Ready and visible', 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Container test failed: ${error.message}`, 'error');
+                addStatus('Container test failed', 'error');
+                throw error;
+            }
+        }
+        
+        async function testCytoscapeInitialization() {
+            log('🔬 Testing Cytoscape initialization...', 'info');
+            
+            try {
+                if (!window.cytoscape) {
+                    throw new Error('Cytoscape not available');
+                }
+                
+                const container = document.getElementById('test-cytoscape');
+                container.innerHTML = ''; // Clear previous content
+                
+                testCy = window.cytoscape({
+                    container: container,
+                    elements: [],
+                    style: [
+                        {
+                            selector: 'node',
+                            style: {
+                                'background-color': '#48bb78',
+                                'border-color': '#38a169',
+                                'border-width': 2,
+                                'color': '#ffffff',
+                                'label': 'data(label)',
+                                'text-valign': 'center',
+                                'text-halign': 'center',
+                                'font-size': '12px',
+                                'font-weight': 'bold',
+                                'width': 100,
+                                'height': 40,
+                                'shape': 'rectangle'
+                            }
+                        },
+                        {
+                            selector: 'edge',
+                            style: {
+                                'width': 2,
+                                'line-color': '#718096',
+                                'target-arrow-color': '#718096',
+                                'target-arrow-shape': 'triangle',
+                                'curve-style': 'bezier'
+                            }
+                        }
+                    ],
+                    layout: {
+                        name: 'grid',
+                        fit: true,
+                        padding: 30
+                    }
+                });
+                
+                log(`✅ Cytoscape initialized successfully`, 'success');
+                log(`📊 Canvas size: ${testCy.width()}x${testCy.height()}`, 'info');
+                addStatus('Cytoscape: Initialized successfully', 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Cytoscape initialization failed: ${error.message}`, 'error');
+                addStatus('Cytoscape initialization failed', 'error');
+                throw error;
+            }
+        }
+        
+        async function testNodeCreation() {
+            log('➕ Testing node creation...', 'info');
+            
+            try {
+                if (!testCy) {
+                    throw new Error('Cytoscape not initialized');
+                }
+                
+                // Clear existing elements
+                testCy.elements().remove();
+                
+                // Add test nodes
+                const testNodes = [
+                    {
+                        group: 'nodes',
+                        data: {
+                            id: 'test-1',
+                            label: '🤖 Test Node 1'
+                        }
+                    },
+                    {
+                        group: 'nodes',
+                        data: {
+                            id: 'test-2',
+                            label: '🔧 Test Node 2'
+                        }
+                    },
+                    {
+                        group: 'nodes',
+                        data: {
+                            id: 'test-3',
+                            label: '📝 Test Node 3'
+                        }
+                    }
+                ];
+                
+                const testEdges = [
+                    {
+                        group: 'edges',
+                        data: {
+                            id: 'edge-1',
+                            source: 'test-1',
+                            target: 'test-2'
+                        }
+                    },
+                    {
+                        group: 'edges',
+                        data: {
+                            id: 'edge-2',
+                            source: 'test-2',
+                            target: 'test-3'
+                        }
+                    }
+                ];
+                
+                // Add elements
+                testCy.add(testNodes);
+                testCy.add(testEdges);
+                
+                const nodeCount = testCy.nodes().length;
+                const edgeCount = testCy.edges().length;
+                
+                log(`✅ Created ${nodeCount} nodes and ${edgeCount} edges`, 'success');
+                addStatus(`Nodes: Created ${nodeCount} nodes, ${edgeCount} edges`, 'success');
+                
+                // Force render
+                testCy.forceRender();
+                log('🎨 Forced render completed', 'info');
+                
+                return true;
+            } catch (error) {
+                log(`❌ Node creation failed: ${error.message}`, 'error');
+                addStatus('Node creation failed', 'error');
+                throw error;
+            }
+        }
+        
+        async function testLayoutAndFit() {
+            log('📐 Testing layout and fit...', 'info');
+            
+            try {
+                if (!testCy) {
+                    throw new Error('Cytoscape not initialized');
+                }
+                
+                const elements = testCy.elements();
+                if (elements.length === 0) {
+                    throw new Error('No elements to layout');
+                }
+                
+                // Log before layout
+                const beforeZoom = testCy.zoom();
+                const beforePan = testCy.pan();
+                log(`📏 Before layout - Zoom: ${beforeZoom.toFixed(2)}, Pan: (${beforePan.x.toFixed(1)}, ${beforePan.y.toFixed(1)})`, 'info');
+                
+                // Run dagre layout
+                const layout = testCy.layout({
+                    name: 'dagre',
+                    rankDir: 'TB',
+                    animate: true,
+                    animationDuration: 500,
+                    fit: true,
+                    padding: 30
+                });
+                
+                layout.run();
+                
+                // Wait for layout to complete
+                await new Promise(resolve => {
+                    layout.on('layoutstop', () => {
+                        resolve();
+                    });
+                });
+                
+                // Log after layout
+                const afterZoom = testCy.zoom();
+                const afterPan = testCy.pan();
+                log(`📏 After layout - Zoom: ${afterZoom.toFixed(2)}, Pan: (${afterPan.x.toFixed(1)}, ${afterPan.y.toFixed(1)})`, 'info');
+                
+                // Log node positions
+                testCy.nodes().forEach((node, index) => {
+                    const pos = node.position();
+                    const data = node.data();
+                    log(`📍 Node ${index + 1} (${data.label}): (${pos.x.toFixed(1)}, ${pos.y.toFixed(1)})`, 'info');
+                });
+                
+                // Force fit
+                testCy.fit(elements, 50);
+                log('🎯 Fit operation completed', 'success');
+                
+                addStatus('Layout & Fit: Completed successfully', 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Layout and fit failed: ${error.message}`, 'error');
+                addStatus('Layout and fit failed', 'error');
+                throw error;
+            }
+        }
+        
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // Auto-run basic diagnostic on page load
+        window.addEventListener('load', () => {
+            log('🔄 Page loaded, ready for debugging...', 'info');
+        });
+    </script>
+</body>
+</html>
