@@ -12,11 +12,11 @@ logger = get_logger(__name__)
 
 
 class MpmCommandHook(SubmitHook):
-    """Hook that intercepts /mpm: commands and routes them to the command router."""
+    """Hook that intercepts /mpm commands and routes them to the command router."""
     
     def __init__(self):
         super().__init__(name="mpm_command", priority=1)  # High priority to intercept early
-        self.command_prefix = "/mpm:"
+        self.command_prefix = "/mpm "
         self.command_router_path = self._find_command_router()
     
     def _find_command_router(self) -> Path:
@@ -35,11 +35,11 @@ class MpmCommandHook(SubmitHook):
         return Path(".claude/scripts/command_router.py").resolve()
     
     def execute(self, context: HookContext) -> HookResult:
-        """Check for /mpm: commands and execute them directly."""
+        """Check for /mpm commands and execute them directly."""
         try:
             prompt = context.data.get('prompt', '').strip()
             
-            # Check if this is an /mpm: command
+            # Check if this is an /mpm command
             if not prompt.startswith(self.command_prefix):
                 # Not our command, pass through
                 return HookResult(
@@ -67,7 +67,7 @@ class MpmCommandHook(SubmitHook):
             command = parts[0]
             args = parts[1:]
             
-            logger.info(f"Executing /mpm:{command} with args: {args}")
+            logger.info(f"Executing /mpm {command} with args: {args}")
             
             # Execute command using command router
             try:
