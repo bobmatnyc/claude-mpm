@@ -8,6 +8,7 @@
     
     <!-- External Dependencies -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <!-- HUD visualization libraries are loaded lazily when HUD is activated -->
     
     <!-- Stylesheets -->
     <link rel="stylesheet" href="../static/css/dashboard.css">
@@ -165,6 +166,7 @@
                 </div>
                 <div class="action-buttons">
                     <button id="export-btn" class="btn-success">Export</button>
+                    <button id="hud-toggle-btn" class="btn-secondary" disabled title="Select a session to enable HUD">HUD</button>
                 </div>
                 <div class="connection-toggle">
                     <button id="connection-toggle-btn" class="btn-secondary">Connection Settings</button>
@@ -184,8 +186,20 @@
         
         <!-- Main Content Area -->
         <div class="events-wrapper">
+            <!-- HUD Visualizer (Hidden by default) -->
+            <div class="hud-visualizer" id="hud-visualizer" style="display: none;">
+                <div class="hud-header">
+                    <h3>🔬 HUD Visualizer</h3>
+                    <div class="hud-controls">
+                        <button id="hud-reset-layout" class="btn-secondary">Reset Layout</button>
+                        <button id="hud-center-view" class="btn-secondary">Center View</button>
+                    </div>
+                </div>
+                <div class="hud-content" id="hud-cytoscape"></div>
+            </div>
+            
             <!-- Split container for module viewer and tabbed content -->
-            <div class="split-container">
+            <div class="split-container" id="normal-view">
                 <!-- Left: Module Viewer -->
                 <div class="module-viewer">
                     <!-- Two-pane layout: Data (top) and JSON (bottom) -->
@@ -327,10 +341,27 @@
     </div>
     
     <!-- JavaScript Modules -->
+    <!-- Core infrastructure -->
     <script src="../static/js/socket-client.js"></script>
+    
+    <!-- Existing components -->
     <script src="../static/js/components/event-viewer.js"></script>
     <script src="../static/js/components/module-viewer.js"></script>
     <script src="../static/js/components/session-manager.js"></script>
+    <script src="../static/js/components/hud-library-loader.js"></script>
+    <script src="../static/js/components/hud-visualizer.js"></script>
+    
+    <!-- New modular components -->
+    <script src="../static/js/components/socket-manager.js"></script>
+    <script src="../static/js/components/agent-inference.js"></script>
+    <script src="../static/js/components/ui-state-manager.js"></script>
+    <script src="../static/js/components/working-directory.js"></script>
+    <script src="../static/js/components/file-tool-tracker.js"></script>
+    <script src="../static/js/components/event-processor.js"></script>
+    <script src="../static/js/components/hud-manager.js"></script>
+    <script src="../static/js/components/export-manager.js"></script>
+    
+    <!-- Main dashboard coordinator -->
     <script src="../static/js/dashboard.js"></script>
 </body>
 </html>

@@ -456,6 +456,26 @@ class SessionManager {
         this.updateSessionSelect();
         this.updateFooterInfo();
     }
+
+    /**
+     * Get events for a specific session
+     * @param {string} sessionId - Session ID to get events for
+     * @returns {Array} - Filtered events for the session
+     */
+    getEventsForSession(sessionId) {
+        if (!sessionId || !this.socketClient) {
+            return [];
+        }
+
+        const allEvents = this.socketClient.events || [];
+        return allEvents.filter(event => {
+            // Check for session ID in various possible locations
+            const eventSessionId = event.session_id || 
+                                 (event.data && event.data.session_id) ||
+                                 null;
+            return eventSessionId === sessionId;
+        });
+    }
 }
 
 // Global functions for backward compatibility

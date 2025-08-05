@@ -53,6 +53,7 @@ class SocketIOClientProxy:
         self.running = True  # Always "running" for compatibility
         self._sio_client = None
         self._client_thread = None
+        self._client_loop = None
         
     def start(self):
         """Start the Socket.IO client connection to the persistent server."""
@@ -69,12 +70,14 @@ class SocketIOClientProxy:
     def _start_client(self):
         """Start Socket.IO client in a background thread."""
         def run_client():
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            self._client_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._client_loop)
             try:
-                loop.run_until_complete(self._connect_and_run())
+                self._client_loop.run_until_complete(self._connect_and_run())
             except Exception as e:
                 self.logger.error(f"SocketIOClientProxy client thread error: {e}")
+            finally:
+                self._client_loop.close()
             
         self._client_thread = threading.Thread(target=run_client, daemon=True)
         self._client_thread.start()
@@ -123,10 +126,19 @@ class SocketIOClientProxy:
                     "data": data
                 }
                 
-                # Send asynchronously using emit
-                asyncio.create_task(
-                    self._sio_client.emit('claude_event', event)
-                )
+                # Send event safely using run_coroutine_threadsafe
+                if hasattr(self, '_client_loop') and self._client_loop and not self._client_loop.is_closed():
+                    try:
+                        future = asyncio.run_coroutine_threadsafe(
+                            self._sio_client.emit('claude_event', event),
+                            self._client_loop
+                        )
+                        # Don't wait for the result to avoid blocking
+                        self.logger.debug(f"SocketIOClientProxy: Scheduled emit for {event_type}")
+                    except Exception as e:
+                        self.logger.error(f"SocketIOClientProxy: Failed to schedule emit for {event_type}: {e}")
+                else:
+                    self.logger.warning(f"SocketIOClientProxy: Client event loop not available for {event_type}")
                 
                 self.logger.debug(f"SocketIOClientProxy: Sent event {event_type}")
             except Exception as e:
@@ -365,6 +377,7 @@ class SocketIOServer:
             working_dir = request.query.get('working_dir', os.getcwd())
             
             self.logger.info(f"Git diff API request: file={file_path}, timestamp={timestamp}, working_dir={working_dir}")
+            self.logger.info(f"Git diff request details: query_params={dict(request.query)}, file_exists={os.path.exists(file_path) if file_path else False}")
             
             if not file_path:
                 self.logger.warning("Git diff request missing file parameter")
@@ -611,10 +624,34 @@ class SocketIOServer:
                             "timestamp": timestamp
                         }
                 
-                # Check if file is from a different repository
+                # Check if file is tracked by git
+                status_proc = await asyncio.create_subprocess_exec(
+                    'git', '-C', working_dir, 'ls-files', '--', file_path,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE
+                )
+                status_output, _ = await status_proc.communicate()
+                
+                is_tracked = status_proc.returncode == 0 and status_output.decode().strip()
+                
+                if not is_tracked:
+                    # File is not tracked by git
+                    return {
+                        "success": False,
+                        "error": "This file is not tracked by git",
+                        "file_path": file_path,
+                        "working_dir": working_dir,
+                        "suggestions": [
+                            "This file has not been added to git yet",
+                            "Use 'git add' to track this file before viewing its diff",
+                            "Git diff can only show changes for files that are tracked by git"
+                        ]
+                    }
+                
+                # File is tracked but has no changes to show
                 suggestions = [
-                    "The file may not be tracked by git",
-                    "The file may not have any committed changes",
+                    "The file may not have any committed changes yet",
+                    "The file may have been added but not committed",
                     "The timestamp may be outside the git history range"
                 ]
                 
@@ -901,18 +938,22 @@ class SocketIOServer:
         
         # Broadcast to clients with timeout and error handling
         try:
-            future = asyncio.run_coroutine_threadsafe(
-                self.sio.emit('claude_event', event),
-                self.loop
-            )
-            # Wait for completion with timeout to detect issues
-            try:
-                future.result(timeout=2.0)  # 2 second timeout
-                self.logger.debug(f"📨 Successfully broadcasted {event_type} to {len(self.clients)} clients")
-            except asyncio.TimeoutError:
-                self.logger.warning(f"⏰ Broadcast timeout for event {event_type} - continuing anyway")
-            except Exception as emit_error:
-                self.logger.error(f"❌ Broadcast emit error for {event_type}: {emit_error}")
+            # Check if the event loop is still running and not closed
+            if self.loop and not self.loop.is_closed() and self.loop.is_running():
+                future = asyncio.run_coroutine_threadsafe(
+                    self.sio.emit('claude_event', event),
+                    self.loop
+                )
+                # Wait for completion with timeout to detect issues
+                try:
+                    future.result(timeout=2.0)  # 2 second timeout
+                    self.logger.debug(f"📨 Successfully broadcasted {event_type} to {len(self.clients)} clients")
+                except asyncio.TimeoutError:
+                    self.logger.warning(f"⏰ Broadcast timeout for event {event_type} - continuing anyway")
+                except Exception as emit_error:
+                    self.logger.error(f"❌ Broadcast emit error for {event_type}: {emit_error}")
+            else:
+                self.logger.warning(f"⚠️ Event loop not available for broadcast of {event_type} - event loop closed or not running")
         except Exception as e:
             self.logger.error(f"❌ Failed to submit broadcast to event loop: {e}")
             import traceback

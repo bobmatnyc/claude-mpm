@@ -850,6 +850,153 @@ class AgentMemoryManager(LoggerMixin):
             self.logger.error(f"Error cross-referencing memories: {e}")
             return {"success": False, "error": str(e)}
 
+    def get_all_memories_raw(self) -> Dict[str, Any]:
+        """Get all agent memories in structured JSON format.
+        
+        WHY: This provides programmatic access to all agent memories, allowing
+        external tools, scripts, or APIs to retrieve and process the complete
+        memory state of the system.
+        
+        DESIGN DECISION: Returns structured data with metadata for each agent
+        including file stats, sections, and parsed content. This enables both
+        content access and system analysis.
+        
+        Returns:
+            Dict containing structured memory data for all agents
+        """
+        try:
+            result = {
+                "success": True,
+                "timestamp": datetime.now().isoformat(),
+                "total_agents": 0,
+                "total_size_bytes": 0,
+                "agents": {}
+            }
+            
+            # Ensure directory exists
+            if not self.memories_dir.exists():
+                return {
+                    "success": True,
+                    "timestamp": datetime.now().isoformat(),
+                    "total_agents": 0,
+                    "total_size_bytes": 0,
+                    "agents": {},
+                    "message": "No memory directory found"
+                }
+            
+            # Find all agent memory files
+            memory_files = list(self.memories_dir.glob("*_agent.md"))
+            result["total_agents"] = len(memory_files)
+            
+            # Process each agent memory file
+            for file_path in sorted(memory_files):
+                agent_id = file_path.stem.replace('_agent', '')
+                
+                try:
+                    # Get file stats
+                    stat = file_path.stat()
+                    file_size = stat.st_size
+                    result["total_size_bytes"] += file_size
+                    
+                    # Load and parse memory content
+                    memory_content = self.load_agent_memory(agent_id)
+                    
+                    if memory_content:
+                        sections = self._parse_memory_content_to_dict(memory_content)
+                        
+                        # Count total items across all sections
+                        total_items = sum(len(items) for items in sections.values())
+                        
+                        result["agents"][agent_id] = {
+                            "agent_id": agent_id,
+                            "file_path": str(file_path),
+                            "file_size_bytes": file_size,
+                            "file_size_kb": round(file_size / 1024, 2),
+                            "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                            "sections_count": len(sections),
+                            "total_items": total_items,
+                            "auto_learning": self._get_agent_auto_learning(agent_id),
+                            "size_limits": self._get_agent_limits(agent_id),
+                            "sections": sections,
+                            "raw_content": memory_content
+                        }
+                    else:
+                        result["agents"][agent_id] = {
+                            "agent_id": agent_id,
+                            "file_path": str(file_path),
+                            "file_size_bytes": file_size,
+                            "file_size_kb": round(file_size / 1024, 2),
+                            "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                            "error": "Could not load memory content",
+                            "sections": {},
+                            "raw_content": ""
+                        }
+                        
+                except Exception as e:
+                    self.logger.error(f"Error processing memory for agent {agent_id}: {e}")
+                    result["agents"][agent_id] = {
+                        "agent_id": agent_id,
+                        "file_path": str(file_path),
+                        "error": str(e),
+                        "sections": {},
+                        "raw_content": ""
+                    }
+            
+            result["total_size_kb"] = round(result["total_size_bytes"] / 1024, 2)
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error getting all memories raw: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+
+    def _parse_memory_content_to_dict(self, content: str) -> Dict[str, List[str]]:
+        """Parse memory content into structured dictionary format.
+        
+        WHY: Provides consistent parsing of memory content into sections and items
+        for both display and programmatic access. This ensures the same parsing
+        logic is used across the system.
+        
+        Args:
+            content: Raw memory file content
+            
+        Returns:
+            Dict mapping section names to lists of items
+        """
+        sections = {}
+        current_section = None
+        current_items = []
+        
+        for line in content.split('\n'):
+            line = line.strip()
+            
+            # Skip empty lines and header information
+            if not line or line.startswith('#') and 'Memory Usage' in line:
+                continue
+                
+            if line.startswith('## ') and not line.startswith('## Memory Usage'):
+                # New section found
+                if current_section and current_items:
+                    sections[current_section] = current_items.copy()
+                
+                current_section = line[3:].strip()
+                current_items = []
+                
+            elif line.startswith('- ') and current_section:
+                # Item in current section
+                item = line[2:].strip()
+                if item and len(item) > 3:  # Filter out very short items
+                    current_items.append(item)
+        
+        # Add final section
+        if current_section and current_items:
+            sections[current_section] = current_items
+        
+        return sections
+
     def _ensure_memories_directory(self):
         """Ensure memories directory exists with README.
         

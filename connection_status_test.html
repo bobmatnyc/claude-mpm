@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Status Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin: 10px 0;
+        }
+        .status-connected {
+            background: #d4f8e8;
+            color: #22543d;
+        }
+        .status-disconnected {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        .status-connecting {
+            background: #feebc8;
+            color: #7b341e;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #4299e1;
+            color: white;
+        }
+        button:hover {
+            background: #3182ce;
+        }
+        .log {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>Connection Status Test</h1>
+        
+        <div id="connection-status" class="status-badge status-disconnected">
+            <span>●</span> Disconnected
+        </div>
+        
+        <div>
+            <button onclick="testConnecting()">Test Connecting</button>
+            <button onclick="testConnected()">Test Connected</button>
+            <button onclick="testDisconnected()">Test Disconnected</button>
+            <button onclick="clearLog()">Clear Log</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+        
+        <h2>Test Instructions:</h2>
+        <ol>
+            <li>Open browser console to see logs</li>
+            <li>Click test buttons to simulate different connection states</li>
+            <li>Verify that the status badge updates correctly</li>
+            <li>Check the log area for any errors</li>
+        </ol>
+    </div>
+
+    <script>
+        // Mock socket client and manager for testing
+        class MockSocketClient {
+            constructor() {
+                this.isConnected = false;
+                this.isConnecting = false;
+                this.socket = null;
+            }
+            
+            notifyConnectionStatus(status, type) {
+                console.log(`MockSocketClient: Connection status changed to '${status}' (${type})`);
+                log(`MockSocketClient: Dispatching event: ${status} (${type})`);
+                document.dispatchEvent(new CustomEvent('socketConnectionStatus', {
+                    detail: { status, type }
+                }));
+            }
+        }
+        
+        class MockSocketManager {
+            constructor() {
+                this.socketClient = new MockSocketClient();
+                this.setupSocketEventHandlers();
+                log('MockSocketManager initialized');
+            }
+            
+            setupSocketEventHandlers() {
+                document.addEventListener('socketConnectionStatus', (e) => {
+                    console.log(`MockSocketManager: Processing connection status update: ${e.detail.status} (${e.detail.type})`);
+                    log(`MockSocketManager: Received event: ${e.detail.status} (${e.detail.type})`);
+                    this.handleConnectionStatusChange(e.detail.status, e.detail.type);
+                });
+            }
+            
+            handleConnectionStatusChange(status, type) {
+                this.updateConnectionStatus(status, type);
+            }
+            
+            updateConnectionStatus(status, type) {
+                const statusElement = document.getElementById('connection-status');
+                if (statusElement) {
+                    const indicator = statusElement.querySelector('span');
+                    if (indicator) {
+                        const statusIndicator = type === 'connected' ? '●' : '●';
+                        statusElement.innerHTML = `<span>${statusIndicator}</span> ${status}`;
+                    } else {
+                        statusElement.textContent = status;
+                    }
+                    
+                    statusElement.className = `status-badge status-${type}`;
+                    console.log(`MockSocketManager: UI updated - status: '${status}' (${type})`);
+                    log(`MockSocketManager: UI updated successfully`);
+                } else {
+                    console.error('MockSocketManager: Could not find connection-status element in DOM');
+                    log('ERROR: Could not find connection-status element!');
+                }
+            }
+        }
+        
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${timestamp}] ${message}\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        function testConnecting() {
+            log('--- TESTING CONNECTING STATE ---');
+            socketManager.socketClient.notifyConnectionStatus('Connecting...', 'connecting');
+        }
+        
+        function testConnected() {
+            log('--- TESTING CONNECTED STATE ---');
+            socketManager.socketClient.notifyConnectionStatus('Connected', 'connected');
+        }
+        
+        function testDisconnected() {
+            log('--- TESTING DISCONNECTED STATE ---');
+            socketManager.socketClient.notifyConnectionStatus('Disconnected', 'disconnected');
+        }
+        
+        // Initialize when page loads
+        let socketManager;
+        document.addEventListener('DOMContentLoaded', function() {
+            socketManager = new MockSocketManager();
+            log('Test page loaded successfully');
+        });
+    </script>
+</body>
+</html>

@@ -22,6 +22,9 @@ class SocketClient {
         this.events = [];
         this.sessions = new Map();
         this.currentSessionId = null;
+        
+        // Start periodic status check as fallback mechanism
+        this.startStatusCheckFallback();
     }
 
     /**
@@ -356,10 +359,35 @@ class SocketClient {
      * @param {string} type - Status type (connected, disconnected, connecting)
      */
     notifyConnectionStatus(status, type) {
-        // This will be handled by the dashboard UI
+        console.log(`SocketClient: Connection status changed to '${status}' (${type})`);
+        
+        // Direct DOM update - immediate and reliable
+        this.updateConnectionStatusDOM(status, type);
+        
+        // Also dispatch custom event for other modules
         document.dispatchEvent(new CustomEvent('socketConnectionStatus', {
             detail: { status, type }
         }));
+    }
+
+    /**
+     * Directly update the connection status DOM element
+     * @param {string} status - Status message
+     * @param {string} type - Status type (connected, disconnected, connecting)
+     */
+    updateConnectionStatusDOM(status, type) {
+        const statusElement = document.getElementById('connection-status');
+        if (statusElement) {
+            // Update the text content while preserving the indicator span
+            statusElement.innerHTML = `<span>●</span> ${status}`;
+            
+            // Update the CSS class for styling
+            statusElement.className = `status-badge status-${type}`;
+            
+            console.log(`SocketClient: Direct DOM update - status: '${status}' (${type})`);
+        } else {
+            console.warn('SocketClient: Could not find connection-status element in DOM');
+        }
     }
 
     /**
@@ -442,6 +470,66 @@ class SocketClient {
             sessions: this.sessions,
             currentSessionId: this.currentSessionId
         };
+    }
+
+    /**
+     * Start periodic status check as fallback mechanism
+     * This ensures the UI stays in sync with actual socket state
+     */
+    startStatusCheckFallback() {
+        // Check status every 2 seconds
+        setInterval(() => {
+            this.checkAndUpdateStatus();
+        }, 2000);
+        
+        // Initial check after DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => this.checkAndUpdateStatus(), 100);
+            });
+        } else {
+            setTimeout(() => this.checkAndUpdateStatus(), 100);
+        }
+    }
+
+    /**
+     * Check actual socket state and update UI if necessary
+     */
+    checkAndUpdateStatus() {
+        let actualStatus = 'Disconnected';
+        let actualType = 'disconnected';
+        
+        if (this.socket) {
+            if (this.socket.connected) {
+                actualStatus = 'Connected';
+                actualType = 'connected';
+                this.isConnected = true;
+                this.isConnecting = false;
+            } else if (this.socket.connecting || this.isConnecting) {
+                actualStatus = 'Connecting...';
+                actualType = 'connecting';
+                this.isConnected = false;
+            } else {
+                actualStatus = 'Disconnected';
+                actualType = 'disconnected';
+                this.isConnected = false;
+                this.isConnecting = false;
+            }
+        }
+        
+        // Check if UI needs updating
+        const statusElement = document.getElementById('connection-status');
+        if (statusElement) {
+            const currentText = statusElement.textContent.replace('●', '').trim();
+            const currentClass = statusElement.className;
+            const expectedClass = `status-badge status-${actualType}`;
+            
+            // Update if status text or class doesn't match
+            if (currentText !== actualStatus || currentClass !== expectedClass) {
+                console.log(`SocketClient: Fallback update - was '${currentText}' (${currentClass}), now '${actualStatus}' (${expectedClass})`);
+                this.updateConnectionStatusDOM(actualStatus, actualType);
+            }
+        }
     }
 }
 
