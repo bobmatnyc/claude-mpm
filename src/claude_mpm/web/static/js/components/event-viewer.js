@@ -115,10 +115,12 @@ class EventViewer {
                 }
             }
 
-            // Type filter - now handles both full hook types (like "hook.user_prompt") and main types
+            // Type filter - now handles full hook types (like "hook.user_prompt") and main types
             if (this.typeFilter) {
-                const eventType = event.type || '';
-                if (eventType !== this.typeFilter) {
+                // Use the same logic as formatEventType to get the full event type
+                const eventType = event.type && event.type.trim() !== '' ? event.type : '';
+                const fullEventType = event.subtype && eventType ? `${eventType}.${event.subtype}` : eventType;
+                if (fullEventType !== this.typeFilter) {
                     return false;
                 }
             }
@@ -145,10 +147,13 @@ class EventViewer {
         if (!dropdown) return;
 
         // Extract unique event types from current events
+        // Use the same logic as formatEventType to get full event type names
         const eventTypes = new Set();
         this.events.forEach(event => {
-            if (event.type) {
-                eventTypes.add(event.type);
+            if (event.type && event.type.trim() !== '') {
+                // Combine type and subtype if subtype exists, otherwise just use type
+                const fullType = event.subtype ? `${event.type}.${event.subtype}` : event.type;
+                eventTypes.add(fullType);
             }
         });
 

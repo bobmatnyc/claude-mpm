@@ -49,7 +49,7 @@ def manage_memory(args):
             _show_status(memory_manager)
         
         elif args.memory_command == "view":
-            _view_memory(args, memory_manager)
+            _show_memories(args, memory_manager)
         
         elif args.memory_command == "add":
             _add_learning(args, memory_manager)
@@ -482,7 +482,7 @@ def _show_memories(args, memory_manager):
     print("-" * 80)
     
     agent_id = getattr(args, 'agent_id', None)
-    format_type = getattr(args, 'format', 'summary')
+    format_type = getattr(args, 'format', 'detailed')
     
     try:
         if agent_id:
