@@ -118,6 +118,68 @@ class MemoryRouter(LoggerMixin):
                 'Project Coordination', 'Team Communication',
                 'Process Improvements', 'Risk Management'
             ]
+        },
+        'data_engineer': {
+            'keywords': [
+                'data', 'database', 'sql', 'pipeline', 'etl', 'elt', 'extract', 'transform',
+                'load', 'analytics', 'warehouse', 'lake', 'schema', 'migration',
+                'replication', 'streaming', 'batch', 'kafka', 'spark', 'hadoop',
+                'mongodb', 'postgres', 'mysql', 'redis', 'elasticsearch', 'index',
+                'query', 'optimization', 'performance', 'partitioning', 'sharding',
+                'normalization', 'denormalization', 'aggregation', 'cleansing',
+                'validation', 'quality', 'lineage', 'governance', 'backup', 'restore',
+                'ai api', 'openai', 'claude', 'llm', 'embedding', 'vector database'
+            ],
+            'sections': [
+                'Database Architecture Patterns', 'Pipeline Design Strategies',
+                'Data Quality Standards', 'Performance Optimization Techniques'
+            ]
+        },
+        'test_integration': {
+            'keywords': [
+                'integration', 'e2e', 'end-to-end', 'system test', 'workflow test',
+                'cross-system', 'api test', 'contract test', 'service test',
+                'boundary test', 'interface test', 'component test', 'smoke test',
+                'acceptance test', 'scenario test', 'user journey', 'flow test',
+                'regression', 'compatibility', 'interoperability', 'validation',
+                'verification', 'mock', 'stub', 'test data', 'test environment',
+                'test setup', 'teardown', 'isolation', 'coordination', 'synchronization',
+                'selenium', 'cypress', 'playwright', 'postman', 'newman'
+            ],
+            'sections': [
+                'Integration Test Patterns', 'Cross-System Validation',
+                'Test Environment Management', 'End-to-End Workflow Testing'
+            ]
+        },
+        'ops': {
+            'keywords': [
+                'deployment', 'infrastructure', 'devops', 'cicd', 'ci/cd', 'docker',
+                'container', 'kubernetes', 'helm', 'terraform', 'ansible', 'jenkins',
+                'pipeline', 'build', 'release', 'staging', 'production', 'environment',
+                'monitoring', 'logging', 'metrics', 'alerts', 'observability',
+                'scaling', 'load balancer', 'proxy', 'nginx', 'apache', 'server',
+                'network', 'firewall', 'vpc', 'aws', 'azure', 'gcp', 'cloud',
+                'backup', 'disaster recovery', 'failover', 'redundancy', 'uptime',
+                'prometheus', 'grafana', 'splunk', 'datadog', 'newrelic'
+            ],
+            'sections': [
+                'Deployment Strategies', 'Infrastructure Patterns',
+                'Monitoring and Observability', 'Scaling and Performance'
+            ]
+        },
+        'version_control': {
+            'keywords': [
+                'git', 'github', 'gitlab', 'bitbucket', 'branch', 'merge', 'commit',
+                'pull request', 'merge request', 'tag', 'release', 'version', 'changelog',
+                'semantic versioning', 'semver', 'workflow', 'gitflow', 'conflict',
+                'resolution', 'rebase', 'cherry-pick', 'stash', 'bisect', 'blame',
+                'diff', 'patch', 'submodule', 'hook', 'pre-commit', 'post-commit',
+                'repository', 'remote', 'origin', 'upstream', 'fork', 'clone'
+            ],
+            'sections': [
+                'Branching Strategies', 'Release Management',
+                'Version Control Workflows', 'Collaboration Patterns'
+            ]
         }
     }
     
@@ -132,6 +194,31 @@ class MemoryRouter(LoggerMixin):
         """
         super().__init__()
         self.config = config or Config()
+    
+    def get_supported_agents(self) -> List[str]:
+        """Get list of supported agent types.
+        
+        WHY: Other components need to know which agent types are supported
+        for validation and UI display purposes.
+        
+        Returns:
+            List of supported agent type names
+        """
+        return list(self.AGENT_PATTERNS.keys())
+    
+    def is_agent_supported(self, agent_type: str) -> bool:
+        """Check if an agent type is supported by the memory router.
+        
+        WHY: Provides validation for agent types before attempting routing.
+        This prevents errors and provides clear feedback about unsupported types.
+        
+        Args:
+            agent_type: Agent type to check
+            
+        Returns:
+            True if agent type is supported, False otherwise
+        """
+        return agent_type in self.AGENT_PATTERNS
     
     def analyze_and_route(self, content: str, context: Optional[Dict] = None) -> Dict[str, Any]:
         """Analyze content and determine target agent for memory storage.
@@ -187,7 +274,9 @@ class MemoryRouter(LoggerMixin):
                 "section": "Recent Learnings",
                 "confidence": 0.1,
                 "reasoning": f"Error during analysis, defaulting to {self.DEFAULT_AGENT}",
-                "error": str(e)
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
+                "content_length": len(content) if content else 0
             }
     
     def test_routing_patterns(self, test_cases: List[Dict[str, str]]) -> List[Dict[str, Any]]:
@@ -283,17 +372,20 @@ class MemoryRouter(LoggerMixin):
             matched_keywords = []
             
             for keyword in patterns['keywords']:
-                # Exact keyword match
+                # Exact keyword match gets higher score
                 if keyword in content:
-                    score += 1.0
+                    # Multi-word keywords get bonus score
+                    bonus = 1.5 if ' ' in keyword else 1.0
+                    score += bonus
                     matched_keywords.append(keyword)
                 # Partial match (word contains keyword)
                 elif any(keyword in word for word in content.split()):
                     score += 0.5
             
-            # Normalize score by number of keywords for this agent
+            # Normalize score by square root to avoid penalizing agents with many keywords
             if patterns['keywords']:
-                score = score / len(patterns['keywords'])
+                import math
+                score = score / math.sqrt(len(patterns['keywords']))
             
             scores[agent] = {
                 'score': score,
@@ -361,7 +453,8 @@ class MemoryRouter(LoggerMixin):
                 best_agent = agent
         
         # If no clear winner, use default
-        if best_score < 0.1:
+        # Lowered threshold to handle diverse agent patterns better
+        if best_score < 0.05:
             return self.DEFAULT_AGENT, 0.1
         
         # Convert score to confidence (0.0 to 1.0)
