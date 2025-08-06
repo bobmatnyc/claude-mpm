@@ -43,10 +43,25 @@ def is_running():
         return False
 
 def start_server():
-    """Start the Socket.IO server as a daemon."""
+    """Start the Socket.IO server as a daemon with conflict detection."""
     if is_running():
-        print("Socket.IO server is already running.")
+        print("Socket.IO daemon server is already running.")
+        print(f"Use '{__file__} status' for details")
         return
+    
+    # Check for HTTP-managed server conflict
+    try:
+        import requests
+        response = requests.get("http://localhost:8765/health", timeout=1.0)
+        if response.status_code == 200:
+            data = response.json()
+            if 'server_id' in data:
+                print(f"⚠️  HTTP-managed server already running: {data.get('server_id')}")
+                print(f"   Stop it first: socketio_server_manager.py stop --port 8765")
+                print(f"   Or diagnose: socketio_server_manager.py diagnose")
+                return
+    except:
+        pass  # No HTTP server, continue
     
     ensure_dirs()
     
@@ -96,9 +111,10 @@ def start_server():
         signal_handler(signal.SIGINT, None)
 
 def stop_server():
-    """Stop the Socket.IO server."""
+    """Stop the Socket.IO daemon server."""
     if not is_running():
-        print("Socket.IO server is not running.")
+        print("Socket.IO daemon server is not running.")
+        print(f"Check for other servers: socketio_server_manager.py status")
         return
     
     try:
@@ -125,11 +141,12 @@ def stop_server():
         print(f"Error stopping server: {e}")
 
 def status_server():
-    """Check server status."""
+    """Check server status with manager integration info."""
     if is_running():
         with open(PID_FILE) as f:
             pid = int(f.read().strip())
-        print(f"Socket.IO server is running (PID: {pid})")
+        print(f"Socket.IO daemon server is running (PID: {pid})")
+        print(f"PID file: {PID_FILE}")
         
         # Check if port is listening
         try:
@@ -138,13 +155,36 @@ def status_server():
             result = sock.connect_ex(('localhost', 8765))
             sock.close()
             if result == 0:
-                print("Server is listening on port 8765")
+                print("✅ Server is listening on port 8765")
+                print("🔧 Management style: daemon")
             else:
-                print("WARNING: Server process exists but port 8765 is not accessible")
+                print("⚠️ WARNING: Server process exists but port 8765 is not accessible")
         except:
             pass
+            
+        # Show management commands
+        print("\n🔧 Management Commands:")
+        print(f"   • Stop: {__file__} stop")
+        print(f"   • Restart: {__file__} restart")
+        
+        # Check for manager conflicts
+        try:
+            import requests
+            response = requests.get("http://localhost:8765/health", timeout=1.0)
+            if response.status_code == 200:
+                data = response.json()
+                if 'server_id' in data and data.get('server_id') != 'daemon-socketio':
+                    print(f"\n⚠️  POTENTIAL CONFLICT: HTTP-managed server also detected")
+                    print(f"   Server ID: {data.get('server_id')}")
+                    print(f"   Use 'socketio_server_manager.py diagnose' to resolve")
+        except:
+            pass
+            
     else:
-        print("Socket.IO server is not running")
+        print("Socket.IO daemon server is not running")
+        print(f"\n🔧 Start Commands:")
+        print(f"   • Daemon: {__file__} start")
+        print(f"   • HTTP-managed: socketio_server_manager.py start")
 
 def main():
     """Main entry point."""

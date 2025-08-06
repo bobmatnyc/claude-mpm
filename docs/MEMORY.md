@@ -2,7 +2,7 @@
 
 The Agent Memory System in Claude MPM enables agents to learn and apply knowledge over time, creating persistent learnings that improve agent effectiveness across sessions.
 
-Last Updated: 2025-01-24
+Last Updated: 2025-08-05
 
 ## Overview
 
@@ -22,8 +22,10 @@ The memory system allows agents to accumulate project-specific knowledge, patter
 Agents accumulate knowledge through:
 1. **Explicit Memory Commands**: Users say "remember this" or "add to memory"
 2. **Auto-Learning**: Automatic extraction from agent outputs (when enabled)
-3. **Documentation Building**: Automated extraction from project documentation
-4. **Manual Addition**: Direct memory file editing or CLI commands
+3. **Project-Specific Memory Generation**: Automated analysis of project characteristics and context
+4. **Documentation Building**: Enhanced extraction from dynamically discovered documentation
+5. **Hook-Based Integration**: Real-time memory injection and learning extraction via hooks
+6. **Manual Addition**: Direct memory file editing or CLI commands
 
 ### Benefits
 
@@ -38,6 +40,31 @@ Agents accumulate knowledge through:
 - Better adherence to project conventions and standards
 
 ## Core Features
+
+### Project-Specific Memory Generation
+
+The memory system now automatically analyzes your project to create context-aware memories tailored to your specific codebase, technology stack, and architecture patterns.
+
+**Key Capabilities:**
+- **Technology Stack Detection**: Automatically identifies languages, frameworks, and tools from configuration files
+- **Architecture Pattern Recognition**: Analyzes directory structure and code patterns to understand project organization
+- **Dynamic File Discovery**: Intelligently finds important documentation and configuration files
+- **Agent-Specific Customization**: Generates different memory content based on the agent's role and project characteristics
+
+**Example Project Analysis Results:**
+```
+claude-mpm: python CLI Application
+- Main modules: cli, services, core, utils
+- Uses: click, pytest, flask
+- Testing: pytest fixtures
+- Key patterns: Object Oriented, Async Programming
+```
+
+**Benefits:**
+- **Immediate Context**: New agents start with relevant project knowledge instead of generic templates
+- **Consistent Patterns**: All agents understand the same project conventions and architecture
+- **Reduced Learning Time**: Agents don't need to rediscover project patterns through trial and error
+- **Better Code Quality**: Agents follow established patterns from the start
 
 ### Memory Storage
 
@@ -73,13 +100,19 @@ Automatic memory maintenance through:
 - **Priority Reordering**: Places important insights first
 - **Size Management**: Maintains memory within configured limits
 
-### Build Memories from Documentation
+### Enhanced Documentation Processing
 
-Automated knowledge extraction from:
-- Project documentation (CLAUDE.md, STRUCTURE.md, QA.md)
-- Code comments and patterns
-- Configuration files and guidelines
-- Custom documentation sources
+Automated knowledge extraction with dynamic discovery:
+- **Smart File Discovery**: Automatically finds relevant documentation based on project analysis
+- **Configuration Analysis**: Extracts insights from package.json, requirements.txt, and other config files
+- **Architecture Documentation**: Processes project-specific structure and pattern documentation
+- **Agent-Targeted Content**: Routes documentation insights to the most relevant agents
+- **Context-Aware Extraction**: Tailors extracted knowledge to the specific project characteristics
+
+**Dynamic File Discovery Examples:**
+- Node.js projects: Prioritizes package.json, webpack configs, and TypeScript documentation
+- Python projects: Focuses on requirements.txt, setup.py, and pytest configurations
+- Multi-language projects: Analyzes all relevant config files and creates comprehensive memories
 
 ## Usage Guide
 
@@ -93,11 +126,22 @@ Agent: I'll remember that architectural decision for future reference.
 
 **CLI Command:**
 ```bash
+# Initialize project-specific memories (best for new projects)
+claude-mpm memory init
+
 # Add a specific learning
 claude-mpm memory add engineer pattern "Use src/ layout for Python packages"
 
 # Add a mistake to avoid
 claude-mpm memory add qa error "Missing test coverage causes deployment failures"
+```
+
+**/mpm Slash Command (in interactive mode):**
+```bash
+# Initialize memories via PM agent
+/mpm memory init
+
+# This will trigger the PM agent to analyze your project and create memories
 ```
 
 **Memory Categories:**
@@ -181,12 +225,60 @@ claude-mpm memory build
 claude-mpm memory build --force-rebuild
 ```
 
-**Process Specific Files:**
-The system automatically processes:
-- `CLAUDE.md` → PM and Engineer agents
-- `docs/STRUCTURE.md` → Engineer and Documentation agents
-- `docs/QA.md` → QA and Engineer agents
-- `docs/DEPLOY.md` → Engineer and PM agents
+**Enhanced Processing:**
+The system now dynamically discovers and processes files based on project analysis:
+- **Configuration Files**: package.json, requirements.txt, pyproject.toml, Cargo.toml
+- **Project Documentation**: README.md, CONTRIBUTING.md, architecture docs
+- **Framework-Specific Docs**: API documentation, testing guides, deployment instructions
+- **Code Pattern Analysis**: Extracts conventions from actual source code
+
+### Memory Generation Examples
+
+**Generic Memory (Old Approach):**
+```markdown
+## Implementation Guidelines
+- Follow coding best practices
+- Write comprehensive tests
+- Use consistent naming conventions
+- Document your code properly
+```
+
+**Project-Specific Memory (New Approach):**
+```markdown
+## Implementation Guidelines - React/TypeScript SPA
+- Use functional components with hooks (established pattern in src/components/)
+- Follow Material-UI design system conventions
+- Implement unit tests with Jest and React Testing Library
+- Use ESLint/Prettier configuration from .eslintrc.json
+- API calls through axios service layer in src/services/
+- State management with Redux Toolkit (configured in src/store/)
+
+## Current Technical Context
+- Project uses TypeScript strict mode with custom tsconfig.json
+- Testing: Jest with coverage reports, Cypress for E2E
+- Build: Vite with custom build configurations for staging/production
+- Deployment: Docker containerization with multi-stage builds
+```
+
+**Agent-Specific Variations:**
+
+*Engineer Agent Memory:*
+```markdown
+## React Component Patterns
+- Use TypeScript interfaces for all props
+- Implement custom hooks for complex state logic
+- Follow atomic design principles (atoms/molecules/organisms)
+- Use React.memo for performance optimization where needed
+```
+
+*QA Agent Memory:*
+```markdown
+## Testing Strategy - React SPA
+- Component testing: @testing-library/react with user-event
+- API mocking: MSW (Mock Service Worker) for integration tests
+- E2E testing: Cypress with custom commands in cypress/support/
+- Coverage requirements: 80% minimum, configured in jest.config.js
+```
 
 ### PM Agent Memory Command Routing
 
@@ -207,6 +299,14 @@ Example output:
 ```
 
 ## CLI Commands Reference
+
+### memory init
+Initializes project-specific memories by delegating to the PM agent:
+- Triggers comprehensive project analysis by PM agent
+- PM agent scans documentation, source code, and project structure
+- Creates custom memories for each agent type based on findings
+- Adds discovered patterns using `memory add` commands
+- Best used when starting with a new project or after major refactoring
 
 ### memory status
 Shows comprehensive memory system status including:
@@ -258,6 +358,36 @@ Finds cross-references and patterns across memories:
 2. **Context Integration**: Memory content is integrated into agent prompts
 3. **Decision Making**: Agents reference learned patterns and guidelines
 4. **Post-Task Learning**: New insights are extracted and stored
+
+### Real-Time Memory Updates
+
+The memory system supports dynamic, real-time updates through multiple mechanisms:
+
+**Hook-Based Memory Integration:**
+- **PreDelegationHook**: Automatically injects relevant memories before agent execution
+- **PostDelegationHook**: Extracts learnings from agent outputs after task completion
+- **Context Injection**: Memories are dynamically added to agent context based on task type
+- **Learning Extraction**: Agents can mark learnings in their output for automatic capture
+
+**Programmatic Updates:**
+```python
+# Direct API calls for memory updates
+memory_manager.update_agent_memory(agent_id, section, new_item)
+memory_manager.add_learning(agent_id, learning_type, content)
+```
+
+**CLI-Based Updates:**
+```bash
+# Add memories on the fly
+claude-mpm memory add engineer pattern "Always validate input parameters"
+```
+
+**Natural Language Updates:**
+Agents recognize memory commands in conversation:
+- "Remember this for next time"
+- "Add this to your memory"
+- "Learn from this mistake"
+- "Store this insight"
 
 ### Memory Format Specification
 
@@ -319,26 +449,102 @@ Memory files follow a structured markdown format:
 ### Agent-Specific Memory Guidelines
 
 **Engineer Agent:**
-- Focus on implementation patterns and coding standards
-- Learn from build errors and performance issues
-- Store architectural decisions and refactoring insights
+- **Project-Specific Implementation**: Learns actual coding patterns from the codebase (e.g., "Use functional components with hooks" for React projects)
+- **Framework-Specific Guidelines**: Understands the specific frameworks and libraries used in the project
+- **Architecture Adherence**: Follows the detected project architecture (CLI app, web service, SPA, etc.)
+- **Build Tool Integration**: Understands the project's build system (webpack, Vite, pytest, cargo, etc.)
+- **Error Pattern Learning**: Learns from build errors specific to the project's tech stack
 
 **Research Agent:**
-- Collect domain knowledge and research findings
-- Document investigation methodologies
-- Store external resource references and insights
+- **Domain-Specific Context**: Understands project terminology and domain concepts
+- **Technology Research**: Focuses on research relevant to the project's tech stack
+- **Integration Patterns**: Learns about integrations specific to the detected databases and services
+- **Best Practices**: Researches practices specific to the project's architecture type
 
 **QA Agent:**
-- Learn testing strategies and coverage patterns
-- Remember quality standards and acceptance criteria
-- Store common bug patterns and testing insights
+- **Framework-Specific Testing**: Learns testing patterns for the detected testing framework (pytest, Jest, etc.)
+- **Project Test Patterns**: Understands the actual test organization from the test directory structure
+- **Coverage Standards**: Applies coverage requirements specific to the project configuration
+- **Quality Gates**: Learns quality standards from the project's actual CI/CD configuration
 
 **Documentation Agent:**
-- Learn writing standards and formatting preferences
-- Store documentation patterns and organization methods
-- Remember audience-specific communication styles
+- **Project Documentation Style**: Learns from existing documentation patterns in the project
+- **Technical Writing Context**: Understands the project's documentation structure and conventions
+- **Audience Adaptation**: Tailors documentation to the project's user base and technical level
+- **Format Consistency**: Follows the project's established documentation formats and standards
 
 ## Technical Details
+
+### ProjectAnalyzer Architecture
+
+The `ProjectAnalyzer` class provides intelligent project analysis for context-aware memory generation.
+
+**Core Analysis Capabilities:**
+
+1. **Configuration File Analysis**
+   - Detects technology stack from package.json, requirements.txt, pyproject.toml, Cargo.toml
+   - Extracts dependencies, frameworks, and build tools
+   - Identifies package managers and testing frameworks
+
+2. **Directory Structure Analysis**
+   - Maps project organization patterns (src/, lib/, app/, services/)
+   - Identifies entry points and main modules
+   - Recognizes architectural patterns from folder structure
+
+3. **Source Code Pattern Recognition**
+   - Analyzes coding conventions and patterns from actual source files
+   - Detects framework usage patterns (Flask routes, React components, etc.)
+   - Identifies database integrations and API patterns
+
+4. **Documentation Discovery**
+   - Dynamically finds relevant documentation files
+   - Prioritizes files based on project type and characteristics
+   - Includes configuration files in analysis for memory generation
+
+**API Methods:**
+
+```python
+# Core analysis method
+def analyze_project(force_refresh: bool = False) -> ProjectCharacteristics
+
+# Get formatted summary for memory templates
+def get_project_context_summary() -> str
+
+# Get important files for memory building
+def get_important_files_for_context() -> List[str]
+```
+
+**ProjectCharacteristics Data Structure:**
+```python
+@dataclass
+class ProjectCharacteristics:
+    project_name: str
+    primary_language: Optional[str]
+    languages: List[str]
+    frameworks: List[str]
+    architecture_type: str
+    main_modules: List[str]
+    key_directories: List[str]
+    entry_points: List[str]
+    testing_framework: Optional[str]
+    test_patterns: List[str]
+    package_manager: Optional[str]
+    build_tools: List[str]
+    databases: List[str]
+    web_frameworks: List[str]
+    api_patterns: List[str]
+    key_dependencies: List[str]
+    code_conventions: List[str]
+    configuration_patterns: List[str]
+    project_terminology: List[str]
+    documentation_files: List[str]
+    important_configs: List[str]
+```
+
+**Integration with Memory System:**
+- **AgentMemoryManager**: Uses ProjectAnalyzer to create project-specific memory templates
+- **MemoryBuilder**: Uses dynamic file discovery for enhanced documentation processing
+- **Memory Templates**: Include project context summaries for immediate relevance
 
 ### Memory File Structure
 
@@ -402,21 +608,133 @@ The routing system uses keyword analysis and pattern matching:
 - Automatic optimization when size limits approached
 - Periodic cleanup through scheduled tasks
 
+## Hook System Integration
+
+### Memory Hooks Overview
+
+The memory system integrates seamlessly with the Claude MPM hook system to provide automatic, real-time memory management:
+
+**Available Memory Hooks:**
+
+1. **MemoryPreDelegationHook**
+   - Loads agent-specific memories before task execution
+   - Injects memories as additional context in agent prompts
+   - Ensures agents have access to accumulated knowledge
+   - Priority: 20 (runs early in pre-delegation chain)
+
+2. **MemoryPostDelegationHook**
+   - Extracts learnings from agent outputs after task completion
+   - Looks for explicit learning markers in agent responses
+   - Automatically categorizes and stores new insights
+   - Only active when auto_learning is enabled
+
+### Hook Configuration
+
+**Enable Memory Hooks:**
+```yaml
+# In .claude-mpm/config.yml
+memory:
+  enabled: true
+  auto_learning: true  # Enables PostDelegationHook
+  
+hooks:
+  memory_integration: true
+```
+
+**Hook Registration (Automatic):**
+Memory hooks are automatically registered when:
+- Memory system is enabled in configuration
+- Claude MPM hook handler is initialized
+- Agent delegation occurs
+
+### Custom Hook Development
+
+**Creating Custom Memory Hooks:**
+```python
+from claude_mpm.hooks.base_hook import PreDelegationHook, HookContext, HookResult
+from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+
+class CustomMemoryHook(PreDelegationHook):
+    def __init__(self):
+        super().__init__(name="custom_memory", priority=25)
+        self.memory_manager = AgentMemoryManager()
+    
+    def execute(self, context: HookContext) -> HookResult:
+        agent_id = context.data.get('agent')
+        task_type = context.data.get('task_type')
+        
+        # Load task-specific memories
+        if task_type == 'testing':
+            qa_memory = self.memory_manager.load_agent_memory('qa')
+            context.data['additional_context'] = qa_memory
+        
+        return HookResult(success=True, modified=True, data=context.data)
+```
+
+### Dynamic Context Injection
+
+Hooks can inject various types of context dynamically:
+
+**Project Context Hook Example:**
+```python
+class ProjectContextHook(PreDelegationHook):
+    def execute(self, context: HookContext) -> HookResult:
+        # Inject real-time project state
+        context.data['project_context'] = {
+            'current_branch': get_git_branch(),
+            'recent_commits': get_recent_commits(),
+            'open_issues': fetch_github_issues(),
+            'deployment_status': check_deployment()
+        }
+        return HookResult(success=True, modified=True, data=context.data)
+```
+
+**Time-Based Context Hook:**
+```python
+class TimeBasedContextHook(PreDelegationHook):
+    def execute(self, context: HookContext) -> HookResult:
+        current_hour = datetime.now().hour
+        
+        # Inject time-sensitive information
+        if current_hour >= 22 or current_hour < 6:
+            context.data['warnings'] = "Late night - avoid production deployments"
+        elif current_hour == 12:
+            context.data['reminders'] = "Team standup in 30 minutes"
+        
+        return HookResult(success=True, modified=True, data=context.data)
+```
+
 ## Best Practices
+
+### Leveraging Project-Specific Memory Generation
+
+**Maximizing Automatic Analysis:**
+- Keep configuration files up-to-date (package.json, requirements.txt, etc.)
+- Maintain clear directory structure following conventional patterns
+- Document architectural decisions in discoverable locations (README.md, docs/)
+- Use standard entry point files (main.py, app.js, index.ts)
+
+**Enhancing Project Analysis:**
+- Add project-specific documentation that the analyzer can discover
+- Use consistent naming conventions that the analyzer can recognize
+- Structure code to follow recognizable patterns (MVC, microservices, etc.)
+- Include comments that describe architectural decisions and patterns
 
 ### When to Add Memories
 
 **High-Value Situations:**
-- Architectural decisions and their rationale
-- Successful problem-solving patterns
-- Common mistakes and their solutions
-- Project-specific conventions and preferences
-- Performance optimizations and their impact
+- Architectural decisions and their rationale (beyond what's auto-detected)
+- Successful problem-solving patterns specific to your project context
+- Common mistakes and their solutions within your tech stack
+- Project-specific conventions that aren't automatically discoverable
+- Performance optimizations and their impact on your specific architecture
+- Integration patterns unique to your project's service combinations
 
 **Avoid Adding:**
+- Information already captured by project analysis (language, frameworks, directory structure)
 - Temporary workarounds or hacks
-- Overly specific implementation details
-- Information readily available in documentation
+- Generic best practices readily available in documentation
+- Implementation details already evident from code patterns
 - Personal preferences without team consensus
 
 ### Memory Size Guidelines
@@ -543,6 +861,53 @@ claude-mpm memory status
 - Use selective rebuilding (avoid --force-rebuild)
 - Process documentation files in priority order
 - Monitor last-processed timestamps for efficiency
+
+### Project Analysis Issues
+
+**Incorrect Project Type Detection:**
+```bash
+# Check what the analyzer detected
+python -c "
+from claude_mpm.services.project_analyzer import ProjectAnalyzer
+analyzer = ProjectAnalyzer()
+chars = analyzer.analyze_project()
+print(f'Primary Language: {chars.primary_language}')
+print(f'Architecture: {chars.architecture_type}')
+print(f'Frameworks: {chars.frameworks}')
+"
+
+# Force refresh analysis cache
+python -c "
+from claude_mpm.services.project_analyzer import ProjectAnalyzer
+analyzer = ProjectAnalyzer()
+chars = analyzer.analyze_project(force_refresh=True)
+print(analyzer.get_project_context_summary())
+"
+```
+
+**Missing Important Files:**
+```bash
+# Check what files the analyzer found
+python -c "
+from claude_mpm.services.project_analyzer import ProjectAnalyzer
+analyzer = ProjectAnalyzer()
+files = analyzer.get_important_files_for_context()
+print('Important files found:')
+for f in files: print(f'  - {f}')
+"
+
+# Ensure your important files are in standard locations
+ls -la README.md package.json requirements.txt pyproject.toml
+```
+
+**Generic Memories Despite Project Analysis:**
+```bash
+# Check if project analysis is being used in memory creation
+grep -r "project_analyzer\|ProjectAnalyzer" .claude-mpm/memories/
+
+# Rebuild memories with fresh project analysis
+claude-mpm memory build --force-rebuild
+```
 
 ### Configuration Issues
 

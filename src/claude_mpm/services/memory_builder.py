@@ -23,6 +23,7 @@ while preserving essential information.
 """
 
 import re
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
@@ -31,6 +32,7 @@ from claude_mpm.core import LoggerMixin
 from claude_mpm.core.config import Config
 from claude_mpm.utils.paths import PathResolver
 from claude_mpm.services.memory_router import MemoryRouter
+from claude_mpm.services.project_analyzer import ProjectAnalyzer
 
 
 class MemoryBuilder(LoggerMixin):
@@ -98,17 +100,110 @@ class MemoryBuilder(LoggerMixin):
         ]
     }
     
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None, working_directory: Optional[Path] = None):
         """Initialize the memory builder.
         
         Args:
             config: Optional Config object
+            working_directory: Optional working directory for project-specific analysis
         """
         super().__init__()
         self.config = config or Config()
         self.project_root = PathResolver.get_project_root()
-        self.memories_dir = self.project_root / ".claude-mpm" / "memories"
+        # Use current working directory by default, not project root
+        self.working_directory = working_directory or Path(os.getcwd())
+        self.memories_dir = self.working_directory / ".claude-mpm" / "memories"
         self.router = MemoryRouter(config)
+        self.project_analyzer = ProjectAnalyzer(config, self.working_directory)
+    
+    def _get_dynamic_doc_files(self) -> Dict[str, Dict[str, Any]]:
+        """Get documentation files to process based on project analysis.
+        
+        WHY: Instead of hardcoded file list, dynamically discover important files
+        based on actual project structure and characteristics.
+        
+        Returns:
+            Dict mapping file paths to processing configuration
+        """
+        dynamic_files = {}
+        
+        # Start with static important files
+        static_files = self.DOC_FILES.copy()
+        
+        # Get project-specific important files
+        try:
+            important_files = self.project_analyzer.get_important_files_for_context()
+            project_characteristics = self.project_analyzer.analyze_project()
+            
+            # Add configuration files
+            for config_file in project_characteristics.important_configs:
+                if config_file not in static_files:
+                    file_ext = Path(config_file).suffix.lower()
+                    
+                    if file_ext in ['.json', '.toml', '.yaml', '.yml']:
+                        dynamic_files[config_file] = {
+                            'priority': 'medium',
+                            'sections': ['configuration', 'setup', 'dependencies'],
+                            'agents': ['engineer', 'pm'],
+                            'file_type': 'config'
+                        }
+            
+            # Add project-specific documentation
+            for doc_file in important_files:
+                if doc_file not in static_files and doc_file not in dynamic_files:
+                    file_path = Path(doc_file)
+                    
+                    # Determine processing config based on file name/path
+                    if 'api' in doc_file.lower() or 'endpoint' in doc_file.lower():
+                        dynamic_files[doc_file] = {
+                            'priority': 'high',
+                            'sections': ['api', 'endpoints', 'integration'],
+                            'agents': ['engineer', 'integration'],
+                            'file_type': 'api_doc'
+                        }
+                    elif 'architecture' in doc_file.lower() or 'design' in doc_file.lower():
+                        dynamic_files[doc_file] = {
+                            'priority': 'high',
+                            'sections': ['architecture', 'design', 'patterns'],
+                            'agents': ['engineer', 'architect'],
+                            'file_type': 'architecture'
+                        }
+                    elif 'test' in doc_file.lower():
+                        dynamic_files[doc_file] = {
+                            'priority': 'medium',
+                            'sections': ['testing', 'quality'],
+                            'agents': ['qa', 'engineer'],
+                            'file_type': 'test_doc'
+                        }
+                    elif file_path.suffix.lower() == '.md':
+                        # Generic markdown file
+                        dynamic_files[doc_file] = {
+                            'priority': 'low',
+                            'sections': ['documentation', 'guidelines'],
+                            'agents': ['pm', 'engineer'],
+                            'file_type': 'markdown'
+                        }
+            
+            # Add key source files for pattern analysis (limited selection)
+            if project_characteristics.entry_points:
+                for entry_point in project_characteristics.entry_points[:2]:  # Only first 2
+                    if entry_point not in dynamic_files:
+                        dynamic_files[entry_point] = {
+                            'priority': 'low',
+                            'sections': ['patterns', 'implementation'],
+                            'agents': ['engineer'],
+                            'file_type': 'source',
+                            'extract_patterns_only': True  # Only extract patterns, not full content
+                        }
+                        
+        except Exception as e:
+            self.logger.warning(f"Error getting dynamic doc files: {e}")
+        
+        # Merge static and dynamic files
+        all_files = {**static_files, **dynamic_files}
+        
+        self.logger.debug(f"Processing {len(all_files)} documentation files ({len(static_files)} static, {len(dynamic_files)} dynamic)")
+        return all_files
     
     def build_from_documentation(self, force_rebuild: bool = False) -> Dict[str, Any]:
         """Build agent memories from project documentation.
@@ -134,8 +229,11 @@ class MemoryBuilder(LoggerMixin):
                 "errors": []
             }
             
+            # Get dynamic list of files to process
+            doc_files = self._get_dynamic_doc_files()
+            
             # Process each documentation file
-            for doc_path, doc_config in self.DOC_FILES.items():
+            for doc_path, doc_config in doc_files.items():
                 file_path = self.project_root / doc_path
                 
                 if not file_path.exists():
@@ -292,8 +390,236 @@ class MemoryBuilder(LoggerMixin):
                 "error": str(e)
             }
     
+    def _extract_from_config_file(self, content: str, file_path: Path, doc_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract memory-worthy information from configuration files.
+        
+        WHY: Configuration files contain important setup patterns, dependencies,
+        and architectural decisions that agents should understand.
+        
+        Args:
+            content: File content
+            file_path: Path to the file
+            doc_config: Processing configuration
+            
+        Returns:
+            List of extracted memory items
+        """
+        extracted_items = []
+        source = str(file_path.relative_to(self.project_root))
+        
+        try:
+            file_ext = file_path.suffix.lower()
+            
+            if file_ext == '.json':
+                # Parse JSON configuration
+                import json
+                config_data = json.loads(content)
+                items = self._extract_from_json_config(config_data, source)
+                extracted_items.extend(items)
+                
+            elif file_ext in ['.toml']:
+                # Parse TOML configuration
+                try:
+                    try:
+                        import tomllib
+                    except ImportError:
+                        import tomli as tomllib
+                    with open(file_path, 'rb') as f:
+                        config_data = tomllib.load(f)
+                    items = self._extract_from_toml_config(config_data, source)
+                    extracted_items.extend(items)
+                except ImportError:
+                    self.logger.warning(f"TOML parsing not available for {source}")
+                    
+            elif file_ext in ['.yaml', '.yml']:
+                # For YAML, fall back to text-based extraction for now
+                items = self.extract_from_text(content, source)
+                extracted_items.extend(items)
+            
+            # Also extract text patterns for comments and documentation
+            text_items = self.extract_from_text(content, source)
+            extracted_items.extend(text_items)
+            
+        except Exception as e:
+            self.logger.warning(f"Error parsing config file {source}: {e}")
+            # Fall back to text extraction
+            extracted_items = self.extract_from_text(content, source)
+        
+        return extracted_items
+    
+    def _extract_from_json_config(self, config_data: dict, source: str) -> List[Dict[str, Any]]:
+        """Extract patterns from JSON configuration."""
+        items = []
+        
+        # Extract dependencies information
+        if 'dependencies' in config_data:
+            deps = config_data['dependencies']
+            if isinstance(deps, dict) and deps:
+                dep_names = list(deps.keys())[:5]  # Limit to prevent overwhelming
+                deps_str = ", ".join(dep_names)
+                items.append({
+                    "content": f"Key dependencies: {deps_str}",
+                    "type": "dependency_info",
+                    "source": source,
+                    "target_agent": "engineer",
+                    "section": "Current Technical Context",
+                    "confidence": 0.8
+                })
+        
+        # Extract scripts (for package.json)
+        if 'scripts' in config_data:
+            scripts = config_data['scripts']
+            if isinstance(scripts, dict):
+                for script_name, script_cmd in list(scripts.items())[:3]:  # Limit to first 3
+                    items.append({
+                        "content": f"Build script '{script_name}': {script_cmd[:50]}{'...' if len(script_cmd) > 50 else ''}",
+                        "type": "build_pattern",
+                        "source": source,
+                        "target_agent": "engineer",
+                        "section": "Implementation Guidelines",
+                        "confidence": 0.7
+                    })
+        
+        return items
+    
+    def _extract_from_toml_config(self, config_data: dict, source: str) -> List[Dict[str, Any]]:
+        """Extract patterns from TOML configuration."""
+        items = []
+        
+        # Extract project metadata (for pyproject.toml)
+        if 'project' in config_data:
+            project_info = config_data['project']
+            if 'dependencies' in project_info:
+                deps = project_info['dependencies']
+                if deps:
+                    items.append({
+                        "content": f"Python dependencies: {', '.join(deps[:5])}",
+                        "type": "dependency_info",
+                        "source": source,
+                        "target_agent": "engineer",
+                        "section": "Current Technical Context",
+                        "confidence": 0.8
+                    })
+        
+        # Extract Rust dependencies (for Cargo.toml)
+        if 'dependencies' in config_data:
+            deps = config_data['dependencies']
+            if isinstance(deps, dict) and deps:
+                dep_names = list(deps.keys())[:5]
+                items.append({
+                    "content": f"Rust dependencies: {', '.join(dep_names)}",
+                    "type": "dependency_info",
+                    "source": source,
+                    "target_agent": "engineer",
+                    "section": "Current Technical Context",
+                    "confidence": 0.8
+                })
+        
+        return items
+    
+    def _extract_from_source_file(self, content: str, file_path: Path, doc_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Extract patterns from source code files.
+        
+        WHY: Source files contain implementation patterns and architectural
+        decisions that agents should be aware of, but we only extract high-level
+        patterns rather than detailed code analysis.
+        
+        Args:
+            content: File content
+            file_path: Path to the file
+            doc_config: Processing configuration
+            
+        Returns:
+            List of extracted memory items
+        """
+        extracted_items = []
+        source = str(file_path.relative_to(self.project_root))
+        
+        # Only extract patterns if specified
+        if not doc_config.get('extract_patterns_only', False):
+            return []
+        
+        file_ext = file_path.suffix.lower()
+        
+        # Language-specific pattern extraction
+        if file_ext == '.py':
+            items = self._extract_python_patterns(content, source)
+            extracted_items.extend(items)
+        elif file_ext in ['.js', '.ts']:
+            items = self._extract_javascript_patterns(content, source)
+            extracted_items.extend(items)
+        
+        return extracted_items[:3]  # Limit to prevent overwhelming
+    
+    def _extract_python_patterns(self, content: str, source: str) -> List[Dict[str, Any]]:
+        """Extract high-level patterns from Python source."""
+        items = []
+        
+        # Check for common patterns
+        if 'if __name__ == "__main__"' in content:
+            items.append({
+                "content": "Uses if __name__ == '__main__' pattern for script execution",
+                "type": "pattern",
+                "source": source,
+                "target_agent": "engineer",
+                "section": "Coding Patterns Learned",
+                "confidence": 0.8
+            })
+        
+        if 'from pathlib import Path' in content:
+            items.append({
+                "content": "Uses pathlib.Path for file operations (recommended pattern)",
+                "type": "pattern",
+                "source": source,
+                "target_agent": "engineer",
+                "section": "Coding Patterns Learned",
+                "confidence": 0.7
+            })
+        
+        # Check for class definitions
+        class_matches = re.findall(r'class\s+(\w+)', content)
+        if class_matches:
+            items.append({
+                "content": f"Defines classes: {', '.join(class_matches[:3])}",
+                "type": "architecture",
+                "source": source,
+                "target_agent": "engineer",
+                "section": "Project Architecture",
+                "confidence": 0.6
+            })
+        
+        return items
+    
+    def _extract_javascript_patterns(self, content: str, source: str) -> List[Dict[str, Any]]:
+        """Extract high-level patterns from JavaScript/TypeScript source."""
+        items = []
+        
+        # Check for async patterns
+        if 'async function' in content or 'async ' in content:
+            items.append({
+                "content": "Uses async/await patterns for asynchronous operations",
+                "type": "pattern",
+                "source": source,
+                "target_agent": "engineer",
+                "section": "Coding Patterns Learned",
+                "confidence": 0.8
+            })
+        
+        # Check for module patterns
+        if 'export ' in content:
+            items.append({
+                "content": "Uses ES6 module export patterns",
+                "type": "pattern",
+                "source": source,
+                "target_agent": "engineer",
+                "section": "Coding Patterns Learned",
+                "confidence": 0.7
+            })
+        
+        return items
+    
     def _process_documentation_file(self, file_path: Path, doc_config: Dict[str, Any]) -> Dict[str, Any]:
-        """Process a single documentation file.
+        """Process a single documentation file with enhanced file type support.
         
         Args:
             file_path: Path to documentation file
@@ -304,10 +630,18 @@ class MemoryBuilder(LoggerMixin):
         """
         try:
             # Read file content
-            content = file_path.read_text(encoding='utf-8')
+            content = file_path.read_text(encoding='utf-8', errors='ignore')
             
-            # Extract memory items
-            extracted_items = self.extract_from_text(content, str(file_path.relative_to(self.project_root)))
+            # Handle different file types
+            file_type = doc_config.get('file_type', 'markdown')
+            
+            if file_type == 'config':
+                extracted_items = self._extract_from_config_file(content, file_path, doc_config)
+            elif file_type == 'source':
+                extracted_items = self._extract_from_source_file(content, file_path, doc_config)
+            else:
+                # Default markdown/text processing
+                extracted_items = self.extract_from_text(content, str(file_path.relative_to(self.project_root)))
             
             result = {
                 "success": True,
