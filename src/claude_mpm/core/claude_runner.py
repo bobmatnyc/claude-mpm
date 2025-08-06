@@ -13,10 +13,14 @@ import uuid
 try:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
+    from claude_mpm.services.hook_service import HookService
+    from claude_mpm.core.config import Config
     from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 except ImportError:
     from claude_mpm.services.agent_deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
+    from claude_mpm.services.hook_service import HookService
+    from claude_mpm.core.config import Config
     from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 
 
@@ -75,6 +79,11 @@ class ClaudeRunner:
                 self.logger.warning(f"Ticket manager not available: {e}")
                 self.ticket_manager = None
                 self.enable_tickets = False
+        
+        # Initialize hook service and register memory hooks
+        self.config = Config()
+        self.hook_service = HookService(self.config)
+        self._register_memory_hooks()
         
         # Load system instructions
         self.system_instructions = self._load_system_instructions()
@@ -740,6 +749,58 @@ class ClaudeRunner:
                     f.write(json.dumps(log_entry) + '\n')
             except Exception as e:
                 self.logger.debug(f"Failed to log session event: {e}")
+    
+    def _register_memory_hooks(self):
+        """Register memory integration hooks with the hook service.
+        
+        WHY: This activates the memory system by registering hooks that automatically
+        inject agent memory before delegation and extract learnings after delegation.
+        This is the critical connection point between the memory system and the CLI.
+        
+        DESIGN DECISION: We register hooks here instead of in __init__ to ensure
+        all services are initialized first. Hooks are only registered if the memory
+        system is enabled in configuration.
+        """
+        try:
+            # Only register if memory system is enabled
+            if not self.config.get('memory.enabled', True):
+                self.logger.debug("Memory system disabled - skipping hook registration")
+                return
+            
+            # Import hook classes (lazy import to avoid circular dependencies)
+            from claude_mpm.hooks.memory_integration_hook import (
+                MemoryPreDelegationHook,
+                MemoryPostDelegationHook
+            )
+            
+            # Register pre-delegation hook for memory injection
+            pre_hook = MemoryPreDelegationHook(self.config)
+            success = self.hook_service.register_hook(pre_hook)
+            if success:
+                self.logger.info(f"✅ Registered memory pre-delegation hook (priority: {pre_hook.priority})")
+            else:
+                self.logger.warning("❌ Failed to register memory pre-delegation hook")
+            
+            # Register post-delegation hook if auto-learning is enabled
+            if self.config.get('memory.auto_learning', True):  # Default to True now
+                post_hook = MemoryPostDelegationHook(self.config)
+                success = self.hook_service.register_hook(post_hook)
+                if success:
+                    self.logger.info(f"✅ Registered memory post-delegation hook (priority: {post_hook.priority})")
+                else:
+                    self.logger.warning("❌ Failed to register memory post-delegation hook")
+            else:
+                self.logger.info("ℹ️  Auto-learning disabled - skipping post-delegation hook")
+            
+            # Log summary of registered hooks
+            hooks = self.hook_service.list_hooks()
+            pre_count = len(hooks.get('pre_delegation', []))
+            post_count = len(hooks.get('post_delegation', []))
+            self.logger.info(f"📋 Hook Service initialized: {pre_count} pre-delegation, {post_count} post-delegation hooks")
+            
+        except Exception as e:
+            self.logger.error(f"❌ Failed to register memory hooks: {e}")
+            # Don't fail the entire initialization - memory system is optional
     
     def _launch_subprocess_interactive(self, cmd: list, env: dict):
         """Launch Claude as a subprocess with PTY for interactive mode."""

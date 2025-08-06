@@ -23,6 +23,7 @@ information than lose important insights.
 """
 
 import re
+import os
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Set, Tuple
 from datetime import datetime
@@ -57,16 +58,19 @@ class MemoryOptimizer(LoggerMixin):
         'low': ['note', 'tip', 'hint', 'example', 'reference']
     }
     
-    def __init__(self, config: Optional[Config] = None):
+    def __init__(self, config: Optional[Config] = None, working_directory: Optional[Path] = None):
         """Initialize the memory optimizer.
         
         Args:
             config: Optional Config object
+            working_directory: Optional working directory. If not provided, uses current working directory.
         """
         super().__init__()
         self.config = config or Config()
         self.project_root = PathResolver.get_project_root()
-        self.memories_dir = self.project_root / ".claude-mpm" / "memories"
+        # Use current working directory by default, not project root
+        self.working_directory = working_directory or Path(os.getcwd())
+        self.memories_dir = self.working_directory / ".claude-mpm" / "memories"
     
     def optimize_agent_memory(self, agent_id: str) -> Dict[str, Any]:
         """Optimize memory for a specific agent.

@@ -20,8 +20,32 @@ from datetime import datetime
 from pathlib import Path
 from collections import deque
 
-# Quick environment check
+# Quick environment check - must be defined before any code that might use it
 DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', '').lower() == 'true'
+
+# Add imports for memory hook integration with comprehensive error handling
+MEMORY_HOOKS_AVAILABLE = False
+try:
+    # Try to add src to path if not already there (fallback for missing PYTHONPATH)
+    import sys
+    from pathlib import Path
+    src_path = Path(__file__).parent.parent.parent.parent
+    if src_path.exists() and str(src_path) not in sys.path:
+        sys.path.insert(0, str(src_path))
+    
+    from claude_mpm.services.hook_service import HookService
+    from claude_mpm.hooks.memory_integration_hook import (
+        MemoryPreDelegationHook,
+        MemoryPostDelegationHook
+    )
+    from claude_mpm.hooks.base_hook import HookContext, HookType
+    from claude_mpm.core.config import Config
+    MEMORY_HOOKS_AVAILABLE = True
+except Exception as e:
+    # Catch all exceptions to prevent any import errors from breaking the handler
+    if DEBUG:
+        print(f"Memory hooks not available: {e}", file=sys.stderr)
+    MEMORY_HOOKS_AVAILABLE = False
 
 # Socket.IO import
 try:
@@ -58,6 +82,13 @@ class ClaudeHookHandler:
         # Git branch cache (to avoid repeated subprocess calls)
         self._git_branch_cache = {}
         self._git_branch_cache_time = {}
+        
+        # Initialize memory hooks if available
+        self.memory_hooks_initialized = False
+        self.pre_delegation_hook = None
+        self.post_delegation_hook = None
+        if MEMORY_HOOKS_AVAILABLE:
+            self._initialize_memory_hooks()
         
         # No fallback server needed - we only use Socket.IO now
     
@@ -99,6 +130,49 @@ class ClaudeHookHandler:
                     return agent_type
         
         return 'unknown'
+    
+    def _initialize_memory_hooks(self):
+        """Initialize memory hooks for automatic agent memory management.
+        
+        WHY: This activates the memory system by connecting Claude Code hook events
+        to our memory integration hooks. This enables automatic memory injection
+        before delegations and learning extraction after delegations.
+        
+        DESIGN DECISION: We initialize hooks here in the Claude hook handler because
+        this is where Claude Code events are processed. This ensures memory hooks
+        are triggered at the right times during agent delegation.
+        """
+        try:
+            # Create configuration
+            config = Config()
+            
+            # Only initialize if memory system is enabled
+            if not config.get('memory.enabled', True):
+                if DEBUG:
+                    print("Memory system disabled - skipping hook initialization", file=sys.stderr)
+                return
+            
+            # Initialize pre-delegation hook for memory injection
+            self.pre_delegation_hook = MemoryPreDelegationHook(config)
+            
+            # Initialize post-delegation hook if auto-learning is enabled
+            if config.get('memory.auto_learning', True):  # Default to True now
+                self.post_delegation_hook = MemoryPostDelegationHook(config)
+            
+            self.memory_hooks_initialized = True
+            
+            if DEBUG:
+                hooks_info = []
+                if self.pre_delegation_hook:
+                    hooks_info.append("pre-delegation")
+                if self.post_delegation_hook:
+                    hooks_info.append("post-delegation")
+                print(f"✅ Memory hooks initialized: {', '.join(hooks_info)}", file=sys.stderr)
+                
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Failed to initialize memory hooks: {e}", file=sys.stderr)
+            # Don't fail the entire handler - memory system is optional
     
     def _get_git_branch(self, working_dir: str = None) -> str:
         """Get git branch for the given directory with caching.
@@ -366,6 +440,9 @@ class ClaudeHookHandler:
             session_id = event.get('session_id', '')
             if session_id and agent_type != 'unknown':
                 self._track_delegation(session_id, agent_type)
+            
+            # Trigger memory pre-delegation hook
+            self._trigger_memory_pre_delegation_hook(agent_type, tool_input, session_id)
         
         self._emit_socketio_event('/hook', 'pre_tool', pre_tool_data)
     
@@ -406,6 +483,12 @@ class ClaudeHookHandler:
             'has_error': bool(result_data.get('error')),
             'output_size': len(str(result_data.get('output', ''))) if result_data.get('output') else 0
         }
+        
+        # Handle Task delegation completion for memory hooks
+        if tool_name == 'Task':
+            session_id = event.get('session_id', '')
+            agent_type = self._get_delegation_agent_type(session_id)
+            self._trigger_memory_post_delegation_hook(agent_type, event, session_id)
         
         self._emit_socketio_event('/hook', 'post_tool', post_tool_data)
     
@@ -711,6 +794,122 @@ class ClaudeHookHandler:
         # Emit to /hook namespace
         self._emit_socketio_event('/hook', 'subagent_stop', subagent_stop_data)
     
+    def _trigger_memory_pre_delegation_hook(self, agent_type: str, tool_input: dict, session_id: str):
+        """Trigger memory pre-delegation hook for agent memory injection.
+        
+        WHY: This connects Claude Code's Task delegation events to our memory system.
+        When Claude is about to delegate to an agent, we inject the agent's memory
+        into the delegation context so the agent has access to accumulated knowledge.
+        
+        DESIGN DECISION: We modify the tool_input in place to inject memory context.
+        This ensures the agent receives the memory as part of their initial context.
+        """
+        if not self.memory_hooks_initialized or not self.pre_delegation_hook:
+            return
+        
+        try:
+            # Create hook context for memory injection
+            hook_context = HookContext(
+                hook_type=HookType.PRE_DELEGATION,
+                data={
+                    'agent': agent_type,
+                    'context': tool_input,
+                    'session_id': session_id
+                },
+                metadata={
+                    'source': 'claude_hook_handler',
+                    'tool_name': 'Task'
+                },
+                timestamp=datetime.now().isoformat(),
+                session_id=session_id
+            )
+            
+            # Execute pre-delegation hook
+            result = self.pre_delegation_hook.execute(hook_context)
+            
+            if result.success and result.modified and result.data:
+                # Update tool_input with memory-enhanced context
+                enhanced_context = result.data.get('context', {})
+                if enhanced_context and 'agent_memory' in enhanced_context:
+                    # Inject memory into the task prompt/description
+                    original_prompt = tool_input.get('prompt', '')
+                    memory_section = enhanced_context['agent_memory']
+                    
+                    # Prepend memory to the original prompt
+                    enhanced_prompt = f"{memory_section}\n\n{original_prompt}"
+                    tool_input['prompt'] = enhanced_prompt
+                    
+                    if DEBUG:
+                        memory_size = len(memory_section.encode('utf-8'))
+                        print(f"✅ Injected {memory_size} bytes of memory for agent '{agent_type}'", file=sys.stderr)
+            
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Memory pre-delegation hook failed: {e}", file=sys.stderr)
+            # Don't fail the delegation - memory is optional
+    
+    def _trigger_memory_post_delegation_hook(self, agent_type: str, event: dict, session_id: str):
+        """Trigger memory post-delegation hook for learning extraction.
+        
+        WHY: This connects Claude Code's Task completion events to our memory system.
+        When an agent completes a task, we extract learnings from the result and
+        store them in the agent's memory for future use.
+        
+        DESIGN DECISION: We extract learnings from both the tool output and any
+        error messages, providing comprehensive context for the memory system.
+        """
+        if not self.memory_hooks_initialized or not self.post_delegation_hook:
+            return
+        
+        try:
+            # Extract result content from the event
+            result_content = ""
+            output = event.get('output', '')
+            error = event.get('error', '')
+            exit_code = event.get('exit_code', 0)
+            
+            # Build result content
+            if output:
+                result_content = str(output)
+            elif error:
+                result_content = f"Error: {str(error)}"
+            else:
+                result_content = f"Task completed with exit code: {exit_code}"
+            
+            # Create hook context for learning extraction
+            hook_context = HookContext(
+                hook_type=HookType.POST_DELEGATION,
+                data={
+                    'agent': agent_type,
+                    'result': {
+                        'content': result_content,
+                        'success': exit_code == 0,
+                        'exit_code': exit_code
+                    },
+                    'session_id': session_id
+                },
+                metadata={
+                    'source': 'claude_hook_handler',
+                    'tool_name': 'Task',
+                    'duration_ms': event.get('duration_ms', 0)
+                },
+                timestamp=datetime.now().isoformat(),
+                session_id=session_id
+            )
+            
+            # Execute post-delegation hook
+            result = self.post_delegation_hook.execute(hook_context)
+            
+            if result.success and result.metadata:
+                learnings_extracted = result.metadata.get('learnings_extracted', 0)
+                if learnings_extracted > 0 and DEBUG:
+                    print(f"✅ Extracted {learnings_extracted} learnings for agent '{agent_type}'", file=sys.stderr)
+            
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Memory post-delegation hook failed: {e}", file=sys.stderr)
+            # Don't fail the delegation result - memory is optional
+    
     def __del__(self):
         """Cleanup Socket.IO client on handler destruction."""
         if self.sio_client and self.sio_connected:
@@ -721,9 +920,17 @@ class ClaudeHookHandler:
 
 
 def main():
-    """Entry point."""
-    handler = ClaudeHookHandler()
-    handler.handle()
+    """Entry point with comprehensive error handling."""
+    try:
+        handler = ClaudeHookHandler()
+        handler.handle()
+    except Exception as e:
+        # Always output continue action to not block Claude
+        print(json.dumps({"action": "continue"}))
+        # Log error for debugging
+        if DEBUG:
+            print(f"Hook handler error: {e}", file=sys.stderr)
+        sys.exit(0)  # Exit cleanly even on error
 
 
 if __name__ == "__main__":

@@ -1,202 +1,211 @@
 #!/usr/bin/env python3
-"""Test edge cases and error handling for workflow implementation."""
+"""Test edge cases for hook security."""
 
+import json
 import sys
-sys.path.insert(0, '/Users/masa/Projects/managed/ai-trackdown-pytools/src')
+import os
+import tempfile
+from pathlib import Path
 
-from ai_trackdown_pytools.core.workflow import (
-    UnifiedStatus, ResolutionType, workflow_state_machine,
-    resolution_requires_comment
-)
-from ai_trackdown_pytools.core.models import IssueModel, BugModel
-from datetime import datetime
+# Add src to path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root / 'src'))
 
-def test_resolution_comment_requirements():
-    """Test resolution types that require comments."""
-    print('Test 1: Resolution Comment Requirements')
-    print('=======================================')
+from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
+
+
+def test_scenario(description, event):
+    """Test a specific scenario."""
+    print(f"\n{'='*60}")
+    print(f"Testing: {description}")
+    print(f"{'='*60}")
     
-    resolutions_requiring_comments = [
-        ResolutionType.WORKAROUND,
-        ResolutionType.WONT_FIX,
-        ResolutionType.INCOMPLETE,
-        ResolutionType.DUPLICATE,
-    ]
+    handler = ClaudeHookHandler()
+    handler.event = event
+    handler.hook_type = event['hook_event_name']
     
-    for resolution in resolutions_requiring_comments:
-        requires_comment = resolution_requires_comment(resolution)
-        print(f'{resolution.value}: Requires comment = {requires_comment}')
+    # Capture the response
+    import io
+    from contextlib import redirect_stdout
     
-    # Test creating issue with resolution requiring comment
+    output = io.StringIO()
     try:
-        issue = IssueModel(
-            id='ISS-001',
-            title='Test Issue',
-            status=UnifiedStatus.CLOSED,
-            resolution=ResolutionType.WONT_FIX,
-            # Missing resolution_comment
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        print('ERROR: Created issue without required comment!')
-    except ValueError as e:
-        print(f'✓ Correctly blocked: {e}')
-
-
-def test_invalid_state_transitions():
-    """Test invalid state transitions are blocked."""
-    print('\nTest 2: Invalid State Transitions')
-    print('=================================')
+        with redirect_stdout(output):
+            handler._handle_pre_tool_use()
+    except SystemExit:
+        pass
     
-    invalid_transitions = [
-        (UnifiedStatus.OPEN, UnifiedStatus.MERGED),
-        (UnifiedStatus.COMPLETED, UnifiedStatus.IN_PROGRESS),
-        (UnifiedStatus.CANCELLED, UnifiedStatus.OPEN),
-        (UnifiedStatus.MERGED, UnifiedStatus.DRAFT),
-    ]
-    
-    for from_status, to_status in invalid_transitions:
-        valid, error = workflow_state_machine.validate_transition(from_status, to_status)
-        print(f'{from_status.value} -> {to_status.value}: {valid} ({error})')
-
-
-def test_resolution_validation():
-    """Test resolution validation for different states."""
-    print('\nTest 3: Resolution Validation')
-    print('=============================')
-    
-    # Test allowed resolutions for different transitions
-    transition = workflow_state_machine.get_transition(
-        UnifiedStatus.OPEN, UnifiedStatus.CANCELLED
-    )
-    if transition:
-        print(f'OPEN -> CANCELLED allowed resolutions: {[r.value for r in transition.allowed_resolutions]}')
-    
-    # Test invalid resolution type
-    valid, error = workflow_state_machine.validate_transition(
-        UnifiedStatus.IN_PROGRESS,
-        UnifiedStatus.RESOLVED,
-        ResolutionType.DUPLICATE  # Not allowed for IN_PROGRESS -> RESOLVED
-    )
-    print(f'IN_PROGRESS -> RESOLVED with DUPLICATE: {valid} ({error})')
-
-
-def test_reopen_functionality():
-    """Test reopening tickets."""
-    print('\nTest 4: Reopen Functionality')
-    print('============================')
-    
-    try:
-        bug = BugModel(
-            id='BUG-001',
-            title='Test Bug',
-            status=UnifiedStatus.RESOLVED,
-            resolution=ResolutionType.FIXED,
-            resolution_comment='Fixed',
-            created_at=datetime.now(),
-            updated_at=datetime.now()
-        )
-        
-        # Check if can reopen
-        can_reopen, error = bug.can_transition_to(UnifiedStatus.REOPENED)
-        print(f'Can reopen resolved bug: {can_reopen}')
-        
-        # Actually reopen
-        if can_reopen:
-            original_resolution = bug.resolution
-            bug.status = UnifiedStatus.REOPENED
-            bug.reopen_count += 1
-            print(f'Bug reopened. Reopen count: {bug.reopen_count}')
-            print(f'Resolution still present: {bug.resolution is not None}')
-            
-    except Exception as e:
-        print(f'Error testing reopen: {type(e).__name__}: {e}')
-
-
-def test_terminal_state_enforcement():
-    """Test that terminal states cannot transition further (except reopen)."""
-    print('\nTest 5: Terminal State Enforcement')
-    print('==================================')
-    
-    terminal_states = [
-        UnifiedStatus.COMPLETED,
-        UnifiedStatus.CANCELLED,
-        UnifiedStatus.MERGED,
-        UnifiedStatus.ARCHIVED,
-    ]
-    
-    for terminal in terminal_states:
-        transitions = workflow_state_machine.get_valid_transitions(terminal)
-        valid_to = [t.to_status.value for t in transitions]
-        print(f'{terminal.value} can transition to: {valid_to}')
-
-
-def test_schema_alignment():
-    """Test alignment with ai-trackdown schema."""
-    print('\nTest 6: Schema Alignment Check')
-    print('==============================')
-    
-    # States from ai-trackdown schema
-    ai_trackdown_states = [
-        "open", "new", "in_progress", "assigned", "pending", "waiting",
-        "resolved", "closed", "reopened", "on_hold", "escalated", "canceled",
-        "blocked", "ready_for_engineering", "ready_for_qa", "ready_for_deployment",
-        "ready_for_review", "in_review", "review_approved", "planning",
-        "done", "won't_do", "duplicate", "obsolete"
-    ]
-    
-    # Check which states are supported
-    supported = 0
-    unsupported = []
-    
-    for state in ai_trackdown_states:
-        try:
-            unified = UnifiedStatus(state)
-            supported += 1
-        except ValueError:
-            unsupported.append(state)
-    
-    print(f'Supported states: {supported}/{len(ai_trackdown_states)}')
-    if unsupported:
-        print(f'Unsupported states: {unsupported}')
-    
-    # Check resolution types from schema
-    ai_trackdown_resolutions = [
-        "fixed", "resolved", "won't_fix", "duplicate", "cannot_reproduce",
-        "works_as_designed", "incomplete", "user_error", "configuration",
-        "workaround", "documentation", "invalid", "by_design",
-        "external_dependency", "out_of_scope"
-    ]
-    
-    supported_res = 0
-    unsupported_res = []
-    
-    for res in ai_trackdown_resolutions:
-        try:
-            resolution = ResolutionType(res)
-            supported_res += 1
-        except ValueError:
-            unsupported_res.append(res)
-    
-    print(f'\nSupported resolutions: {supported_res}/{len(ai_trackdown_resolutions)}')
-    if unsupported_res:
-        print(f'Unsupported resolutions: {unsupported_res}')
+    result = output.getvalue()
+    if result:
+        response = json.loads(result)
+        print(f"Action: {response['action']}")
+        if 'error' in response:
+            print(f"Error Message: {response['error'][:100]}...")
+    else:
+        print("No output (would continue normally)")
 
 
 def main():
-    """Run all edge case tests."""
-    print('Testing Edge Cases and Error Handling')
-    print('====================================\n')
+    """Run edge case tests."""
+    working_dir = os.getcwd()
     
-    test_resolution_comment_requirements()
-    test_invalid_state_transitions()
-    test_resolution_validation()
-    test_reopen_functionality()
-    test_terminal_state_enforcement()
-    test_schema_alignment()
+    print(f"Working Directory: {working_dir}")
     
-    print('\nEdge case testing completed!')
+    # Test 1: Empty file path
+    test_scenario(
+        "Empty file path",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": "",
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 2: Null byte injection
+    test_scenario(
+        "Null byte injection attempt",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": f"{working_dir}/test.txt\x00/etc/passwd",
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 3: Unicode directory traversal
+    test_scenario(
+        "Unicode directory traversal",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Edit",
+            "tool_input": {
+                "file_path": f"{working_dir}/\u002e\u002e/\u002e\u002e/etc/passwd",
+                "old_string": "test",
+                "new_string": "hacked"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 4: Write to temp directory (blocked)
+    temp_file = tempfile.mktemp()
+    test_scenario(
+        "Write to temp directory",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": temp_file,
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 5: Special characters in path
+    test_scenario(
+        "Special characters in path",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": f"{working_dir}/test$file@name#.txt",
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 6: Very long path
+    long_path = f"{working_dir}/" + "a" * 1000 + ".txt"
+    test_scenario(
+        "Very long path",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": long_path,
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 7: Missing file_path key
+    test_scenario(
+        "Missing file_path key",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 8: Non-string file_path
+    test_scenario(
+        "Non-string file_path",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Write",
+            "tool_input": {
+                "file_path": 12345,
+                "content": "test"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 9: Grep tool (should be allowed anywhere)
+    test_scenario(
+        "Grep outside working directory",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "Grep",
+            "tool_input": {
+                "pattern": "password",
+                "path": "/etc"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    # Test 10: LS tool (should be allowed anywhere)
+    test_scenario(
+        "LS outside working directory",
+        {
+            "hook_event_name": "PreToolUse",
+            "tool_name": "LS",
+            "tool_input": {
+                "path": "/etc"
+            },
+            "cwd": working_dir,
+            "session_id": "test-123"
+        }
+    )
+    
+    print(f"\n{'='*60}")
+    print("Edge case tests complete!")
+    print(f"{'='*60}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

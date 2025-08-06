@@ -305,6 +305,32 @@ class GitOperationsManager:
         except GitOperationError:
             return False
 
+    def is_file_tracked(self, file_path: str) -> bool:
+        """
+        Check if a file is tracked by git.
+        
+        Args:
+            file_path: Path to the file to check (can be absolute or relative)
+            
+        Returns:
+            bool: True if file is tracked, False otherwise
+        """
+        try:
+            # Convert to relative path if absolute
+            if os.path.isabs(file_path):
+                try:
+                    file_path = os.path.relpath(file_path, self.project_root)
+                except ValueError:
+                    # If file is outside project root, it's not tracked
+                    return False
+            
+            # Use git ls-files to check if file is tracked
+            result = self._run_git_command(["ls-files", "--", file_path])
+            return bool(result.stdout.strip())
+            
+        except GitOperationError:
+            return False
+
     def create_branch(
         self,
         branch_name: str,
