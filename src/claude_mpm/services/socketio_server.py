@@ -294,7 +294,7 @@ class SocketIOServer:
             self.app.router.add_get('/dashboard', self._handle_dashboard)
             
             # Add static file serving for web assets
-            static_path = get_project_root() / 'src' / 'claude_mpm' / 'web' / 'static'
+            static_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'static'
             if static_path.exists():
                 self.app.router.add_static('/static/', path=str(static_path), name='static')
             
@@ -348,7 +348,7 @@ class SocketIOServer:
 
     async def _handle_dashboard(self, request):
         """Serve the dashboard HTML file."""
-        dashboard_path = get_project_root() / 'src' / 'claude_mpm' / 'web' / 'templates' / 'index.html'
+        dashboard_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'
         self.logger.info(f"Dashboard requested, looking for: {dashboard_path}")
         self.logger.info(f"Path exists: {dashboard_path.exists()}")
         if dashboard_path.exists():
@@ -1004,32 +1004,47 @@ class SocketIOServer:
             try:
                 self.logger.info(f"[GIT-BRANCH-DEBUG] get_git_branch called with working_dir: {repr(working_dir)} (type: {type(working_dir)})")
                 
-                # Handle case where working_dir is None, empty string, or 'Unknown'
+                # Handle case where working_dir is None, empty string, or common invalid states
                 original_working_dir = working_dir
-                if not working_dir or working_dir == 'Unknown' or working_dir.strip() == '':
+                invalid_states = [
+                    None, '', 'Unknown', 'Loading...', 'Loading', 'undefined', 'null', 
+                    'Not Connected', 'Invalid Directory', 'No Directory'
+                ]
+                
+                if working_dir in invalid_states or (isinstance(working_dir, str) and working_dir.strip() == ''):
                     working_dir = os.getcwd()
                     self.logger.info(f"[GIT-BRANCH-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}")
                 else:
                     self.logger.info(f"[GIT-BRANCH-DEBUG] Using provided working_dir: {working_dir}")
+                    
+                # Additional validation for obviously invalid paths
+                if isinstance(working_dir, str):
+                    working_dir = working_dir.strip()
+                    # Check for null bytes or other invalid characters
+                    if '\x00' in working_dir:
+                        self.logger.warning(f"[GIT-BRANCH-DEBUG] working_dir contains null bytes, using cwd instead")
+                        working_dir = os.getcwd()
                 
                 # Validate that the directory exists and is a valid path
                 if not os.path.exists(working_dir):
-                    self.logger.warning(f"[GIT-BRANCH-DEBUG] Directory does not exist: {working_dir}")
+                    self.logger.info(f"[GIT-BRANCH-DEBUG] Directory does not exist: {working_dir} - responding gracefully")
                     await self.sio.emit('git_branch_response', {
                         'success': False,
-                        'error': f'Directory does not exist: {working_dir}',
+                        'error': f'Directory not found',
                         'working_dir': working_dir,
-                        'original_working_dir': original_working_dir
+                        'original_working_dir': original_working_dir,
+                        'detail': f'Path does not exist: {working_dir}'
                     }, room=sid)
                     return
                     
                 if not os.path.isdir(working_dir):
-                    self.logger.warning(f"[GIT-BRANCH-DEBUG] Path is not a directory: {working_dir}")
+                    self.logger.info(f"[GIT-BRANCH-DEBUG] Path is not a directory: {working_dir} - responding gracefully")
                     await self.sio.emit('git_branch_response', {
                         'success': False,
-                        'error': f'Path is not a directory: {working_dir}',
+                        'error': f'Not a directory',
                         'working_dir': working_dir,
-                        'original_working_dir': original_working_dir
+                        'original_working_dir': original_working_dir,
+                        'detail': f'Path is not a directory: {working_dir}'
                     }, room=sid)
                     return
                 

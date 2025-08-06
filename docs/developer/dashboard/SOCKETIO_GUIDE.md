@@ -86,7 +86,7 @@ The Socket.IO implementation follows a clean, namespace-based architecture:
    - Integrates with the unified logging system
    - Socket.IO client for reliable log emission
 
-4. **Dashboard** (`src/claude_mpm/web/templates/index.html`, served at `/dashboard`)
+4. **Dashboard** (`src/claude_mpm/dashboard/templates/index.html`, served at `/dashboard`)
    - Interactive web dashboard for monitoring
    - Multi-namespace event filtering
    - Real-time metrics and visualizations

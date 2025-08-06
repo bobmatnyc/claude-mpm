@@ -41,3 +41,24 @@ ai-trackdown-pytools-bug-support/
 
 # Auto-generated version file (no longer used)
 src/claude_mpm/_version.py
+
+# Debug and temporary files
+debug_*.html
+test_*.html
+*_test.html
+connection_status_test.html
+dashboard_integration_test.html
+
+# QA and debug reports
+*DEBUG_SUMMARY.md
+*QA_REPORT*.md
+*_COMPREHENSIVE_*.md
+*_VALIDATION_REPORT.md
+*_TEST_REPORT.*
+HUD_*.md
+DEBUGGING_*.md
+TOOL_RESULT_*.md
+
+# Temporary JSON reports
+*_qa_report*.json
+*test_report*.json

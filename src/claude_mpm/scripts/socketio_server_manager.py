@@ -31,6 +31,12 @@ try:
 except ImportError:
     REQUESTS_AVAILABLE = False
 
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+
 
 class ServerManager:
     """Manages Socket.IO server instances across different deployment modes."""
@@ -40,29 +46,48 @@ class ServerManager:
         self.max_instances = 5
         self.script_dir = Path(__file__).parent
         self.project_root = self.script_dir.parent
+        # Daemon PID file location (used by socketio_daemon.py)
+        self.daemon_pidfile_path = Path.home() / ".claude-mpm" / "socketio-server.pid"
+        # Standalone server PID file location pattern
+        self.standalone_pidfile_pattern = "/tmp/claude_mpm_socketio_{port}.pid"
         
     def get_server_info(self, port: int) -> Optional[Dict]:
-        """Get server information from a running instance."""
+        """Get server information from a running instance with daemon compatibility."""
         if not REQUESTS_AVAILABLE:
-            return None
+            return self._check_daemon_fallback(port)
         
         try:
             response = requests.get(f"http://localhost:{port}/health", timeout=2.0)
             if response.status_code == 200:
-                return response.json()
-        except Exception:
-            pass
+                data = response.json()
+                # Check if this is a daemon-style response (no 'pid' field)
+                if 'pid' not in data and 'status' in data:
+                    # Try to get PID from daemon PID file
+                    daemon_pid = self._get_daemon_pid()
+                    if daemon_pid:
+                        data['pid'] = daemon_pid
+                        data['management_style'] = 'daemon'
+                return data
+        except Exception as e:
+            # If HTTP fails, try daemon fallback
+            return self._check_daemon_fallback(port)
         return None
     
     def list_running_servers(self) -> List[Dict]:
-        """List all running Socket.IO servers."""
+        """List all running Socket.IO servers including daemon-style servers."""
         running_servers = []
         
+        # Check standard port range
         for port in range(self.base_port, self.base_port + self.max_instances):
             server_info = self.get_server_info(port)
             if server_info:
                 server_info['port'] = port
                 running_servers.append(server_info)
+        
+        # Also check for daemon-style server specifically
+        daemon_info = self._get_daemon_server_info()
+        if daemon_info and not any(s['port'] == daemon_info.get('port', self.base_port) for s in running_servers):
+            running_servers.append(daemon_info)
         
         return running_servers
     
@@ -78,7 +103,7 @@ class ServerManager:
     
     def start_server(self, port: int = None, server_id: str = None, 
                     host: str = "localhost") -> bool:
-        """Start a standalone Socket.IO server."""
+        """Start a standalone Socket.IO server with conflict detection."""
         
         # Find available port if not specified
         if port is None:
@@ -89,9 +114,25 @@ class ServerManager:
                 return False
         
         # Check if server is already running on this port
-        if self.get_server_info(port):
-            print(f"Server already running on port {port}")
+        existing_server = self.get_server_info(port)
+        if existing_server:
+            management_style = existing_server.get('management_style', 'http')
+            server_id_existing = existing_server.get('server_id', 'unknown')
+            
+            print(f"❌ Server already running on port {port}")
+            print(f"   Existing server: {server_id_existing} ({management_style}-managed)")
+            
+            if management_style == 'daemon':
+                print(f"💡 To stop daemon server: {self.project_root / 'src' / 'claude_mpm' / 'scripts' / 'socketio_daemon.py'} stop")
+            else:
+                print(f"💡 To stop server: {sys.executable} {__file__} stop --port {port}")
+            
             return False
+        
+        # Warn if daemon server exists on default port but we're starting on different port
+        if port != self.base_port and self._get_daemon_pid():
+            print(f"⚠️ Warning: Daemon server is running on port {self.base_port}, you're starting on port {port}")
+            print(f"   This may cause conflicts. Consider stopping daemon first.")
         
         # Try different ways to start the server based on deployment
         success = False
@@ -158,13 +199,20 @@ class ServerManager:
         
         if success:
             print(f"✅ Server started successfully on {host}:{port}")
+            print(f"💡 Management commands:")
+            print(f"   Status: {sys.executable} {__file__} status")
+            print(f"   Stop: {sys.executable} {__file__} stop --port {port}")
             return True
         else:
             print(f"❌ Failed to start server on {host}:{port}")
+            print(f"💡 Troubleshooting:")
+            print(f"   • Check if port {port} is already in use: lsof -i :{port}")
+            print(f"   • Check server status: {sys.executable} {__file__} status")
+            print(f"   • Try different port: {sys.executable} {__file__} start --port {port + 1}")
             return False
     
     def stop_server(self, port: int = None, server_id: str = None) -> bool:
-        """Stop a running Socket.IO server."""
+        """Stop a running Socket.IO server with daemon compatibility."""
         
         if port is None and server_id is None:
             print("Must specify either port or server_id")
@@ -185,35 +233,56 @@ class ServerManager:
         # Get server info
         server_info = self.get_server_info(port)
         if not server_info:
-            print(f"No server running on port {port}")
-            return False
+            # Try daemon-specific stop as fallback
+            return self._try_daemon_stop(port)
         
-        # Try to get PID and send termination signal
+        # Determine management style
+        management_style = server_info.get('management_style', 'http')
+        
+        # Try HTTP-based stop first
         pid = server_info.get('pid')
         if pid:
             try:
-                os.kill(pid, signal.SIGTERM)
-                print(f"✅ Sent termination signal to server (PID: {pid})")
-                
-                # Wait for server to stop
-                for _ in range(10):
-                    time.sleep(1)
-                    if not self.get_server_info(port):
-                        print(f"✅ Server stopped successfully")
-                        return True
-                
-                # Force kill if still running
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                    print(f"⚠️ Force killed server (PID: {pid})")
-                    return True
-                except:
-                    pass
+                # Validate PID before attempting to kill
+                if self._validate_pid(pid):
+                    os.kill(pid, signal.SIGTERM)
+                    print(f"✅ Sent termination signal to server (PID: {pid})")
+                    
+                    # Wait for server to stop
+                    for i in range(10):
+                        time.sleep(1)
+                        if not self.get_server_info(port):
+                            print(f"✅ Server stopped successfully")
+                            return True
+                        if i == 5:  # After 5 seconds, show progress
+                            print(f"⏳ Waiting for server to stop...")
+                    
+                    # Force kill if still running
+                    try:
+                        if self._validate_pid(pid):
+                            os.kill(pid, signal.SIGKILL)
+                            print(f"⚠️ Force killed server (PID: {pid})")
+                            return True
+                    except OSError:
+                        pass
+                        
+                else:
+                    print(f"⚠️ PID {pid} is no longer valid, trying daemon stop...")
+                    return self._try_daemon_stop(port)
                     
             except OSError as e:
-                print(f"Error stopping server: {e}")
+                print(f"Error stopping server via PID {pid}: {e}")
+                if management_style == 'daemon':
+                    print("🔄 Trying daemon-style stop...")
+                    return self._try_daemon_stop(port)
+        
+        # If HTTP method failed, try daemon stop
+        if management_style == 'daemon' or not pid:
+            print("🔄 Attempting daemon-style stop...")
+            return self._try_daemon_stop(port)
         
         print(f"❌ Failed to stop server on port {port}")
+        print(f"💡 Try using the socketio_daemon.py stop command if this is a daemon-managed server")
         return False
     
     def restart_server(self, port: int = None, server_id: str = None) -> bool:
@@ -232,11 +301,15 @@ class ServerManager:
         return False
     
     def status(self, verbose: bool = False) -> None:
-        """Show status of all Socket.IO servers."""
+        """Show status of all Socket.IO servers with management style info."""
         running_servers = self.list_running_servers()
         
         if not running_servers:
             print("No Socket.IO servers currently running")
+            print()
+            print("💡 Management options:")
+            print(f"  • Start with manager: {sys.executable} {__file__} start")
+            print(f"  • Start with daemon: {self.project_root / 'src' / 'claude_mpm' / 'scripts' / 'socketio_daemon.py'} start")
             return
         
         print(f"Found {len(running_servers)} running server(s):")
@@ -248,10 +321,15 @@ class ServerManager:
             version = server.get('server_version', 'unknown')
             uptime = server.get('uptime_seconds', 0)
             clients = server.get('clients_connected', 0)
+            management_style = server.get('management_style', 'http')
             
-            print(f"🖥️  Server ID: {server_id}")
+            # Different icons based on management style
+            icon = "🖥️" if management_style == 'http' else "🔧"
+            
+            print(f"{icon}  Server ID: {server_id}")
             print(f"   Port: {port}")
             print(f"   Version: {version}")
+            print(f"   Management: {management_style}")
             print(f"   Uptime: {self._format_uptime(uptime)}")
             print(f"   Clients: {clients}")
             
@@ -259,34 +337,61 @@ class ServerManager:
                 print(f"   PID: {server.get('pid', 'unknown')}")
                 print(f"   Host: {server.get('host', 'unknown')}")
                 
-                # Get additional stats
-                stats = self._get_server_stats(port)
-                if stats:
-                    events_processed = stats.get('events', {}).get('total_processed', 0)
-                    clients_served = stats.get('connections', {}).get('total_served', 0)
-                    print(f"   Events processed: {events_processed}")
-                    print(f"   Total clients served: {clients_served}")
+                # Show appropriate stop command
+                if management_style == 'daemon':
+                    print(f"   Stop command: {self.project_root / 'src' / 'claude_mpm' / 'scripts' / 'socketio_daemon.py'} stop")
+                else:
+                    print(f"   Stop command: {sys.executable} {__file__} stop --port {port}")
+                
+                # Get additional stats (only for HTTP-style servers)
+                if management_style == 'http':
+                    stats = self._get_server_stats(port)
+                    if stats:
+                        events_processed = stats.get('events', {}).get('total_processed', 0)
+                        clients_served = stats.get('connections', {}).get('total_served', 0)
+                        print(f"   Events processed: {events_processed}")
+                        print(f"   Total clients served: {clients_served}")
             
             print()
     
     def health_check(self, port: int = None) -> bool:
-        """Perform health check on server(s)."""
+        """Perform health check on server(s) with management style awareness."""
         
         if port:
             # Check specific server
             server_info = self.get_server_info(port)
             if server_info:
                 status = server_info.get('status', 'unknown')
-                print(f"Server on port {port}: {status}")
-                return status == 'healthy'
+                management_style = server_info.get('management_style', 'http')
+                server_id = server_info.get('server_id', 'unknown')
+                
+                print(f"Server {server_id} on port {port}: {status} ({management_style}-managed)")
+                
+                # Additional health info for daemon servers
+                if management_style == 'daemon':
+                    pid = server_info.get('pid')
+                    if pid and self._validate_pid(pid):
+                        print(f"  ✅ Process {pid} is running")
+                    else:
+                        print(f"  ❌ Process {pid} is not running")
+                        return False
+                
+                return status in ['healthy', 'running']
             else:
                 print(f"No server found on port {port}")
+                # Try daemon fallback for default port
+                if port == self.base_port:
+                    daemon_info = self._get_daemon_server_info()
+                    if daemon_info:
+                        print(f"  Found daemon server: {daemon_info['server_id']}")
+                        return True
                 return False
         else:
             # Check all servers
             running_servers = self.list_running_servers()
             if not running_servers:
                 print("No servers running")
+                print(f"💡 Start a server with: {sys.executable} {__file__} start")
                 return False
             
             all_healthy = True
@@ -294,8 +399,14 @@ class ServerManager:
                 port = server['port']
                 status = server.get('status', 'unknown')
                 server_id = server.get('server_id', 'unknown')
-                print(f"Server {server_id} (port {port}): {status}")
-                if status != 'healthy':
+                management_style = server.get('management_style', 'http')
+                
+                health_status = status in ['healthy', 'running']
+                icon = "✅" if health_status else "❌"
+                
+                print(f"{icon} Server {server_id} (port {port}): {status} ({management_style}-managed)")
+                
+                if not health_status:
                     all_healthy = False
             
             return all_healthy
@@ -342,6 +453,213 @@ class ServerManager:
         except Exception:
             pass
         return None
+    
+    def _check_daemon_fallback(self, port: int) -> Optional[Dict]:
+        """Check for daemon-style server when HTTP fails."""
+        if port == self.base_port:  # Only check daemon for default port
+            return self._get_daemon_server_info()
+        return None
+    
+    def _get_daemon_pid(self) -> Optional[int]:
+        """Get PID from daemon PID file."""
+        try:
+            if self.daemon_pidfile_path.exists():
+                with open(self.daemon_pidfile_path, 'r') as f:
+                    content = f.read().strip()
+                    if content.isdigit():
+                        pid = int(content)
+                        # Validate the PID exists
+                        if self._validate_pid(pid):
+                            return pid
+        except Exception:
+            pass
+        return None
+    
+    def _get_daemon_server_info(self) -> Optional[Dict]:
+        """Get server info for daemon-style server."""
+        daemon_pid = self._get_daemon_pid()
+        if daemon_pid:
+            # Basic server info for daemon
+            info = {
+                'pid': daemon_pid,
+                'server_id': 'daemon-socketio',
+                'management_style': 'daemon',
+                'status': 'running',
+                'port': self.base_port,
+                'server_version': 'daemon-managed'
+            }
+            
+            # Try to get additional process info if psutil is available
+            if PSUTIL_AVAILABLE:
+                try:
+                    process = psutil.Process(daemon_pid)
+                    info.update({
+                        'uptime_seconds': time.time() - process.create_time(),
+                        'host': 'localhost',
+                        'process_name': process.name()
+                    })
+                except:
+                    pass
+            
+            return info
+        return None
+    
+    def _validate_pid(self, pid: int) -> bool:
+        """Validate that a PID represents a running process."""
+        try:
+            # Check if process exists
+            os.kill(pid, 0)
+            return True
+        except OSError:
+            return False
+    
+    def _try_daemon_stop(self, port: int) -> bool:
+        """Try to stop daemon-style server."""
+        if port != self.base_port:
+            print(f"⚠️ Daemon management only supports default port {self.base_port}, not {port}")
+            return False
+        
+        daemon_pid = self._get_daemon_pid()
+        if not daemon_pid:
+            print(f"❌ No daemon server found (no PID file at {self.daemon_pidfile_path})")
+            return False
+        
+        try:
+            print(f"🔄 Stopping daemon server (PID: {daemon_pid})...")
+            os.kill(daemon_pid, signal.SIGTERM)
+            
+            # Wait for daemon to stop
+            for i in range(10):
+                time.sleep(1)
+                if not self._validate_pid(daemon_pid):
+                    print(f"✅ Daemon server stopped successfully")
+                    # Clean up PID file
+                    try:
+                        self.daemon_pidfile_path.unlink(missing_ok=True)
+                    except:
+                        pass
+                    return True
+                if i == 5:
+                    print(f"⏳ Waiting for daemon to stop...")
+            
+            # Force kill if still running
+            if self._validate_pid(daemon_pid):
+                print(f"⚠️ Force killing daemon server...")
+                os.kill(daemon_pid, signal.SIGKILL)
+                time.sleep(1)
+                if not self._validate_pid(daemon_pid):
+                    print(f"✅ Daemon server force stopped")
+                    try:
+                        self.daemon_pidfile_path.unlink(missing_ok=True)
+                    except:
+                        pass
+                    return True
+            
+        except OSError as e:
+            print(f"❌ Error stopping daemon server: {e}")
+            return False
+        
+        print(f"❌ Failed to stop daemon server")
+        return False
+    
+    def diagnose_conflicts(self, port: int = None) -> None:
+        """Diagnose server management conflicts and suggest resolutions."""
+        if port is None:
+            port = self.base_port
+            
+        print(f"🔍 Diagnosing Socket.IO server management on port {port}")
+        print("=" * 60)
+        
+        # Check HTTP-managed server
+        http_server = None
+        daemon_server = None
+        
+        try:
+            if REQUESTS_AVAILABLE:
+                response = requests.get(f"http://localhost:{port}/health", timeout=2.0)
+                if response.status_code == 200:
+                    data = response.json()
+                    if 'pid' in data:
+                        http_server = data
+        except:
+            pass
+        
+        # Check daemon-managed server
+        daemon_pid = self._get_daemon_pid()
+        if daemon_pid and port == self.base_port:
+            daemon_server = self._get_daemon_server_info()
+        
+        # Analysis
+        print("📊 Server Analysis:")
+        
+        if http_server and daemon_server:
+            print("⚠️  CONFLICT DETECTED: Both HTTP and daemon servers found!")
+            print(f"   HTTP server: PID {http_server.get('pid')}, ID {http_server.get('server_id')}")
+            print(f"   Daemon server: PID {daemon_server.get('pid')}, ID {daemon_server.get('server_id')}")
+            print()
+            print("🔧 Resolution Steps:")
+            print("   1. Choose one management approach:")
+            print(f"      • Keep HTTP: {sys.executable} {__file__} stop --port {port} (stops daemon)")
+            print(f"      • Keep daemon: Stop HTTP server first, then use daemon commands")
+            print()
+            
+        elif http_server:
+            print(f"✅ HTTP-managed server found")
+            print(f"   Server ID: {http_server.get('server_id')}")
+            print(f"   PID: {http_server.get('pid')}")
+            print(f"   Status: {http_server.get('status')}")
+            print()
+            print("🔧 Management Commands:")
+            print(f"   • Stop: {sys.executable} {__file__} stop --port {port}")
+            print(f"   • Status: {sys.executable} {__file__} status")
+            print()
+            
+        elif daemon_server:
+            print(f"✅ Daemon-managed server found")
+            print(f"   PID: {daemon_server.get('pid')}")
+            print(f"   PID file: {self.daemon_pidfile_path}")
+            print()
+            print("🔧 Management Commands:")
+            daemon_script = self.project_root / "src" / "claude_mpm" / "scripts" / "socketio_daemon.py"
+            print(f"   • Stop: {daemon_script} stop")
+            print(f"   • Status: {daemon_script} status")
+            print(f"   • Restart: {daemon_script} restart")
+            print()
+            
+        else:
+            print("❌ No servers found on specified port")
+            print()
+            print("🔧 Start a server:")
+            print(f"   • HTTP-managed: {sys.executable} {__file__} start --port {port}")
+            daemon_script = self.project_root / "src" / "claude_mpm" / "scripts" / "socketio_daemon.py"
+            if port == self.base_port:
+                print(f"   • Daemon-managed: {daemon_script} start")
+            print()
+        
+        # Port conflict check
+        try:
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                result = s.connect_ex(('localhost', port))
+                if result == 0:
+                    print("🌐 Port Status: IN USE")
+                    if not http_server and not daemon_server:
+                        print(f"   ⚠️  Port {port} is occupied by unknown process")
+                        if PSUTIL_AVAILABLE:
+                            print("   🔍 Use 'lsof -i :{port}' or 'netstat -tulpn | grep {port}' to identify")
+                else:
+                    print("🌐 Port Status: AVAILABLE")
+        except:
+            print("🌐 Port Status: UNKNOWN")
+        
+        print()
+        print("📚 Management Style Comparison:")
+        print("   HTTP-managed:")
+        print("     • Pros: Full API, stats, multi-instance support")
+        print("     • Cons: More complex, requires HTTP client")
+        print("   Daemon-managed:")  
+        print("     • Pros: Simple, lightweight, traditional daemon")
+        print("     • Cons: Single instance, basic management")
 
 
 def main():
@@ -378,6 +696,10 @@ def main():
     
     # List command
     subparsers.add_parser('list', help='List running servers')
+    
+    # Diagnose command
+    diagnose_parser = subparsers.add_parser('diagnose', help='Diagnose server management conflicts')
+    diagnose_parser.add_argument('--port', type=int, default=8765, help='Port to diagnose')
     
     args = parser.parse_args()
     
@@ -422,6 +744,9 @@ def main():
     
     elif args.command == 'list':
         manager.status(verbose=False)
+    
+    elif args.command == 'diagnose':
+        manager.diagnose_conflicts(port=args.port)
 
 
 if __name__ == "__main__":

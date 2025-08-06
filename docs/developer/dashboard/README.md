@@ -39,7 +39,7 @@ The Claude MPM Dashboard ecosystem provides comprehensive real-time monitoring o
 
 ### 🚀 Socket.IO Dashboard (Recommended)
 
-**File**: `src/claude_mpm/web/templates/index.html` (served at `/dashboard`)
+**File**: `src/claude_mpm/dashboard/templates/index.html` (served at `/dashboard`)
 
 The new Socket.IO-based dashboard with enhanced features:
 
@@ -306,7 +306,7 @@ Hooks are configured in `.claude/settings.json`:
 ## Key Files
 
 ### Socket.IO Implementation
-- `src/claude_mpm/web/templates/index.html` - Modular Socket.IO dashboard (served at `/dashboard`)
+- `src/claude_mpm/dashboard/templates/index.html` - Modular Socket.IO dashboard (served at `/dashboard`)
 - `scripts/launch_socketio_dashboard.py` - Socket.IO server launcher
 - `scripts/socketio_server.js` - Node.js Socket.IO server
 - `src/claude_mpm/services/websocket_server.py` - Python Socket.IO integration

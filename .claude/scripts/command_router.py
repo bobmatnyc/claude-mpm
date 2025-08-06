@@ -38,6 +38,7 @@ Basic Commands:
   /mpm help                    - Show this help message
 
 Memory Commands:
+  /mpm memory init             - Initialize project-specific memories
   /mpm memory status           - Show memory system status and health
   /mpm memory show [agent_id]  - Show agent memories (all agents if no ID provided)
   /mpm memory view [agent_id]  - Alias for 'show' - display agent memories
@@ -59,6 +60,10 @@ Usage Examples:
         """Handle memory subcommands by delegating to claude-mpm CLI."""
         if not args:
             return "Memory subcommand required. Use '/mpm help' to see available commands."
+        
+        # Special handling for 'init' command
+        if args[0] == "init":
+            return self._memory_init_command()
         
         # Find the claude-mpm executable
         claude_mpm_path = self._find_claude_mpm()
@@ -88,6 +93,43 @@ Usage Examples:
         
         except Exception as e:
             return f"Error executing memory command: {str(e)}"
+    
+    def _memory_init_command(self) -> str:
+        """Handle memory init command by creating a prompt for memory initialization."""
+        prompt = """
+[Task: Initialize Project-Specific Memories]
+
+Please analyze this project and create custom memories for all agents based on the actual codebase. 
+
+Your task:
+1. Scan the project structure, documentation, and source code
+2. Identify key patterns, conventions, and project-specific knowledge
+3. Create targeted memories for each agent type (engineer, research, qa, etc.)
+4. Use the 'claude-mpm memory add' command to add these memories
+
+Focus on:
+- Project-specific architectural patterns and design decisions
+- Coding conventions observed in the actual source code
+- Key modules, APIs, and integration points
+- Testing patterns and quality standards
+- Performance considerations specific to this project
+- Common pitfalls or mistakes to avoid based on the codebase
+- Domain-specific terminology and concepts
+
+For each insight you discover, add it to the appropriate agent's memory using:
+claude-mpm memory add <agent> <type> "<content>"
+
+Where <type> is one of: pattern, error, optimization, preference, context
+
+Example:
+- If you find the project uses dependency injection, add:
+  claude-mpm memory add engineer pattern "Use dependency injection pattern with @inject decorators"
+- If you find a testing convention, add:
+  claude-mpm memory add qa pattern "All test files must follow test_<module>_<feature>.py naming"
+
+Begin by examining the project structure and key files, then systematically build memories for each agent.
+"""
+        return prompt.strip()
     
     def _find_claude_mpm(self) -> Optional[Path]:
         """Find the claude-mpm executable."""
