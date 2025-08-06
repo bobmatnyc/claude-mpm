@@ -5,8 +5,34 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.4.2] - 2025-08-06
+## [3.4.3] - 2025-08-06
 
+### Added
+- **Memory System Agent Support**: Enhanced memory routing with 2 new agent types
+  - Added `data_engineer` agent with specialized keywords for data pipelines, AI API integrations, and analytics
+  - Added `test_integration` agent with focus on E2E testing, cross-system validation, and workflow testing
+  - All 10 agent types now fully supported with optimized memory routing
+
+### Improved
+- **Memory Routing Algorithm**: Enhanced accuracy and fairness
+  - Implemented square root normalization to prevent agents with extensive keyword lists from being unfairly penalized
+  - Added multi-word keyword bonus scoring (1.5x multiplier) for better semantic relevance
+  - Lowered routing threshold from 0.1 to 0.05 for better handling of diverse agent patterns
+  - Enhanced confidence scoring with improved calculation for more accurate routing decisions
+
+### Fixed
+- **Agent Validation**: Added comprehensive validation functions
+  - New `get_supported_agents()` method for retrieving all supported agent types
+  - New `is_agent_supported()` method for validating agent types before routing
+  - Enhanced error handling with timestamp and content length logging for better debugging
+
+### Documentation
+- **Comprehensive Agent Documentation**: Updated memory system documentation
+  - Added detailed descriptions of all 10 supported agent types with specialized keywords
+  - Enhanced routing algorithm documentation with recent improvements
+  - Added comprehensive test coverage documentation for new agent types
+
+## [3.4.2] - 2025-08-06
 
 ### Other Changes
 
