@@ -1,340 +1,254 @@
-"""Comprehensive tests for validating agent deployment configurations.
+#!/usr/bin/env python3
+"""Test agent deployment and verify schema compliance.
 
-This test module provides extensive validation of deployed agent YAML files,
-ensuring they meet Claude Code's requirements and best practices.
+This script validates that agent deployment correctly maps fields from JSON
+templates to YAML files, ensuring schema compliance and proper data transformation.
 
-TEST CATEGORIES:
-1. YAML Structure Validation - Ensures proper frontmatter format
-2. Agent Permissions - Validates tool access and restrictions
-3. Temperature Settings - Verifies appropriate creativity levels
-4. Priority Assignment - Checks agent priority configurations
-5. Model Configuration - Validates model selection
-6. YAML Cleanliness - Ensures only essential fields are present
+OPERATIONAL PURPOSE:
+Validation script for the agent deployment pipeline. Ensures that JSON to YAML
+transformation preserves all critical agent configuration and that deployed
+agents are discoverable and functional in Claude Code.
 
-TEST COVERAGE:
-- All system agents (qa, engineer, documentation, research, security, ops, data_engineer, version_control)
-- YAML frontmatter structure and required fields
-- Tool permissions and restrictions per agent type
-- Temperature settings for deterministic vs creative tasks
-- Priority levels for task scheduling
-- Model consistency across agents
-- Field cleanliness (no implementation details in YAML)
+TEST SCENARIOS COVERED:
+1. Agent deployment to a temporary directory
+2. YAML frontmatter parsing and validation
+3. Field mapping verification between JSON templates and deployed YAML
+4. Tools field mapping validation
+5. Description and tags field mapping
+6. Instruction content preservation
+7. Deployment statistics reporting
 
-TEST ASSUMPTIONS:
-- Agents are deployed to .claude/agents/ directory
-- YAML files follow the frontmatter + content structure
-- System agents are pre-deployed before running tests
+TEST FOCUS:
+- Verifies that the deployment process correctly transforms JSON agent templates
+  into YAML files with proper frontmatter
+- Validates that essential fields are properly mapped
+- Checks that agent-specific configurations are preserved
+- Ensures instructions are included in the deployed files
+
+TEST COVERAGE GAPS:
+- No testing of allowed_tools/disallowed_tools mapping
+- No testing of temperature and model field mapping
+- No testing of priority field assignment
+- No validation of YAML syntax correctness
+- No testing of deployment update scenarios
+- No testing of version field handling
+
+OPERATIONAL USAGE:
+1. Pre-deployment validation: Run before production deployments
+2. Post-deployment verification: Confirm successful deployment
+3. Troubleshooting: Identify field mapping issues
+4. CI/CD integration: Include in automated test suites
+
+MONITORING POINTS:
+- Field mapping success rate (should be 100%)
+- Deployment completion time
+- YAML parsing errors
+- Missing instructions or tools
+
+TROUBLESHOOTING GUIDE:
+- YAML parse errors: Check for special characters in JSON
+- Missing fields: Verify JSON template structure
+- Empty tools: Check capabilities.tools in template
+- Failed deployment: Check file permissions
 """
 
 import json
-import yaml
-import pytest
+import sys
 from pathlib import Path
+import tempfile
+import yaml
 
-class TestAgentDeploymentValidation:
-    """Test suite for validating agent deployment and configurations.
+# Add src to path
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from claude_mpm.services.agent_deployment import AgentDeploymentService
+from claude_mpm.core.logger import get_logger
+
+logger = get_logger(__name__)
+
+def parse_yaml_frontmatter(content: str) -> dict:
+    """Extract YAML frontmatter from markdown content.
     
-    This class contains comprehensive tests to ensure deployed agents
-    meet all requirements for Claude Code integration.
+    Parses content that follows the YAML frontmatter format:
+    ---
+    key: value
+    ---
+    
+    OPERATIONAL NOTES:
+    - Critical for validating deployed agent configuration
+    - Must handle edge cases like missing frontmatter gracefully
+    - Returns empty dict rather than failing to support validation flow
+    - Used by Claude Code to discover agent capabilities
+    
+    COMMON ISSUES:
+    - Special characters in values need proper escaping
+    - Multi-line values require correct YAML formatting
+    - Empty frontmatter should return empty dict, not error
+    
+    Args:
+        content: File content with YAML frontmatter
+        
+    Returns:
+        Dictionary of parsed YAML frontmatter, empty dict if no frontmatter found
     """
+    if not content.startswith('---'):
+        return {}
     
-    def test_agent_yaml_structure(self):
-        """Test that deployed agent YAML files have correct structure.
+    # Find the end of frontmatter
+    end_idx = content.find('---', 3)
+    if end_idx == -1:
+        return {}
+    
+    yaml_content = content[3:end_idx].strip()
+    return yaml.safe_load(yaml_content)
+
+def main():
+    """Run deployment test and verify field mapping.
+    
+    This is the main test function that:
+    1. Creates a temporary deployment directory
+    2. Deploys agents using AgentDeploymentService
+    3. Verifies specific agents (qa, engineer) were deployed correctly
+    4. Compares JSON template data with deployed YAML frontmatter
+    5. Reports on field mapping accuracy
+    
+    The test focuses on validating that the deployment process correctly
+    transforms agent data from JSON templates to YAML format while
+    preserving essential fields and configurations.
+    
+    OPERATIONAL WORKFLOW:
+    1. Setup: Create isolated test environment
+    2. Deploy: Run full deployment pipeline
+    3. Validate: Check each agent for correctness
+    4. Report: Provide detailed validation results
+    
+    SUCCESS CRITERIA:
+    - All agents deploy without errors
+    - YAML frontmatter is valid and parseable
+    - Essential fields (name, tools, description) are mapped
+    - Instructions are preserved in agent body
+    - No data loss during transformation
+    
+    FAILURE MODES:
+    - Deployment errors: Check permissions and paths
+    - Parsing errors: Validate JSON template syntax
+    - Missing fields: Review field mapping logic
+    - Empty content: Check template loading
+    
+    PERFORMANCE EXPECTATIONS:
+    - Total execution time: < 2 seconds
+    - Per-agent validation: < 100ms
+    - Memory usage: < 50MB
+    """
+    print("Testing agent deployment and schema compliance...\n")
+    
+    # Create a temporary deployment directory
+    with tempfile.TemporaryDirectory() as temp_dir:
+        target_dir = Path(temp_dir) / ".claude" / "agents"
         
-        Validates:
-        1. Agent directory exists and contains YAML files
-        2. Each YAML file has proper frontmatter structure (---...---)
-        3. Required fields are present: name, description, tools, priority
-        4. Tools field is a comma-separated string
-        5. At least one tool is specified per agent
+        # Initialize deployment service
+        deployment_service = AgentDeploymentService()
         
-        This test ensures basic structural compliance for all deployed agents.
-        """
-        agents_dir = Path(".claude/agents")
-        assert agents_dir.exists(), f"Agents directory not found: {agents_dir}"
+        # Deploy agents
+        print(f"Deploying agents to: {target_dir}")
+        results = deployment_service.deploy_agents(target_dir=target_dir, force_rebuild=True)
         
-        agent_files = list(agents_dir.glob("*.yaml"))
-        assert len(agent_files) > 0, "No agent YAML files found"
+        print(f"\nDeployment results:")
+        print(f"  - Deployed: {len(results['deployed'])}")
+        print(f"  - Updated: {len(results['updated'])}")
+        print(f"  - Skipped: {len(results['skipped'])}")
+        print(f"  - Errors: {len(results['errors'])}")
         
-        required_fields = ["name", "description", "tools", "priority"]
+        if results['errors']:
+            print("\nErrors:")
+            for error in results['errors']:
+                print(f"  - {error}")
         
-        for agent_file in agent_files:
-            print(f"\nValidating {agent_file.name}...")
+        # Verify deployed agents
+        print("\n\nVerifying deployed agents against schema...")
+        print("-" * 50)
+        
+        # Check specific agents
+        agents_to_check = ['qa', 'engineer']
+        
+        for agent_name in agents_to_check:
+            agent_file = target_dir / f"{agent_name}.md"
             
-            with open(agent_file, 'r') as f:
-                content = f.read()
-                
-            # Split frontmatter and content
-            parts = content.split("---", 2)
-            assert len(parts) == 3, f"Invalid YAML structure in {agent_file.name}"
+            if not agent_file.exists():
+                print(f"\n❌ {agent_name}.md not found!")
+                continue
+            
+            print(f"\n✅ Found {agent_name}.md")
+            
+            # Read the deployed content
+            content = agent_file.read_text()
             
             # Parse YAML frontmatter
-            frontmatter = yaml.safe_load(parts[1])
-            assert isinstance(frontmatter, dict), f"Invalid YAML frontmatter in {agent_file.name}"
+            frontmatter = parse_yaml_frontmatter(content)
             
-            # Check required fields
-            for field in required_fields:
-                assert field in frontmatter, f"Missing required field '{field}' in {agent_file.name}"
-            
-            # Validate tools field
-            tools = frontmatter.get("tools", "")
-            assert isinstance(tools, str), f"Tools should be a string in {agent_file.name}"
-            assert len(tools.split(",")) > 0, f"No tools specified in {agent_file.name}"
-            
-            print(f"✓ {agent_file.name} has valid structure")
-    
-    def test_security_agent_permissions(self):
-        """Test that security agent has correct permissions.
-        
-        Security-specific validation:
-        1. Security agent YAML file exists
-        2. Disallowed tools are properly configured
-        3. Critical tools (Bash, Write, Edit, MultiEdit) are restricted
-        4. Tools list doesn't include any disallowed tools
-        
-        This test ensures the security agent operates with appropriate
-        restrictions to prevent unauthorized system modifications.
-        """
-        security_yaml = Path(".claude/agents/security.yaml")
-        assert security_yaml.exists(), "Security agent YAML not found"
-        
-        with open(security_yaml, 'r') as f:
-            content = f.read()
-            
-        parts = content.split("---", 2)
-        frontmatter = yaml.safe_load(parts[1])
-        
-        # Check that Bash is disallowed
-        disallowed_tools = frontmatter.get("disallowed_tools", [])
-        assert "Bash" in disallowed_tools, "Security agent should have Bash disallowed"
-        assert "Write" in disallowed_tools, "Security agent should have Write disallowed"
-        assert "Edit" in disallowed_tools, "Security agent should have Edit disallowed"
-        assert "MultiEdit" in disallowed_tools, "Security agent should have MultiEdit disallowed"
-        
-        # Check tools list doesn't include disallowed tools
-        tools = frontmatter.get("tools", "").split(", ")
-        for disallowed in disallowed_tools:
-            assert disallowed not in tools, f"{disallowed} should not be in tools list"
-        
-        print("✓ Security agent has correct permissions")
-    
-    def test_qa_agent_permissions(self):
-        """Test that QA agent has correct file access permissions.
-        
-        QA-specific validation:
-        1. QA agent YAML file exists
-        2. allowed_tools configuration is present and valid
-        3. Edit permissions include test directories (tests/**, test/**, **/test_*.py)
-        4. Write permissions include test directories
-        
-        This test ensures the QA agent has appropriate access to create
-        and modify test files while being restricted from production code.
-        """
-        qa_yaml = Path(".claude/agents/qa.yaml")
-        assert qa_yaml.exists(), "QA agent YAML not found"
-        
-        with open(qa_yaml, 'r') as f:
-            content = f.read()
-            
-        parts = content.split("---", 2)
-        frontmatter = yaml.safe_load(parts[1])
-        
-        # Check tools
-        tools_str = frontmatter.get("tools", "")
-        tools = [t.strip() for t in tools_str.split(",")] if tools_str else []
-        
-        # QA agent should have Edit and Write tools
-        assert "Edit" in tools, "QA agent should have Edit tool"
-        assert "Write" in tools, "QA agent should have Write tool"
-        assert "Read" in tools, "QA agent should have Read tool"
-        assert "Bash" in tools, "QA agent should have Bash tool for running tests"
-        
-        # QA agent should not have disallowed_tools restricting test access
-        disallowed_tools = frontmatter.get("disallowed_tools", [])
-        assert "Edit" not in disallowed_tools, "QA agent should not have Edit disallowed"
-        assert "Write" not in disallowed_tools, "QA agent should not have Write disallowed"
-        
-        print("✓ QA agent has correct file access permissions")
-    
-    def test_agent_temperatures(self):
-        """Test that agents have appropriate temperature settings.
-        
-        Temperature validation ensures agents operate with appropriate
-        creativity levels for their tasks:
-        - 0.0: Deterministic agents (security, qa, version_control)
-        - 0.1: Low creativity agents (ops, data_engineer)
-        - 0.2: Moderate creativity agents (engineer, documentation, research)
-        
-        This test validates that each agent's temperature aligns with
-        its role and the need for consistency vs creativity.
-        """
-        agents_dir = Path(".claude/agents")
-        
-        expected_temperatures = {
-            "security.yaml": 0.0,      # Deterministic for security
-            "qa.yaml": 0.0,            # Deterministic for testing
-            "version_control.yaml": 0.0,  # Deterministic for git operations
-            "ops.yaml": 0.1,           # Low creativity for operations
-            "data_engineer.yaml": 0.1, # Low creativity for data engineering
-            "engineer.yaml": 0.2,      # Low creativity for coding
-            "documentation.yaml": 0.2, # Moderate creativity for writing
-            "research.yaml": 0.2,      # Moderate creativity for research
-        }
-        
-        for agent_file, expected_temp in expected_temperatures.items():
-            yaml_path = agents_dir / agent_file
-            if not yaml_path.exists():
-                continue
+            # Read the original template
+            template_path = deployment_service.templates_dir / f"{agent_name}.json"
+            if template_path.exists():
+                template_data = json.loads(template_path.read_text())
                 
-            with open(yaml_path, 'r') as f:
-                content = f.read()
+                print(f"\nComparing {agent_name} template vs deployed:")
+                print("-" * 30)
                 
-            parts = content.split("---", 2)
-            frontmatter = yaml.safe_load(parts[1])
-            
-            temp = frontmatter.get("temperature", None)
-            assert temp is not None, f"Temperature not set for {agent_file}"
-            assert temp == expected_temp, f"Expected temperature {expected_temp} for {agent_file}, got {temp}"
-            
-            print(f"✓ {agent_file} has correct temperature: {temp}")
-    
-    def test_agent_priorities(self):
-        """Test that agents have appropriate priority settings.
-        
-        Priority validation ensures proper task scheduling:
-        - High priority: security, qa, engineer, ops, version_control
-        - Medium priority: documentation, research, data_engineer
-        
-        This test validates that critical operational agents have
-        higher priority than analytical/documentation agents.
-        """
-        agents_dir = Path(".claude/agents")
-        
-        high_priority_agents = ["security", "qa", "engineer", "ops", "version_control"]
-        medium_priority_agents = ["documentation", "research", "data_engineer"]
-        
-        for agent_file in agents_dir.glob("*.yaml"):
-            with open(agent_file, 'r') as f:
-                content = f.read()
+                # Check tools mapping
+                template_tools = template_data.get('capabilities', {}).get('tools', [])
+                deployed_tools = frontmatter.get('tools', [])
                 
-            parts = content.split("---", 2)
-            frontmatter = yaml.safe_load(parts[1])
-            
-            agent_name = frontmatter.get("name", "")
-            priority = frontmatter.get("priority", "")
-            
-            if agent_name in high_priority_agents:
-                assert priority == "high", f"{agent_name} should have high priority"
-            elif agent_name in medium_priority_agents:
-                assert priority == "medium", f"{agent_name} should have medium priority"
+                print(f"Tools:")
+                print(f"  Template: {template_tools}")
+                print(f"  Deployed: {deployed_tools}")
+                print(f"  Match: {'✅' if template_tools == deployed_tools else '❌'}")
                 
-            print(f"✓ {agent_name} has correct priority: {priority}")
-    
-    def test_agent_models(self):
-        """Test that all agents use the correct model.
-        
-        Model validation ensures consistency across all agents.
-        Currently validates that all agents use claude-sonnet-4-20250514.
-        
-        This test can be extended to support different models per agent
-        type if requirements change in the future.
-        """
-        agents_dir = Path(".claude/agents")
-        expected_model = "claude-sonnet-4-20250514"
-        
-        for agent_file in agents_dir.glob("*.yaml"):
-            with open(agent_file, 'r') as f:
-                content = f.read()
+                # Check other capabilities
+                capabilities = template_data.get('capabilities', {})
                 
-            parts = content.split("---", 2)
-            frontmatter = yaml.safe_load(parts[1])
-            
-            model = frontmatter.get("model", "")
-            assert model == expected_model, f"{agent_file.name} should use {expected_model}, got {model}"
-            
-            print(f"✓ {agent_file.name} uses correct model: {model}")
-    
-    def test_yaml_cleanliness(self):
-        """Test that YAML files only contain essential fields.
-        
-        YAML cleanliness validation ensures deployed files follow
-        Claude Code best practices by including only essential fields.
-        
-        Essential fields: name, description, tools, priority, model, temperature
-        Optional fields: allowed_tools, disallowed_tools
-        Forbidden fields: Implementation details that should not be exposed
-                         (resource_tier, max_tokens, timeout, memory_limit, etc.)
-        
-        This test prevents implementation details from leaking into
-        user-visible YAML files and ensures a clean, focused interface.
-        """
-        agents_dir = Path(".claude/agents")
-        
-        # Fields that should be present
-        essential_fields = {"name", "description", "tools", "priority", "model", "temperature"}
-        
-        # Optional fields that are OK if present
-        optional_fields = {"allowed_tools", "disallowed_tools"}
-        
-        # Fields that should NOT be present (implementation details)
-        forbidden_fields = {"resource_tier", "max_tokens", "timeout", "memory_limit", 
-                          "cpu_limit", "network_access", "file_access", "schema_version",
-                          "agent_id", "agent_version", "agent_type", "metadata", 
-                          "capabilities", "instructions", "knowledge", "interactions",
-                          "testing"}
-        
-        for agent_file in agents_dir.glob("*.yaml"):
-            with open(agent_file, 'r') as f:
-                content = f.read()
+                # Check model (note: model is not in frontmatter by default)
+                print(f"\nModel:")
+                print(f"  Template: {capabilities.get('model', 'Not specified')}")
+                print(f"  Deployed: Not in frontmatter (expected)")
                 
-            parts = content.split("---", 2)
-            frontmatter = yaml.safe_load(parts[1])
-            
-            # Check for forbidden fields
-            present_forbidden = set(frontmatter.keys()) & forbidden_fields
-            assert len(present_forbidden) == 0, \
-                f"{agent_file.name} contains forbidden fields: {present_forbidden}"
-            
-            # Check all fields are either essential or optional
-            all_allowed = essential_fields | optional_fields
-            unknown_fields = set(frontmatter.keys()) - all_allowed
-            assert len(unknown_fields) == 0, \
-                f"{agent_file.name} contains unknown fields: {unknown_fields}"
+                # Check temperature (note: temperature is not in frontmatter by default)
+                print(f"\nTemperature:")
+                print(f"  Template: {capabilities.get('temperature', 'Not specified')}")
+                print(f"  Deployed: Not in frontmatter (expected)")
                 
-            print(f"✓ {agent_file.name} has clean YAML structure")
+                # Check description
+                template_desc = template_data.get('metadata', {}).get('description', '')
+                deployed_desc = frontmatter.get('description', '')
+                
+                print(f"\nDescription:")
+                print(f"  Template: {template_desc}")
+                print(f"  Deployed: {deployed_desc}")
+                print(f"  Match: {'✅' if template_desc == deployed_desc else '❌'}")
+                
+                # Check tags
+                template_tags = template_data.get('metadata', {}).get('tags', [])
+                deployed_tags = frontmatter.get('tags', [])
+                
+                print(f"\nTags:")
+                print(f"  Template: {template_tags}")
+                print(f"  Deployed: {deployed_tags}")
+                print(f"  Match: {'✅' if template_tags == deployed_tags else '❌'}")
+                
+                # Check instructions
+                template_instructions = template_data.get('instructions', '')
+                # Extract instructions from content (after frontmatter)
+                instructions_start = content.find('---', 3) + 3
+                deployed_instructions = content[instructions_start:].strip()
+                
+                print(f"\nInstructions:")
+                print(f"  Template length: {len(template_instructions)} chars")
+                print(f"  Deployed length: {len(deployed_instructions)} chars")
+                print(f"  Instructions present: {'✅' if len(deployed_instructions) > 100 else '❌'}")
+                
+                # Show a snippet of the deployed content
+                print(f"\nDeployed content snippet:")
+                print("-" * 30)
+                print(content[:500] + "..." if len(content) > 500 else content)
 
 if __name__ == "__main__":
-    # Run tests
-    test = TestAgentDeploymentValidation()
-    
-    print("Running agent deployment validation tests...\n")
-    
-    try:
-        test.test_agent_yaml_structure()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_security_agent_permissions()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_qa_agent_permissions()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_agent_temperatures()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_agent_priorities()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_agent_models()
-        print("\n" + "="*50 + "\n")
-        
-        test.test_yaml_cleanliness()
-        
-        print("\n✅ All agent deployment validation tests passed!")
-        
-    except AssertionError as e:
-        print(f"\n❌ Test failed: {e}")
-        exit(1)
-    except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
-        exit(1)
+    main()

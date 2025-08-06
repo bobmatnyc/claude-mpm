@@ -166,9 +166,38 @@ class Config:
             # Health monitoring
             "enable_health_monitoring": True,
             "health_check_interval": 30,
+            "health_history_size": 100,
+            "health_aggregation_window": 300,
             # Metrics
             "enable_metrics": True,
             "metrics_interval": 60,
+            # Advanced health monitoring thresholds
+            "health_thresholds": {
+                "cpu_percent": 80.0,
+                "memory_mb": 500,
+                "file_descriptors": 1000,
+                "max_clients": 1000,
+                "max_error_rate": 0.1,
+                "network_timeout": 2.0
+            },
+            # Automatic recovery configuration
+            "recovery": {
+                "enabled": True,
+                "check_interval": 60,
+                "max_recovery_attempts": 5,
+                "recovery_timeout": 30,
+                "circuit_breaker": {
+                    "failure_threshold": 5,
+                    "timeout_seconds": 300,
+                    "success_threshold": 3
+                },
+                "strategy": {
+                    "warning_threshold": 2,
+                    "critical_threshold": 1,
+                    "failure_window_seconds": 300,
+                    "min_recovery_interval": 60
+                }
+            },
             # Service management
             "graceful_shutdown_timeout": 30,
             "startup_timeout": 60,
@@ -231,7 +260,7 @@ class Config:
             # Agent Memory System configuration
             "memory": {
                 "enabled": True,                    # Master switch for memory system
-                "auto_learning": False,             # Automatic learning extraction
+                "auto_learning": True,              # Automatic learning extraction (changed default to True)
                 "limits": {
                     "default_size_kb": 8,           # Default file size limit
                     "max_sections": 10,             # Maximum sections per file
@@ -247,6 +276,47 @@ class Config:
                         "auto_learning": True       # Enable auto learning
                     }
                 }
+            },
+            # Socket.IO server health and recovery configuration
+            "socketio_server": {
+                "host": "localhost",
+                "port": 8765,
+                "enable_health_monitoring": True,
+                "enable_recovery": True,
+                "health_monitoring": {
+                    "check_interval": 30,
+                    "history_size": 100,
+                    "aggregation_window": 300,
+                    "thresholds": {
+                        "cpu_percent": 80.0,
+                        "memory_mb": 500,
+                        "file_descriptors": 1000,
+                        "max_clients": 1000,
+                        "max_error_rate": 0.1
+                    }
+                },
+                "recovery": {
+                    "enabled": True,
+                    "max_attempts": 5,
+                    "timeout": 30,
+                    "circuit_breaker": {
+                        "failure_threshold": 5,
+                        "timeout_seconds": 300,
+                        "success_threshold": 3
+                    },
+                    "strategy": {
+                        "warning_threshold": 2,
+                        "critical_threshold": 1,
+                        "failure_window_seconds": 300,
+                        "min_recovery_interval": 60
+                    },
+                    "actions": {
+                        "log_warning": True,
+                        "clear_connections": True,
+                        "restart_service": True,
+                        "emergency_stop": True
+                    }
+                }
             }
         }
 
@@ -254,6 +324,9 @@ class Config:
         for key, default_value in defaults.items():
             if key not in self._config:
                 self._config[key] = default_value
+        
+        # Validate health and recovery configuration
+        self._validate_health_recovery_config()
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""
@@ -348,6 +421,93 @@ class Config:
     def __contains__(self, key: str) -> bool:
         """Check if configuration contains a key."""
         return self.get(key) is not None
+
+    def _validate_health_recovery_config(self) -> None:
+        """Validate health monitoring and recovery configuration."""
+        try:
+            # Validate health thresholds
+            thresholds = self.get('health_thresholds', {})
+            if thresholds.get('cpu_percent', 0) < 0 or thresholds.get('cpu_percent', 0) > 100:
+                logger.warning("CPU threshold should be between 0-100, using default 80")
+                self.set('health_thresholds.cpu_percent', 80.0)
+            
+            if thresholds.get('memory_mb', 0) <= 0:
+                logger.warning("Memory threshold should be positive, using default 500MB")
+                self.set('health_thresholds.memory_mb', 500)
+            
+            if thresholds.get('max_error_rate', 0) < 0 or thresholds.get('max_error_rate', 0) > 1:
+                logger.warning("Error rate threshold should be between 0-1, using default 0.1")
+                self.set('health_thresholds.max_error_rate', 0.1)
+            
+            # Validate recovery configuration
+            recovery_config = self.get('recovery', {})
+            if recovery_config.get('max_recovery_attempts', 0) <= 0:
+                logger.warning("Max recovery attempts should be positive, using default 5")
+                self.set('recovery.max_recovery_attempts', 5)
+            
+            # Validate circuit breaker configuration
+            cb_config = recovery_config.get('circuit_breaker', {})
+            if cb_config.get('failure_threshold', 0) <= 0:
+                logger.warning("Circuit breaker failure threshold should be positive, using default 5")
+                self.set('recovery.circuit_breaker.failure_threshold', 5)
+            
+            if cb_config.get('timeout_seconds', 0) <= 0:
+                logger.warning("Circuit breaker timeout should be positive, using default 300")
+                self.set('recovery.circuit_breaker.timeout_seconds', 300)
+            
+        except Exception as e:
+            logger.error(f"Error validating health/recovery configuration: {e}")
+    
+    def get_health_monitoring_config(self) -> Dict[str, Any]:
+        """Get health monitoring configuration with defaults."""
+        base_config = {
+            'enabled': self.get('enable_health_monitoring', True),
+            'check_interval': self.get('health_check_interval', 30),
+            'history_size': self.get('health_history_size', 100),
+            'aggregation_window': self.get('health_aggregation_window', 300),
+            'thresholds': self.get('health_thresholds', {
+                'cpu_percent': 80.0,
+                'memory_mb': 500,
+                'file_descriptors': 1000,
+                'max_clients': 1000,
+                'max_error_rate': 0.1,
+                'network_timeout': 2.0
+            })
+        }
+        
+        # Merge with socketio-specific config if available
+        socketio_config = self.get('socketio_server.health_monitoring', {})
+        if socketio_config:
+            base_config.update(socketio_config)
+        
+        return base_config
+    
+    def get_recovery_config(self) -> Dict[str, Any]:
+        """Get recovery configuration with defaults."""
+        base_config = self.get('recovery', {
+            'enabled': True,
+            'check_interval': 60,
+            'max_recovery_attempts': 5,
+            'recovery_timeout': 30,
+            'circuit_breaker': {
+                'failure_threshold': 5,
+                'timeout_seconds': 300,
+                'success_threshold': 3
+            },
+            'strategy': {
+                'warning_threshold': 2,
+                'critical_threshold': 1,
+                'failure_window_seconds': 300,
+                'min_recovery_interval': 60
+            }
+        })
+        
+        # Merge with socketio-specific config if available
+        socketio_config = self.get('socketio_server.recovery', {})
+        if socketio_config:
+            base_config = self._config_mgr.merge_configs(base_config, socketio_config)
+        
+        return base_config
 
     def __repr__(self) -> str:
         """String representation of configuration."""

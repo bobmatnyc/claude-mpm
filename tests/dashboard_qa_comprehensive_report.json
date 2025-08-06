@@ -1,0 +1,237 @@
+{
+  "qa_report": {
+    "timestamp": "2025-08-06 12:45:36 UTC",
+    "test_suite_version": "1.0",
+    "overall_status": "MANUAL_TESTING_REQUIRED",
+    "summary": {
+      "total_test_categories": 5,
+      "requirements_tested": [
+        "Agent Consolidation (duplicate elimination)",
+        "Data Viewer Enhancements (whitespace trimming, token counting)",
+        "Diff Viewer functionality",
+        "Integration testing",
+        "Edge case handling"
+      ]
+    },
+    "detailed_results": {
+      "agent_consolidation": [
+        {
+          "test": "duplicate_elimination",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that QA agent appears only once despite multiple delegations",
+          "expected": "Single QA agent entry with consolidated data",
+          "test_file": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/tmp_zzwcz_l.html"
+        },
+        {
+          "test": "delegation_counts",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that delegation count is accurate (2 for QA, 1 for Engineer)",
+          "expected": "QA: 2 delegations, Engineer: 1 delegation",
+          "test_file": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/tmp_zzwcz_l.html"
+        },
+        {
+          "test": "agent_selection",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that clicking consolidated agent shows combined data",
+          "expected": "All events from both QA delegations visible",
+          "test_file": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/tmp_zzwcz_l.html"
+        },
+        {
+          "test": "statistics_accuracy",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that event counts and statistics are correctly combined",
+          "expected": "Total events = sum of all delegations",
+          "test_file": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/tmp_zzwcz_l.html"
+        }
+      ],
+      "data_viewer_enhancements": [
+        {
+          "test": "whitespace_trimming",
+          "status": "MANUAL_REQUIRED",
+          "description": "Testing whitespace_trimming functionality",
+          "input": "   Test prompt with excessive   whitespace\n\n\n\nMultiple newlines and trailing spaces   \n\n   Leading s...",
+          "expected": {
+            "expected_trimmed": true,
+            "expected_max_consecutive_newlines": 2
+          }
+        },
+        {
+          "test": "token_counting_accuracy",
+          "status": "MANUAL_REQUIRED",
+          "description": "Testing token_counting_accuracy functionality",
+          "input": "This is a test prompt with exactly ten words total.",
+          "expected": {
+            "expected_word_count": 10,
+            "expected_token_estimate_min": 10,
+            "expected_token_estimate_max": 15
+          }
+        },
+        {
+          "test": "html_escaping",
+          "status": "MANUAL_REQUIRED",
+          "description": "Testing html_escaping functionality",
+          "input": "Special characters: <>&\"' and unicode: \ud83d\ude80 \ud83d\udcca",
+          "expected": {
+            "expected_escaped": true,
+            "expected_safe_display": true
+          }
+        },
+        {
+          "test": "empty_prompt_handling",
+          "status": "MANUAL_REQUIRED",
+          "description": "Testing empty_prompt_handling functionality",
+          "input": "",
+          "expected": {
+            "expected_word_count": 0,
+            "expected_token_count": 0
+          }
+        },
+        {
+          "test": "long_prompt_handling",
+          "status": "MANUAL_REQUIRED",
+          "description": "Testing long_prompt_handling functionality",
+          "input": "This is a very long prompt This is a very long prompt This is a very long prompt This is a very long...",
+          "expected": {
+            "expected_word_count": 800,
+            "expected_token_estimate_min": 800,
+            "expected_performance_acceptable": true
+          }
+        }
+      ],
+      "diff_viewer": [
+        {
+          "test": "git_integration",
+          "status": "PASS",
+          "description": "Test that git diff command works correctly",
+          "expected": "Git diff output available for modified files",
+          "actual": "Git diff returned 0",
+          "diff_output_length": 244
+        },
+        {
+          "test": "diff_icon_display",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that diff icons appear for modified files in file pane",
+          "expected": "\ud83d\udccb icon appears next to modified file names",
+          "test_scenario": "Edit a file and check if diff icon appears"
+        },
+        {
+          "test": "diff_modal_functionality",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that clicking diff icon opens modal with diff content",
+          "expected": "Modal opens with properly formatted diff output",
+          "test_scenario": "Click diff icon and verify modal appearance and content"
+        },
+        {
+          "test": "file_operations_diff",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test diff viewer works with Edit, Write, MultiEdit tools",
+          "expected": "Diff available after file modification operations",
+          "test_scenario": "Use various file tools and check diff availability"
+        }
+      ],
+      "integration": [
+        {
+          "test": "component_interaction",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test that all components work together without conflicts",
+          "expected": "Agent consolidation + data enhancements + diff viewer work simultaneously",
+          "test_steps": [
+            "1. Load dashboard with multiple agent delegations",
+            "2. Verify agents are consolidated",
+            "3. Click agent to view enhanced data (trimmed prompts, token counts)",
+            "4. Modify files and verify diff icons appear",
+            "5. Click diff icons to verify modal functionality"
+          ]
+        },
+        {
+          "test": "javascript_errors",
+          "status": "MANUAL_REQUIRED",
+          "description": "Check browser console for JavaScript errors",
+          "expected": "No console errors during normal operation",
+          "test_steps": [
+            "1. Open browser developer console",
+            "2. Perform all dashboard operations",
+            "3. Verify no errors appear in console"
+          ]
+        },
+        {
+          "test": "performance_impact",
+          "status": "MANUAL_REQUIRED",
+          "description": "Ensure changes don't negatively impact performance",
+          "expected": "Dashboard remains responsive with large datasets",
+          "test_steps": [
+            "1. Load dashboard with 100+ events",
+            "2. Test agent consolidation performance",
+            "3. Test data viewer with long prompts",
+            "4. Verify UI remains responsive"
+          ]
+        },
+        {
+          "test": "backward_compatibility",
+          "status": "MANUAL_REQUIRED",
+          "description": "Ensure changes work with existing dashboard features",
+          "expected": "All existing functionality continues to work",
+          "test_steps": [
+            "1. Test existing event viewer",
+            "2. Test working directory display",
+            "3. Test agent inference",
+            "4. Test all other dashboard features"
+          ]
+        }
+      ],
+      "edge_cases": [
+        {
+          "test": "empty_prompts",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test handling of empty/null prompts",
+          "expected": "No errors, graceful handling of empty content",
+          "scenarios": [
+            "Empty string prompt",
+            "Null prompt",
+            "Undefined prompt"
+          ]
+        },
+        {
+          "test": "very_long_prompts",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test with extremely long prompts (10,000+ characters)",
+          "expected": "Proper truncation or scrolling, no UI breakdown",
+          "test_prompt_length": 10000
+        },
+        {
+          "test": "special_characters",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test with special characters and Unicode",
+          "expected": "Proper HTML escaping, no XSS vulnerabilities",
+          "test_characters": "<script>alert('test')</script>, \ud83d\ude80\ud83d\udcca\ud83d\udd0d, \u00f1\u00e1\u00e9\u00ed\u00f3\u00fa"
+        },
+        {
+          "test": "rapid_delegations",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test with rapid consecutive agent delegations",
+          "expected": "Proper consolidation, no duplicate entries",
+          "scenario": "Multiple delegations to same agent within seconds"
+        },
+        {
+          "test": "non_git_repository",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test diff viewer in non-git directories",
+          "expected": "Graceful fallback, no errors",
+          "scenario": "Run dashboard outside git repository"
+        },
+        {
+          "test": "malformed_events",
+          "status": "MANUAL_REQUIRED",
+          "description": "Test with malformed or incomplete event data",
+          "expected": "Graceful error handling, no crashes",
+          "scenarios": [
+            "Missing required fields",
+            "Invalid JSON",
+            "Circular references"
+          ]
+        }
+      ],
+      "overall_status": "MANUAL_TESTING_REQUIRED"
+    }
+  }
+}

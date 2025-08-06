@@ -11,6 +11,7 @@ Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables:
 - **Service Architecture**: Clean separation of business logic
 - **Session Management**: Comprehensive logging and state management
 - **Dynamic Framework Loading**: Load framework based on configuration
+- **Reliable Socket.IO Server**: Advanced monitoring, health checks, and automatic recovery
 
 ## Documentation Structure
 
@@ -108,6 +109,16 @@ Extensible architecture through pre/post hooks:
 - Response transformation
 - Custom automation
 - Third-party integrations
+
+### Socket.IO Reliability
+Advanced reliability features for production deployments:
+- **PID File Validation**: Enhanced process identity checking
+- **Health Monitoring**: Comprehensive system health tracking
+- **Automatic Recovery**: Circuit breaker patterns and graduated recovery
+- **Enhanced Error Handling**: Detailed error messages with resolution steps
+- **Service Management**: Production-ready daemon and service management
+
+See [Socket.IO Reliability Features](SOCKETIO_RELIABILITY.md) for complete documentation.
 
 ## Contributing
 
