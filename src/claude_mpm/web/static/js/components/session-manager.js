@@ -107,8 +107,15 @@ class SessionManager {
         // Restore selection if it still exists
         if (currentSelection && Array.from(sessionSelect.options).some(opt => opt.value === currentSelection)) {
             sessionSelect.value = currentSelection;
+            this.selectedSessionId = currentSelection;
+            // Trigger events for restored selection
+            this.onSessionFilterChanged();
         } else {
             this.selectedSessionId = sessionSelect.value;
+            // Trigger events for new selection
+            if (this.selectedSessionId) {
+                this.onSessionFilterChanged();
+            }
         }
     }
 
@@ -129,6 +136,11 @@ class SessionManager {
         document.dispatchEvent(new CustomEvent('sessionFilterChanged', {
             detail: { sessionId: this.selectedSessionId }
         }));
+        
+        // Also dispatch sessionChanged for backward compatibility with other components
+        document.dispatchEvent(new CustomEvent('sessionChanged', {
+            detail: { sessionId: this.selectedSessionId }
+        }));
     }
 
     /**
@@ -147,15 +159,22 @@ class SessionManager {
      * Update footer information based on selected session
      */
     updateFooterInfo() {
+        console.log('[SESSION-DEBUG] updateFooterInfo called, selectedSessionId:', this.selectedSessionId);
+        
         const footerSessionEl = document.getElementById('footer-session');
         const footerWorkingDirEl = document.getElementById('footer-working-dir');
         const footerGitBranchEl = document.getElementById('footer-git-branch');
 
-        if (!footerSessionEl) return;
+        if (!footerSessionEl) {
+            console.warn('[SESSION-DEBUG] footer-session element not found');
+            return;
+        }
 
         let sessionInfo = 'All Sessions';
-        let workingDir = 'Unknown';
+        let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || process?.cwd?.() || '/Users/masa/Projects/claude-mpm';
         let gitBranch = 'Unknown';
+        
+        console.log('[SESSION-DEBUG] Initial values - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
 
         if (this.selectedSessionId === 'current') {
             sessionInfo = this.currentSessionId ? 
@@ -165,7 +184,7 @@ class SessionManager {
             // For current session, try to extract info from recent events
             if (this.currentSessionId) {
                 const sessionData = this.extractSessionInfoFromEvents(this.currentSessionId);
-                workingDir = sessionData.workingDir || 'Unknown';
+                workingDir = sessionData.workingDir || window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || '/Users/masa/Projects/claude-mpm';
                 gitBranch = sessionData.gitBranch || 'Unknown';
             }
         } else if (this.selectedSessionId) {
@@ -178,15 +197,27 @@ class SessionManager {
                 // If session doesn't have these values, extract from events
                 if (!workingDir || !gitBranch) {
                     const sessionData = this.extractSessionInfoFromEvents(this.selectedSessionId);
-                    workingDir = workingDir || sessionData.workingDir || 'Unknown';
-                    gitBranch = gitBranch || sessionData.gitBranch || 'Unknown';
+                    workingDir = workingDir || sessionData.workingDir || '.';
+                    gitBranch = gitBranch || sessionData.gitBranch || '';
                 }
             }
         }
 
+        console.log('[SESSION-DEBUG] Final values before setting footer - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
+        
         footerSessionEl.textContent = sessionInfo;
-        if (footerWorkingDirEl) footerWorkingDirEl.textContent = workingDir;
-        if (footerGitBranchEl) footerGitBranchEl.textContent = gitBranch;
+        if (footerWorkingDirEl) {
+            console.log('[SESSION-DEBUG] Setting footer working dir to:', workingDir);
+            footerWorkingDirEl.textContent = workingDir;
+        } else {
+            console.warn('[SESSION-DEBUG] footer-working-dir element not found');
+        }
+        if (footerGitBranchEl) {
+            console.log('[SESSION-DEBUG] Setting footer git branch to:', gitBranch);
+            footerGitBranchEl.textContent = gitBranch;
+        } else {
+            console.warn('[SESSION-DEBUG] footer-git-branch element not found');
+        }
     }
 
     /**

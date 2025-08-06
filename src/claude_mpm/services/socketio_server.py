@@ -21,17 +21,14 @@ try:
     import aiohttp
     from aiohttp import web
     SOCKETIO_AVAILABLE = True
-    try:
-        version = getattr(socketio, '__version__', 'unknown')
-        print(f"Socket.IO server using python-socketio v{version}")
-    except:
-        print("Socket.IO server using python-socketio (version unavailable)")
+    # Don't print at module level - this causes output during imports
+    # Version will be logged when server is actually started
 except ImportError:
     SOCKETIO_AVAILABLE = False
     socketio = None
     aiohttp = None
     web = None
-    print("WARNING: python-socketio or aiohttp package not available")
+    # Don't print warnings at module level
 
 from ..core.logger import get_logger
 from ..deployment_paths import get_project_root, get_scripts_dir
@@ -193,6 +190,13 @@ class SocketIOServer:
         
         if not SOCKETIO_AVAILABLE:
             self.logger.warning("Socket.IO support not available. Install 'python-socketio' and 'aiohttp' packages to enable.")
+        else:
+            # Log version info when server is actually created
+            try:
+                version = getattr(socketio, '__version__', 'unknown')
+                self.logger.info(f"Socket.IO server using python-socketio v{version}")
+            except:
+                self.logger.info("Socket.IO server using python-socketio (version unavailable)")
         
     def start(self):
         """Start the Socket.IO server in a background thread."""
@@ -282,6 +286,8 @@ class SocketIOServer:
             self.app.router.add_get('/status', self._handle_health)
             self.app.router.add_get('/api/git-diff', self._handle_git_diff)
             self.app.router.add_options('/api/git-diff', self._handle_cors_preflight)
+            self.app.router.add_get('/api/file-content', self._handle_file_content)
+            self.app.router.add_options('/api/file-content', self._handle_cors_preflight)
             
             # Add dashboard routes
             self.app.router.add_get('/', self._handle_dashboard)
@@ -416,6 +422,198 @@ class SocketIOServer:
                 'Access-Control-Allow-Headers': 'Content-Type, Accept'
             })
     
+    async def _handle_file_content(self, request):
+        """Handle file content requests via HTTP API.
+        
+        Expected query parameters:
+        - file_path: The file path to read
+        - working_dir: Working directory for file operations (optional)
+        - max_size: Maximum file size in bytes (optional, default 1MB)
+        """
+        try:
+            # Extract query parameters
+            file_path = request.query.get('file_path')
+            working_dir = request.query.get('working_dir', os.getcwd())
+            max_size = int(request.query.get('max_size', 1024 * 1024))  # 1MB default
+            
+            self.logger.info(f"File content API request: file_path={file_path}, working_dir={working_dir}")
+            
+            if not file_path:
+                self.logger.warning("File content request missing file_path parameter")
+                return web.json_response({
+                    "success": False,
+                    "error": "Missing required parameter: file_path"
+                }, status=400, headers={
+                    'Access-Control-Allow-Origin': '*',
+                    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                    'Access-Control-Allow-Headers': 'Content-Type, Accept'
+                })
+            
+            # Use the same file reading logic as the Socket.IO handler
+            result = await self._read_file_safely(file_path, working_dir, max_size)
+            
+            status_code = 200 if result.get('success') else 400
+            return web.json_response(result, status=status_code, headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',  
+                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+            })
+            
+        except Exception as e:
+            self.logger.error(f"Error reading file content: {e}")
+            import traceback
+            self.logger.error(f"File content error traceback: {traceback.format_exc()}")
+            return web.json_response({
+                "success": False,
+                "error": f"Failed to read file: {str(e)}"
+            }, status=500, headers={
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Accept'
+            })
+    
+    async def _read_file_safely(self, file_path: str, working_dir: str = None, max_size: int = 1024 * 1024):
+        """Safely read file content with security checks.
+        
+        This method contains the core file reading logic that can be used by both
+        HTTP API endpoints and Socket.IO event handlers.
+        
+        Args:
+            file_path: Path to the file to read
+            working_dir: Working directory (defaults to current directory)
+            max_size: Maximum file size in bytes
+            
+        Returns:
+            dict: Response with success status, content, and metadata
+        """
+        try:
+            if working_dir is None:
+                working_dir = os.getcwd()
+                
+            # Resolve absolute path based on working directory
+            if not os.path.isabs(file_path):
+                full_path = os.path.join(working_dir, file_path)
+            else:
+                full_path = file_path
+            
+            # Security check: ensure file is within working directory or project
+            try:
+                real_path = os.path.realpath(full_path)
+                real_working_dir = os.path.realpath(working_dir)
+                
+                # Allow access to files within working directory or the project root
+                project_root = os.path.realpath(get_project_root())
+                allowed_paths = [real_working_dir, project_root]
+                
+                is_allowed = any(real_path.startswith(allowed_path) for allowed_path in allowed_paths)
+                
+                if not is_allowed:
+                    return {
+                        'success': False,
+                        'error': 'Access denied: file is outside allowed directories',
+                        'file_path': file_path
+                    }
+                    
+            except Exception as path_error:
+                self.logger.error(f"Path validation error: {path_error}")
+                return {
+                    'success': False,
+                    'error': 'Invalid file path',
+                    'file_path': file_path
+                }
+            
+            # Check if file exists
+            if not os.path.exists(real_path):
+                return {
+                    'success': False,
+                    'error': 'File does not exist',
+                    'file_path': file_path
+                }
+            
+            # Check if it's a file (not directory)
+            if not os.path.isfile(real_path):
+                return {
+                    'success': False,
+                    'error': 'Path is not a file',
+                    'file_path': file_path
+                }
+            
+            # Check file size
+            file_size = os.path.getsize(real_path)
+            if file_size > max_size:
+                return {
+                    'success': False,
+                    'error': f'File too large ({file_size} bytes). Maximum allowed: {max_size} bytes',
+                    'file_path': file_path,
+                    'file_size': file_size
+                }
+            
+            # Read file content
+            try:
+                with open(real_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Get file extension for syntax highlighting hint
+                _, ext = os.path.splitext(real_path)
+                
+                return {
+                    'success': True,
+                    'file_path': file_path,
+                    'content': content,
+                    'file_size': file_size,
+                    'extension': ext.lower(),
+                    'encoding': 'utf-8'
+                }
+                
+            except UnicodeDecodeError:
+                # Try reading as binary if UTF-8 fails
+                try:
+                    with open(real_path, 'rb') as f:
+                        binary_content = f.read()
+                    
+                    # Check if it's a text file by looking for common text patterns
+                    try:
+                        text_content = binary_content.decode('latin-1')
+                        if '\x00' in text_content:
+                            # Binary file
+                            return {
+                                'success': False,
+                                'error': 'File appears to be binary and cannot be displayed as text',
+                                'file_path': file_path,
+                                'file_size': file_size
+                            }
+                        else:
+                            # Text file with different encoding
+                            _, ext = os.path.splitext(real_path)
+                            return {
+                                'success': True,
+                                'file_path': file_path,
+                                'content': text_content,
+                                'file_size': file_size,
+                                'extension': ext.lower(),
+                                'encoding': 'latin-1'
+                            }
+                    except Exception:
+                        return {
+                            'success': False,
+                            'error': 'File encoding not supported',
+                            'file_path': file_path
+                        }
+                except Exception as read_error:
+                    return {
+                        'success': False,
+                        'error': f'Failed to read file: {str(read_error)}',
+                        'file_path': file_path
+                    }
+                    
+        except Exception as e:
+            self.logger.error(f"Error in _read_file_safely: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'file_path': file_path
+            }
+    
     async def _generate_git_diff(self, file_path: str, timestamp: Optional[str] = None, working_dir: str = None):
         """Generate git diff for a specific file operation.
         
@@ -450,8 +648,13 @@ class SocketIOServer:
                         working_dir = file_dir
                         self.logger.info(f"No git repo found, using file's directory: {working_dir}")
             
-            if working_dir is None:
+            # Handle case where working_dir is None, empty string, or 'Unknown'
+            original_working_dir = working_dir
+            if not working_dir or working_dir == 'Unknown' or working_dir.strip() == '':
                 working_dir = os.getcwd()
+                self.logger.info(f"[GIT-DIFF-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}")
+            else:
+                self.logger.info(f"[GIT-DIFF-DEBUG] Using provided working_dir: {working_dir}")
                 
             # For read-only git operations, we can work from any directory
             # by passing the -C flag to git commands instead of changing directories
@@ -799,8 +1002,38 @@ class SocketIOServer:
             """Get the current git branch for a directory"""
             import subprocess
             try:
-                if not working_dir:
+                self.logger.info(f"[GIT-BRANCH-DEBUG] get_git_branch called with working_dir: {repr(working_dir)} (type: {type(working_dir)})")
+                
+                # Handle case where working_dir is None, empty string, or 'Unknown'
+                original_working_dir = working_dir
+                if not working_dir or working_dir == 'Unknown' or working_dir.strip() == '':
                     working_dir = os.getcwd()
+                    self.logger.info(f"[GIT-BRANCH-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}")
+                else:
+                    self.logger.info(f"[GIT-BRANCH-DEBUG] Using provided working_dir: {working_dir}")
+                
+                # Validate that the directory exists and is a valid path
+                if not os.path.exists(working_dir):
+                    self.logger.warning(f"[GIT-BRANCH-DEBUG] Directory does not exist: {working_dir}")
+                    await self.sio.emit('git_branch_response', {
+                        'success': False,
+                        'error': f'Directory does not exist: {working_dir}',
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                    
+                if not os.path.isdir(working_dir):
+                    self.logger.warning(f"[GIT-BRANCH-DEBUG] Path is not a directory: {working_dir}")
+                    await self.sio.emit('git_branch_response', {
+                        'success': False,
+                        'error': f'Path is not a directory: {working_dir}',
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                
+                self.logger.info(f"[GIT-BRANCH-DEBUG] Running git command in directory: {working_dir}")
                 
                 # Run git command to get current branch
                 result = subprocess.run(
@@ -810,26 +1043,354 @@ class SocketIOServer:
                     text=True
                 )
                 
+                self.logger.info(f"[GIT-BRANCH-DEBUG] Git command result: returncode={result.returncode}, stdout={repr(result.stdout)}, stderr={repr(result.stderr)}")
+                
                 if result.returncode == 0:
                     branch = result.stdout.strip()
+                    self.logger.info(f"[GIT-BRANCH-DEBUG] Successfully got git branch: {branch}")
                     await self.sio.emit('git_branch_response', {
                         'success': True,
                         'branch': branch,
-                        'working_dir': working_dir
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
                     }, room=sid)
                 else:
+                    self.logger.warning(f"[GIT-BRANCH-DEBUG] Git command failed: {result.stderr}")
                     await self.sio.emit('git_branch_response', {
                         'success': False,
                         'error': 'Not a git repository',
-                        'working_dir': working_dir
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir,
+                        'git_error': result.stderr
                     }, room=sid)
                     
             except Exception as e:
-                self.logger.error(f"Error getting git branch: {e}")
+                self.logger.error(f"[GIT-BRANCH-DEBUG] Exception in get_git_branch: {e}")
+                import traceback
+                self.logger.error(f"[GIT-BRANCH-DEBUG] Stack trace: {traceback.format_exc()}")
                 await self.sio.emit('git_branch_response', {
                     'success': False,
                     'error': str(e),
-                    'working_dir': working_dir
+                    'working_dir': working_dir,
+                    'original_working_dir': original_working_dir
+                }, room=sid)
+        
+        @self.sio.event
+        async def check_file_tracked(sid, data):
+            """Check if a file is tracked by git"""
+            import subprocess
+            try:
+                file_path = data.get('file_path')
+                working_dir = data.get('working_dir', os.getcwd())
+                
+                if not file_path:
+                    await self.sio.emit('file_tracked_response', {
+                        'success': False,
+                        'error': 'file_path is required',
+                        'file_path': file_path
+                    }, room=sid)
+                    return
+                
+                # Use git ls-files to check if file is tracked
+                result = subprocess.run(
+                    ["git", "-C", working_dir, "ls-files", "--", file_path],
+                    capture_output=True,
+                    text=True
+                )
+                
+                is_tracked = result.returncode == 0 and result.stdout.strip()
+                
+                await self.sio.emit('file_tracked_response', {
+                    'success': True,
+                    'file_path': file_path,
+                    'working_dir': working_dir,
+                    'is_tracked': bool(is_tracked)
+                }, room=sid)
+                    
+            except Exception as e:
+                self.logger.error(f"Error checking file tracked status: {e}")
+                await self.sio.emit('file_tracked_response', {
+                    'success': False,
+                    'error': str(e),
+                    'file_path': data.get('file_path', 'unknown')
+                }, room=sid)
+        
+        @self.sio.event
+        async def read_file(sid, data):
+            """Read file contents safely"""
+            try:
+                file_path = data.get('file_path')
+                working_dir = data.get('working_dir', os.getcwd())
+                max_size = data.get('max_size', 1024 * 1024)  # 1MB default limit
+                
+                if not file_path:
+                    await self.sio.emit('file_content_response', {
+                        'success': False,
+                        'error': 'file_path is required',
+                        'file_path': file_path
+                    }, room=sid)
+                    return
+                
+                # Use the shared file reading logic
+                result = await self._read_file_safely(file_path, working_dir, max_size)
+                
+                # Send the result back to the client
+                await self.sio.emit('file_content_response', result, room=sid)
+                        
+            except Exception as e:
+                self.logger.error(f"Error reading file: {e}")
+                await self.sio.emit('file_content_response', {
+                    'success': False,
+                    'error': str(e),
+                    'file_path': data.get('file_path', 'unknown')
+                }, room=sid)
+        
+        @self.sio.event
+        async def check_git_status(sid, data):
+            """Check git status for a file to determine if git diff icons should be shown"""
+            import subprocess
+            try:
+                file_path = data.get('file_path')
+                working_dir = data.get('working_dir', os.getcwd())
+                
+                self.logger.info(f"[GIT-STATUS-DEBUG] check_git_status called with file_path: {repr(file_path)}, working_dir: {repr(working_dir)}")
+                
+                if not file_path:
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': 'file_path is required',
+                        'file_path': file_path
+                    }, room=sid)
+                    return
+                
+                # Validate and sanitize working_dir
+                original_working_dir = working_dir
+                if not working_dir or working_dir == 'Unknown' or working_dir.strip() == '' or working_dir == '.':
+                    working_dir = os.getcwd()
+                    self.logger.info(f"[GIT-STATUS-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}")
+                else:
+                    self.logger.info(f"[GIT-STATUS-DEBUG] Using provided working_dir: {working_dir}")
+                
+                # Check if the working directory exists and is a directory
+                if not os.path.exists(working_dir):
+                    self.logger.warning(f"[GIT-STATUS-DEBUG] Directory does not exist: {working_dir}")
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': f'Directory does not exist: {working_dir}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                    
+                if not os.path.isdir(working_dir):
+                    self.logger.warning(f"[GIT-STATUS-DEBUG] Path is not a directory: {working_dir}")
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': f'Path is not a directory: {working_dir}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                
+                # Check if this is a git repository
+                self.logger.info(f"[GIT-STATUS-DEBUG] Checking if {working_dir} is a git repository")
+                git_check = subprocess.run(
+                    ["git", "-C", working_dir, "rev-parse", "--git-dir"],
+                    capture_output=True,
+                    text=True
+                )
+                
+                if git_check.returncode != 0:
+                    self.logger.info(f"[GIT-STATUS-DEBUG] Not a git repository: {working_dir}")
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': 'Not a git repository',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                
+                # Determine if the file path should be made relative to git root
+                file_path_for_git = file_path
+                if os.path.isabs(file_path):
+                    # Get git root to make path relative if needed
+                    git_root_result = subprocess.run(
+                        ["git", "-C", working_dir, "rev-parse", "--show-toplevel"],
+                        capture_output=True,
+                        text=True
+                    )
+                    
+                    if git_root_result.returncode == 0:
+                        git_root = git_root_result.stdout.strip()
+                        try:
+                            file_path_for_git = os.path.relpath(file_path, git_root)
+                            self.logger.info(f"[GIT-STATUS-DEBUG] Made file path relative to git root: {file_path_for_git}")
+                        except ValueError:
+                            # File is not under git root - keep original path
+                            self.logger.info(f"[GIT-STATUS-DEBUG] File not under git root, keeping original path: {file_path}")
+                            pass
+                
+                # Check if the file exists
+                full_path = file_path if os.path.isabs(file_path) else os.path.join(working_dir, file_path)
+                if not os.path.exists(full_path):
+                    self.logger.warning(f"[GIT-STATUS-DEBUG] File does not exist: {full_path}")
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': f'File does not exist: {file_path}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                
+                # Check git status for the file - this succeeds if git knows about the file
+                # (either tracked, modified, staged, etc.)
+                self.logger.info(f"[GIT-STATUS-DEBUG] Checking git status for file: {file_path_for_git}")
+                git_status_result = subprocess.run(
+                    ["git", "-C", working_dir, "status", "--porcelain", file_path_for_git],
+                    capture_output=True,
+                    text=True
+                )
+                
+                self.logger.info(f"[GIT-STATUS-DEBUG] Git status result: returncode={git_status_result.returncode}, stdout={repr(git_status_result.stdout)}, stderr={repr(git_status_result.stderr)}")
+                
+                # Also check if file is tracked by git (alternative approach)
+                ls_files_result = subprocess.run(
+                    ["git", "-C", working_dir, "ls-files", file_path_for_git],
+                    capture_output=True,
+                    text=True
+                )
+                
+                is_tracked = ls_files_result.returncode == 0 and ls_files_result.stdout.strip()
+                has_status = git_status_result.returncode == 0
+                
+                self.logger.info(f"[GIT-STATUS-DEBUG] File tracking status: is_tracked={is_tracked}, has_status={has_status}")
+                
+                # Success if git knows about the file (either tracked or has status changes)
+                if is_tracked or has_status:
+                    self.logger.info(f"[GIT-STATUS-DEBUG] Git status check successful for {file_path}")
+                    await self.sio.emit('git_status_response', {
+                        'success': True,
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir,
+                        'is_tracked': is_tracked,
+                        'has_changes': bool(git_status_result.stdout.strip()) if has_status else False
+                    }, room=sid)
+                else:
+                    self.logger.info(f"[GIT-STATUS-DEBUG] File {file_path} is not tracked by git")
+                    await self.sio.emit('git_status_response', {
+                        'success': False,
+                        'error': 'File is not tracked by git',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir,
+                        'is_tracked': False
+                    }, room=sid)
+                    
+            except Exception as e:
+                self.logger.error(f"[GIT-STATUS-DEBUG] Exception in check_git_status: {e}")
+                import traceback
+                self.logger.error(f"[GIT-STATUS-DEBUG] Stack trace: {traceback.format_exc()}")
+                await self.sio.emit('git_status_response', {
+                    'success': False,
+                    'error': str(e),
+                    'file_path': data.get('file_path', 'unknown'),
+                    'working_dir': data.get('working_dir', 'unknown')
+                }, room=sid)
+
+        @self.sio.event
+        async def git_add_file(sid, data):
+            """Add file to git tracking"""
+            import subprocess
+            try:
+                file_path = data.get('file_path')
+                working_dir = data.get('working_dir', os.getcwd())
+                
+                self.logger.info(f"[GIT-ADD-DEBUG] git_add_file called with file_path: {repr(file_path)}, working_dir: {repr(working_dir)} (type: {type(working_dir)})")
+                
+                if not file_path:
+                    await self.sio.emit('git_add_response', {
+                        'success': False,
+                        'error': 'file_path is required',
+                        'file_path': file_path
+                    }, room=sid)
+                    return
+                
+                # Validate and sanitize working_dir
+                original_working_dir = working_dir
+                if not working_dir or working_dir == 'Unknown' or working_dir.strip() == '' or working_dir == '.':
+                    working_dir = os.getcwd()
+                    self.logger.info(f"[GIT-ADD-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}")
+                else:
+                    self.logger.info(f"[GIT-ADD-DEBUG] Using provided working_dir: {working_dir}")
+                
+                # Validate that the directory exists and is a valid path
+                if not os.path.exists(working_dir):
+                    self.logger.warning(f"[GIT-ADD-DEBUG] Directory does not exist: {working_dir}")
+                    await self.sio.emit('git_add_response', {
+                        'success': False,
+                        'error': f'Directory does not exist: {working_dir}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                    
+                if not os.path.isdir(working_dir):
+                    self.logger.warning(f"[GIT-ADD-DEBUG] Path is not a directory: {working_dir}")
+                    await self.sio.emit('git_add_response', {
+                        'success': False,
+                        'error': f'Path is not a directory: {working_dir}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    return
+                
+                self.logger.info(f"[GIT-ADD-DEBUG] Running git add command in directory: {working_dir}")
+                
+                # Use git add to track the file
+                result = subprocess.run(
+                    ["git", "-C", working_dir, "add", file_path],
+                    capture_output=True,
+                    text=True
+                )
+                
+                self.logger.info(f"[GIT-ADD-DEBUG] Git add result: returncode={result.returncode}, stdout={repr(result.stdout)}, stderr={repr(result.stderr)}")
+                
+                if result.returncode == 0:
+                    self.logger.info(f"[GIT-ADD-DEBUG] Successfully added {file_path} to git in {working_dir}")
+                    await self.sio.emit('git_add_response', {
+                        'success': True,
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir,
+                        'message': 'File successfully added to git tracking'
+                    }, room=sid)
+                else:
+                    error_message = result.stderr.strip() or 'Unknown git error'
+                    self.logger.warning(f"[GIT-ADD-DEBUG] Git add failed: {error_message}")
+                    await self.sio.emit('git_add_response', {
+                        'success': False,
+                        'error': f'Git add failed: {error_message}',
+                        'file_path': file_path,
+                        'working_dir': working_dir,
+                        'original_working_dir': original_working_dir
+                    }, room=sid)
+                    
+            except Exception as e:
+                self.logger.error(f"[GIT-ADD-DEBUG] Exception in git_add_file: {e}")
+                import traceback
+                self.logger.error(f"[GIT-ADD-DEBUG] Stack trace: {traceback.format_exc()}")
+                await self.sio.emit('git_add_response', {
+                    'success': False,
+                    'error': str(e),
+                    'file_path': data.get('file_path', 'unknown'),
+                    'working_dir': data.get('working_dir', 'unknown')
                 }, room=sid)
             
     async def _send_current_status(self, sid: str):
