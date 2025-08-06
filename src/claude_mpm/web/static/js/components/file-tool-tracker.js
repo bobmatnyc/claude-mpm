@@ -9,9 +9,12 @@
  * that groups related events into meaningful operations. This provides better
  * maintainability for the intricate logic of matching tool events with their results.
  * 
- * DESIGN DECISION: Maintains separate tracking for file operations and tool calls
- * with event pairing logic that matches pre/post events by session, tool name,
- * and timestamp proximity for accurate operation reconstruction.
+ * DESIGN DECISION: Uses intelligent correlation strategy for tool calls that:
+ * - Separates pre_tool and post_tool events first
+ * - Correlates based on temporal proximity, parameter similarity, and context
+ * - Handles timing differences between pre/post events (tools can run for minutes)
+ * - Prevents duplicate tool entries by ensuring each tool call appears once
+ * - Supports both paired and orphaned events for comprehensive tracking
  */
 class FileToolTracker {
     constructor(agentInference, workingDirectoryManager) {
@@ -138,11 +141,12 @@ class FileToolTracker {
 
         console.log('updateToolCalls - processing', events.length, 'events');
 
-        // Group events by session and timestamp to match pre/post pairs
-        const toolCallPairs = new Map(); // Key: session_id + timestamp + tool_name
+        // Improved correlation strategy: collect events first, then correlate intelligently
+        const preToolEvents = [];
+        const postToolEvents = [];
         let toolOperationCount = 0;
         
-        // First pass: collect all tool events and group them
+        // First pass: separate pre_tool and post_tool events
         events.forEach((event, index) => {
             const isToolOp = this.isToolOperation(event);
             if (isToolOp) toolOperationCount++;
@@ -158,67 +162,149 @@ class FileToolTracker {
             }
             
             if (isToolOp) {
-                const toolName = event.tool_name;
-                const sessionId = event.session_id || 'unknown';
-                const eventKey = `${sessionId}_${toolName}_${Math.floor(new Date(event.timestamp).getTime() / 1000)}`; // Group by second
-                
-                if (!toolCallPairs.has(eventKey)) {
-                    toolCallPairs.set(eventKey, {
-                        pre_event: null,
-                        post_event: null,
-                        tool_name: toolName,
-                        session_id: sessionId,
-                        operation_type: null,
-                        timestamp: null,
-                        duration_ms: null,
-                        success: null,
-                        exit_code: null,
-                        result_summary: null,
-                        agent_type: null
-                    });
-                }
-                
-                const pair = toolCallPairs.get(eventKey);
                 if (event.subtype === 'pre_tool' || (event.type === 'hook' && !event.subtype.includes('post'))) {
-                    pair.pre_event = event;
-                    pair.timestamp = event.timestamp;
-                    pair.operation_type = event.operation_type || 'tool_execution';
-                    pair.agent_type = event.agent_type || event.subagent_type || 'PM';
+                    preToolEvents.push(event);
                 } else if (event.subtype === 'post_tool' || event.subtype.includes('post')) {
-                    pair.post_event = event;
-                    pair.duration_ms = event.duration_ms;
-                    pair.success = event.success;
-                    pair.exit_code = event.exit_code;
-                    pair.result_summary = event.result_summary;
-                    if (!pair.agent_type) {
-                        pair.agent_type = event.agent_type || event.subagent_type || 'PM';
-                    }
+                    postToolEvents.push(event);
                 } else {
-                    // For events without clear pre/post distinction, treat as both
-                    pair.pre_event = event;
-                    pair.post_event = event;
-                    pair.timestamp = event.timestamp;
-                    pair.agent_type = event.agent_type || event.subagent_type || 'PM';
+                    // For events without clear pre/post distinction, treat as standalone
+                    preToolEvents.push(event);
+                    postToolEvents.push(event);
                 }
             }
         });
         
-        console.log('updateToolCalls - found', toolOperationCount, 'tool operations in', toolCallPairs.size, 'tool call pairs');
+        console.log('updateToolCalls - found', toolOperationCount, 'tool operations:', preToolEvents.length, 'pre_tool,', postToolEvents.length, 'post_tool');
         
-        // Second pass: store complete tool calls
-        toolCallPairs.forEach((pair, key) => {
-            // Ensure we have at least a pre_event or post_event
-            if (pair.pre_event || pair.post_event) {
-                console.log('Tool call detected for:', pair.tool_name, 'from pair:', key);
-                this.toolCalls.set(key, pair);
+        // Second pass: correlate pre_tool events with post_tool events
+        const toolCallPairs = new Map();
+        const usedPostEvents = new Set();
+        
+        preToolEvents.forEach((preEvent, preIndex) => {
+            const toolName = preEvent.tool_name;
+            const sessionId = preEvent.session_id || 'unknown';
+            const preTimestamp = new Date(preEvent.timestamp).getTime();
+            
+            // Create a base pair for this pre_tool event
+            const pairKey = `${sessionId}_${toolName}_${preIndex}_${preTimestamp}`;
+            const pair = {
+                pre_event: preEvent,
+                post_event: null,
+                tool_name: toolName,
+                session_id: sessionId,
+                operation_type: preEvent.operation_type || 'tool_execution',
+                timestamp: preEvent.timestamp,
+                duration_ms: null,
+                success: null,
+                exit_code: null,
+                result_summary: null,
+                agent_type: null,
+                agent_confidence: null
+            };
+            
+            // Get agent info from pre_event
+            const agentInfo = this.extractAgentFromEvent(preEvent);
+            pair.agent_type = agentInfo.name;
+            pair.agent_confidence = agentInfo.confidence;
+            
+            // Try to find matching post_tool event
+            let bestMatchIndex = -1;
+            let bestMatchScore = -1;
+            const maxTimeDiffMs = 300000; // 5 minutes max time difference
+            
+            postToolEvents.forEach((postEvent, postIndex) => {
+                // Skip already used post events
+                if (usedPostEvents.has(postIndex)) return;
+                
+                // Must match tool name and session
+                if (postEvent.tool_name !== toolName || postEvent.session_id !== sessionId) return;
+                
+                const postTimestamp = new Date(postEvent.timestamp).getTime();
+                const timeDiff = Math.abs(postTimestamp - preTimestamp);
+                
+                // Post event should generally come after pre event (or very close)
+                const isTemporallyValid = postTimestamp >= preTimestamp - 1000; // Allow 1s clock skew
+                
+                // Calculate correlation score (higher is better)
+                let score = 0;
+                if (isTemporallyValid && timeDiff <= maxTimeDiffMs) {
+                    score = 1000 - (timeDiff / 1000); // Prefer closer timestamps
+                    
+                    // Boost score for parameter similarity (if available)
+                    if (this.compareToolParameters(preEvent, postEvent)) {
+                        score += 500;
+                    }
+                    
+                    // Boost score for same working directory
+                    if (preEvent.working_directory && postEvent.working_directory && 
+                        preEvent.working_directory === postEvent.working_directory) {
+                        score += 100;
+                    }
+                }
+                
+                if (score > bestMatchScore) {
+                    bestMatchScore = score;
+                    bestMatchIndex = postIndex;
+                }
+            });
+            
+            // If we found a good match, pair them
+            if (bestMatchIndex >= 0 && bestMatchScore > 0) {
+                const postEvent = postToolEvents[bestMatchIndex];
+                pair.post_event = postEvent;
+                pair.duration_ms = postEvent.duration_ms;
+                pair.success = postEvent.success;
+                pair.exit_code = postEvent.exit_code;
+                pair.result_summary = postEvent.result_summary;
+                
+                usedPostEvents.add(bestMatchIndex);
+                console.log(`Paired pre_tool ${toolName} at ${preEvent.timestamp} with post_tool at ${postEvent.timestamp} (score: ${bestMatchScore})`);
             } else {
-                console.log('No valid tool call found for pair:', key, pair);
+                console.log(`No matching post_tool found for ${toolName} at ${preEvent.timestamp} (still running or orphaned)`);
             }
+            
+            toolCallPairs.set(pairKey, pair);
         });
+        
+        // Third pass: handle any orphaned post_tool events (shouldn't happen but be safe)
+        postToolEvents.forEach((postEvent, postIndex) => {
+            if (usedPostEvents.has(postIndex)) return;
+            
+            console.log('Orphaned post_tool event found:', postEvent.tool_name, 'at', postEvent.timestamp);
+            
+            const toolName = postEvent.tool_name;
+            const sessionId = postEvent.session_id || 'unknown';
+            const postTimestamp = new Date(postEvent.timestamp).getTime();
+            
+            const pairKey = `orphaned_${sessionId}_${toolName}_${postIndex}_${postTimestamp}`;
+            const pair = {
+                pre_event: null,
+                post_event: postEvent,
+                tool_name: toolName,
+                session_id: sessionId,
+                operation_type: 'tool_execution',
+                timestamp: postEvent.timestamp,
+                duration_ms: postEvent.duration_ms,
+                success: postEvent.success,
+                exit_code: postEvent.exit_code,
+                result_summary: postEvent.result_summary,
+                agent_type: null,
+                agent_confidence: null
+            };
+            
+            const agentInfo = this.extractAgentFromEvent(postEvent);
+            pair.agent_type = agentInfo.name;
+            pair.agent_confidence = agentInfo.confidence;
+            
+            toolCallPairs.set(pairKey, pair);
+        });
+        
+        // Store the correlated tool calls
+        this.toolCalls = toolCallPairs;
         
         console.log('updateToolCalls - final result:', this.toolCalls.size, 'tool calls');
         if (this.toolCalls.size > 0) {
-            console.log('Tool calls map:', Array.from(this.toolCalls.entries()));
+            console.log('Tool calls map keys:', Array.from(this.toolCalls.keys()));
         }
     }
 
@@ -392,6 +478,15 @@ class FileToolTracker {
     }
 
     /**
+     * Get tool calls as array for unique instance view
+     * Each entry represents a unique tool call instance
+     * @returns {Array} - Array of [key, toolCall] pairs
+     */
+    getToolCallsArray() {
+        return Array.from(this.toolCalls.entries());
+    }
+
+    /**
      * Get file operations for a specific file
      * @param {string} filePath - File path
      * @returns {Object|null} - File operations data or null
@@ -429,6 +524,88 @@ class FileToolTracker {
             uniqueFiles: this.fileOperations.size,
             totalFileOperations: Array.from(this.fileOperations.values())
                 .reduce((sum, data) => sum + data.operations.length, 0)
+        };
+    }
+
+    /**
+     * Compare tool parameters between pre_tool and post_tool events
+     * to determine if they're likely from the same tool call
+     * @param {Object} preEvent - Pre-tool event
+     * @param {Object} postEvent - Post-tool event
+     * @returns {boolean} - True if parameters suggest same tool call
+     */
+    compareToolParameters(preEvent, postEvent) {
+        // Extract parameters from both events
+        const preParams = preEvent.tool_parameters || preEvent.data?.tool_parameters || {};
+        const postParams = postEvent.tool_parameters || postEvent.data?.tool_parameters || {};
+        
+        // If no parameters in either event, can't compare meaningfully
+        if (Object.keys(preParams).length === 0 && Object.keys(postParams).length === 0) {
+            return false; // No boost for empty parameters
+        }
+        
+        // Compare key parameters that are likely to be the same
+        const importantParams = ['file_path', 'path', 'pattern', 'command', 'notebook_path'];
+        let matchedParams = 0;
+        let totalComparableParams = 0;
+        
+        importantParams.forEach(param => {
+            const preValue = preParams[param];
+            const postValue = postParams[param];
+            
+            if (preValue !== undefined || postValue !== undefined) {
+                totalComparableParams++;
+                if (preValue === postValue) {
+                    matchedParams++;
+                }
+            }
+        });
+        
+        // If we found comparable parameters, check if most match
+        if (totalComparableParams > 0) {
+            return (matchedParams / totalComparableParams) >= 0.8; // 80% parameter match threshold
+        }
+        
+        // If no important parameters to compare, check if the parameter structure is similar
+        const preKeys = Object.keys(preParams).sort();
+        const postKeys = Object.keys(postParams).sort();
+        
+        if (preKeys.length === 0 && postKeys.length === 0) {
+            return false;
+        }
+        
+        // Simple structural similarity check
+        if (preKeys.length === postKeys.length) {
+            const keyMatches = preKeys.filter(key => postKeys.includes(key)).length;
+            return keyMatches >= Math.max(1, preKeys.length * 0.5); // At least 50% key overlap
+        }
+        
+        return false;
+    }
+
+    /**
+     * Extract agent information from event using inference system
+     * @param {Object} event - Event to extract agent from
+     * @returns {Object} - Agent info with name and confidence
+     */
+    extractAgentFromEvent(event) {
+        if (this.agentInference) {
+            const inference = this.agentInference.getInferredAgentForEvent(event);
+            if (inference) {
+                return {
+                    name: inference.agentName || 'Unknown',
+                    confidence: inference.confidence || 'unknown'
+                };
+            }
+        }
+        
+        // Fallback to direct event properties
+        const agentName = event.agent_type || event.subagent_type || 
+                          event.data?.agent_type || event.data?.subagent_type || 'PM';
+        
+        return {
+            name: agentName,
+            confidence: 'direct'
         };
     }
 }
