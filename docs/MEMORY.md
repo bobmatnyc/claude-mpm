@@ -2,7 +2,7 @@
 
 The Agent Memory System in Claude MPM enables agents to learn and apply knowledge over time, creating persistent learnings that improve agent effectiveness across sessions.
 
-Last Updated: 2025-08-05
+Last Updated: 2025-08-06
 
 ## Overview
 
@@ -349,6 +349,83 @@ Finds cross-references and patterns across memories:
 - **With query**: Searches for specific content
 - Identifies knowledge correlations
 - Helps find knowledge gaps
+
+## Supported Agent Types
+
+The memory system supports 10 specialized agent types, each with dedicated keywords and memory sections optimized for their specific roles:
+
+### Core Agents
+
+**1. Engineer Agent (`engineer`)**
+- **Focus**: Implementation, coding patterns, architecture, performance optimization
+- **Keywords**: implementation, code, function, performance, algorithm, testing, debug, refactor, API, framework
+- **Memory Sections**: Coding Patterns Learned, Implementation Guidelines, Performance Considerations, Integration Points
+
+**2. Research Agent (`research`)**
+- **Focus**: Analysis, investigation, domain knowledge, security research
+- **Keywords**: research, analysis, investigate, findings, documentation, security, compliance, best practices, standards
+- **Memory Sections**: Domain-Specific Knowledge, Research Findings, Security Considerations, Compliance Requirements
+
+**3. QA Agent (`qa`)**
+- **Focus**: Quality assurance, testing strategies, validation processes
+- **Keywords**: test, testing, quality, bug, validation, coverage, automation, metrics, review, audit
+- **Memory Sections**: Quality Standards, Testing Strategies, Common Issues Found, Verification Patterns
+
+**4. Documentation Agent (`documentation`)**
+- **Focus**: Technical writing, user guides, API documentation
+- **Keywords**: document, readme, guide, manual, tutorial, explanation, reference, examples, usage
+- **Memory Sections**: Documentation Patterns, User Guide Standards, Content Organization, Writing Guidelines
+
+**5. PM Agent (`pm`)**
+- **Focus**: Project management, coordination, planning, stakeholder management
+- **Keywords**: project, management, coordination, planning, stakeholder, workflow, agile, scrum, milestone
+- **Memory Sections**: Project Coordination, Team Communication, Process Improvements, Risk Management
+
+### Specialized Agents
+
+**6. Security Agent (`security`)**
+- **Focus**: Security analysis, authentication, compliance, threat assessment
+- **Keywords**: security, authentication, encryption, vulnerability, firewall, privacy, GDPR, access control
+- **Memory Sections**: Security Patterns, Threat Analysis, Compliance Requirements, Access Control Patterns
+
+**7. Data Engineer Agent (`data_engineer`)** *(Recently Enhanced)*
+- **Focus**: Data pipelines, databases, analytics, AI API integrations
+- **Keywords**: data, database, SQL, pipeline, ETL, analytics, warehouse, streaming, MongoDB, PostgreSQL, Redis, AI API, OpenAI, Claude, LLM, embedding, vector database
+- **Memory Sections**: Database Architecture Patterns, Pipeline Design Strategies, Data Quality Standards, Performance Optimization Techniques
+
+**8. Test Integration Agent (`test_integration`)** *(Recently Enhanced)*
+- **Focus**: Integration testing, E2E workflows, cross-system validation
+- **Keywords**: integration, e2e, end-to-end, system test, workflow test, API test, contract test, Selenium, Cypress, Playwright, Postman
+- **Memory Sections**: Integration Test Patterns, Cross-System Validation, Test Environment Management, End-to-End Workflow Testing
+
+**9. Ops Agent (`ops`)**
+- **Focus**: Infrastructure, deployment, monitoring, scaling
+- **Keywords**: deployment, infrastructure, DevOps, Docker, Kubernetes, monitoring, scaling, cloud, AWS, Azure, GCP
+- **Memory Sections**: Deployment Strategies, Infrastructure Patterns, Monitoring and Observability, Scaling and Performance
+
+**10. Version Control Agent (`version_control`)**
+- **Focus**: Git workflows, branching strategies, release management
+- **Keywords**: git, GitHub, branch, merge, commit, pull request, release, version, workflow, GitFlow
+- **Memory Sections**: Branching Strategies, Release Management, Version Control Workflows, Collaboration Patterns
+
+## Recent Enhancements
+
+### Enhanced Agent Support (August 2025)
+- **Added data_engineer agent**: Specialized support for data pipelines, AI API integrations, and analytics workflows
+- **Added test_integration agent**: Focused on integration testing patterns, E2E workflows, and cross-system validation
+- **Expanded keyword coverage**: Enhanced multi-word keyword matching for more accurate content routing
+
+### Improved Routing Algorithm
+- **Square root normalization**: Prevents agents with extensive keyword lists from being unfairly penalized during routing
+- **Multi-word keyword bonuses**: Keywords containing spaces receive a 1.5x score multiplier for better semantic relevance
+- **Enhanced confidence scoring**: Improved confidence calculation with 2x scaling factor for more accurate routing decisions
+- **Context-aware adjustments**: Task type hints and agent hints now influence routing decisions with score boosts
+
+### Memory System Architecture Improvements
+- **Project-specific memory generation**: Analyzes project characteristics to create contextual, relevant memories from the start
+- **Dynamic file discovery**: Intelligently discovers important documentation files based on detected project type and stack
+- **Agent-specific customization**: Tailors memory content generation to agent roles and identified project characteristics
+- **Enhanced routing precision**: Lowered threshold for routing decisions to handle diverse agent patterns more effectively
 
 ## Agent Memory Integration
 
