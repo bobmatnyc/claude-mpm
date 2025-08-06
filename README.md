@@ -7,6 +7,7 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 ## Features
 
 - 🤖 **Multi-Agent System**: Automatically delegates tasks to specialized agents (PM, Research, Engineer, QA, Documentation, Security, Ops, Data Engineer)
+- 🧠 **Agent Memory System**: Persistent learning with project-specific knowledge retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume` 
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
 - 📁 **Multi-Project Support**: Per-session working directories
@@ -58,6 +59,26 @@ The PM agent automatically delegates work to specialized agents:
 - Switch between projects with per-session directories
 - View session history and activity
 
+### Agent Memory System
+Agents learn and improve over time with persistent memory:
+- **Project-Specific Knowledge**: Automatically analyzes your codebase to understand patterns
+- **Continuous Learning**: Agents remember insights across sessions
+- **Memory Management**: Initialize, optimize, and manage agent memories
+- **Quick Initialization**: Use `/mpm memory init` to scan project and create memories
+
+```bash
+# Initialize project-specific memories
+claude-mpm memory init
+
+# View memory status
+claude-mpm memory status
+
+# Add specific learning
+claude-mpm memory add engineer pattern "Always use async/await for I/O"
+```
+
+See [docs/MEMORY.md](docs/MEMORY.md) for comprehensive memory system documentation.
+
 ### Real-Time Monitoring
 The `--monitor` flag opens a web dashboard showing:
 - Live agent activity and delegations
@@ -71,23 +92,26 @@ See [docs/monitoring.md](docs/monitoring.md) for full monitoring guide.
 ## Documentation
 
 - **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
+- **[Agent Memory System](docs/MEMORY.md)** - Comprehensive memory documentation
 - **[Monitoring Dashboard](docs/monitoring.md)** - Real-time monitoring features
 - **[Project Structure](docs/STRUCTURE.md)** - Codebase organization
 - **[Deployment Guide](docs/DEPLOY.md)** - Publishing and versioning
 - **[User Guide](docs/user/)** - Detailed usage documentation
 - **[Developer Guide](docs/developer/)** - Architecture and API reference
 
-## Recent Updates (v3.3.1)
+## Recent Updates (v3.4.0)
 
-### Session Working Directories
-- Each session can now have its own working directory
-- Git operations use the session's directory automatically
-- Switch projects seamlessly without changing terminal directory
+### Agent Memory System
+- **Project-Specific Memory Generation**: Automatic analysis of project characteristics
+- **Memory Initialization Command**: New `/mpm memory init` for quick project onboarding
+- **Enhanced Documentation Processing**: Dynamic file discovery based on project type
+- **Improved Memory Templates**: Clean section headers with programmatic limit enforcement
 
-### Monitoring Improvements
-- Fixed git diff viewer for cross-project files
-- Auto-sync working directory from session data
-- Improved error handling and display
+### Project Organization
+- **Deep Clean**: Comprehensive project structure cleanup for publishing readiness
+- **Documentation Archives**: Historical reports organized in docs/archive/
+- **Test Organization**: All tests properly relocated to /tests/ directory
+- **Enhanced .gitignore**: Prevents temporary and debug file commits
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 

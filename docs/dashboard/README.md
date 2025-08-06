@@ -22,7 +22,7 @@ The easiest way to start monitoring your Claude sessions:
 
 Once started, the dashboard is available at:
 - **Primary Interface**: http://localhost:8765 (static files, no web server needed)
-- **File Location**: `/src/claude_mpm/web/templates/index.html`
+- **File Location**: `/src/claude_mpm/dashboard/templates/index.html`
 
 ## Dashboard Features
 
@@ -82,10 +82,10 @@ The dashboard displays live events across four main tabs:
 
 ### Key Files
 
-- **Dashboard**: `/src/claude_mpm/web/templates/index.html`
+- **Dashboard**: `/src/claude_mpm/dashboard/templates/index.html`
 - **Socket.IO Server**: `/src/claude_mpm/services/socketio_server.py`
 - **Hook Handler**: `/src/claude_mpm/hooks/claude_hooks/hook_handler.py`
-- **Static Assets**: `/src/claude_mpm/web/static/`
+- **Static Assets**: `/src/claude_mpm/dashboard/static/`
 
 ### Connection Flow
 

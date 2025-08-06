@@ -10,6 +10,7 @@ with other command modules like agents.py.
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -38,7 +39,11 @@ def manage_memory(args):
     try:
         # Load configuration for memory manager
         config = Config()
-        memory_manager = AgentMemoryManager(config)
+        # Use CLAUDE_MPM_USER_PWD if available (when called via shell script),
+        # otherwise use current working directory
+        user_pwd = os.environ.get('CLAUDE_MPM_USER_PWD', os.getcwd())
+        current_dir = Path(user_pwd)
+        memory_manager = AgentMemoryManager(config, current_dir)
         
         if not args.memory_command:
             # No subcommand - show status
@@ -72,6 +77,15 @@ def manage_memory(args):
         elif args.memory_command == "show":
             _show_memories(args, memory_manager)
         
+        elif args.memory_command == "init":
+            _init_memory(args, memory_manager)
+        
+        else:
+            logger.error(f"Unknown memory command: {args.memory_command}")
+            print(f"Unknown memory command: {args.memory_command}")
+            print("Available commands: init, status, view, add, clean, optimize, build, cross-ref, route, show")
+            return 1
+        
     except Exception as e:
         logger.error(f"Error managing memory: {e}")
         print(f"❌ Error: {e}")
@@ -79,6 +93,71 @@ def manage_memory(args):
     
     return 0
 
+
+def _init_memory(args, memory_manager):
+    """
+    Initialize project-specific memories via agent delegation.
+    
+    WHY: When starting with a new project, agents need project-specific knowledge
+    beyond what automatic analysis provides. This command triggers an agent task
+    to comprehensively scan the project and create custom memories.
+    
+    Args:
+        args: Command line arguments (unused but kept for consistency)
+        memory_manager: AgentMemoryManager instance
+    """
+    logger = get_logger("cli")
+    
+    print("🚀 Initializing project-specific memories...")
+    print("=" * 80)
+    print()
+    print("This will analyze the project to:")
+    print("  1. Scan project structure and documentation")
+    print("  2. Analyze source code for patterns and conventions")
+    print("  3. Create targeted memories for each agent type")
+    print("  4. Add insights using 'claude-mpm memory add' commands")
+    print()
+    print("The analysis will cover:")
+    print("  • Project architecture and design patterns")
+    print("  • Coding conventions and standards")
+    print("  • Key modules and integration points")
+    print("  • Testing patterns and quality standards")
+    print("  • Performance considerations")
+    print("  • Domain-specific terminology")
+    print()
+    print("=" * 80)
+    print()
+    print("[Agent Task: Initialize Project-Specific Memories]")
+    print()
+    print("Please analyze this project and create custom memories for all agents.")
+    print()
+    print("Instructions:")
+    print("1. Scan the project structure, documentation, and source code")
+    print("2. Identify key patterns, conventions, and project-specific knowledge")
+    print("3. Create targeted memories for each agent type")
+    print("4. Use 'claude-mpm memory add <agent> <type> \"<content>\"' commands")
+    print()
+    print("Focus areas:")
+    print("  • Architectural patterns and design decisions")
+    print("  • Coding conventions from actual source code")
+    print("  • Key modules, APIs, and integration points")
+    print("  • Testing patterns and quality standards")
+    print("  • Performance considerations specific to this project")
+    print("  • Common pitfalls based on the codebase")
+    print("  • Domain-specific terminology and concepts")
+    print()
+    print("Example commands to use:")
+    print('  claude-mpm memory add engineer pattern "Use dependency injection with @inject"')
+    print('  claude-mpm memory add qa pattern "Test files follow test_<module>_<feature>.py"')
+    print('  claude-mpm memory add research context "Project uses microservices architecture"')
+    print()
+    print("Begin by examining the project structure and key files.")
+    print()
+    print("=" * 80)
+    print()
+    print("📝 Note: Copy the task above to execute the memory initialization process.")
+    print("    Use 'claude-mpm memory add' commands to add discovered insights.")
+    
 
 def _show_status(memory_manager):
     """
@@ -113,7 +192,7 @@ def _show_status(memory_manager):
         print(f"🧠 Memory System Health: {health_emoji} {system_health}")
         print(f"📁 Memory Directory: {status.get('memory_directory', 'Unknown')}")
         print(f"🔧 System Enabled: {'Yes' if status.get('system_enabled', True) else 'No'}")
-        print(f"📚 Auto Learning: {'Yes' if status.get('auto_learning', False) else 'No'}")
+        print(f"📚 Auto Learning: {'Yes' if status.get('auto_learning', True) else 'No'}")
         print(f"📊 Total Agents: {status.get('total_agents', 0)}")
         print(f"💾 Total Size: {status.get('total_size_kb', 0):.1f} KB")
         print()
@@ -143,7 +222,7 @@ def _show_status(memory_manager):
                 sections = agent_info.get("sections", 0)
                 items = agent_info.get("items", 0)
                 last_modified = agent_info.get("last_modified", "Unknown")
-                auto_learning = agent_info.get("auto_learning", False)
+                auto_learning = agent_info.get("auto_learning", True)
                 
                 # Format last modified time
                 try:
@@ -474,24 +553,48 @@ def _show_memories(args, memory_manager):
     WHY: Users need to see agent memories in a readable format to understand
     what agents have learned and identify common patterns across agents.
     
+    DESIGN DECISION: Added --raw flag to output structured JSON data for
+    programmatic processing, enabling external tools and scripts to access
+    all agent memories in a structured format.
+    
     Args:
-        args: Command arguments with optional agent_id and format
+        args: Command arguments with optional agent_id, format, and raw flag
         memory_manager: AgentMemoryManager instance
     """
-    print("🧠 Agent Memories Display")
-    print("-" * 80)
-    
     agent_id = getattr(args, 'agent_id', None)
     format_type = getattr(args, 'format', 'detailed')
+    raw_output = getattr(args, 'raw', False)
     
     try:
-        if agent_id:
-            _show_single_agent_memory(agent_id, format_type, memory_manager)
+        if raw_output:
+            # Output structured JSON data
+            if agent_id:
+                # Get single agent memory in raw format
+                _output_single_agent_raw(agent_id, memory_manager)
+            else:
+                # Get all agent memories in raw format
+                _output_all_memories_raw(memory_manager)
         else:
-            _show_all_agent_memories(format_type, memory_manager)
+            # Normal user-friendly display
+            print("🧠 Agent Memories Display")
+            print("-" * 80)
             
+            if agent_id:
+                _show_single_agent_memory(agent_id, format_type, memory_manager)
+            else:
+                _show_all_agent_memories(format_type, memory_manager)
+                
     except Exception as e:
-        print(f"❌ Error showing memories: {e}")
+        if raw_output:
+            # Output error in JSON format for consistency
+            error_output = {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+        else:
+            print(f"❌ Error showing memories: {e}")
 
 
 def _show_single_agent_memory(agent_id, format_type, memory_manager):
@@ -780,3 +883,78 @@ def _display_bulk_optimization_results(result):
             else:
                 error = agent_result.get("error", "Unknown error")
                 print(f"   {agent_id}: ❌ {error}")
+
+
+def _output_all_memories_raw(memory_manager):
+    """
+    Output all agent memories in raw JSON format.
+    
+    WHY: Provides programmatic access to all agent memories for external tools,
+    scripts, or APIs that need to process or analyze the complete memory state.
+    
+    Args:
+        memory_manager: AgentMemoryManager instance
+    """
+    try:
+        raw_data = memory_manager.get_all_memories_raw()
+        print(json.dumps(raw_data, indent=2, ensure_ascii=False))
+    except Exception as e:
+        error_output = {
+            "success": False,
+            "error": f"Failed to retrieve all memories: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(json.dumps(error_output, indent=2))
+
+
+def _output_single_agent_raw(agent_id, memory_manager):
+    """
+    Output single agent memory in raw JSON format.
+    
+    WHY: Provides programmatic access to a specific agent's memory for
+    targeted analysis or processing by external tools.
+    
+    Args:
+        agent_id: ID of the agent to retrieve memory for
+        memory_manager: AgentMemoryManager instance
+    """
+    try:
+        # Get all memories and extract the specific agent
+        all_memories = memory_manager.get_all_memories_raw()
+        
+        if not all_memories.get("success", False):
+            error_output = {
+                "success": False,
+                "error": all_memories.get("error", "Failed to retrieve memories"),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+            return
+        
+        agents = all_memories.get("agents", {})
+        if agent_id not in agents:
+            error_output = {
+                "success": False,
+                "error": f"No memory found for agent: {agent_id}",
+                "available_agents": list(agents.keys()),
+                "timestamp": datetime.now().isoformat()
+            }
+            print(json.dumps(error_output, indent=2))
+            return
+        
+        # Return single agent data with metadata
+        single_agent_output = {
+            "success": True,
+            "timestamp": all_memories["timestamp"],
+            "agent": agents[agent_id]
+        }
+        
+        print(json.dumps(single_agent_output, indent=2, ensure_ascii=False))
+        
+    except Exception as e:
+        error_output = {
+            "success": False,
+            "error": f"Failed to retrieve memory for agent {agent_id}: {str(e)}",
+            "timestamp": datetime.now().isoformat()
+        }
+        print(json.dumps(error_output, indent=2))

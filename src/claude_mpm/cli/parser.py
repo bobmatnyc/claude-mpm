@@ -366,6 +366,12 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         metavar="SUBCOMMAND"
     )
     
+    # Init command
+    init_parser = memory_subparsers.add_parser(
+        MemoryCommands.INIT.value,
+        help="Initialize project-specific memories via PM agent"
+    )
+    
     # Status command
     status_parser = memory_subparsers.add_parser(
         MemoryCommands.STATUS.value,
@@ -468,6 +474,11 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         choices=["summary", "detailed", "full"],
         default="summary",
         help="Display format: summary (default), detailed, or full"
+    )
+    show_parser.add_argument(
+        "--raw",
+        action="store_true",
+        help="Output raw memory content in JSON format for programmatic processing"
     )
     
     return parser
