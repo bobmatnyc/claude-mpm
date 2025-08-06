@@ -58,6 +58,7 @@ class AgentCommands(str, Enum):
 
 class MemoryCommands(str, Enum):
     """Memory subcommand constants."""
+    INIT = "init"
     STATUS = "status"
     VIEW = "view"
     ADD = "add"

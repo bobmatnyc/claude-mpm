@@ -15,12 +15,28 @@ agent outputs because:
 import re
 from typing import Dict, Any, List
 from claude_mpm.hooks.base_hook import PreDelegationHook, PostDelegationHook, HookContext, HookResult
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
-from claude_mpm.services.socketio_server import get_socketio_server
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
 
 logger = get_logger(__name__)
+
+# Try to import memory manager with fallback handling
+try:
+    from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+    MEMORY_MANAGER_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"AgentMemoryManager not available: {e}")
+    MEMORY_MANAGER_AVAILABLE = False
+    AgentMemoryManager = None
+
+# Try to import socketio server with fallback handling
+try:
+    from claude_mpm.services.socketio_server import get_socketio_server
+    SOCKETIO_AVAILABLE = True
+except ImportError as e:
+    logger.debug(f"SocketIO server not available: {e}")
+    SOCKETIO_AVAILABLE = False
+    get_socketio_server = None
 
 
 class MemoryPreDelegationHook(PreDelegationHook):
@@ -42,7 +58,17 @@ class MemoryPreDelegationHook(PreDelegationHook):
         """
         super().__init__(name="memory_pre_delegation", priority=20)
         self.config = config or Config()
-        self.memory_manager = AgentMemoryManager(self.config)
+        
+        # Initialize memory manager only if available
+        if MEMORY_MANAGER_AVAILABLE and AgentMemoryManager:
+            try:
+                self.memory_manager = AgentMemoryManager(self.config)
+            except Exception as e:
+                logger.error(f"Failed to initialize AgentMemoryManager: {e}")
+                self.memory_manager = None
+        else:
+            logger.info("Memory manager not available - hook will be inactive")
+            self.memory_manager = None
     
     def execute(self, context: HookContext) -> HookResult:
         """Add agent memory to delegation context.
@@ -50,6 +76,11 @@ class MemoryPreDelegationHook(PreDelegationHook):
         WHY: By loading memory before delegation, agents can reference their
         accumulated knowledge when performing tasks, leading to better outcomes.
         """
+        # If memory manager is not available, skip memory injection
+        if not self.memory_manager:
+            logger.debug("Memory manager not available - skipping memory injection")
+            return HookResult(success=True, data=context.data, modified=False)
+            
         try:
             # Extract and normalize agent ID from context
             agent_name = context.data.get('agent', '')
@@ -152,7 +183,17 @@ class MemoryPostDelegationHook(PostDelegationHook):
         """
         super().__init__(name="memory_post_delegation", priority=80)
         self.config = config or Config()
-        self.memory_manager = AgentMemoryManager(self.config)
+        
+        # Initialize memory manager only if available
+        if MEMORY_MANAGER_AVAILABLE and AgentMemoryManager:
+            try:
+                self.memory_manager = AgentMemoryManager(self.config)
+            except Exception as e:
+                logger.error(f"Failed to initialize AgentMemoryManager in PostDelegationHook: {e}")
+                self.memory_manager = None
+        else:
+            logger.info("Memory manager not available - post-delegation hook will be inactive")
+            self.memory_manager = None
         
         # Map of supported types to memory sections
         self.type_mapping = {
@@ -172,9 +213,14 @@ class MemoryPostDelegationHook(PostDelegationHook):
         WHY: Capturing learnings immediately after task completion ensures we
         don't lose valuable insights that agents discover during execution.
         """
+        # If memory manager is not available, skip learning extraction
+        if not self.memory_manager:
+            logger.debug("Memory manager not available - skipping learning extraction")
+            return HookResult(success=True, data=context.data, modified=False)
+            
         try:
             # Check if auto-learning is enabled
-            if not self.config.get('memory.auto_learning', False):
+            if not self.config.get('memory.auto_learning', True):  # Changed default to True
                 return HookResult(success=True, data=context.data, modified=False)
             
             # Extract agent ID

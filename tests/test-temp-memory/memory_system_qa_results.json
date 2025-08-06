@@ -1,0 +1,75 @@
+{
+  "overall_success": true,
+  "timestamp": "Wed Aug  6 14:52:40 UTC 2025",
+  "test_results": {
+    "memory_init_different_directories": {
+      "status": "PASS",
+      "message": "Memory init tested in 3 different directories",
+      "details": {
+        "simple_dir_success": "True (memory exists: True)",
+        "nested_dir_success": "True (memory exists: True)",
+        "spaced_dir_success": "True (memory exists: True)",
+        "simple_dir_path": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_simple_31fi6cgn/.claude-mpm/memories",
+        "nested_dir_path": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_nested_h7y8cwk0/project/subproject/.claude-mpm/memories",
+        "spaced_dir_path": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_with_spaces_s832hft4/My Project Folder/.claude-mpm/memories"
+      }
+    },
+    "memory_directory_location": {
+      "status": "PASS",
+      "message": "Memory directory created in correct location",
+      "details": {
+        "init_success": true,
+        "memory_in_current_dir": true,
+        "memory_in_installation_dir": true,
+        "expected_path": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_location_check_4cs2nndg/.claude-mpm/memories",
+        "installation_path": "/Users/masa/Projects/claude-mpm/test-temp-memory/.claude-mpm/memories"
+      }
+    },
+    "memory_commands_functionality": {
+      "status": "PASS",
+      "message": "All memory commands executed successfully",
+      "details": {
+        "init_success": true,
+        "status_success": true,
+        "add_success": true,
+        "view_success": true,
+        "view_found_content": true,
+        "status_output": "\u001b[0;32m[INFO]\u001b[0m Activating virtual environment...\n\u001b[0;32m[INFO]\u001b[0m Working directory: /private/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_commands_test_rggvb3k3\n\u001b[0;32m[INFO]\u001b[..."
+      }
+    },
+    "backward_compatibility": {
+      "status": "PASS",
+      "message": "Backward compatibility maintained",
+      "details": {
+        "status_success": true,
+        "add_success": true,
+        "view_success": true,
+        "content_includes_new": true,
+        "existing_file_preserved": true
+      }
+    },
+    "edge_cases": {
+      "status": "PASS",
+      "message": "Edge cases handled appropriately",
+      "details": {
+        "no_write_permissions_handled": true,
+        "long_path_works": true,
+        "uninit_status_handled": true,
+        "uninit_add_handled": true
+      }
+    },
+    "specific_directory_case": {
+      "status": "PASS",
+      "message": "Spin.Travel directory simulation successful",
+      "details": {
+        "init_success": true,
+        "memory_dir_created": true,
+        "memory_dir_path": "/var/folders/l1/rj7vjw0d5jzcc0g4nkd6kyp40000gn/T/mpm_memory_test_clients_simulation_14ibvrr3/Clients/Spin.Travel/.claude-mpm/memories",
+        "add_success": true,
+        "status_success": true,
+        "view_success": true,
+        "content_includes_project": true
+      }
+    }
+  }
+}

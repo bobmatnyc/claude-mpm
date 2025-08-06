@@ -5,6 +5,47 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2025-08-06
+
+### Added
+- **Agent Memory System Enhancements**:
+  - Project-specific memory generation using new `ProjectAnalyzer` service
+  - `/mpm memory init` command for quick project onboarding
+  - Dynamic file discovery based on project type and characteristics
+  - Agent-specific memory customization based on role
+  - Real-time memory updates through hook integration
+  - Hook-based context injection for dynamic memory loading
+
+- **Socket.IO Server Reliability Features**:
+  - Enhanced PID file validation with process verification using psutil
+  - Comprehensive health monitoring system with configurable thresholds
+  - Automatic recovery mechanisms with circuit breaker pattern
+  - Enhanced error messages with platform-specific resolution steps
+  - Graduated recovery strategies (log warnings, clear connections, restart service, emergency stop)
+  - Health check API endpoints (`/health`, `/diagnostics`, `/metrics`)
+  - JSON-enriched PID file format with process metadata and file locking
+
+### Improved
+- **Memory Templates**: Removed repetitive "Max: 15 items" annotations - limits now enforced programmatically
+- **Documentation Processing**: Enhanced to dynamically discover relevant files based on project analysis
+- **Memory Initialization**: Fixed PM agent type bug, now uses general-purpose agent
+
+### Fixed
+- Memory files now contain actual project-specific information instead of generic templates
+- `/mpm memory init` command properly executes without PM agent type error
+
+### Changed
+- **Project Organization**: Deep clean for publishing readiness
+  - Moved 100+ test files from `/scripts/` to `/tests/`
+  - Archived 20+ QA reports to `docs/archive/`
+  - Enhanced .gitignore to prevent temporary file commits
+  - Removed debug HTML files and temporary test scripts
+
+### Documentation
+- Added comprehensive memory system documentation in `docs/MEMORY.md`
+- Updated README with memory usage section and quick examples
+- Added hook integration details for dynamic context injection
+
 ## [3.3.2] - 2025-08-04
 
 ## [3.3.1] - 2025-08-05

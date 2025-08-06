@@ -10,6 +10,7 @@ with other command modules like agents.py.
 """
 
 import json
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -38,7 +39,11 @@ def manage_memory(args):
     try:
         # Load configuration for memory manager
         config = Config()
-        memory_manager = AgentMemoryManager(config)
+        # Use CLAUDE_MPM_USER_PWD if available (when called via shell script),
+        # otherwise use current working directory
+        user_pwd = os.environ.get('CLAUDE_MPM_USER_PWD', os.getcwd())
+        current_dir = Path(user_pwd)
+        memory_manager = AgentMemoryManager(config, current_dir)
         
         if not args.memory_command:
             # No subcommand - show status
@@ -72,6 +77,15 @@ def manage_memory(args):
         elif args.memory_command == "show":
             _show_memories(args, memory_manager)
         
+        elif args.memory_command == "init":
+            _init_memory(args, memory_manager)
+        
+        else:
+            logger.error(f"Unknown memory command: {args.memory_command}")
+            print(f"Unknown memory command: {args.memory_command}")
+            print("Available commands: init, status, view, add, clean, optimize, build, cross-ref, route, show")
+            return 1
+        
     except Exception as e:
         logger.error(f"Error managing memory: {e}")
         print(f"❌ Error: {e}")
@@ -79,6 +93,71 @@ def manage_memory(args):
     
     return 0
 
+
+def _init_memory(args, memory_manager):
+    """
+    Initialize project-specific memories via agent delegation.
+    
+    WHY: When starting with a new project, agents need project-specific knowledge
+    beyond what automatic analysis provides. This command triggers an agent task
+    to comprehensively scan the project and create custom memories.
+    
+    Args:
+        args: Command line arguments (unused but kept for consistency)
+        memory_manager: AgentMemoryManager instance
+    """
+    logger = get_logger("cli")
+    
+    print("🚀 Initializing project-specific memories...")
+    print("=" * 80)
+    print()
+    print("This will analyze the project to:")
+    print("  1. Scan project structure and documentation")
+    print("  2. Analyze source code for patterns and conventions")
+    print("  3. Create targeted memories for each agent type")
+    print("  4. Add insights using 'claude-mpm memory add' commands")
+    print()
+    print("The analysis will cover:")
+    print("  • Project architecture and design patterns")
+    print("  • Coding conventions and standards")
+    print("  • Key modules and integration points")
+    print("  • Testing patterns and quality standards")
+    print("  • Performance considerations")
+    print("  • Domain-specific terminology")
+    print()
+    print("=" * 80)
+    print()
+    print("[Agent Task: Initialize Project-Specific Memories]")
+    print()
+    print("Please analyze this project and create custom memories for all agents.")
+    print()
+    print("Instructions:")
+    print("1. Scan the project structure, documentation, and source code")
+    print("2. Identify key patterns, conventions, and project-specific knowledge")
+    print("3. Create targeted memories for each agent type")
+    print("4. Use 'claude-mpm memory add <agent> <type> \"<content>\"' commands")
+    print()
+    print("Focus areas:")
+    print("  • Architectural patterns and design decisions")
+    print("  • Coding conventions from actual source code")
+    print("  • Key modules, APIs, and integration points")
+    print("  • Testing patterns and quality standards")
+    print("  • Performance considerations specific to this project")
+    print("  • Common pitfalls based on the codebase")
+    print("  • Domain-specific terminology and concepts")
+    print()
+    print("Example commands to use:")
+    print('  claude-mpm memory add engineer pattern "Use dependency injection with @inject"')
+    print('  claude-mpm memory add qa pattern "Test files follow test_<module>_<feature>.py"')
+    print('  claude-mpm memory add research context "Project uses microservices architecture"')
+    print()
+    print("Begin by examining the project structure and key files.")
+    print()
+    print("=" * 80)
+    print()
+    print("📝 Note: Copy the task above to execute the memory initialization process.")
+    print("    Use 'claude-mpm memory add' commands to add discovered insights.")
+    
 
 def _show_status(memory_manager):
     """
@@ -113,7 +192,7 @@ def _show_status(memory_manager):
         print(f"🧠 Memory System Health: {health_emoji} {system_health}")
         print(f"📁 Memory Directory: {status.get('memory_directory', 'Unknown')}")
         print(f"🔧 System Enabled: {'Yes' if status.get('system_enabled', True) else 'No'}")
-        print(f"📚 Auto Learning: {'Yes' if status.get('auto_learning', False) else 'No'}")
+        print(f"📚 Auto Learning: {'Yes' if status.get('auto_learning', True) else 'No'}")
         print(f"📊 Total Agents: {status.get('total_agents', 0)}")
         print(f"💾 Total Size: {status.get('total_size_kb', 0):.1f} KB")
         print()
@@ -143,7 +222,7 @@ def _show_status(memory_manager):
                 sections = agent_info.get("sections", 0)
                 items = agent_info.get("items", 0)
                 last_modified = agent_info.get("last_modified", "Unknown")
-                auto_learning = agent_info.get("auto_learning", False)
+                auto_learning = agent_info.get("auto_learning", True)
                 
                 # Format last modified time
                 try:
