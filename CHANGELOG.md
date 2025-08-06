@@ -5,6 +5,38 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-08-06
+
+### Improved
+- **Socket.IO Server Reliability**: Enhanced PID validation with comprehensive health monitoring
+  - Added defensive error handling for PID file validation
+  - Implemented circuit breaker pattern for service resilience
+  - Enhanced process resource monitoring and network connectivity checks
+  - Added automatic recovery mechanisms with graduated escalation strategies
+- **Dashboard Experience**: Consolidated agent display and enhanced file operations
+  - Eliminated duplicate agent entries through improved tool correlation
+  - Enhanced file viewer with integrated Git tracking support
+  - Improved HUD component loading and visualization consistency
+  - Better error handling and user feedback across dashboard components
+- **Git Operations**: Enhanced working directory handling and branch validation
+  - Fixed git diff operations with proper working directory context
+  - Added robust branch existence checks and error handling
+  - Improved version control operation reliability and error messages
+
+### Fixed
+- **System Architecture**: Major cleanup and organization improvements
+  - Moved 458+ obsolete test files from `/scripts/` to `/tests/` directory
+  - Consolidated dashboard components (renamed `web/` to `dashboard/`)
+  - Enhanced memory system integration and CLI command structure
+  - Removed redundant documentation and streamlined project organization
+
+### Performance
+- **Health Monitoring**: Implemented comprehensive system health checks
+  - Added process validation with resource usage monitoring
+  - Network connectivity verification for service dependencies
+  - Configurable health check thresholds and recovery actions
+  - Enhanced logging and diagnostic reporting for troubleshooting
+
 ## [3.4.0] - 2025-08-06
 
 ### Added
