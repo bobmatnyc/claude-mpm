@@ -19,12 +19,57 @@ try:
     # When installed as package, this should work directly
     from claude_mpm.services.socketio_server import SocketIOServer
 except ImportError:
-    # When in development, add src to path
-    project_root = script_dir.parent.parent.parent  # from scripts -> claude_mpm -> src -> project_root
-    src_path = project_root / "src"
-    if src_path.exists():
-        sys.path.insert(0, str(src_path))
-    from claude_mpm.services.socketio_server import SocketIOServer
+    # Need to add the appropriate directory to sys.path
+    import sys
+    
+    # Get the absolute path of this script
+    script_path = Path(__file__).resolve()
+    
+    # Determine if we're in development or installed environment
+    if "site-packages" in str(script_path):
+        # Installed environment: ~/.local/pipx/venvs/claude-mpm/lib/python3.13/site-packages/claude_mpm/scripts/socketio_daemon.py
+        # Need to add site-packages directory to path
+        parts = script_path.parts
+        site_packages_idx = next(i for i, part in enumerate(parts) if part == "site-packages")
+        site_packages_path = Path(*parts[:site_packages_idx + 1])
+        
+        if site_packages_path.exists() and str(site_packages_path) not in sys.path:
+            sys.path.insert(0, str(site_packages_path))
+    else:
+        # Development environment: Project/src/claude_mpm/scripts/socketio_daemon.py  
+        # Need to add src directory to path
+        # Go up: scripts -> claude_mpm -> src
+        src_path = script_path.parent.parent.parent
+        
+        if src_path.exists() and (src_path / "claude_mpm").exists() and str(src_path) not in sys.path:
+            sys.path.insert(0, str(src_path))
+    
+    # Try importing again after path modification
+    try:
+        from claude_mpm.services.socketio_server import SocketIOServer
+    except ImportError as e:
+        print(f"❌ Failed to import SocketIOServer after path adjustment: {e}")
+        print(f"📍 Script path: {script_path}")
+        print(f"🐍 Python path entries: {len(sys.path)}")
+        for i, path in enumerate(sys.path):
+            print(f"   [{i}] {path}")
+        
+        # Check if claude_mpm directory exists in any path
+        claude_mpm_found = False
+        for path_str in sys.path:
+            claude_mpm_path = Path(path_str) / "claude_mpm"
+            if claude_mpm_path.exists():
+                print(f"✅ Found claude_mpm at: {claude_mpm_path}")
+                claude_mpm_found = True
+        
+        if not claude_mpm_found:
+            print("❌ claude_mpm directory not found in any sys.path entry")
+        
+        print("\n💡 Troubleshooting tips:")
+        print("   1. Ensure claude-mpm is properly installed: pip install claude-mpm")
+        print("   2. If in development, ensure you're in the project root directory")
+        print("   3. Check that PYTHONPATH includes the package location")
+        sys.exit(1)
 
 PID_FILE = Path.home() / ".claude-mpm" / "socketio-server.pid"
 LOG_FILE = Path.home() / ".claude-mpm" / "socketio-server.log"
