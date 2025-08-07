@@ -2,7 +2,7 @@
 
 This document provides a comprehensive overview of the claude-mpm project structure. **Always refer to this document when creating new files to ensure they are placed in the correct location.**
 
-Last Updated: 2025-01-24
+Last Updated: 2025-08-07
 
 ## Project Overview
 
@@ -23,8 +23,19 @@ claude-mpm/
 │   └── logs/                         # Log files
 │
 ├── docs/                             # Documentation
-│   ├── design/                       # Design documents
-│   ├── claude_launcher_migration.md  # Migration guide for ClaudeLauncher
+│   ├── archive/                      # Archived documentation and QA reports
+│   │   ├── changelogs/              # Historical changelog files
+│   │   ├── implementation-status/   # Implementation status reports
+│   │   ├── qa-reports/              # Quality assurance reports
+│   │   ├── test-results/            # Test execution results
+│   │   └── user/                    # Archived user documentation
+│   ├── assets/                       # Documentation assets (images, diagrams)
+│   │   └── claude-mpm.png           # Project logo
+│   ├── dashboard/                    # Dashboard documentation
+│   ├── design/                       # Design documents and technical specifications
+│   ├── developer/                    # Developer documentation (API, internals, guides)
+│   ├── examples/                     # Usage examples and configurations
+│   ├── user/                         # User-facing documentation
 │   └── STRUCTURE.md                  # This file
 │
 ├── examples/                         # Example implementations
@@ -96,9 +107,13 @@ claude-mpm/
 │       └── logger.py                 # Logging utilities
 │
 ├── tests/                            # ALL test files (pytest/unittest)
-│   ├── test_*.py                     # Unit and integration tests
+│   ├── agents/                       # Agent-specific tests
 │   ├── e2e/                          # End-to-end tests
-│   └── fixtures/                     # Test fixtures and data
+│   ├── fixtures/                     # Test fixtures and data
+│   ├── integration/                  # Integration tests
+│   ├── services/                     # Service layer tests
+│   ├── test-reports/                 # Test execution reports
+│   └── test_*.py                     # Unit and integration tests
 │
 ├── setup.py                          # Setup script
 ├── pyproject.toml                    # Python project configuration
@@ -155,7 +170,14 @@ Extensibility through pre/post hooks:
 - **builtin/**: Example hook implementations
 
 ### `/docs/` - Documentation
-Project documentation including this structure guide.
+Project documentation including this structure guide:
+- **archive/**: Historical documentation, QA reports, and archived materials
+- **assets/**: Images, diagrams, and other documentation assets
+- **dashboard/**: Dashboard-specific documentation
+- **design/**: Technical design documents and specifications
+- **developer/**: API reference, internals, and developer guides
+- **examples/**: Usage examples and configuration templates
+- **user/**: End-user documentation and guides
 
 ### `/scripts/` - Executable Scripts and Utilities
 All executable scripts and command-line utilities should be placed here:
@@ -177,12 +199,20 @@ When creating new files, follow these guidelines:
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
 6. **Tests**: Place in `/tests/` with `test_` prefix
    - Unit tests: `/tests/test_*.py`
-   - Integration tests: `/tests/test_*.py` (with clear naming)
+   - Integration tests: `/tests/integration/` or `/tests/test_*.py` (with clear naming)
    - E2E tests: `/tests/e2e/`
+   - Agent tests: `/tests/agents/`
+   - Service tests: `/tests/services/`
    - Test data: `/tests/fixtures/`
+   - Test reports: `/tests/test-reports/`
 7. **Documentation**: Place in `/docs/`
+   - User guides: `/docs/user/`
+   - Developer docs: `/docs/developer/`
    - Design docs: `/docs/design/`
-   - User guides: `/docs/`
+   - Dashboard docs: `/docs/dashboard/`
+   - Examples: `/docs/examples/`
+   - Assets: `/docs/assets/`
+   - Archives: `/docs/archive/`
 8. **Scripts**: Place in `/scripts/`
    - Executable scripts: `/scripts/*.py` or `/scripts/*.sh`
    - Demo scripts: `/scripts/demo/`
@@ -207,6 +237,12 @@ When creating new files, follow these guidelines:
   - Enables advanced code understanding in Research Agent operations
   - Powers real-time agent modification tracking with syntax awareness
   - Provides fast, incremental parsing for performance-critical operations
+- **Project Reorganization** (v3.4.5): Major cleanup and reorganization
+  - Moved 458+ test files from `/scripts/` to `/tests/` directory
+  - Created `/docs/archive/` for historical documentation and QA reports
+  - Added `/docs/assets/` for documentation resources
+  - Enhanced `/tests/fixtures/` for test data management
+  - Added backward compatibility wrapper (`ticket_wrapper.py`) for moved functionality
 
 ## Design Patterns
 
