@@ -5,6 +5,17 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.11] - 2025-08-07
+
+
+### Documentation
+
+- add release notes for v3.4.10 Socket.IO dependency fix ([db3ae4c])
+- enhance changelog entry for v3.4.10 with Socket.IO dependency fix details ([40289cb])
+
+### Chores
+
+- update package.json version to 3.4.10 ([8c0418d])
 ## [3.4.10] - 2025-08-07
 
 ### Bug Fixes
