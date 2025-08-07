@@ -184,12 +184,8 @@ class ClaudeRunner:
                 self.logger.warning(f"Failed to connect to Socket.IO server: {e}")
                 self.websocket_server = None
         
-        # Get version
-        try:
-            from claude_mpm import __version__
-            version_str = f"v{__version__}"
-        except:
-            version_str = "v0.0.0"
+        # Get version with robust fallback mechanisms
+        version_str = self._get_version()
         
         # Print styled welcome box
         print("\033[32m╭───────────────────────────────────────────────────╮\033[0m")
@@ -749,6 +745,74 @@ class ClaudeRunner:
                     f.write(json.dumps(log_entry) + '\n')
             except Exception as e:
                 self.logger.debug(f"Failed to log session event: {e}")
+    
+    def _get_version(self) -> str:
+        """
+        Robust version determination with multiple fallback mechanisms.
+        
+        WHY: The version display is critical for debugging and user experience.
+        This implementation ensures we always show the correct version rather than 
+        defaulting to v0.0.0, even in edge cases where imports might fail.
+        
+        DESIGN DECISION: We try multiple methods in order of preference:
+        1. Package import (__version__) - fastest for normal installations
+        2. importlib.metadata - standard for installed packages  
+        3. VERSION file reading - fallback for development environments
+        4. Only then default to v0.0.0 with detailed error logging
+        
+        Returns version string formatted as "vX.Y.Z"
+        """
+        version = "0.0.0"
+        method_used = "default"
+        
+        # Method 1: Try package import (fastest, most common)
+        try:
+            from claude_mpm import __version__
+            version = __version__
+            method_used = "package_import"
+            self.logger.debug(f"Version obtained via package import: {version}")
+        except ImportError as e:
+            self.logger.debug(f"Package import failed: {e}")
+        except Exception as e:
+            self.logger.warning(f"Unexpected error in package import: {e}")
+        
+        # Method 2: Try importlib.metadata (standard for installed packages)
+        if version == "0.0.0":
+            try:
+                import importlib.metadata
+                version = importlib.metadata.version('claude-mpm')
+                method_used = "importlib_metadata"
+                self.logger.debug(f"Version obtained via importlib.metadata: {version}")
+            except importlib.metadata.PackageNotFoundError:
+                self.logger.debug("Package not found in importlib.metadata (likely development install)")
+            except ImportError:
+                self.logger.debug("importlib.metadata not available (Python < 3.8)")
+            except Exception as e:
+                self.logger.warning(f"Unexpected error in importlib.metadata: {e}")
+        
+        # Method 3: Try reading VERSION file directly (development fallback)
+        if version == "0.0.0":
+            try:
+                # Calculate path relative to this file
+                version_file = Path(__file__).parent.parent.parent.parent / "VERSION"
+                if version_file.exists():
+                    version = version_file.read_text().strip()
+                    method_used = "version_file"
+                    self.logger.debug(f"Version obtained via VERSION file: {version}")
+                else:
+                    self.logger.debug(f"VERSION file not found at: {version_file}")
+            except Exception as e:
+                self.logger.warning(f"Failed to read VERSION file: {e}")
+        
+        # Log final result
+        if version == "0.0.0":
+            self.logger.error(
+                "All version detection methods failed. This indicates a packaging or installation issue."
+            )
+        else:
+            self.logger.debug(f"Final version: {version} (method: {method_used})")
+        
+        return f"v{version}"
     
     def _register_memory_hooks(self):
         """Register memory integration hooks with the hook service.
