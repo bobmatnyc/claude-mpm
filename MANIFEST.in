@@ -28,6 +28,9 @@ recursive-include src/claude_mpm/config *.py
 # Include hook files (including shell scripts)
 recursive-include src/claude_mpm/hooks *.py *.sh
 
+# Include package scripts
+recursive-include src/claude_mpm/scripts *.py
+
 # Exclude test and cache files
 global-exclude __pycache__
 global-exclude *.py[co]
