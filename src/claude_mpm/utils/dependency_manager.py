@@ -107,12 +107,14 @@ def ensure_socketio_dependencies(logger=None) -> Tuple[bool, str]:
     """
     Ensure Socket.IO dependencies are installed for monitoring features.
     
-    WHY: The --monitor flag requires python-socketio and aiohttp, but we want
-    the base package to work without these heavy dependencies. This function
-    installs them on-demand.
+    WHY: Socket.IO dependencies (python-socketio, aiohttp, python-engineio) are now
+    core dependencies and should be installed automatically with claude-mpm.
+    This function verifies they are available and provides helpful error messages
+    if something went wrong during installation.
     
-    DESIGN DECISION: We check each dependency individually and only install
-    what's missing, reducing installation time and avoiding unnecessary work.
+    DESIGN DECISION: We still check each dependency individually to provide
+    specific error messages if any are missing, which helps with troubleshooting
+    installation issues.
     
     Args:
         logger: Optional logger for output
@@ -142,8 +144,9 @@ def ensure_socketio_dependencies(logger=None) -> Tuple[bool, str]:
         logger.debug("All Socket.IO dependencies are already installed")
         return True, ""
     
-    # Install missing packages
-    logger.info(f"Installing missing Socket.IO dependencies: {missing_packages}")
+    # Install missing packages (should be rare since they're now core dependencies)
+    logger.warning(f"Socket.IO dependencies are missing despite being core dependencies: {missing_packages}")
+    logger.info(f"Attempting to install missing dependencies: {missing_packages}")
     success, error_msg = install_packages(missing_packages, logger)
     
     if success:
