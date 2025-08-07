@@ -293,18 +293,13 @@ function checkClaude() {
 
 // Find claude-mpm command
 function findClaudeMpmCommand() {
-  // Check if installed via pipx
-  if (commandExists('claude-mpm')) {
-    return 'claude-mpm';
-  }
-  
-  // Check pipx bin directory
+  // Check pipx bin directory FIRST
   const pipxBin = path.join(os.homedir(), '.local', 'bin', 'claude-mpm');
   if (fs.existsSync(pipxBin)) {
     return pipxBin;
   }
-  
-  // Check if it's in Python scripts
+
+  // Check if in Python scripts directory
   const python = getPythonCommand();
   if (python) {
     try {
@@ -317,7 +312,8 @@ function findClaudeMpmCommand() {
       // Ignore
     }
   }
-  
+
+  // Don't use generic 'which' that might find ourselves
   return null;
 }
 
