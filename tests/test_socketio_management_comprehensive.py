@@ -25,7 +25,10 @@ import io
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.scripts.socketio_server_manager import ServerManager
+# Import from scripts directory
+scripts_dir = Path(__file__).parent.parent / "scripts"
+sys.path.insert(0, str(scripts_dir))
+from socketio_server_manager import ServerManager
 
 class TestResults:
     def __init__(self):

@@ -56,7 +56,7 @@ class PostInstallCommand(install):
         ticket_content = '''#!/usr/bin/env python3
 """Ticket command wrapper for claude-mpm."""
 import sys
-from claude_mpm.scripts.ticket import main
+from claude_mpm.ticket_wrapper import main
 
 if __name__ == "__main__":
     sys.exit(main())
@@ -130,7 +130,7 @@ setup(
     entry_points={
         "console_scripts": [
             "claude-mpm=claude_mpm.cli:main",
-            "ticket=claude_mpm.scripts.ticket:main",
+            "ticket=claude_mpm.ticket_wrapper:main",
         ],
     },
     cmdclass={
