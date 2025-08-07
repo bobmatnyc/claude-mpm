@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.4.11] - 2025-08-07
 
+### Bug Fixes
+
+- **socketio**: resolve socketio daemon import path for installed environments ([50740ab])
+  - Fix socketio_daemon.py import path issue that prevented Socket.IO server from starting in pipx/pip installed environments
+  - Enhanced path detection logic to properly handle both development and installed environments  
+  - Added site-packages path detection for pipx/pip installations
+  - Reduced Socket.IO startup timeouts from 90s to ~15s (more reasonable now that dependency issue is fixed)
+  - Better error messages with debugging information for import failures
+  - Timeout reductions: max_attempts 30→12, initial_delay 1.0s→0.75s, max_delay 3.0s→2.0s
+  - This fixes a critical issue where users couldn't start the Socket.IO monitoring server, especially with pipx installations
 
 ### Documentation
 
