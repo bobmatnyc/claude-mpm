@@ -23,7 +23,8 @@ from .commands import (
     show_info,
     manage_agents,
     run_terminal_ui,
-    manage_memory
+    manage_memory,
+    manage_monitor
 )
 
 # Get version from VERSION file - single source of truth
@@ -149,6 +150,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.AGENTS.value: manage_agents,
         CLICommands.UI.value: run_terminal_ui,
         CLICommands.MEMORY.value: manage_memory,
+        CLICommands.MONITOR.value: manage_monitor,
     }
     
     # Execute command if found

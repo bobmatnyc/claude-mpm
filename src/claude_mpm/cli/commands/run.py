@@ -585,24 +585,16 @@ def _start_standalone_socketio_server(port, logger):
             
             logger.debug(f"Checking server readiness (attempt {attempt + 1}/{max_attempts}, waiting {delay}s)")
             
-            # Check if thread is alive first
-            if hasattr(server, 'thread') and server.thread and server.thread.is_alive():
-                logger.debug("Server thread is alive, checking connectivity...")
-                
-                # Give it time for socket binding (progressive delay)
-                time.sleep(delay)
-                
-                # Verify it's actually accepting connections
-                if _check_socketio_server_running(port, logger):
-                    logger.info(f"✅ Standalone Socket.IO server started successfully on port {port}")
-                    logger.info(f"🕐 Server ready after {attempt + 1} attempts ({(attempt + 1) * delay:.1f}s)")
-                    return True
-                else:
-                    logger.debug(f"Server not yet accepting connections on attempt {attempt + 1}")
+            # Give the daemon process time to initialize and bind to the socket
+            time.sleep(delay)
+            
+            # Check if the daemon server is accepting connections
+            if _check_socketio_server_running(port, logger):
+                logger.info(f"✅ Standalone Socket.IO server started successfully on port {port}")
+                logger.info(f"🕐 Server ready after {attempt + 1} attempts ({(attempt + 1) * delay:.1f}s)")
+                return True
             else:
-                logger.warning(f"Server thread not alive or not created on attempt {attempt + 1}")
-                # Give thread more time to start
-                time.sleep(delay)
+                logger.debug(f"Server not yet accepting connections on attempt {attempt + 1}")
         
         logger.error(f"❌ Socket.IO server failed to start properly on port {port} after {max_attempts} attempts")
         logger.error(f"💡 This may indicate a port conflict or dependency issue")
