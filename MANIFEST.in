@@ -31,6 +31,11 @@ recursive-include src/claude_mpm/hooks *.py *.sh
 # Include package scripts
 recursive-include src/claude_mpm/scripts *.py
 
+# Include dashboard templates and static files
+recursive-include src/claude_mpm/dashboard *.html *.css *.js *.json
+recursive-include src/claude_mpm/dashboard/templates *.html
+recursive-include src/claude_mpm/dashboard/static *.css *.js *.json
+
 # Exclude test and cache files
 global-exclude __pycache__
 global-exclude *.py[co]
