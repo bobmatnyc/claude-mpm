@@ -348,13 +348,49 @@ class SocketIOServer:
 
     async def _handle_dashboard(self, request):
         """Serve the dashboard HTML file."""
-        dashboard_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'
-        self.logger.info(f"Dashboard requested, looking for: {dashboard_path}")
-        self.logger.info(f"Path exists: {dashboard_path.exists()}")
-        if dashboard_path.exists():
+        # Try to find dashboard path using multiple approaches
+        dashboard_path = None
+        
+        # Approach 1: Use module-relative path (works in installed environment)
+        try:
+            import claude_mpm.dashboard
+            dashboard_module_path = Path(claude_mpm.dashboard.__file__).parent
+            candidate_path = dashboard_module_path / "templates" / "index.html"
+            if candidate_path.exists():
+                dashboard_path = candidate_path
+                self.logger.info(f"Found dashboard using module path: {dashboard_path}")
+        except Exception as e:
+            self.logger.debug(f"Module-relative path failed: {e}")
+        
+        # Approach 2: Use project root (works in development environment)
+        if dashboard_path is None:
+            try:
+                candidate_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'
+                if candidate_path.exists():
+                    dashboard_path = candidate_path
+                    self.logger.info(f"Found dashboard using project root: {dashboard_path}")
+            except Exception as e:
+                self.logger.debug(f"Project root path failed: {e}")
+        
+        # Approach 3: Search for dashboard in package installation
+        if dashboard_path is None:
+            try:
+                candidate_path = get_project_root() / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'
+                if candidate_path.exists():
+                    dashboard_path = candidate_path
+                    self.logger.info(f"Found dashboard using package path: {dashboard_path}")
+            except Exception as e:
+                self.logger.debug(f"Package path failed: {e}")
+        
+        if dashboard_path and dashboard_path.exists():
             return web.FileResponse(str(dashboard_path))
         else:
-            return web.Response(text=f"Dashboard not found at: {dashboard_path}", status=404)
+            error_msg = f"Dashboard not found. Searched paths:\n"
+            error_msg += f"1. Module-relative: {dashboard_module_path / 'templates' / 'index.html' if 'dashboard_module_path' in locals() else 'N/A'}\n"
+            error_msg += f"2. Development: {get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'}\n"
+            error_msg += f"3. Package: {get_project_root() / 'claude_mpm' / 'dashboard' / 'templates' / 'index.html'}"
+            self.logger.error(error_msg)
+            return web.Response(text=error_msg, status=404)
     
     async def _handle_cors_preflight(self, request):
         """Handle CORS preflight requests."""

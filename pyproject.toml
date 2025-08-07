@@ -53,6 +53,7 @@ dependencies = [
     "tree-sitter-language-pack>=0.8.0",
     "python-socketio>=5.11.0",
     "aiohttp>=3.9.0",
+    "aiohttp-cors>=0.8.0",
     "python-engineio>=4.8.0",
 ]
 
@@ -81,7 +82,16 @@ claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-claude_mpm = ["scripts/*"]
+claude_mpm = [
+    "scripts/*",
+    "dashboard/*.html",
+    "dashboard/templates/*.html",
+    "dashboard/static/*.css",
+    "dashboard/static/*.js",
+    "dashboard/static/css/*.css",
+    "dashboard/static/js/*.js",
+    "dashboard/static/js/components/*.js"
+]
 
 [tool.black]
 line-length = 88
