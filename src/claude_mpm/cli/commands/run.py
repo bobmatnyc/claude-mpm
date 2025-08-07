@@ -467,6 +467,7 @@ def _check_socketio_server_running(port, logger):
     
     DESIGN DECISION: We try multiple endpoints and connection methods to ensure
     robust detection. Some servers may be starting up and only partially ready.
+    Added retry logic to handle race conditions during server initialization.
     
     Args:
         port: Port number to check
@@ -483,34 +484,50 @@ def _check_socketio_server_running(port, logger):
         # First, do a basic TCP connection check
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(1.0)
+                s.settimeout(2.0)  # Increased from 1.0s for slower connections
                 result = s.connect_ex(('127.0.0.1', port))
                 if result != 0:
-                    logger.debug(f"TCP connection to port {port} failed (not listening)")
+                    logger.debug(f"TCP connection to port {port} failed (server not started yet)")
                     return False
         except Exception as e:
             logger.debug(f"TCP socket check failed for port {port}: {e}")
             return False
         
-        # If TCP connection succeeds, try HTTP health check
-        try:
-            response = urllib.request.urlopen(f'http://localhost:{port}/status', timeout=5)
-            
-            if response.getcode() == 200:
-                content = response.read().decode()
-                logger.debug(f"✅ Socket.IO server health check passed on port {port}")
-                logger.debug(f"📄 Server response: {content[:100]}...")
-                return True
-            else:
-                logger.debug(f"⚠️ HTTP response code {response.getcode()} from port {port}")
-                return False
+        # If TCP connection succeeds, try HTTP health check with retries
+        # WHY: Even when TCP is accepting connections, the HTTP handler may not be ready
+        max_retries = 3
+        for retry in range(max_retries):
+            try:
+                response = urllib.request.urlopen(f'http://localhost:{port}/status', timeout=10)  # Increased from 5s to 10s
                 
-        except urllib.error.HTTPError as e:
-            logger.debug(f"⚠️ HTTP error {e.code} from server on port {port}")
-            return False
-        except urllib.error.URLError as e:
-            logger.debug(f"⚠️ URL error connecting to port {port}: {e.reason}")
-            return False
+                if response.getcode() == 200:
+                    content = response.read().decode()
+                    logger.debug(f"✅ Socket.IO server health check passed on port {port} (attempt {retry + 1})")
+                    logger.debug(f"📄 Server response: {content[:100]}...")
+                    return True
+                else:
+                    logger.debug(f"⚠️ HTTP response code {response.getcode()} from port {port} (attempt {retry + 1})")
+                    if retry < max_retries - 1:
+                        time.sleep(0.5)  # Brief pause before retry
+                    
+            except urllib.error.HTTPError as e:
+                logger.debug(f"⚠️ HTTP error {e.code} from server on port {port} (attempt {retry + 1})")
+                if retry < max_retries - 1 and e.code in [404, 503]:  # Server starting but not ready
+                    logger.debug("Server appears to be starting, retrying...")
+                    time.sleep(0.5)
+                    continue
+                return False
+            except urllib.error.URLError as e:
+                logger.debug(f"⚠️ URL error connecting to port {port} (attempt {retry + 1}): {e.reason}")
+                if retry < max_retries - 1:
+                    logger.debug("Connection refused - server may still be initializing, retrying...")
+                    time.sleep(0.5)
+                    continue
+                return False
+        
+        # All retries exhausted
+        logger.debug(f"Health check failed after {max_retries} attempts - server not fully ready")
+        return False
             
     except (ConnectionError, OSError) as e:
         logger.debug(f"🔌 Connection error checking port {port}: {e}")
@@ -569,12 +586,16 @@ def _start_standalone_socketio_server(port, logger):
         # 2. Event loop setup (~1s) 
         # 3. aiohttp server binding (~2-5s)
         # 4. Socket.IO service initialization (~1-3s)
-        # Total: up to 10 seconds for full readiness
-        max_attempts = 20  # Increased from 10
-        initial_delay = 0.5  # seconds
-        max_delay = 2.0  # seconds
+        # Total: up to 15+ seconds for full readiness (especially on Python 3.13)
+        max_attempts = 30  # Increased from 20 to handle Python 3.13 slower initialization
+        initial_delay = 1.0  # Increased from 0.5s to give daemon more time to fork
+        max_delay = 3.0  # Increased from 2.0s for slower systems
         
         logger.info(f"Waiting up to {max_attempts * max_delay} seconds for server to be fully ready...")
+        
+        # Give the daemon initial time to fork and start before checking
+        logger.debug("Allowing initial daemon startup time...")
+        time.sleep(0.5)
         
         for attempt in range(max_attempts):
             # Progressive delay - start fast, then slow down for socket binding
@@ -596,9 +617,14 @@ def _start_standalone_socketio_server(port, logger):
             else:
                 logger.debug(f"Server not yet accepting connections on attempt {attempt + 1}")
         
-        logger.error(f"❌ Socket.IO server failed to start properly on port {port} after {max_attempts} attempts")
-        logger.error(f"💡 This may indicate a port conflict or dependency issue")
-        logger.error(f"🔧 Try a different port with --websocket-port or check for conflicts")
+        logger.error(f"❌ Socket.IO server health check failed after {max_attempts} attempts ({max_attempts * max_delay:.1f}s)")
+        logger.warning(f"⏱️  Server may still be starting - initialization can take 15+ seconds on some systems")
+        logger.warning(f"💡 The daemon process might be running but not yet accepting HTTP connections")
+        logger.error(f"🔧 Troubleshooting steps:")
+        logger.error(f"   - Wait a few more seconds and try again")
+        logger.error(f"   - Check for port conflicts: lsof -i :{port}")
+        logger.error(f"   - Try a different port with --websocket-port")
+        logger.error(f"   - Verify dependencies: pip install python-socketio aiohttp")
         return False
             
     except Exception as e:
