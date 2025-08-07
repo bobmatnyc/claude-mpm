@@ -7,10 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.4.10] - 2025-08-07
 
+### Bug Fixes
+
+- **dependencies**: include Socket.IO dependencies as core requirements ([0ef2055])
+  - Moved python-socketio, aiohttp, and python-engineio from optional to required dependencies
+  - Resolves externally-managed-environment error on macOS with pipx installations  
+  - Socket.IO monitoring now works out-of-the-box without manual dependency installation
+  - Critical fix for users who couldn't use monitoring features due to missing dependencies
 
 ### Chores
 
-- update package.json version to 3.4.9 ([4fb331f])
+- update package.json version to 3.4.10 ([8c0418d])
+- bump version to 3.4.10 (patch release) ([latest])
 ## [3.4.9] - 2025-08-07
 
 ## [3.4.8] - 2025-08-07
