@@ -5,7 +5,42 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.6] - 2025-08-07
+
+
+### Chores
+
+- sync package.json version to 3.4.5 and add release notes ([95278ab])
 ## [3.4.5] - 2025-08-07
+
+### Changed
+- **Project Organization**: Major cleanup and reorganization for better maintainability
+  - Moved 458+ test files from `/scripts/` directory to proper `/tests/` directory structure
+  - Organized tests by category: agents, integration, services, e2e, and fixtures
+  - Consolidated dashboard components (renamed `web/` to `dashboard/`)
+  - Enhanced documentation organization with new directory structure
+
+### Added
+- **Documentation Structure**: New organized documentation hierarchy
+  - `/docs/archive/`: Historical documentation, QA reports, and archived materials
+  - `/docs/assets/`: Documentation assets including project logo (claude-mpm.png)
+  - `/docs/dashboard/`: Dashboard-specific documentation
+  - `/docs/developer/`: Comprehensive developer documentation with API reference
+  - `/docs/user/`: End-user guides and tutorials
+  - `/tests/fixtures/`: Centralized test data and fixtures
+  - `/tests/test-reports/`: Test execution reports and results
+
+### Fixed
+- **Backward Compatibility**: Added `ticket_wrapper.py` for seamless migration
+  - Maintains compatibility for ticket functionality moved from `/scripts/` to proper location
+  - Automatic path resolution and import handling
+  - Graceful fallback mechanisms for existing integrations
+
+### Documentation
+- **Enhanced Structure Documentation**: Updated `docs/STRUCTURE.md` with current project organization
+  - Documented all new directories and their purposes
+  - Added file placement guidelines for new directories
+  - Updated recent additions section with reorganization details
 
 ## [3.4.4] - 2025-08-07
 
