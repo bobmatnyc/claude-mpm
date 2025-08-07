@@ -28,6 +28,7 @@ class CLICommands(str, Enum):
     AGENTS = "agents"
     UI = "ui"
     MEMORY = "memory"
+    MONITOR = "monitor"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -68,6 +69,14 @@ class MemoryCommands(str, Enum):
     CROSS_REF = "cross-ref"
     ROUTE = "route"
     SHOW = "show"
+
+
+class MonitorCommands(str, Enum):
+    """Monitor subcommand constants."""
+    START = "start"
+    STOP = "stop"
+    RESTART = "restart"
+    PORT = "port"
 
 
 class CLIFlags(str, Enum):
