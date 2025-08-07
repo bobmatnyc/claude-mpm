@@ -15,6 +15,7 @@ import time
 from datetime import datetime
 from typing import Set, Dict, Any, Optional, List
 from collections import deque
+from pathlib import Path
 
 try:
     import socketio
@@ -294,9 +295,12 @@ class SocketIOServer:
             self.app.router.add_get('/dashboard', self._handle_dashboard)
             
             # Add static file serving for web assets
-            static_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'static'
-            if static_path.exists():
+            static_path = self._find_static_path()
+            if static_path and static_path.exists():
                 self.app.router.add_static('/static/', path=str(static_path), name='static')
+                self.logger.info(f"Static files served from: {static_path}")
+            else:
+                self.logger.warning("Static files directory not found - CSS/JS files will not be available")
             
             # Register event handlers
             self._register_events()
@@ -346,6 +350,57 @@ class SocketIOServer:
             'Access-Control-Allow-Headers': 'Content-Type, Accept'
         })
 
+    def _find_static_path(self):
+        """Find the static files directory using multiple approaches.
+        
+        WHY: Static files need to be found in both development and installed environments.
+        This uses the same multi-approach pattern as dashboard HTML resolution.
+        """
+        
+        # Approach 1: Use module-relative path (works in installed environment)
+        try:
+            import claude_mpm.dashboard
+            
+            # Try __file__ attribute first
+            if hasattr(claude_mpm.dashboard, '__file__') and claude_mpm.dashboard.__file__:
+                dashboard_module_path = Path(claude_mpm.dashboard.__file__).parent
+                candidate_path = dashboard_module_path / "static"
+                if candidate_path.exists():
+                    self.logger.info(f"Found static files using module __file__ path: {candidate_path}")
+                    return candidate_path
+            
+            # Try __path__ attribute for namespace packages
+            elif hasattr(claude_mpm.dashboard, '__path__') and claude_mpm.dashboard.__path__:
+                # __path__ is a list, take the first entry
+                dashboard_module_path = Path(claude_mpm.dashboard.__path__[0])
+                candidate_path = dashboard_module_path / "static"
+                if candidate_path.exists():
+                    self.logger.info(f"Found static files using module __path__: {candidate_path}")
+                    return candidate_path
+                    
+        except Exception as e:
+            self.logger.debug(f"Module-relative static path failed: {e}")
+        
+        # Approach 2: Use project root (works in development environment)
+        try:
+            candidate_path = get_project_root() / 'src' / 'claude_mpm' / 'dashboard' / 'static'
+            if candidate_path.exists():
+                self.logger.info(f"Found static files using project root: {candidate_path}")
+                return candidate_path
+        except Exception as e:
+            self.logger.debug(f"Project root static path failed: {e}")
+        
+        # Approach 3: Search for static files in package installation
+        try:
+            candidate_path = get_project_root() / 'claude_mpm' / 'dashboard' / 'static'
+            if candidate_path.exists():
+                self.logger.info(f"Found static files using package path: {candidate_path}")
+                return candidate_path
+        except Exception as e:
+            self.logger.debug(f"Package static path failed: {e}")
+        
+        return None
+
     async def _handle_dashboard(self, request):
         """Serve the dashboard HTML file."""
         # Try to find dashboard path using multiple approaches
@@ -354,11 +409,24 @@ class SocketIOServer:
         # Approach 1: Use module-relative path (works in installed environment)
         try:
             import claude_mpm.dashboard
-            dashboard_module_path = Path(claude_mpm.dashboard.__file__).parent
-            candidate_path = dashboard_module_path / "templates" / "index.html"
-            if candidate_path.exists():
-                dashboard_path = candidate_path
-                self.logger.info(f"Found dashboard using module path: {dashboard_path}")
+            
+            # Try __file__ attribute first
+            if hasattr(claude_mpm.dashboard, '__file__') and claude_mpm.dashboard.__file__:
+                dashboard_module_path = Path(claude_mpm.dashboard.__file__).parent
+                candidate_path = dashboard_module_path / "templates" / "index.html"
+                if candidate_path.exists():
+                    dashboard_path = candidate_path
+                    self.logger.info(f"Found dashboard using module __file__ path: {dashboard_path}")
+            
+            # Try __path__ attribute for namespace packages
+            elif hasattr(claude_mpm.dashboard, '__path__') and claude_mpm.dashboard.__path__:
+                # __path__ is a list, take the first entry
+                dashboard_module_path = Path(claude_mpm.dashboard.__path__[0])
+                candidate_path = dashboard_module_path / "templates" / "index.html"
+                if candidate_path.exists():
+                    dashboard_path = candidate_path
+                    self.logger.info(f"Found dashboard using module __path__: {dashboard_path}")
+                    
         except Exception as e:
             self.logger.debug(f"Module-relative path failed: {e}")
         
