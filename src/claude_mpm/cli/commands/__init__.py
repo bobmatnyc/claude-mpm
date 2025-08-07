@@ -11,6 +11,7 @@ from .info import show_info
 from .agents import manage_agents
 from .ui import run_terminal_ui
 from .memory import manage_memory
+from .monitor import manage_monitor
 
 __all__ = [
     'run_session',
@@ -18,5 +19,6 @@ __all__ = [
     'show_info',
     'manage_agents',
     'run_terminal_ui',
-    'manage_memory'
+    'manage_memory',
+    'manage_monitor'
 ]

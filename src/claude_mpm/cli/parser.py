@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 
-from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, LogLevel
+from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel
 
 
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
@@ -479,6 +479,74 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         "--raw",
         action="store_true",
         help="Output raw memory content in JSON format for programmatic processing"
+    )
+    
+    # Monitor command with subcommands
+    monitor_parser = subparsers.add_parser(
+        CLICommands.MONITOR.value,
+        help="Manage Socket.IO monitoring server"
+    )
+    add_common_arguments(monitor_parser)
+    
+    monitor_subparsers = monitor_parser.add_subparsers(
+        dest="monitor_command",
+        help="Monitor commands",
+        metavar="SUBCOMMAND"
+    )
+    
+    # Start monitor
+    start_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.START.value,
+        help="Start Socket.IO monitoring server"
+    )
+    start_monitor_parser.add_argument(
+        "--port",
+        type=int,
+        default=8765,
+        help="Port to start server on (default: 8765)"
+    )
+    start_monitor_parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host to bind to (default: localhost)"
+    )
+    
+    # Stop monitor
+    stop_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.STOP.value,
+        help="Stop Socket.IO monitoring server"
+    )
+    stop_monitor_parser.add_argument(
+        "--port",
+        type=int,
+        help="Port of server to stop (auto-detect if not specified)"
+    )
+    
+    # Restart monitor
+    restart_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.RESTART.value,
+        help="Restart Socket.IO monitoring server"
+    )
+    restart_monitor_parser.add_argument(
+        "--port",
+        type=int,
+        help="Port of server to restart (auto-detect if not specified)"
+    )
+    
+    # Port monitor - start/restart on specific port
+    port_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.PORT.value,
+        help="Start/restart Socket.IO monitoring server on specific port"
+    )
+    port_monitor_parser.add_argument(
+        "port",
+        type=int,
+        help="Port number to start/restart server on"
+    )
+    port_monitor_parser.add_argument(
+        "--host",
+        default="localhost",
+        help="Host to bind to (default: localhost)"
     )
     
     return parser
