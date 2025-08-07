@@ -580,18 +580,18 @@ def _start_standalone_socketio_server(port, logger):
             logger.error(f"Failed to start Socket.IO daemon: {result.stderr}")
             return False
         
-        # Wait for server to be ready with longer timeouts and progressive delays
-        # WHY: Socket.IO server startup involves complex async initialization:
+        # Wait for server to be ready with reasonable timeouts and progressive delays
+        # WHY: Socket.IO server startup involves async initialization:
         # 1. Thread creation (~0.1s)
-        # 2. Event loop setup (~1s) 
+        # 2. Event loop setup (~0.5s) 
         # 3. aiohttp server binding (~2-5s)
         # 4. Socket.IO service initialization (~1-3s)
-        # Total: up to 15+ seconds for full readiness (especially on Python 3.13)
-        max_attempts = 30  # Increased from 20 to handle Python 3.13 slower initialization
-        initial_delay = 1.0  # Increased from 0.5s to give daemon more time to fork
-        max_delay = 3.0  # Increased from 2.0s for slower systems
+        # Total: typically 2-5 seconds, up to 15 seconds max
+        max_attempts = 12  # Reduced from 30 - provides ~15 second total timeout
+        initial_delay = 0.75  # Reduced from 1.0s - balanced startup time
+        max_delay = 2.0  # Reduced from 3.0s - sufficient for binding delays
         
-        logger.info(f"Waiting up to {max_attempts * max_delay} seconds for server to be fully ready...")
+        logger.info(f"Waiting up to ~15 seconds for server to be fully ready...")
         
         # Give the daemon initial time to fork and start before checking
         logger.debug("Allowing initial daemon startup time...")
@@ -617,8 +617,8 @@ def _start_standalone_socketio_server(port, logger):
             else:
                 logger.debug(f"Server not yet accepting connections on attempt {attempt + 1}")
         
-        logger.error(f"❌ Socket.IO server health check failed after {max_attempts} attempts ({max_attempts * max_delay:.1f}s)")
-        logger.warning(f"⏱️  Server may still be starting - initialization can take 15+ seconds on some systems")
+        logger.error(f"❌ Socket.IO server health check failed after {max_attempts} attempts (~15s timeout)")
+        logger.warning(f"⏱️  Server may still be starting - try waiting a few more seconds")
         logger.warning(f"💡 The daemon process might be running but not yet accepting HTTP connections")
         logger.error(f"🔧 Troubleshooting steps:")
         logger.error(f"   - Wait a few more seconds and try again")
