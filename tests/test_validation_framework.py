@@ -174,7 +174,7 @@ class TestValidationHooks:
     async def test_pre_load_validation(self, hooks):
         """Test pre-load validation."""
         # Test with non-existent file
-        result = await hooks.run_pre_load_validation(Path('/nonexistent/file.yaml'))
+        result = await hooks.run_pre_load_validation(Path('/nonexistent/file.md'))
         assert not result.is_valid
         assert any('not found' in error for error in result.errors)
     

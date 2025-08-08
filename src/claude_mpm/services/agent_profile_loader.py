@@ -264,7 +264,11 @@ class AgentProfileLoader(BaseService):
         tier_path = self.tier_paths[tier]
         
         # Try different file formats and naming conventions
+        # Check .md files first (Claude Code format), then fall back to YAML/JSON
         possible_files = [
+            tier_path / f"{agent_name}.md",
+            tier_path / f"{agent_name}_agent.md",
+            tier_path / f"{agent_name}-agent.md",
             tier_path / f"{agent_name}.yaml",
             tier_path / f"{agent_name}.yml",
             tier_path / f"{agent_name}.json",
@@ -290,16 +294,23 @@ class AgentProfileLoader(BaseService):
             content = file_path.read_text()
             
             # Parse based on file extension
-            if file_path.suffix in ['.yaml', '.yml']:
+            if file_path.suffix == '.md':
+                # Parse markdown with YAML frontmatter
+                data, instructions = self._parse_markdown_with_frontmatter(content)
+            elif file_path.suffix in ['.yaml', '.yml']:
                 data = yaml.safe_load(content)
+                instructions = data.get('instructions', '')
             elif file_path.suffix == '.json':
                 data = json.loads(content)
+                instructions = data.get('instructions', '')
             else:
                 # Try to parse as YAML first, then JSON
                 try:
                     data = yaml.safe_load(content)
+                    instructions = data.get('instructions', '')
                 except:
                     data = json.loads(content)
+                    instructions = data.get('instructions', '')
             
             # Create profile
             profile = AgentProfile(
@@ -308,7 +319,7 @@ class AgentProfileLoader(BaseService):
                 description=data.get('description', ''),
                 tier=tier,
                 source_path=str(file_path),
-                instructions=data.get('instructions', ''),
+                instructions=instructions,
                 capabilities=data.get('capabilities', []),
                 constraints=data.get('constraints', []),
                 metadata=data.get('metadata', {}),
@@ -329,6 +340,44 @@ class AgentProfileLoader(BaseService):
                 error=str(e)
             )
     
+    def _parse_markdown_with_frontmatter(self, content: str) -> Tuple[Dict[str, Any], str]:
+        """
+        Parse markdown file with YAML frontmatter.
+        
+        Args:
+            content: Markdown content with YAML frontmatter
+            
+        Returns:
+            Tuple of (frontmatter_data, markdown_content)
+        """
+        import re
+        
+        # Check if content starts with YAML frontmatter
+        if not content.strip().startswith('---'):
+            # No frontmatter, treat entire content as instructions
+            return {'name': 'unknown', 'description': 'No frontmatter found'}, content
+        
+        # Split frontmatter and content
+        parts = re.split(r'^---\s*$', content, 2, re.MULTILINE)
+        
+        if len(parts) < 3:
+            # Invalid frontmatter structure
+            return {'name': 'unknown', 'description': 'Invalid frontmatter'}, content
+        
+        # Parse YAML frontmatter
+        frontmatter_text = parts[1].strip()
+        markdown_content = parts[2].strip()
+        
+        try:
+            frontmatter_data = yaml.safe_load(frontmatter_text)
+            if not isinstance(frontmatter_data, dict):
+                frontmatter_data = {'name': 'unknown', 'description': 'Invalid frontmatter format'}
+        except Exception as e:
+            logger.error(f"Error parsing YAML frontmatter: {e}")
+            frontmatter_data = {'name': 'unknown', 'description': f'YAML parse error: {e}'}
+        
+        return frontmatter_data, markdown_content
+    
     # ========================================================================
     # Profile Discovery
     # ========================================================================
@@ -342,16 +391,19 @@ class AgentProfileLoader(BaseService):
                 continue
                 
             agents = []
-            for file_path in tier_path.glob('*.{yaml,yml,json}'):
-                agent_name = file_path.stem
-                # Remove common suffixes
-                if agent_name.endswith('_agent'):
-                    agent_name = agent_name[:-6]
-                elif agent_name.endswith('-agent'):
-                    agent_name = agent_name[:-6]
-                
-                if agent_name not in agents:
-                    agents.append(agent_name)
+            # Check for .md files (Claude Code format) and YAML/JSON files
+            file_patterns = ['*.md', '*.yaml', '*.yml', '*.json']
+            for pattern in file_patterns:
+                for file_path in tier_path.glob(pattern):
+                    agent_name = file_path.stem
+                    # Remove common suffixes
+                    if agent_name.endswith('_agent'):
+                        agent_name = agent_name[:-6]
+                    elif agent_name.endswith('-agent'):
+                        agent_name = agent_name[:-6]
+                    
+                    if agent_name not in agents:
+                        agents.append(agent_name)
             
             discovered[tier] = agents
             logger.debug(f"Discovered {len(agents)} agents in {tier.value} tier")

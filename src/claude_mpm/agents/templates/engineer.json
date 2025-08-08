@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "engineer_agent",
-  "agent_version": "1.1.0",
+  "agent_version": "1.3.0",
   "agent_type": "engineer",
   "metadata": {
     "name": "Engineer Agent",
@@ -19,7 +19,7 @@
     "updated_at": "2025-07-27T03:45:51.472566Z"
   },
   "capabilities": {
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-3-opus-20240229",
     "tools": [
       "Read",
       "Write",

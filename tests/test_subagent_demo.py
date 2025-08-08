@@ -88,7 +88,7 @@ def test_simple_runner():
             # Check deployed agents
             agent_dir = Path.home() / ".claude" / "agents"
             if agent_dir.exists():
-                agents = list(agent_dir.glob("*.yaml"))
+                agents = list(agent_dir.glob("*.md"))
                 print(f"\n📋 Available subagents in {agent_dir}:")
                 for agent in agents:
                     print(f"  - {agent.stem}")
