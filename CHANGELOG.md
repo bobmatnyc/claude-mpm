@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.4.24] - 2025-08-08
 
+### Added
+- **TodoWrite Guidelines Enhancement**: Added comprehensive TodoWrite usage guidelines to 8 agent templates
+  - Enhance task tracking clarity with consistent agent name prefixes
+  - Improve multi-agent coordination and workflow visibility  
+  - Standardize task management across all agent roles
+  - Provide clear guidelines for when to use TodoWrite tool
 
 ### Chores
 
