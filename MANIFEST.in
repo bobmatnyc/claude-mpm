@@ -9,7 +9,7 @@ include requirements-dev.txt
 
 # Include version file
 include VERSION
-include src/claude_mpm/_version.py
+include src/claude_mpm/VERSION
 
 # Include all agent templates and instructions
 recursive-include src/claude_mpm/agents *.md *.json
