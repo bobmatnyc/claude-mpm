@@ -6,9 +6,10 @@ This script verifies that version numbers are consistent across all
 distribution channels and configuration files.
 
 Version Synchronization Points:
-1. VERSION file - Canonical Python version source
-2. package.json - npm distribution version
-3. Git tags - Ultimate source of truth (not checked here)
+1. Root VERSION file - Canonical Python version source
+2. src/claude_mpm/VERSION file - Package distribution version
+3. package.json - npm distribution version
+4. Git tags - Ultimate source of truth (not checked here)
 
 Why Version Sync Matters:
 - Users may install from PyPI or npm
@@ -37,10 +38,11 @@ def check_versions():
     """Check that all version files are in sync.
     
     Version Checking Process:
-    1. Read VERSION file (Python/PyPI version)
-    2. Read package.json (npm version)
-    3. Compare all found versions
-    4. Report mismatches or missing files
+    1. Read root VERSION file (Python/PyPI version source)
+    2. Read package VERSION file (distribution version)
+    3. Read package.json (npm version)
+    4. Compare all found versions
+    5. Report mismatches or missing files
     
     Version Format:
     - Must be semantic version (X.Y.Z)
@@ -59,15 +61,25 @@ def check_versions():
     errors = []
     versions = {}
     
-    # Check VERSION file (Python/PyPI version source)
+    # Check root VERSION file (Python/PyPI version source)
     # This file is managed by manage_version.py and git hooks
-    version_file = project_root / "VERSION"
-    if version_file.exists():
-        version = version_file.read_text().strip()
-        versions["VERSION file"] = version
-        print(f"✓ VERSION file: {version}")
+    root_version_file = project_root / "VERSION"
+    if root_version_file.exists():
+        version = root_version_file.read_text().strip()
+        versions["Root VERSION file"] = version
+        print(f"✓ Root VERSION file: {version}")
     else:
-        errors.append("VERSION file not found")
+        errors.append("Root VERSION file not found")
+    
+    # Check package VERSION file (distribution version)
+    # This file should always match the root VERSION file
+    package_version_file = project_root / "src/claude_mpm/VERSION"
+    if package_version_file.exists():
+        version = package_version_file.read_text().strip()
+        versions["Package VERSION file"] = version
+        print(f"✓ Package VERSION file: {version}")
+    else:
+        errors.append("Package VERSION file not found (src/claude_mpm/VERSION)")
     
     # Check package.json (npm version)
     # This file is updated by release.py during release process
