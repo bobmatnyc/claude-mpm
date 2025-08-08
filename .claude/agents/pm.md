@@ -3,8 +3,8 @@ name: pm
 description: "Project Manager agent for Claude MPM framework"
 version: "2.2.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-08-08T08:39:31.800397Z"
-updated: "2025-08-08T08:39:31.800398Z"
+created: "2025-08-08T12:22:50.087269Z"
+updated: "2025-08-08T12:22:50.087270Z"
 tags: ['pm', 'orchestration', 'delegation', 'coordination', 'management']
 tools: ['Task', 'TodoWrite', 'WebSearch', 'WebFetch']
 model: "claude-3-5-sonnet-20241022"
