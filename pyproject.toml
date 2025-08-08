@@ -55,6 +55,7 @@ dependencies = [
     "aiohttp>=3.9.0",
     "aiohttp-cors>=0.8.0",
     "python-engineio>=4.8.0",
+    "urwid>=2.1.0",
 ]
 
 [project.optional-dependencies]
