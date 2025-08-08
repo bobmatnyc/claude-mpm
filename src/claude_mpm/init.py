@@ -30,6 +30,7 @@ class ProjectInitializer:
           - config/
           - logs/
           - templates/
+          - registry/
         """
         try:
             # Create main user directory
@@ -41,6 +42,7 @@ class ProjectInitializer:
                 self.user_dir / "config",
                 self.user_dir / "logs",
                 self.user_dir / "templates",
+                self.user_dir / "registry",
             ]
             
             for directory in directories:

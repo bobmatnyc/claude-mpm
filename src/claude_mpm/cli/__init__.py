@@ -24,7 +24,8 @@ from .commands import (
     manage_agents,
     run_terminal_ui,
     manage_memory,
-    manage_monitor
+    manage_monitor,
+    run_manager
 )
 
 # Get version from VERSION file - single source of truth
@@ -69,6 +70,9 @@ def main(argv: Optional[list] = None):
     # Ensure directories are initialized on first run
     ensure_directories()
     
+    # Initialize or update project registry
+    _initialize_project_registry()
+    
     # Create parser with version
     parser = create_parser(version=__version__)
     
@@ -108,6 +112,29 @@ def main(argv: Optional[list] = None):
             import traceback
             traceback.print_exc()
         return 1
+
+
+def _initialize_project_registry():
+    """
+    Initialize or update the project registry for the current session.
+    
+    WHY: The project registry tracks all claude-mpm projects and their metadata
+    across sessions. This function ensures the current project is properly
+    registered and updates session information.
+    
+    DESIGN DECISION: Registry failures are logged but don't prevent startup
+    to ensure claude-mpm remains functional even if registry operations fail.
+    """
+    try:
+        from ..services.project_registry import ProjectRegistry
+        registry = ProjectRegistry()
+        registry.get_or_create_project_entry()
+    except Exception as e:
+        # Import logger here to avoid circular imports
+        from ..core.logger import get_logger
+        logger = get_logger("cli")
+        logger.debug(f"Failed to initialize project registry: {e}")
+        # Continue execution - registry failure shouldn't block startup
 
 
 def _ensure_run_attributes(args):
@@ -157,6 +184,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.UI.value: run_terminal_ui,
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
+        CLICommands.MANAGER.value: run_manager,
     }
     
     # Execute command if found
