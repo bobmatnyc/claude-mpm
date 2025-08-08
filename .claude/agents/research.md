@@ -3,8 +3,8 @@ name: research
 description: "Prescriptive codebase analysis with confidence validation and PM escalation for reliable implementation guidance"
 version: "2.4.0"
 author: "claude-mpm@anthropic.com"
-created: "2025-08-08T08:39:31.800638Z"
-updated: "2025-08-08T08:39:31.800639Z"
+created: "2025-08-08T12:22:50.087526Z"
+updated: "2025-08-08T12:22:50.087527Z"
 tags: ['research', 'tree-sitter', 'codebase-analysis', 'confidence-validation', 'pm-escalation']
 tools: ['Read', 'Grep', 'Glob', 'LS', 'WebSearch', 'WebFetch', 'Bash', 'TodoWrite']
 model: "claude-3-5-sonnet-20241022"
