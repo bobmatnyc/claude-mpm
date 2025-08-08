@@ -83,6 +83,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 claude_mpm = [
+    "VERSION",
     "scripts/*",
     "dashboard/*.html",
     "dashboard/templates/*.html",
