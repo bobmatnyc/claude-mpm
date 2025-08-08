@@ -111,19 +111,23 @@ def get_current_version() -> str:
     """Get current version from VERSION file.
     
     Version Detection:
-    1. VERSION file: Primary source of truth
-    2. Default: Returns 0.0.0 if VERSION file is missing
+    1. Root VERSION file: Primary source of truth
+    2. Validates sync with src/claude_mpm/VERSION
+    3. Default: Returns 0.0.0 if VERSION file is missing
     
-    The VERSION file is the single source of truth for version information.
+    The root VERSION file is the single source of truth for version information.
     Git tags are used for releases, but VERSION file contains the current version.
     
     Returns:
         Current version string from VERSION file
     """
-    # Read from VERSION file - single source of truth
-    version_file = Path("VERSION")
-    if version_file.exists():
-        return version_file.read_text().strip()
+    # Read from root VERSION file - single source of truth
+    root_version_file = Path("VERSION")
+    if root_version_file.exists():
+        version = root_version_file.read_text().strip()
+        # Validate sync with package VERSION file
+        validate_version_sync()
+        return version
     
     # Default version when VERSION file is missing
     print("WARNING: VERSION file not found, using default version 0.0.0", file=sys.stderr)
@@ -364,10 +368,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 def update_version_file(version: str):
-    """Update VERSION file."""
-    version_file = Path("VERSION")
-    version_file.write_text(version + "\n")
-    print(f"Updated VERSION file to {version}")
+    """Update both VERSION files to maintain synchronization.
+    
+    Updates:
+    1. Root VERSION file (primary source of truth)
+    2. src/claude_mpm/VERSION file (for package distribution)
+    
+    This ensures both files stay synchronized and prevents version mismatches
+    in the package distribution.
+    
+    Args:
+        version: New version string to write to both files
+    """
+    # Update root VERSION file (primary)
+    root_version_file = Path("VERSION")
+    root_version_file.write_text(version + "\n")
+    print(f"Updated root VERSION file to {version}")
+    
+    # Update package VERSION file (for distribution)
+    package_version_file = Path("src/claude_mpm/VERSION")
+    if package_version_file.parent.exists():
+        package_version_file.write_text(version + "\n")
+        print(f"Updated package VERSION file to {version}")
+    else:
+        print("WARNING: src/claude_mpm directory not found, skipping package VERSION update", file=sys.stderr)
+
+
+def validate_version_sync() -> bool:
+    """Validate that both VERSION files contain the same version.
+    
+    Checks:
+    1. Both VERSION files exist
+    2. Both contain the same version string
+    3. Raises error if out of sync
+    
+    This function helps prevent version mismatches that can cause
+    package distribution issues where the reported version differs
+    from the actual package version.
+    
+    Returns:
+        True if files are synchronized
+        
+    Raises:
+        ValueError: If files are out of sync or missing
+    """
+    root_version_file = Path("VERSION")
+    package_version_file = Path("src/claude_mpm/VERSION")
+    
+    # Check if both files exist
+    if not root_version_file.exists():
+        raise ValueError("Root VERSION file is missing")
+    
+    if not package_version_file.exists():
+        print("WARNING: Package VERSION file is missing", file=sys.stderr)
+        return False
+    
+    # Read versions from both files
+    root_version = root_version_file.read_text().strip()
+    package_version = package_version_file.read_text().strip()
+    
+    # Validate they match
+    if root_version != package_version:
+        raise ValueError(
+            f"VERSION files are out of sync: "
+            f"root={root_version}, package={package_version}. "
+            f"Run version sync to fix."
+        )
+    
+    return True
+
+
+def sync_version_files():
+    """Synchronize package VERSION file with root VERSION file.
+    
+    This function copies the version from the root VERSION file
+    (source of truth) to the package VERSION file, ensuring they
+    are synchronized.
+    """
+    root_version_file = Path("VERSION")
+    package_version_file = Path("src/claude_mpm/VERSION")
+    
+    if not root_version_file.exists():
+        raise ValueError("Root VERSION file is missing")
+    
+    # Read version from root file
+    version = root_version_file.read_text().strip()
+    
+    # Write to package file
+    if package_version_file.parent.exists():
+        package_version_file.write_text(version + "\n")
+        print(f"Synchronized package VERSION file to {version}")
+    else:
+        print("WARNING: src/claude_mpm directory not found", file=sys.stderr)
 
 
 def create_git_tag(version: str, message: str):
@@ -399,7 +491,7 @@ def create_git_tag(version: str, message: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Manage Claude MPM versioning")
-    parser.add_argument("command", choices=["check", "bump", "changelog", "tag", "auto"],
+    parser.add_argument("command", choices=["check", "bump", "changelog", "tag", "auto", "sync", "validate"],
                        help="Command to run")
     parser.add_argument("--bump-type", choices=["major", "minor", "patch", "auto"],
                        default="auto", help="Version bump type")
@@ -410,7 +502,30 @@ def main():
     
     args = parser.parse_args()
     
-    # Get current version
+    # Handle commands that don't need current version first
+    if args.command == "validate":
+        # Validate version sync
+        try:
+            validate_version_sync()
+            print("VERSION files are synchronized")
+        except ValueError as e:
+            print(f"ERROR: {e}", file=sys.stderr)
+            sys.exit(1)
+        return
+    
+    elif args.command == "sync":
+        # Synchronize version files
+        if not args.dry_run:
+            try:
+                sync_version_files()
+            except ValueError as e:
+                print(f"ERROR: {e}", file=sys.stderr)
+                sys.exit(1)
+        else:
+            print("DRY RUN: Would synchronize VERSION files")
+        return
+    
+    # Get current version for other commands
     current_version = get_current_version()
     print(f"Current version: {current_version}")
     
@@ -448,8 +563,8 @@ def main():
             update_changelog(changelog_entry)
             
             if not args.no_commit:
-                # Commit changes
-                run_command(["git", "add", "VERSION", "CHANGELOG.md"])
+                # Commit changes (include both VERSION files)
+                run_command(["git", "add", "VERSION", "src/claude_mpm/VERSION", "CHANGELOG.md"])
                 run_command(["git", "commit", "-m", f"chore: bump version to {new_version}"])
                 
                 # Create tag
