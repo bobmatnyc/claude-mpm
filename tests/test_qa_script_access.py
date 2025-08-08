@@ -9,20 +9,20 @@ import json
 def test_qa_agent_permissions():
     """Test that QA agent has proper script access permissions"""
     
-    # Load QA agent YAML configuration
-    qa_yaml_path = os.path.join(os.path.dirname(__file__), '..', '.claude', 'agents', 'qa.yaml')
+    # Load QA agent Markdown configuration
+    qa_md_path = os.path.join(os.path.dirname(__file__), '..', '.claude', 'agents', 'qa.md')
     
-    if not os.path.exists(qa_yaml_path):
-        print(f"❌ QA agent YAML not found at {qa_yaml_path}")
+    if not os.path.exists(qa_md_path):
+        print(f"❌ QA agent Markdown not found at {qa_md_path}")
         return False
         
-    with open(qa_yaml_path, 'r') as f:
+    with open(qa_md_path, 'r') as f:
         content = f.read()
         
     # Split by --- to get front matter
     parts = content.split('---')
     if len(parts) < 3:  # Should have at least 3 parts: front matter, separator, content
-        print("❌ Invalid YAML format")
+        print("❌ Invalid Markdown format")
         return False
         
     # Parse the front matter (second part after first ---)

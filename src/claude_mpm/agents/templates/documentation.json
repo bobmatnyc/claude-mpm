@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "documentation_agent",
-  "agent_version": "1.1.0",
+  "agent_version": "1.3.0",
   "agent_type": "documentation",
   "metadata": {
     "name": "Documentation Agent",
@@ -18,7 +18,7 @@
     "updated_at": "2025-07-27T03:45:51.468280Z"
   },
   "capabilities": {
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-3-5-sonnet-20241022",
     "tools": [
       "Read",
       "Write",

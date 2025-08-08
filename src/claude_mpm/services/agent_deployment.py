@@ -186,6 +186,7 @@ class AgentDeploymentService:
             "skipped": [],
             "updated": [],
             "migrated": [],  # Track agents migrated from old format
+            "converted": [],  # Track YAML to MD conversions
             "total": 0,
             # METRICS: Add detailed timing and performance data to results
             "metrics": {
@@ -211,6 +212,10 @@ class AgentDeploymentService:
                 self.logger.error(error_msg)
                 results["errors"].append(error_msg)
                 return results
+            
+            # Convert any existing YAML files to MD format
+            conversion_results = self._convert_yaml_to_md(target_dir)
+            results["converted"] = conversion_results.get("converted", [])
             
             # Load base agent content
             # OPERATIONAL NOTE: Base agent contains shared configuration and instructions
@@ -242,7 +247,7 @@ class AgentDeploymentService:
                     agent_start_time = time.time()
                     
                     agent_name = template_file.stem
-                    target_file = target_dir / f"{agent_name}.yaml"
+                    target_file = target_dir / f"{agent_name}.md"
                     
                     # Check if agent needs update
                     needs_update = force_rebuild
@@ -265,12 +270,12 @@ class AgentDeploymentService:
                         self.logger.debug(f"Skipped up-to-date agent: {agent_name}")
                         continue
                     
-                    # Build the agent file
-                    agent_yaml = self._build_agent_yaml(agent_name, template_file, base_agent_data)
+                    # Build the agent file as markdown with YAML frontmatter
+                    agent_content = self._build_agent_markdown(agent_name, template_file, base_agent_data)
                     
                     # Write the agent file
                     is_update = target_file.exists()
-                    target_file.write_text(agent_yaml)
+                    target_file.write_text(agent_content)
                     
                     # METRICS: Record deployment time for this agent
                     agent_deployment_time = (time.time() - agent_start_time) * 1000  # Convert to ms
@@ -320,6 +325,7 @@ class AgentDeploymentService:
                 f"Deployed {len(results['deployed'])} agents, "
                 f"updated {len(results['updated'])}, "
                 f"migrated {len(results['migrated'])}, "
+                f"converted {len(results['converted'])} YAML files, "
                 f"skipped {len(results['skipped'])}, "
                 f"errors: {len(results['errors'])}"
             )
@@ -514,6 +520,13 @@ class AgentDeploymentService:
             ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
         )
         
+        # Get model from capabilities.model in new format
+        model = (
+            template_data.get('capabilities', {}).get('model') or
+            template_data.get('configuration_fields', {}).get('model') or
+            "claude-sonnet-4-20250514"  # Default fallback
+        )
+        
         frontmatter = f"""---
 name: {agent_name}
 description: "{description}"
@@ -523,6 +536,7 @@ created: "{datetime.now().isoformat()}Z"
 updated: "{datetime.now().isoformat()}Z"
 tags: {tags}
 tools: {tools}
+model: "{model}"
 metadata:
   base_version: "{self._format_version_display(base_version)}"
   agent_version: "{self._format_version_display(agent_version)}"
@@ -848,7 +862,7 @@ temperature: {temperature}"""
             return results
         
         # List deployed agents
-        agent_files = list(agents_dir.glob("*.yaml"))
+        agent_files = list(agents_dir.glob("*.md"))
         for agent_file in agent_files:
             try:
                 # Read first few lines to get agent name from YAML
@@ -1101,7 +1115,7 @@ temperature: {temperature}"""
             return results
         
         # Remove system agents only (identified by claude-mpm author)
-        agent_files = list(agents_dir.glob("*.yaml"))
+        agent_files = list(agents_dir.glob("*.md"))
         
         for agent_file in agent_files:
             try:
@@ -1532,3 +1546,211 @@ temperature: {temperature}"""
             error_msg = f"Failed to deploy system instructions: {e}"
             self.logger.error(error_msg)
             results["errors"].append(error_msg)
+    
+    def _convert_yaml_to_md(self, target_dir: Path) -> Dict[str, Any]:
+        """
+        Convert existing YAML agent files to MD format with YAML frontmatter.
+        
+        This method handles backward compatibility by finding existing .yaml
+        agent files and converting them to .md format expected by Claude Code.
+        
+        Args:
+            target_dir: Directory containing agent files
+            
+        Returns:
+            Dictionary with conversion results:
+            - converted: List of converted files
+            - errors: List of conversion errors
+            - skipped: List of files that didn't need conversion
+        """
+        results = {
+            "converted": [],
+            "errors": [],
+            "skipped": []
+        }
+        
+        try:
+            # Find existing YAML agent files
+            yaml_files = list(target_dir.glob("*.yaml"))
+            
+            if not yaml_files:
+                self.logger.debug("No YAML files found to convert")
+                return results
+            
+            self.logger.info(f"Found {len(yaml_files)} YAML files to convert to MD format")
+            
+            for yaml_file in yaml_files:
+                try:
+                    agent_name = yaml_file.stem
+                    md_file = target_dir / f"{agent_name}.md"
+                    
+                    # Skip if MD file already exists (unless it's older than YAML)
+                    if md_file.exists():
+                        # Check modification times for safety
+                        yaml_mtime = yaml_file.stat().st_mtime
+                        md_mtime = md_file.stat().st_mtime
+                        
+                        if md_mtime >= yaml_mtime:
+                            results["skipped"].append({
+                                "yaml_file": str(yaml_file),
+                                "md_file": str(md_file),
+                                "reason": "MD file already exists and is newer"
+                            })
+                            continue
+                        else:
+                            # MD file is older, proceed with conversion
+                            self.logger.info(f"MD file {md_file.name} is older than YAML, converting...")
+                    
+                    # Read YAML content
+                    yaml_content = yaml_file.read_text()
+                    
+                    # Convert YAML to MD with YAML frontmatter
+                    md_content = self._convert_yaml_content_to_md(yaml_content, agent_name)
+                    
+                    # Write MD file
+                    md_file.write_text(md_content)
+                    
+                    # Create backup of YAML file before removing (for safety)
+                    backup_file = target_dir / f"{agent_name}.yaml.backup"
+                    try:
+                        yaml_file.rename(backup_file)
+                        self.logger.debug(f"Created backup: {backup_file.name}")
+                    except Exception as backup_error:
+                        self.logger.warning(f"Failed to create backup for {yaml_file.name}: {backup_error}")
+                        # Still remove the original YAML file even if backup fails
+                        yaml_file.unlink()
+                    
+                    results["converted"].append({
+                        "from": str(yaml_file),
+                        "to": str(md_file),
+                        "agent": agent_name
+                    })
+                    
+                    self.logger.info(f"Converted {yaml_file.name} to {md_file.name}")
+                    
+                except Exception as e:
+                    error_msg = f"Failed to convert {yaml_file.name}: {e}"
+                    self.logger.error(error_msg)
+                    results["errors"].append(error_msg)
+            
+        except Exception as e:
+            error_msg = f"YAML to MD conversion failed: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)
+        
+        return results
+    
+    def _convert_yaml_content_to_md(self, yaml_content: str, agent_name: str) -> str:
+        """
+        Convert YAML agent content to MD format with YAML frontmatter.
+        
+        Args:
+            yaml_content: Original YAML content
+            agent_name: Name of the agent
+            
+        Returns:
+            Markdown content with YAML frontmatter
+        """
+        import re
+        from datetime import datetime
+        
+        # Extract YAML frontmatter and content
+        yaml_parts = yaml_content.split('---', 2)
+        
+        if len(yaml_parts) < 3:
+            # No proper YAML frontmatter, treat entire content as instructions
+            frontmatter = f"""---
+name: {agent_name}
+description: "Agent for specialized tasks"
+version: "1.0.0"
+author: "claude-mpm@anthropic.com"
+created: "{datetime.now().isoformat()}Z"
+updated: "{datetime.now().isoformat()}Z"
+tags: ["{agent_name}", "mpm-framework"]
+tools: ["Read", "Write", "Edit", "Grep", "Glob", "LS"]
+metadata:
+  deployment_type: "system"
+  converted_from: "yaml"
+---
+
+"""
+            return frontmatter + yaml_content.strip()
+        
+        # Parse existing frontmatter
+        yaml_frontmatter = yaml_parts[1].strip()
+        instructions = yaml_parts[2].strip()
+        
+        # Extract key fields from YAML frontmatter
+        name = agent_name
+        description = self._extract_yaml_field(yaml_frontmatter, 'description') or f"{agent_name.title()} agent for specialized tasks"
+        version = self._extract_yaml_field(yaml_frontmatter, 'version') or "1.0.0"
+        tools_line = self._extract_yaml_field(yaml_frontmatter, 'tools') or "Read, Write, Edit, Grep, Glob, LS"
+        
+        # Convert tools string to list format
+        if isinstance(tools_line, str):
+            if tools_line.startswith('[') and tools_line.endswith(']'):
+                # Already in list format
+                tools_list = tools_line
+            else:
+                # Convert comma-separated to list
+                tools = [tool.strip() for tool in tools_line.split(',')]
+                tools_list = str(tools)
+        else:
+            tools_list = str(tools_line) if tools_line else '["Read", "Write", "Edit", "Grep", "Glob", "LS"]'
+        
+        # Build new YAML frontmatter
+        new_frontmatter = f"""---
+name: {name}
+description: "{description}"
+version: "{version}"
+author: "claude-mpm@anthropic.com"
+created: "{datetime.now().isoformat()}Z"
+updated: "{datetime.now().isoformat()}Z"
+tags: ["{agent_name}", "mpm-framework"]
+tools: {tools_list}
+metadata:
+  deployment_type: "system"
+  converted_from: "yaml"
+---
+
+"""
+        
+        return new_frontmatter + instructions
+    
+    def _extract_yaml_field(self, yaml_content: str, field_name: str) -> str:
+        """
+        Extract a field value from YAML content.
+        
+        Args:
+            yaml_content: YAML content string
+            field_name: Field name to extract
+            
+        Returns:
+            Field value or None if not found
+        """
+        import re
+        
+        try:
+            # Match field with quoted or unquoted values
+            pattern = rf'^{field_name}:\s*["\']?(.*?)["\']?\s*$'
+            match = re.search(pattern, yaml_content, re.MULTILINE)
+            
+            if match:
+                return match.group(1).strip()
+            
+            # Try with alternative spacing patterns
+            pattern = rf'^{field_name}\s*:\s*(.+)$'
+            match = re.search(pattern, yaml_content, re.MULTILINE)
+            
+            if match:
+                value = match.group(1).strip()
+                # Remove quotes if present
+                if (value.startswith('"') and value.endswith('"')) or \
+                   (value.startswith("'") and value.endswith("'")):
+                    value = value[1:-1]
+                return value
+                
+        except Exception as e:
+            self.logger.warning(f"Error extracting YAML field '{field_name}': {e}")
+        
+        return None

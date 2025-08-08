@@ -333,7 +333,7 @@ class TestAgentSystemE2E:
         Test complete lifecycle of deploying multiple agents.
         
         VALIDATES:
-        - Agent template to YAML conversion
+        - Agent template to Markdown conversion
         - Deployment to .claude/agents directory
         - Version tracking and updates
         - Cleanup operations
@@ -369,11 +369,11 @@ class TestAgentSystemE2E:
         
         # Verify files were created
         for agent_id, _ in agents:
-            yaml_path = self.claude_agents_dir / f"{agent_id}.yaml"
-            assert yaml_path.exists(), f"Agent {agent_id} YAML should exist"
+            md_path = self.claude_agents_dir / f"{agent_id}.md"
+            assert md_path.exists(), f"Agent {agent_id} Markdown should exist"
             
-            # Validate YAML structure
-            with open(yaml_path, 'r') as f:
+            # Validate Markdown structure
+            with open(md_path, 'r') as f:
                 yaml_data = yaml.safe_load(f)
                 assert 'name' in yaml_data
                 assert 'instructions' in yaml_data
@@ -895,11 +895,11 @@ def test_hook_system_integration():
         
         # Simulate hook system discovering agents
         # In real system, this would be done by ClaudeHookHandler
-        yaml_files = list(agents_dir.glob("*.yaml"))
-        assert len(yaml_files) == 1
+        md_files = list(agents_dir.glob("*.md"))
+        assert len(md_files) == 1
         
-        # Verify agent YAML is readable by hook system
-        with open(yaml_files[0], 'r') as f:
+        # Verify agent Markdown is readable by hook system
+        with open(md_files[0], 'r') as f:
             yaml_content = yaml.safe_load(f)
             assert yaml_content['name'] == "Hook Test Agent"
             assert 'instructions' in yaml_content
