@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test agent deployment to YAML format.
+"""Test agent deployment to Markdown format.
 
 This script provides basic integration testing for the AgentDeploymentService.
 It tests the core deployment functionality by deploying agents to a temporary
@@ -7,7 +7,7 @@ directory and verifying the results.
 
 OPERATIONAL PURPOSE:
 - Validates deployment pipeline before production releases
-- Ensures agent YAML files are correctly generated
+- Ensures agent Markdown files are correctly generated
 - Verifies deployment service initialization and execution
 - Provides quick smoke test for CI/CD pipelines
 
@@ -15,7 +15,7 @@ TEST SCENARIOS COVERED:
 1. Service initialization with default paths
 2. Agent deployment to a temporary directory with force_rebuild=True
 3. Deployment results reporting (total, deployed, updated, migrated, skipped, errors)
-4. YAML file generation and basic validation
+4. Markdown file generation and basic validation
 5. Sample content verification from deployed files
 
 TEST COVERAGE GAPS:
@@ -59,7 +59,7 @@ def main():
     2. Initializes the deployment service
     3. Deploys all agents with force_rebuild=True
     4. Reports deployment statistics
-    5. Lists deployed YAML files with sizes
+    5. Lists deployed Markdown files with sizes
     6. Shows sample content from the first deployed agent
     
     OPERATIONAL METRICS TO MONITOR:
@@ -70,8 +70,8 @@ def main():
     
     SUCCESS CRITERIA:
     - Zero deployment errors
-    - All templates produce YAML files
-    - YAML files contain valid frontmatter
+    - All templates produce Markdown files
+    - Markdown files contain valid frontmatter
     - Agent instructions are preserved
     
     Returns:
@@ -102,14 +102,14 @@ def main():
                 print(f"  - {error}")
         
         # List deployed files
-        yaml_files = list(temp_path.glob("*.yaml"))
-        print(f"\nDeployed {len(yaml_files)} YAML files:")
-        for yaml_file in sorted(yaml_files):
-            print(f"  - {yaml_file.name} ({yaml_file.stat().st_size} bytes)")
+        md_files = list(temp_path.glob("*.md"))
+        print(f"\nDeployed {len(md_files)} Markdown files:")
+        for md_file in sorted(md_files):
+            print(f"  - {md_file.name} ({md_file.stat().st_size} bytes)")
         
         # Show sample of first agent
-        if yaml_files:
-            sample_file = yaml_files[0]
+        if md_files:
+            sample_file = md_files[0]
             print(f"\nSample content from {sample_file.name}:")
             print("-" * 60)
             content = sample_file.read_text()

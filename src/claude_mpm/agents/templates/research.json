@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "research_agent",
-  "agent_version": "2.2.0",
+  "agent_version": "2.4.0",
   "agent_type": "research",
   "metadata": {
     "name": "Research Agent",
@@ -18,7 +18,7 @@
     "category": "research"
   },
   "capabilities": {
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-3-5-sonnet-20241022",
     "tools": [
       "Read",
       "Grep", 

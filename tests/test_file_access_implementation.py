@@ -16,24 +16,24 @@ def test_file_access_implementation():
     """Test that file_access configuration is properly implemented."""
     print("Testing file_access implementation in agents...\n")
     
-    # Get all agent YAML files
+    # Get all agent Markdown files
     agent_dir = Path(__file__).parent.parent / ".claude/agents"
-    yaml_files = list(agent_dir.glob("*.yaml"))
+    md_files = list(agent_dir.glob("*.md"))
     
-    if not yaml_files:
-        print("❌ No agent YAML files found!")
+    if not md_files:
+        print("❌ No agent Markdown files found!")
         return False
     
     all_passed = True
     results = []
     
     # Check each agent
-    for yaml_file in yaml_files:
-        agent_name = yaml_file.stem
+    for md_file in md_files:
+        agent_name = md_file.stem
         print(f"Checking {agent_name} agent...")
         
-        # Read YAML file
-        with open(yaml_file, 'r') as f:
+        # Read Markdown file
+        with open(md_file, 'r') as f:
             content = f.read()
             # Split by --- to get frontmatter and instructions
             parts = content.split('---', 2)
@@ -109,7 +109,7 @@ def test_file_access_implementation():
     try:
         loader = AgentLoader()
         # Try to load the PM agent
-        pm_path = agent_dir / "pm.yaml"
+        pm_path = agent_dir / "pm.md"
         if pm_path.exists():
             with open(pm_path, 'r') as f:
                 content = f.read()

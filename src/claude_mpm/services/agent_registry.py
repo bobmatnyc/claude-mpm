@@ -294,19 +294,50 @@ class AgentRegistry:
         try:
             content = file_path.read_text()
             
-            # Try to parse as JSON/YAML for structured data
-            if file_path.suffix in ['.json', '.yaml', '.yml']:
+            # Try to parse as JSON/YAML/MD for structured data
+            if file_path.suffix in ['.md', '.json', '.yaml', '.yml']:
                 try:
                     if file_path.suffix == '.json':
                         data = json.loads(content)
+                        description = data.get('description', '')
+                        version = data.get('version', '0.0.0')
+                        capabilities = data.get('capabilities', [])
+                        metadata = data.get('metadata', {})
+                    elif file_path.suffix == '.md':
+                        # Parse markdown with YAML frontmatter
+                        import yaml
+                        import re
+                        
+                        # Check for YAML frontmatter
+                        if content.strip().startswith('---'):
+                            parts = re.split(r'^---\s*$', content, 2, re.MULTILINE)
+                            if len(parts) >= 3:
+                                frontmatter_text = parts[1].strip()
+                                data = yaml.safe_load(frontmatter_text)
+                                description = data.get('description', '')
+                                version = data.get('version', '0.0.0')
+                                capabilities = data.get('tools', [])  # Tools in .md format
+                                metadata = data.get('metadata', {})
+                            else:
+                                # No frontmatter, use defaults
+                                description = f"{file_path.stem} agent"
+                                version = '1.0.0'
+                                capabilities = []
+                                metadata = {}
+                        else:
+                            # No frontmatter, use defaults
+                            description = f"{file_path.stem} agent"
+                            version = '1.0.0'
+                            capabilities = []
+                            metadata = {}
                     else:
+                        # YAML files
                         import yaml
                         data = yaml.safe_load(content)
-                    
-                    description = data.get('description', '')
-                    version = data.get('version', '0.0.0')
-                    capabilities = data.get('capabilities', [])
-                    metadata = data.get('metadata', {})
+                        description = data.get('description', '')
+                        version = data.get('version', '0.0.0')
+                        capabilities = data.get('capabilities', [])
+                        metadata = data.get('metadata', {})
                 except Exception:
                     pass
             

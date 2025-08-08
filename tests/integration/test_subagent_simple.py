@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Simple test to check if Claude recognizes subagent YAML files."""
+"""Simple test to check if Claude recognizes subagent Markdown files."""
 
 import os
 import yaml
