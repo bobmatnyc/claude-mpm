@@ -10,7 +10,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.simple_runner import SimpleClaudeRunner, create_simple_context
+from claude_mpm.core.claude_runner import SimpleClaudeRunner, create_simple_context
 
 
 def hello_world_demo():

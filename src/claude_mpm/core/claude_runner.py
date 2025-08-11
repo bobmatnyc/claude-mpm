@@ -67,23 +67,58 @@ class ClaudeRunner:
                     level="INFO",
                     component="runner"
                 )
+            except ImportError as e:
+                self.logger.warning(f"Project logger module not available: {e}")
             except Exception as e:
                 self.logger.warning(f"Failed to initialize project logger: {e}")
         
-        # Initialize services
-        self.deployment_service = AgentDeploymentService()
+        # Initialize services with proper error handling
+        try:
+            self.deployment_service = AgentDeploymentService()
+        except ImportError as e:
+            self.logger.error(f"Failed to import AgentDeploymentService: {e}")
+            raise RuntimeError("Required module AgentDeploymentService not available. Please reinstall claude-mpm.") from e
+        except Exception as e:
+            self.logger.error(f"Failed to initialize AgentDeploymentService: {e}")
+            raise RuntimeError(f"Agent deployment service initialization failed: {e}") from e
+        
+        # Initialize ticket manager if enabled
         if enable_tickets:
             try:
                 self.ticket_manager = TicketManager()
-            except (ImportError, TypeError, Exception) as e:
-                self.logger.warning(f"Ticket manager not available: {e}")
+            except ImportError as e:
+                self.logger.warning(f"Ticket manager module not available: {e}")
+                self.ticket_manager = None
+                self.enable_tickets = False
+            except TypeError as e:
+                self.logger.warning(f"Ticket manager initialization error: {e}")
+                self.ticket_manager = None
+                self.enable_tickets = False
+            except Exception as e:
+                self.logger.warning(f"Unexpected error initializing ticket manager: {e}")
                 self.ticket_manager = None
                 self.enable_tickets = False
         
-        # Initialize hook service and register memory hooks
-        self.config = Config()
-        self.hook_service = HookService(self.config)
-        self._register_memory_hooks()
+        # Initialize configuration
+        try:
+            self.config = Config()
+        except FileNotFoundError as e:
+            self.logger.warning(f"Configuration file not found, using defaults: {e}")
+            self.config = Config()  # Will use defaults
+        except Exception as e:
+            self.logger.error(f"Failed to load configuration: {e}")
+            raise RuntimeError(f"Configuration initialization failed: {e}") from e
+        
+        # Initialize hook service
+        try:
+            self.hook_service = HookService(self.config)
+            self._register_memory_hooks()
+        except ImportError as e:
+            self.logger.warning(f"Hook service module not available: {e}")
+            self.hook_service = None
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize hook service: {e}")
+            self.hook_service = None
         
         # Load system instructions
         self.system_instructions = self._load_system_instructions()
@@ -101,6 +136,10 @@ class ClaudeRunner:
                     "log_level": log_level,
                     "launch_method": launch_method
                 })
+            except PermissionError as e:
+                self.logger.debug(f"Permission denied creating session log file: {e}")
+            except OSError as e:
+                self.logger.debug(f"OS error creating session log file: {e}")
             except Exception as e:
                 self.logger.debug(f"Failed to create session log file: {e}")
         
@@ -148,15 +187,41 @@ class ClaudeRunner:
                     )
                 return True
                 
-        except Exception as e:
-            self.logger.error(f"Agent deployment failed: {e}")
-            print(f"⚠️  Agent deployment failed: {e}")
+        
+        except PermissionError as e:
+            error_msg = f"Permission denied deploying agents to .claude/agents/: {e}"
+            self.logger.error(error_msg)
+            print(f"❌ {error_msg}")
+            print("💡 Try running with appropriate permissions or check directory ownership")
             if self.project_logger:
-                self.project_logger.log_system(
-                    f"Agent deployment failed: {e}",
-                    level="ERROR",
-                    component="deployment"
-                )
+                self.project_logger.log_system(error_msg, level="ERROR", component="deployment")
+            return False
+        
+        except FileNotFoundError as e:
+            error_msg = f"Agent templates not found: {e}"
+            self.logger.error(error_msg)
+            print(f"❌ {error_msg}")
+            print("💡 Ensure claude-mpm is properly installed")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="deployment")
+            return False
+        
+        except ImportError as e:
+            error_msg = f"Missing required module for agent deployment: {e}"
+            self.logger.error(error_msg)
+            print(f"⚠️  {error_msg}")
+            print("💡 Some agent features may be limited")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="WARNING", component="deployment")
+            return False
+        
+        except Exception as e:
+            error_msg = f"Unexpected error during agent deployment: {e}"
+            self.logger.error(error_msg)
+            print(f"⚠️  {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="deployment")
+            # Continue without agents rather than failing completely
             return False
     
     def run_interactive(self, initial_context: Optional[str] = None):
@@ -180,8 +245,14 @@ class ClaudeRunner:
                     launch_method=self.launch_method,
                     working_dir=working_dir
                 )
+            except ImportError as e:
+                self.logger.warning(f"Socket.IO module not available: {e}")
+                self.websocket_server = None
+            except ConnectionError as e:
+                self.logger.warning(f"Cannot connect to Socket.IO server on port {self.websocket_port}: {e}")
+                self.websocket_server = None
             except Exception as e:
-                self.logger.warning(f"Failed to connect to Socket.IO server: {e}")
+                self.logger.warning(f"Unexpected error with Socket.IO server: {e}")
                 self.websocket_server = None
         
         # Get version with robust fallback mechanisms
@@ -246,8 +317,12 @@ class ClaudeRunner:
                 try:
                     os.chdir(user_pwd)
                     self.logger.info(f"Changed working directory to: {user_pwd}")
-                except Exception as e:
-                    self.logger.warning(f"Could not change to user directory {user_pwd}: {e}")
+                except PermissionError as e:
+                    self.logger.warning(f"Permission denied accessing directory {user_pwd}: {e}")
+                except FileNotFoundError as e:
+                    self.logger.warning(f"Directory not found {user_pwd}: {e}")
+                except OSError as e:
+                    self.logger.warning(f"OS error changing to directory {user_pwd}: {e}")
             
             print("Launching Claude...")
             
@@ -283,18 +358,62 @@ class ClaudeRunner:
                     )
                 os.execvpe(cmd[0], cmd, clean_env)
             
-        except Exception as e:
-            print(f"Failed to launch Claude: {e}")
+        except FileNotFoundError as e:
+            error_msg = f"Claude CLI not found. Please ensure 'claude' is installed and in your PATH: {e}"
+            print(f"❌ {error_msg}")
             if self.project_logger:
-                self.project_logger.log_system(
-                    f"Failed to launch Claude: {e}",
-                    level="ERROR",
-                    component="session"
-                )
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
                 self._log_session_event({
                     "event": "interactive_launch_failed",
                     "error": str(e),
-                    "exception_type": type(e).__name__
+                    "exception_type": "FileNotFoundError",
+                    "recovery_action": "fallback_to_subprocess"
+                })
+        except PermissionError as e:
+            error_msg = f"Permission denied executing Claude CLI: {e}"
+            print(f"❌ {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "interactive_launch_failed",
+                    "error": str(e),
+                    "exception_type": "PermissionError",
+                    "recovery_action": "check_file_permissions"
+                })
+        except OSError as e:
+            error_msg = f"OS error launching Claude: {e}"
+            print(f"❌ {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "interactive_launch_failed",
+                    "error": str(e),
+                    "exception_type": "OSError",
+                    "recovery_action": "fallback_to_subprocess"
+                })
+        except KeyboardInterrupt:
+            print("\n⚠️  Session interrupted by user")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "Session interrupted by user",
+                    level="INFO",
+                    component="session"
+                )
+                self._log_session_event({
+                    "event": "session_interrupted",
+                    "reason": "user_interrupt"
+                })
+            return  # Clean exit on user interrupt
+        except Exception as e:
+            error_msg = f"Unexpected error launching Claude: {e}"
+            print(f"❌ {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "interactive_launch_failed",
+                    "error": str(e),
+                    "exception_type": type(e).__name__,
+                    "recovery_action": "fallback_to_subprocess"
                 })
             
             # Notify WebSocket clients of error
@@ -304,21 +423,52 @@ class ClaudeRunner:
                     message=f"Failed to launch Claude: {e}"
                 )
             # Fallback to subprocess
+            print("\n🔄 Attempting fallback launch method...")
             try:
                 # Use the same clean_env we prepared earlier
-                subprocess.run(cmd, stdin=None, stdout=None, stderr=None, env=clean_env)
+                result = subprocess.run(cmd, stdin=None, stdout=None, stderr=None, env=clean_env)
+                if result.returncode == 0:
+                    if self.project_logger:
+                        self.project_logger.log_system(
+                            "Interactive session completed (subprocess fallback)",
+                            level="INFO",
+                            component="session"
+                        )
+                        self._log_session_event({
+                            "event": "interactive_session_complete",
+                            "fallback": True,
+                            "return_code": result.returncode
+                        })
+                else:
+                    print(f"⚠️  Claude exited with code {result.returncode}")
+                    if self.project_logger:
+                        self.project_logger.log_system(
+                            f"Claude exited with non-zero code: {result.returncode}",
+                            level="WARNING",
+                            component="session"
+                        )
+            except FileNotFoundError as e:
+                print(f"❌ Fallback failed: Claude CLI not found in PATH")
+                print("\n💡 To fix this issue:")
+                print("   1. Install Claude CLI: npm install -g @anthropic-ai/claude-ai")
+                print("   2. Or specify the full path to the claude binary")
                 if self.project_logger:
                     self.project_logger.log_system(
-                        "Interactive session completed (subprocess fallback)",
+                        f"Fallback failed - Claude CLI not found: {e}",
+                        level="ERROR",
+                        component="session"
+                    )
+            except KeyboardInterrupt:
+                print("\n⚠️  Fallback interrupted by user")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "Fallback interrupted by user",
                         level="INFO",
                         component="session"
                     )
-                    self._log_session_event({
-                        "event": "interactive_session_complete",
-                        "fallback": True
-                    })
             except Exception as fallback_error:
-                print(f"Fallback also failed: {fallback_error}")
+                print(f"❌ Fallback failed with unexpected error: {fallback_error}")
+                print(f"   Error type: {type(fallback_error).__name__}")
                 if self.project_logger:
                     self.project_logger.log_system(
                         f"Fallback launch failed: {fallback_error}",
@@ -354,8 +504,14 @@ class ClaudeRunner:
                     launch_method="oneshot",
                     working_dir=working_dir
                 )
+            except ImportError as e:
+                self.logger.warning(f"Socket.IO module not available: {e}")
+                self.websocket_server = None
+            except ConnectionError as e:
+                self.logger.warning(f"Cannot connect to Socket.IO server on port {self.websocket_port}: {e}")
+                self.websocket_server = None
             except Exception as e:
-                self.logger.warning(f"Failed to connect to Socket.IO server: {e}")
+                self.logger.warning(f"Unexpected error with Socket.IO server: {e}")
                 self.websocket_server = None
         
         # Check for /mpm: commands
@@ -412,8 +568,14 @@ class ClaudeRunner:
                     original_cwd = os.getcwd()
                     os.chdir(user_pwd)
                     self.logger.info(f"Changed working directory to: {user_pwd}")
-                except Exception as e:
-                    self.logger.warning(f"Could not change to user directory {user_pwd}: {e}")
+                except PermissionError as e:
+                    self.logger.warning(f"Permission denied accessing directory {user_pwd}: {e}")
+                    original_cwd = None
+                except FileNotFoundError as e:
+                    self.logger.warning(f"Directory not found {user_pwd}: {e}")
+                    original_cwd = None
+                except OSError as e:
+                    self.logger.warning(f"OS error changing to directory {user_pwd}: {e}")
                     original_cwd = None
             else:
                 original_cwd = None
@@ -523,9 +685,79 @@ class ClaudeRunner:
                     })
                 
                 return False
-                
+        
+        except subprocess.TimeoutExpired as e:
+            error_msg = f"Command timed out after {e.timeout} seconds"
+            print(f"⏱️  {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "session_timeout",
+                    "success": False,
+                    "timeout": e.timeout,
+                    "exception_type": "TimeoutExpired"
+                })
+            return False
+        
+        except FileNotFoundError as e:
+            error_msg = "Claude CLI not found. Please ensure 'claude' is installed and in your PATH"
+            print(f"❌ {error_msg}")
+            print("\n💡 To fix: Install Claude CLI with 'npm install -g @anthropic-ai/claude-ai'")
+            if self.project_logger:
+                self.project_logger.log_system(f"{error_msg}: {e}", level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "session_exception",
+                    "success": False,
+                    "exception": str(e),
+                    "exception_type": "FileNotFoundError"
+                })
+            return False
+        
+        except PermissionError as e:
+            error_msg = f"Permission denied executing Claude CLI: {e}"
+            print(f"❌ {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "session_exception",
+                    "success": False,
+                    "exception": str(e),
+                    "exception_type": "PermissionError"
+                })
+            return False
+        
+        except KeyboardInterrupt:
+            print("\n⚠️  Command interrupted by user")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    "Session interrupted by user",
+                    level="INFO",
+                    component="session"
+                )
+                self._log_session_event({
+                    "event": "session_interrupted",
+                    "success": False,
+                    "reason": "user_interrupt"
+                })
+            return False
+        
+        except MemoryError as e:
+            error_msg = "Out of memory while processing command"
+            print(f"❌ {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(f"{error_msg}: {e}", level="ERROR", component="session")
+                self._log_session_event({
+                    "event": "session_exception",
+                    "success": False,
+                    "exception": str(e),
+                    "exception_type": "MemoryError"
+                })
+            return False
+        
         except Exception as e:
-            print(f"Error: {e}")
+            error_msg = f"Unexpected error: {e}"
+            print(f"❌ {error_msg}")
+            print(f"   Error type: {type(e).__name__}")
             
             if self.project_logger:
                 self.project_logger.log_system(
@@ -580,8 +812,12 @@ class ClaudeRunner:
                         print(f"  ... and {len(tickets) - 3} more")
             else:
                 self.logger.debug("Ticket extraction method not available")
+        except AttributeError as e:
+            self.logger.debug(f"Ticket manager missing expected method: {e}")
+        except TypeError as e:
+            self.logger.debug(f"Invalid ticket data format: {e}")
         except Exception as e:
-            self.logger.debug(f"Ticket extraction failed: {e}")
+            self.logger.debug(f"Unexpected error during ticket extraction: {e}")
 
     def _load_system_instructions(self) -> Optional[str]:
         """Load and process system instructions from agents/INSTRUCTIONS.md.
@@ -714,6 +950,9 @@ class ClaudeRunner:
                             component="command"
                         )
                     return True
+                except ImportError as e:
+                    print(f"Error: CLI module not available: {e}")
+                    return False
                 except Exception as e:
                     print(f"Error getting agent versions: {e}")
                     return False
@@ -722,6 +961,9 @@ class ClaudeRunner:
                 print("Available commands: test, agents")
                 return True
                 
+        except KeyboardInterrupt:
+            print("\nCommand interrupted")
+            return False
         except Exception as e:
             print(f"Error executing command: {e}")
             if self.project_logger:
@@ -743,6 +985,8 @@ class ClaudeRunner:
                 
                 with open(self.session_log_file, 'a') as f:
                     f.write(json.dumps(log_entry) + '\n')
+            except (OSError, IOError) as e:
+                self.logger.debug(f"IO error logging session event: {e}")
             except Exception as e:
                 self.logger.debug(f"Failed to log session event: {e}")
     
@@ -832,10 +1076,14 @@ class ClaudeRunner:
                 return
             
             # Import hook classes (lazy import to avoid circular dependencies)
-            from claude_mpm.hooks.memory_integration_hook import (
-                MemoryPreDelegationHook,
-                MemoryPostDelegationHook
-            )
+            try:
+                from claude_mpm.hooks.memory_integration_hook import (
+                    MemoryPreDelegationHook,
+                    MemoryPostDelegationHook
+                )
+            except ImportError as e:
+                self.logger.warning(f"Memory integration hooks not available: {e}")
+                return
             
             # Register pre-delegation hook for memory injection
             pre_hook = MemoryPreDelegationHook(self.config)
@@ -862,6 +1110,8 @@ class ClaudeRunner:
             post_count = len(hooks.get('post_delegation', []))
             self.logger.info(f"📋 Hook Service initialized: {pre_count} pre-delegation, {post_count} post-delegation hooks")
             
+        except AttributeError as e:
+            self.logger.warning(f"Hook service not initialized properly: {e}")
         except Exception as e:
             self.logger.error(f"❌ Failed to register memory hooks: {e}")
             # Don't fail the entire initialization - memory system is optional

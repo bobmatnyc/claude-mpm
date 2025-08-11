@@ -109,29 +109,31 @@ hooks:
   
   # Registered hooks with lazy loading
   registered:
-    memory_context_hook:
-      module: claude_mpm.hooks.builtin.memory_hooks
-      class: MemoryContextHook
-      priority: 10
-      enabled: true
-      params:
-        cache_size: 1000
-    
-    response_logger_hook:
-      module: claude_mpm.hooks.builtin.logging_hooks
-      class: ResponseLoggerHook
-      priority: 90
-      enabled: true
-      params:
-        async: true
-    
-    metrics_hook:
-      module: claude_mpm.hooks.builtin.metrics_hooks
-      class: MetricsCollectorHook
-      priority: 95
-      enabled: true
-      params:
-        buffer_size: 100
+    # NOTE: The builtin hooks have been deprecated and removed
+    # These references are kept commented for historical reference
+    # memory_context_hook:
+    #   module: claude_mpm.hooks.builtin.memory_hooks
+    #   class: MemoryContextHook
+    #   priority: 10
+    #   enabled: true
+    #   params:
+    #     cache_size: 1000
+    # 
+    # response_logger_hook:
+    #   module: claude_mpm.hooks.builtin.logging_hooks
+    #   class: ResponseLoggerHook
+    #   priority: 90
+    #   enabled: true
+    #   params:
+    #     async: true
+    # 
+    # metrics_hook:
+    #   module: claude_mpm.hooks.builtin.metrics_hooks
+    #   class: MetricsCollectorHook
+    #   priority: 95
+    #   enabled: true
+    #   params:
+    #     buffer_size: 100
 
 # Environment variable overrides
 # These can override any setting above:

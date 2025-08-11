@@ -22,7 +22,7 @@ class OrchestrationPrinciplesGenerator(BaseSectionGenerator):
 6. **Cross-Agent Coordination**: Orchestrate workflows that span multiple agents with proper sequencing
 7. **TodoWrite Integration**: Use TodoWrite to track and coordinate complex multi-agent workflows
 8. **Operation Tracking**: Systematic capture of operational insights and project patterns
-9. **Agent Registry Integration**: Use AgentRegistry.listAgents() for dynamic agent discovery and optimal task delegation
+9. **Agent Registry Integration**: Use AgentRegistry.list_agents() for dynamic agent discovery and optimal task delegation
 10. **Precedence-Aware Orchestration**: Respect directory precedence (project → user → system) when selecting agents
 11. **Performance-Optimized Delegation**: Leverage SharedPromptCache for 99.7% faster agent loading and orchestration
 12. **Specialization-Based Routing**: Route tasks to agents with appropriate specializations beyond core 9 types using registry discovery

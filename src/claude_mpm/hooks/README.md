@@ -10,10 +10,9 @@ The hook system allows claude-mpm to intercept and handle commands typed in Clau
 
 ```
 hooks/
-├── claude_hooks/              # Claude Code hook implementation
-│   ├── hook_handler.py       # Main Python handler that processes events
-│   └── hook_wrapper.sh       # Shell wrapper script (this is what gets installed in ~/.claude/settings.json)
-└── builtin/                  # Legacy internal hooks (deprecated)
+└── claude_hooks/              # Claude Code hook implementation
+    ├── hook_handler.py       # Main Python handler that processes events
+    └── hook_wrapper.sh       # Shell wrapper script (this is what gets installed in ~/.claude/settings.json)
 ```
 
 ## Claude Code Hooks
@@ -70,9 +69,9 @@ export CLAUDE_MPM_LOG_LEVEL=DEBUG
 
 Then run Claude Code from that terminal. Hook events will be logged to `~/.claude-mpm/logs/`.
 
-## Legacy Hook System (Deprecated)
+## Legacy Hook System (Removed)
 
-The `builtin/` directory contains the old internal hook system that was designed for JSON-RPC based hooks. This system is deprecated and will be removed in a future version. All hook functionality is now handled through the Claude Code hooks.
+The `builtin/` directory that contained the old internal hook system has been removed. All hook functionality is now handled through the Claude Code hooks system.
 
 ## Development
 

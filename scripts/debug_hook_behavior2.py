@@ -1,66 +1,44 @@
 #!/usr/bin/env python3
-"""Debug script to understand hook behavior in detail."""
+"""Debug script #2 for agent name normalization behavior."""
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from datetime import datetime
-from claude_mpm.hooks.builtin.todo_agent_prefix_hook import TodoAgentPrefixHook
-from claude_mpm.hooks.base_hook import HookContext, HookType
-from claude_mpm.core.agent_name_normalizer import agent_name_normalizer
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
-# Create hook instance
-hook = TodoAgentPrefixHook()
+# This script has been updated to use AgentNameNormalizer
+# instead of the deprecated TodoAgentPrefixHook
 
-# Test cases from the failing test
-test_cases = [
-    ("Research best practices for testing", "[Research]"),
-    ("Implement new feature", "[Engineer]"),
-    ("Test the implementation", "[QA]"),
-    ("Document the API", "[Documentation]"),
-    ("Check security vulnerabilities", "[Security]"),
-    ("Deploy to production", "[Ops]"),
-    ("Create data pipeline", "[Data Engineer]"),
-    ("Create new git branch", "[Version Control]"),
+print("Agent Name Normalization Debug #2")
+print("=" * 50)
+
+# Test all canonical names
+print("\nCanonical Agent Names:")
+for key, name in AgentNameNormalizer.CANONICAL_NAMES.items():
+    prefix = AgentNameNormalizer.to_todo_prefix(name)
+    print(f"  {key:20} -> {name:20} -> {prefix}")
+
+# Test aliases
+print("\nAgent Aliases:")
+test_aliases = [
+    "researcher", "dev", "developer", "quality", "sec",
+    "docs", "devops", "vcs", "data", "arch", "project_manager"
 ]
+for alias in test_aliases:
+    normalized = AgentNameNormalizer.normalize(alias)
+    prefix = AgentNameNormalizer.to_todo_prefix(alias)
+    print(f"  {alias:20} -> {normalized:20} -> {prefix}")
 
-for content, expected_prefix in test_cases:
-    print(f"\nTesting: '{content}'")
-    print(f"Expected prefix: {expected_prefix}")
-    
-    # Check if it already has a prefix
-    has_prefix = hook._has_agent_prefix(content)
-    print(f"Has prefix: {has_prefix}")
-    
-    # Check what agent it suggests
-    suggested = hook._suggest_agent(content)
-    print(f"Suggested agent: {suggested}")
-    
-    if suggested:
-        prefix = agent_name_normalizer.to_todo_prefix(suggested)
-        print(f"Generated prefix: {prefix}")
-    
-    # Create context and execute
-    context = HookContext(
-        hook_type=HookType.CUSTOM,
-        data={
-            'tool_name': 'TodoWrite',
-            'parameters': {
-                'todos': [{'content': content}]
-            }
-        },
-        metadata={},
-        timestamp=datetime.now()
-    )
-    
-    result = hook.execute(context)
-    print(f"Result - Success: {result.success}, Modified: {result.modified}")
-    
-    if result.modified and result.data:
-        updated_content = result.data['parameters']['todos'][0]['content']
-        print(f"Updated content: '{updated_content}'")
-    elif result.error:
-        print(f"Error: {result.error}")
-    
-    print("-" * 50)
+# Test edge cases
+print("\nEdge Cases:")
+edge_cases = ["", None, "unknown", "random_agent", "UPPERCASE", "MiXeD-CaSe"]
+for case in edge_cases:
+    try:
+        normalized = AgentNameNormalizer.normalize(case or "")
+        prefix = AgentNameNormalizer.to_todo_prefix(case or "")
+        print(f"  {str(case):20} -> {normalized:20} -> {prefix}")
+    except Exception as e:
+        print(f"  {str(case):20} -> Error: {e}")
+
+print("\nDebug complete!")

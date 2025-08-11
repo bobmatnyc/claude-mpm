@@ -101,7 +101,7 @@ def test_basic_functionality():
                     "Hook service available")
         
         # Test simple runner exists
-        from claude_mpm.core.simple_runner import SimpleClaudeRunner
+        from claude_mpm.core.claude_runner import SimpleClaudeRunner
         print_status("SimpleClaudeRunner import", True)
         
         return True
