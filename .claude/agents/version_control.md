@@ -1,17 +1,10 @@
 ---
 name: version_control
-description: "Git operations and version management"
-version: "1.3.0"
-author: "claude-mpm@anthropic.com"
-created: "2025-08-08T12:22:50.086466Z"
-updated: "2025-08-08T12:22:50.086467Z"
-tags: ['git', 'versioning', 'releases', 'branches', 'todo-write']
-tools: ['Read', 'Bash', 'Grep', 'Glob', 'LS', 'TodoWrite']
-model: "claude-3-5-sonnet-20241022"
-metadata:
-  base_version: "0.2.0"
-  agent_version: "1.3.0"
-  deployment_type: "system"
+description: Git operations and version management
+version: 2.3.2
+base_version: 0.3.0
+tools: Read, Bash, Grep, Glob, LS, TodoWrite
+model: sonnet
 ---
 
 # Version Control Agent

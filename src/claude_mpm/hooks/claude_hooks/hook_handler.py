@@ -17,6 +17,7 @@ import sys
 import os
 import subprocess
 from datetime import datetime
+import time
 from pathlib import Path
 from collections import deque
 
@@ -46,6 +47,16 @@ except Exception as e:
     if DEBUG:
         print(f"Memory hooks not available: {e}", file=sys.stderr)
     MEMORY_HOOKS_AVAILABLE = False
+
+# Response tracking integration
+RESPONSE_TRACKING_AVAILABLE = False
+try:
+    from claude_mpm.services.response_tracker import ResponseTracker
+    RESPONSE_TRACKING_AVAILABLE = True
+except Exception as e:
+    if DEBUG:
+        print(f"Response tracking not available: {e}", file=sys.stderr)
+    RESPONSE_TRACKING_AVAILABLE = False
 
 # Socket.IO import
 try:
@@ -78,6 +89,8 @@ class ClaudeHookHandler:
         self.active_delegations = {}
         # Use deque to limit memory usage (keep last 100 delegations)
         self.delegation_history = deque(maxlen=100)
+        # Store delegation request data for response correlation: session_id -> request_data
+        self.delegation_requests = {}
         
         # Git branch cache (to avoid repeated subprocess calls)
         self._git_branch_cache = {}
@@ -90,14 +103,28 @@ class ClaudeHookHandler:
         if MEMORY_HOOKS_AVAILABLE:
             self._initialize_memory_hooks()
         
+        # Initialize response tracking if available and enabled
+        self.response_tracker = None
+        self.response_tracking_enabled = False
+        if RESPONSE_TRACKING_AVAILABLE:
+            self._initialize_response_tracking()
+        
         # No fallback server needed - we only use Socket.IO now
     
-    def _track_delegation(self, session_id: str, agent_type: str):
-        """Track a new agent delegation."""
+    def _track_delegation(self, session_id: str, agent_type: str, request_data: dict = None):
+        """Track a new agent delegation with optional request data for response correlation."""
         if session_id and agent_type and agent_type != 'unknown':
             self.active_delegations[session_id] = agent_type
             key = f"{session_id}:{datetime.now().timestamp()}"
             self.delegation_history.append((key, agent_type))
+            
+            # Store request data for response tracking correlation
+            if request_data:
+                self.delegation_requests[session_id] = {
+                    'agent_type': agent_type,
+                    'request': request_data,
+                    'timestamp': datetime.now().isoformat()
+                }
             
             # Clean up old delegations (older than 5 minutes)
             cutoff_time = datetime.now().timestamp() - 300
@@ -115,7 +142,10 @@ class ClaudeHookHandler:
                     keys_to_remove.append(sid)
             
             for key in keys_to_remove:
-                del self.active_delegations[key]
+                if key in self.active_delegations:
+                    del self.active_delegations[key]
+                if key in self.delegation_requests:
+                    del self.delegation_requests[key]
     
     def _get_delegation_agent_type(self, session_id: str) -> str:
         """Get the agent type for a session's active delegation."""
@@ -173,6 +203,124 @@ class ClaudeHookHandler:
             if DEBUG:
                 print(f"❌ Failed to initialize memory hooks: {e}", file=sys.stderr)
             # Don't fail the entire handler - memory system is optional
+    
+    def _initialize_response_tracking(self):
+        """Initialize response tracking if enabled in configuration.
+        
+        WHY: This enables automatic capture and storage of agent responses
+        for analysis, debugging, and learning purposes. Integration into the
+        existing hook handler avoids duplicate event capture.
+        
+        DESIGN DECISION: Check configuration to allow enabling/disabling
+        response tracking without code changes.
+        """
+        try:
+            # Create configuration with optional config file
+            config_file = os.environ.get('CLAUDE_PM_CONFIG_FILE')
+            config = Config(config_file=config_file) if config_file else Config()
+            
+            # Check if response tracking is enabled
+            if not config.get('response_tracking.enabled', False):
+                if DEBUG:
+                    print("Response tracking disabled - skipping initialization", file=sys.stderr)
+                return
+            
+            # Initialize response tracker
+            self.response_tracker = ResponseTracker()
+            self.response_tracking_enabled = True
+            
+            if DEBUG:
+                print("✅ Response tracking initialized", file=sys.stderr)
+                
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Failed to initialize response tracking: {e}", file=sys.stderr)
+            # Don't fail the entire handler - response tracking is optional
+    
+    def _track_agent_response(self, session_id: str, agent_type: str, event: dict):
+        """Track agent response by correlating with original request and saving response.
+        
+        WHY: This integrates response tracking into the existing hook flow,
+        capturing agent responses when Task delegations complete. It correlates
+        the response with the original request stored during pre-tool processing.
+        
+        DESIGN DECISION: Only track responses if response tracking is enabled
+        and we have the original request data. Graceful error handling ensures
+        response tracking failures don't break hook processing.
+        """
+        if not self.response_tracking_enabled or not self.response_tracker:
+            return
+        
+        try:
+            # Get the original request data stored during pre-tool
+            request_info = self.delegation_requests.get(session_id)
+            if not request_info:
+                if DEBUG:
+                    print(f"No request data found for session {session_id}, skipping response tracking", file=sys.stderr)
+                return
+            
+            # Extract response from event output
+            response = event.get('output', '')
+            if not response:
+                # If no output, use error or construct a basic response
+                error = event.get('error', '')
+                exit_code = event.get('exit_code', 0)
+                if error:
+                    response = f"Error: {error}"
+                else:
+                    response = f"Task completed with exit code: {exit_code}"
+            
+            # Convert response to string if it's not already
+            response_text = str(response)
+            
+            # Get the original request (prompt + description)
+            original_request = request_info.get('request', {})
+            prompt = original_request.get('prompt', '')
+            description = original_request.get('description', '')
+            
+            # Combine prompt and description for the full request
+            full_request = prompt
+            if description and description != prompt:
+                if full_request:
+                    full_request += f"\n\nDescription: {description}"
+                else:
+                    full_request = description
+            
+            if not full_request:
+                full_request = f"Task delegation to {agent_type} agent"
+            
+            # Prepare metadata
+            metadata = {
+                'exit_code': event.get('exit_code', 0),
+                'success': event.get('exit_code', 0) == 0,
+                'has_error': bool(event.get('error')),
+                'duration_ms': event.get('duration_ms'),
+                'working_directory': event.get('cwd', ''),
+                'timestamp': datetime.now().isoformat(),
+                'tool_name': 'Task',
+                'original_request_timestamp': request_info.get('timestamp')
+            }
+            
+            # Track the response
+            file_path = self.response_tracker.track_response(
+                agent_name=agent_type,
+                request=full_request,
+                response=response_text,
+                session_id=session_id,
+                metadata=metadata
+            )
+            
+            if DEBUG:
+                print(f"✅ Tracked response for {agent_type} agent in session {session_id}: {file_path.name}", file=sys.stderr)
+            
+            # Clean up the request data after successful tracking
+            if session_id in self.delegation_requests:
+                del self.delegation_requests[session_id]
+                
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Failed to track agent response: {e}", file=sys.stderr)
+            # Don't fail the hook processing - response tracking is optional
     
     def _get_git_branch(self, working_dir: str = None) -> str:
         """Get git branch for the given directory with caching.
@@ -260,9 +408,11 @@ class ClaudeHookHandler:
                 engineio_logger=False
             )
             
-            # Try to connect with short timeout
-            self.sio_client.connect(f'http://localhost:{port}', wait_timeout=1)
-            self.sio_connected = True
+            # Try to connect with short timeout, don't wait for connection
+            self.sio_client.connect(f'http://localhost:{port}', wait=False, wait_timeout=0.5)
+            # Give it a tiny moment to establish connection
+            time.sleep(0.1)
+            self.sio_connected = self.sio_client.connected
             
             if DEBUG:
                 print(f"Hook handler: Connected to Socket.IO server on port {port}", file=sys.stderr)
@@ -326,9 +476,8 @@ class ClaudeHookHandler:
         - Reliable delivery
         - Fast when connection is reused
         """
-        # Fast path: Skip all Socket.IO operations unless configured
-        if not os.environ.get('CLAUDE_MPM_SOCKETIO_PORT') and not DEBUG:
-            return
+        # Always try to emit Socket.IO events if available
+        # The daemon should be running when manager is active
         
         # Get Socket.IO client
         client = self._get_socketio_client()
@@ -336,7 +485,7 @@ class ClaudeHookHandler:
             try:
                 # Format event for Socket.IO server
                 claude_event_data = {
-                    'type': f'hook.{event}',
+                    'type': f'hook.{event}',  # Changed from 'event_type' to 'type' for dashboard compatibility
                     'timestamp': datetime.now().isoformat(),
                     'data': data
                 }
@@ -373,7 +522,6 @@ class ClaudeHookHandler:
         
         # Extract comprehensive prompt data
         prompt_data = {
-            'event_type': 'user_prompt',
             'prompt_text': prompt,
             'prompt_preview': prompt[:200] if len(prompt) > 200 else prompt,
             'prompt_length': len(prompt),
@@ -411,7 +559,6 @@ class ClaudeHookHandler:
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
         pre_tool_data = {
-            'event_type': 'pre_tool',
             'tool_name': tool_name,
             'operation_type': operation_type,
             'tool_parameters': tool_params,
@@ -428,18 +575,37 @@ class ClaudeHookHandler:
         
         # Add delegation-specific data if this is a Task tool
         if tool_name == 'Task' and isinstance(tool_input, dict):
-            agent_type = tool_input.get('subagent_type', 'unknown')
+            # Normalize agent type to handle capitalized names like "Research", "Engineer", etc.
+            raw_agent_type = tool_input.get('subagent_type', 'unknown')
+            
+            # Use AgentNameNormalizer if available, otherwise simple lowercase normalization
+            try:
+                from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
+                normalizer = AgentNameNormalizer()
+                # Convert to Task format (lowercase with hyphens)
+                agent_type = normalizer.to_task_format(raw_agent_type) if raw_agent_type != 'unknown' else 'unknown'
+            except ImportError:
+                # Fallback to simple normalization
+                agent_type = raw_agent_type.lower().replace('_', '-') if raw_agent_type != 'unknown' else 'unknown'
+            
             pre_tool_data['delegation_details'] = {
                 'agent_type': agent_type,
+                'original_agent_type': raw_agent_type,  # Keep original for debugging
                 'prompt': tool_input.get('prompt', ''),
                 'description': tool_input.get('description', ''),
                 'task_preview': (tool_input.get('prompt', '') or tool_input.get('description', ''))[:100]
             }
             
-            # Track this delegation for SubagentStop correlation
+            # Track this delegation for SubagentStop correlation and response tracking
             session_id = event.get('session_id', '')
             if session_id and agent_type != 'unknown':
-                self._track_delegation(session_id, agent_type)
+                # Prepare request data for response tracking correlation
+                request_data = {
+                    'prompt': tool_input.get('prompt', ''),
+                    'description': tool_input.get('description', ''),
+                    'agent_type': agent_type
+                }
+                self._track_delegation(session_id, agent_type, request_data)
             
             # Trigger memory pre-delegation hook
             self._trigger_memory_pre_delegation_hook(agent_type, tool_input, session_id)
@@ -468,7 +634,6 @@ class ClaudeHookHandler:
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
         post_tool_data = {
-            'event_type': 'post_tool',
             'tool_name': tool_name,
             'exit_code': exit_code,
             'success': exit_code == 0,
@@ -484,11 +649,16 @@ class ClaudeHookHandler:
             'output_size': len(str(result_data.get('output', ''))) if result_data.get('output') else 0
         }
         
-        # Handle Task delegation completion for memory hooks
+        # Handle Task delegation completion for memory hooks and response tracking
         if tool_name == 'Task':
             session_id = event.get('session_id', '')
             agent_type = self._get_delegation_agent_type(session_id)
+            
+            # Trigger memory post-delegation hook
             self._trigger_memory_post_delegation_hook(agent_type, event, session_id)
+            
+            # Track agent response if response tracking is enabled
+            self._track_agent_response(session_id, agent_type, event)
         
         self._emit_socketio_event('/hook', 'post_tool', post_tool_data)
     
@@ -687,7 +857,6 @@ class ClaudeHookHandler:
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
         notification_data = {
-            'event_type': 'notification',
             'notification_type': notification_type,
             'message': message,
             'message_preview': message[:200] if len(message) > 200 else message,
@@ -721,7 +890,6 @@ class ClaudeHookHandler:
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
         stop_data = {
-            'event_type': 'stop',
             'reason': reason,
             'stop_type': stop_type,
             'session_id': event.get('session_id', ''),
@@ -772,7 +940,6 @@ class ClaudeHookHandler:
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
         subagent_stop_data = {
-            'event_type': 'subagent_stop',
             'agent_type': agent_type,
             'agent_id': agent_id,
             'reason': reason,

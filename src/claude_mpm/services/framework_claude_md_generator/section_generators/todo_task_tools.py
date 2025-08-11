@@ -43,38 +43,33 @@ class TodoTaskToolsGenerator(BaseSectionGenerator):
 Task(description="[task description]", subagent_type="[agent-type]")
 ```
 
-**Valid subagent_type values (both formats accepted):**
+**Valid subagent_type values (use lowercase format for Claude Code compatibility):**
 
-**Lowercase-hyphenated format (traditional):**
+**Required lowercase format (Claude Code expects these exact values):**
 - `subagent_type="research"` - For investigation and analysis
 - `subagent_type="engineer"` - For coding and implementation
 - `subagent_type="qa"` - For testing and quality assurance
 - `subagent_type="documentation"` - For docs and guides
 - `subagent_type="security"` - For security assessments
 - `subagent_type="ops"` - For deployment and infrastructure
-- `subagent_type="version-control"` - For git and version management
-- `subagent_type="data-engineer"` - For data processing and APIs
+- `subagent_type="version_control"` - For git and version management (use underscore, not hyphen)
+- `subagent_type="data_engineer"` - For data processing and APIs (use underscore, not hyphen)
+- `subagent_type="pm"` - For project management coordination
+- `subagent_type="test_integration"` - For integration testing
 
-**Capitalized format (matching TodoWrite prefixes - also accepted):**
-- `subagent_type="Research"` - For investigation and analysis
-- `subagent_type="Engineer"` - For coding and implementation
-- `subagent_type="QA"` - For testing and quality assurance
-- `subagent_type="Documentation"` - For docs and guides
-- `subagent_type="Security"` - For security assessments
-- `subagent_type="Ops"` - For deployment and infrastructure
-- `subagent_type="Version Control"` - For git and version management
-- `subagent_type="Data Engineer"` - For data processing and APIs
+**Note:** Claude Code's Task tool requires exact lowercase agent names. Capitalized formats like "Research" or "Engineer" will be rejected with an error.
 
-**Examples of Proper Task Tool Usage (both formats work):**
+**Examples of Proper Task Tool Usage (use lowercase format only):**
 - ✅ `Task(description="Update framework documentation", subagent_type="documentation")`
 - ✅ `Task(description="Execute test suite validation", subagent_type="qa")`
-- ✅ `Task(description="Create feature branch and sync", subagent_type="version-control")`
+- ✅ `Task(description="Create feature branch and sync", subagent_type="version_control")` (use underscore)
 - ✅ `Task(description="Investigate performance patterns", subagent_type="research")`
 - ✅ `Task(description="Implement authentication system", subagent_type="engineer")`
-- ✅ `Task(description="Configure database and optimize queries", subagent_type="data-engineer")`
-- ✅ `Task(description="Analyze code patterns", subagent_type="Research")` (capitalized format)
-- ✅ `Task(description="Update API docs", subagent_type="Documentation")` (capitalized format)
-- ✅ `Task(description="Create release tags", subagent_type="Version Control")` (capitalized format)
+- ✅ `Task(description="Configure database and optimize queries", subagent_type="data_engineer")` (use underscore)
+- ✅ `Task(description="Coordinate project tasks", subagent_type="pm")`
+- ❌ `Task(description="Analyze code patterns", subagent_type="Research")` (WRONG - will be rejected)
+- ❌ `Task(description="Update API docs", subagent_type="Documentation")` (WRONG - will be rejected)
+- ❌ `Task(description="Create release tags", subagent_type="Version Control")` (WRONG - will be rejected)
 
 ### 🚨 MANDATORY: THREE SHORTCUT COMMANDS
 
@@ -103,11 +98,11 @@ Task(description="[task description]", subagent_type="[agent-type]")
 - ☐ [Data Engineer] Validate data integrity and verify API connectivity
 - ☐ [Version Control] Apply semantic version bump and create release tags
 
-# Corresponding Task Tool delegations:
+# Corresponding Task Tool delegations (use lowercase with underscores):
 Task(description="Generate changelog and analyze version impact", subagent_type="documentation")
 Task(description="Execute full test suite and quality validation", subagent_type="qa")
-Task(description="Validate data integrity and verify API connectivity", subagent_type="data-engineer")
-Task(description="Apply semantic version bump and create release tags", subagent_type="version-control")
+Task(description="Validate data integrity and verify API connectivity", subagent_type="data_engineer")
+Task(description="Apply semantic version bump and create release tags", subagent_type="version_control")
 
 # Update TodoWrite status based on agent completions
 ```

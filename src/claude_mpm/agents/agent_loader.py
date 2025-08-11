@@ -67,6 +67,7 @@ from ..services.shared_prompt_cache import SharedPromptCache
 from .base_agent_loader import prepend_base_instructions
 from ..validation.agent_validator import AgentValidator, ValidationResult
 from ..utils.paths import PathResolver
+from ..core.agent_name_normalizer import AgentNameNormalizer
 
 # Temporary placeholders for missing module
 # WHY: These classes would normally come from a task_complexity module, but
@@ -564,7 +565,7 @@ def _get_model_config(agent_name: str, complexity_analysis: Optional[Dict[str, A
     - Dynamic vs static selection rates
     
     Args:
-        agent_name: Name of the agent requesting model selection
+        agent_name: Name of the agent requesting model selection (already normalized to agent_id format)
         complexity_analysis: Results from task complexity analysis (if available)
         
     Returns:
@@ -659,7 +660,7 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
     4. Adding metadata about model selection decisions
     
     Args:
-        agent_name: Agent ID (e.g., "research_agent", "qa_agent")
+        agent_name: Agent name in any format (e.g., "Engineer", "research_agent", "QA")
         force_reload: Force reload from source, bypassing cache
         return_model_info: If True, returns extended info tuple
         **kwargs: Additional arguments:
@@ -676,12 +677,13 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
         ValueError: If the requested agent is not found
         
     Processing Flow:
-    1. Load agent instructions (with caching)
-    2. Analyze task complexity (if enabled and task_description provided)
-    3. Determine optimal model based on complexity
-    4. Add model selection metadata to prompt
-    5. Prepend base instructions
-    6. Return appropriate format based on return_model_info
+    1. Normalize agent name to correct agent ID
+    2. Load agent instructions (with caching)
+    3. Analyze task complexity (if enabled and task_description provided)
+    4. Determine optimal model based on complexity
+    5. Add model selection metadata to prompt
+    6. Prepend base instructions
+    7. Return appropriate format based on return_model_info
     
     WHY: This comprehensive approach ensures:
     - Consistent prompt structure across all agents
@@ -689,11 +691,43 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
     - Transparency in model selection decisions
     - Flexibility for different use cases
     """
+    # Normalize the agent name to handle various formats
+    # Convert names like "Engineer", "Research", "QA" to the correct agent IDs
+    normalizer = AgentNameNormalizer()
+    
+    # First check if this looks like it might already be an agent ID
+    if agent_name.endswith("_agent"):
+        # It's already in agent ID format, use it directly
+        actual_agent_id = agent_name
+        # But don't let the normalizer default to engineer for truly unknown agents
+        # Check if this agent actually exists
+        loader = _get_loader()
+        if not loader.get_agent(actual_agent_id):
+            # This is a truly unknown agent, don't normalize it
+            actual_agent_id = agent_name
+    else:
+        # Get the normalized key (e.g., "engineer", "research", "qa")
+        # First check if the agent name is recognized by the normalizer
+        cleaned = agent_name.strip().lower().replace("-", "_")
+        
+        # Check if this is a known alias or canonical name
+        if cleaned in normalizer.ALIASES or cleaned in normalizer.CANONICAL_NAMES:
+            agent_key = normalizer.to_key(agent_name)
+            actual_agent_id = f"{agent_key}_agent"
+        else:
+            # Unknown agent name - don't normalize, let it fail properly
+            # Try adding _agent suffix in case it's a new agent type
+            actual_agent_id = f"{cleaned}_agent"
+    
+    # Log the normalization for debugging
+    if agent_name != actual_agent_id:
+        logger.debug(f"Normalized agent name '{agent_name}' to '{actual_agent_id}'")
+    
     # Load from JSON template via the loader
-    prompt = load_agent_prompt_from_md(agent_name, force_reload)
+    prompt = load_agent_prompt_from_md(actual_agent_id, force_reload)
     
     if prompt is None:
-        raise ValueError(f"No agent found with ID: {agent_name}")
+        raise ValueError(f"No agent found with name: {agent_name} (normalized to: {actual_agent_id})")
     
     # Analyze task complexity if task description is provided
     complexity_analysis = None
@@ -711,7 +745,8 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
         )
     
     # Get model configuration based on agent and complexity
-    selected_model, model_config = _get_model_config(agent_name, complexity_analysis)
+    # Pass the normalized agent ID to _get_model_config
+    selected_model, model_config = _get_model_config(actual_agent_id, complexity_analysis)
     
     # Add model selection metadata to prompt for transparency
     # This helps with debugging and understanding model choices

@@ -6,9 +6,10 @@ project identification, tracking, and metadata management. The registry stores
 comprehensive project information including git status, environment details,
 runtime information, and project characteristics.
 
-DESIGN DECISION: Uses YAML for human-readable registry files stored in the user's
-home directory (~/.claude-mpm/registry/). Each project gets a unique UUID-based
-registry file to avoid conflicts and enable easy project identification.
+DESIGN DECISION: Uses YAML for human-readable registry files stored in the
+user's home directory (~/.claude-mpm/registry/). Each project
+gets a unique UUID-based registry file to avoid conflicts and enable easy project
+identification. Registry is user-specific for better isolation and persistence.
 
 The registry captures both static project information (paths, git info) and
 dynamic runtime information (startup times, process IDs, command line args)
@@ -27,6 +28,7 @@ from typing import Dict, Any, Optional, List
 import yaml
 
 from claude_mpm.core.logger import get_logger
+from claude_mpm.deployment_paths import get_project_root
 
 
 class ProjectRegistryError(Exception):
@@ -43,9 +45,10 @@ class ProjectRegistry:
     This is crucial for multi-project environments where users switch between
     different codebases.
     
-    DESIGN DECISION: Registry files are stored in ~/.claude-mpm/registry/ with
-    UUID-based filenames to ensure uniqueness and avoid conflicts. The registry
+    DESIGN DECISION: Registry files are stored in ~/.claude-mpm/registry/
+    with UUID-based filenames to ensure uniqueness and avoid conflicts. The registry
     uses YAML for human readability and ease of manual inspection/editing.
+    Registry is stored in the user's home directory for persistence across projects.
     """
     
     def __init__(self):
@@ -53,11 +56,14 @@ class ProjectRegistry:
         Initialize the project registry.
         
         WHY: Sets up the registry directory and logger. The registry directory
-        is created in the user's home directory to persist across project
-        directories and system reboots.
+        is created in the user's home directory to keep registry data user-specific
+        and persistent across different projects and sessions.
         """
         self.logger = get_logger("project_registry")
-        self.registry_dir = Path.home() / ".claude-mpm" / "registry"
+        # Use user's home directory for registry to avoid project-specific contamination
+        # This ensures registry persists across all projects for the user
+        user_home = Path.home()
+        self.registry_dir = user_home / ".claude-mpm" / "registry"
         self.current_project_path = Path.cwd().resolve()
         
         # Ensure registry directory exists
