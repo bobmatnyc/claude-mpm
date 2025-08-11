@@ -17,6 +17,8 @@ from dataclasses import dataclass, field
 import logging
 import re
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 
 class BranchStrategyType(Enum):
     """Types of branch strategies."""
@@ -303,7 +305,7 @@ class BranchStrategyManager:
         """Load strategy configuration from project files."""
         # Try to load from configuration files
         config_files = [
-            ".claude-pm/config.json",
+            f"{ConfigPaths.CONFIG_DIR}/config.json",
             "workflow.md",
             ".github/workflows/branch-strategy.yml",
             "branch-strategy.json",

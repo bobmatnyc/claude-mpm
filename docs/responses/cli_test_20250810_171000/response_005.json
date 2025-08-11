@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-08-10T17:10:00.643011",
+  "session_id": "cli_test_20250810_171000",
+  "request_summary": "Test the hook-based logging system",
+  "response": "This is a test response from the hook integration test. This is a test response from the hook integration test. This is a test response from the hook integration test. This is a test response from the hook integration test. This is a test response from the hook integration test. ",
+  "metadata": {
+    "agent": "test_hook_agent",
+    "model": "claude-3",
+    "tokens": 100,
+    "tools_used": [
+      "read",
+      "write"
+    ]
+  }
+}

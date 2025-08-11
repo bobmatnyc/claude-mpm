@@ -70,15 +70,15 @@ claude-pm init --verify
 
 **Multi-Project Orchestrator Pattern:**
 
-1. **Framework Directory** (`/Users/masa/Projects/claude-multiagent-pm/.claude-pm/`)
+1. **Framework Directory** (`/Users/masa/Projects/claude-multiagent-pm/.claude-mpm/`)
    - Global user agents (shared across all projects)
    - Framework-level configuration
 
-2. **Working Directory** (`$PWD/.claude-pm/`)
+2. **Working Directory** (`$PWD/.claude-mpm/`)
    - Current session configuration
    - Working directory context
 
-3. **Project Directory** (`$PROJECT_ROOT/.claude-pm/`)
+3. **Project Directory** (`$PROJECT_ROOT/.claude-mpm/`)
    - Project-specific agents in `agents/project-specific/`
    - User agents in `agents/user-agents/` with directory precedence
    - Project-specific configuration

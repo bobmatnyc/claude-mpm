@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-08-10T17:12:19.849522",
+  "session_id": "anthropic-test-session-456",
+  "request_summary": "Test ANTHROPIC_SESSION_ID",
+  "response": "Testing ANTHROPIC_SESSION_ID environment variable detection",
+  "metadata": {
+    "test": "anthropic_session_id"
+  }
+}

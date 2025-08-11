@@ -1,0 +1,208 @@
+2025-07-31 08:00:51,798 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:00:51,799 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Bash
+2025-07-31 08:00:51,799 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:00:51,799 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:00:51,799 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:00:52,843 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:00:52,843 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Bash (exit code: N/A)
+2025-07-31 08:00:52,843 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:00:52,843 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:00:52,843 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:00:59,904 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:00:59,904 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Bash
+2025-07-31 08:00:59,904 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:00:59,904 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:00:59,904 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:31,018 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:01:31,018 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Bash (exit code: N/A)
+2025-07-31 08:01:31,018 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:01:31,018 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:31,018 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:39,101 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:01:39,101 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Bash
+2025-07-31 08:01:39,101 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:01:39,101 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:39,101 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:39,462 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:01:39,462 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Bash (exit code: N/A)
+2025-07-31 08:01:39,462 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:01:39,462 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:39,463 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:47,792 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:01:47,792 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Edit
+2025-07-31 08:01:47,792 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:01:47,792 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:47,792 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:48,096 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:01:48,096 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Edit (exit code: N/A)
+2025-07-31 08:01:48,097 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:01:48,097 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:48,097 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:55,545 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:01:55,545 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: TodoWrite
+2025-07-31 08:01:55,545 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:01:55,546 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:55,546 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: TodoWrite (exit code: N/A)
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: todo.update
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: todo.update
+2025-07-31 08:01:55,907 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: todo.update
+2025-07-31 08:06:21,634 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: UserPromptSubmit (session: 7988f55b)
+2025-07-31 08:06:21,636 - claude_mpm_hooks_scripts - INFO - hook_handler.py:331 - UserPromptSubmit: OK -- that worked.  The problem is that none of the claude code hooks are returning data.  Let's sta...
+2025-07-31 08:06:21,637 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.user_prompt
+2025-07-31 08:06:21,637 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.user_prompt
+2025-07-31 08:06:21,637 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.user_prompt
+2025-07-31 08:06:35,773 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:06:35,774 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: TodoWrite
+2025-07-31 08:06:35,774 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:06:35,774 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:35,774 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: TodoWrite (exit code: N/A)
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: todo.update
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: todo.update
+2025-07-31 08:06:36,062 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: todo.update
+2025-07-31 08:06:42,493 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:06:42,495 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Read
+2025-07-31 08:06:42,495 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:06:42,495 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:42,495 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:42,892 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:06:42,892 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Read (exit code: N/A)
+2025-07-31 08:06:42,892 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:06:42,892 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:06:42,892 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:06:51,996 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:06:51,997 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Bash
+2025-07-31 08:06:51,997 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:06:51,997 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:51,997 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:06:52,258 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:06:52,258 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Bash (exit code: N/A)
+2025-07-31 08:06:52,258 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:06:52,258 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:06:52,258 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:26,334 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:08:26,334 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Read
+2025-07-31 08:08:26,334 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:08:26,334 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:26,334 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:26,515 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:08:26,516 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Read (exit code: N/A)
+2025-07-31 08:08:26,516 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:08:26,516 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:26,521 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:33,627 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:08:33,628 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Grep
+2025-07-31 08:08:33,628 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:08:33,628 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:33,628 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:34,424 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:08:34,424 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Grep (exit code: N/A)
+2025-07-31 08:08:34,424 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:08:34,424 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:34,424 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:42,526 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:08:42,526 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Grep
+2025-07-31 08:08:42,526 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:08:42,526 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:42,527 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:08:43,327 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:08:43,327 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Grep (exit code: N/A)
+2025-07-31 08:08:43,327 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:08:43,327 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:08:43,327 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:06,308 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:09:06,308 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Edit
+2025-07-31 08:09:06,309 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:09:06,309 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:06,309 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:06,309 - claude_mpm_hooks_scripts - WARNING - hook_handler.py:498 - Security: Blocked Edit operation outside working directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/services/websocket_server.py
+2025-07-31 08:09:06,719 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:09:06,724 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Edit (exit code: N/A)
+2025-07-31 08:09:06,724 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:09:06,724 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:07,929 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:15,730 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:09:15,731 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Grep
+2025-07-31 08:09:15,731 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:09:15,731 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:16,944 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:17,788 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:09:17,788 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Grep (exit code: N/A)
+2025-07-31 08:09:17,788 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:09:17,788 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:18,995 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:24,709 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:09:24,709 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Grep
+2025-07-31 08:09:24,709 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:09:24,709 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:25,915 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:26,711 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:09:26,711 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Grep (exit code: N/A)
+2025-07-31 08:09:26,711 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:09:26,711 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:27,921 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:43,399 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:09:43,400 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Read
+2025-07-31 08:09:43,400 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:09:43,400 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:44,612 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:44,768 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:09:44,768 - claude_mpm_hooks_scripts - INFO - hook_handler.py:341 - PostToolUse: Read (exit code: N/A)
+2025-07-31 08:09:44,768 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:09:44,768 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:45,991 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:09:57,855 - claude_mpm_hooks_scripts - INFO - hook_handler.py:318 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:09:57,855 - claude_mpm_hooks_scripts - INFO - hook_handler.py:334 - PreToolUse: Edit
+2025-07-31 08:09:57,855 - claude_mpm_hooks_scripts - INFO - hook_handler.py:250 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:09:57,855 - claude_mpm_hooks_scripts - INFO - hook_handler.py:256 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:59,065 - claude_mpm_hooks_scripts - INFO - hook_handler.py:264 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:09:59,066 - claude_mpm_hooks_scripts - WARNING - hook_handler.py:498 - Security: Blocked Edit operation outside working directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/hooks/claude_hooks/hook_handler.py
+2025-07-31 08:09:59,354 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:09:59,360 - claude_mpm_hooks_scripts - INFO - hook_handler.py:345 - PostToolUse: Edit (exit code: N/A)
+2025-07-31 08:09:59,360 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:09:59,360 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:00,477 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:15,137 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:10:15,137 - claude_mpm_hooks_scripts - INFO - hook_handler.py:338 - PreToolUse: Write
+2025-07-31 08:10:15,137 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:10:15,137 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:16,248 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:16,533 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:10:16,533 - claude_mpm_hooks_scripts - INFO - hook_handler.py:345 - PostToolUse: Write (exit code: N/A)
+2025-07-31 08:10:16,533 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:10:16,534 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:17,644 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:21,724 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:10:21,724 - claude_mpm_hooks_scripts - INFO - hook_handler.py:338 - PreToolUse: Bash
+2025-07-31 08:10:21,725 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:10:21,725 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:22,832 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:23,134 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:10:23,134 - claude_mpm_hooks_scripts - INFO - hook_handler.py:345 - PostToolUse: Bash (exit code: N/A)
+2025-07-31 08:10:23,134 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:10:23,134 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:24,243 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:32,501 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:10:32,501 - claude_mpm_hooks_scripts - INFO - hook_handler.py:338 - PreToolUse: Write
+2025-07-31 08:10:32,501 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:10:32,501 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:33,610 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:33,893 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PostToolUse (session: 7988f55b)
+2025-07-31 08:10:33,893 - claude_mpm_hooks_scripts - INFO - hook_handler.py:345 - PostToolUse: Write (exit code: N/A)
+2025-07-31 08:10:33,893 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.post_tool_use
+2025-07-31 08:10:33,893 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:35,000 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.post_tool_use
+2025-07-31 08:10:39,455 - claude_mpm_hooks_scripts - INFO - hook_handler.py:322 - Claude Code hook event: PreToolUse (session: 7988f55b)
+2025-07-31 08:10:39,455 - claude_mpm_hooks_scripts - INFO - hook_handler.py:338 - PreToolUse: Bash
+2025-07-31 08:10:39,455 - claude_mpm_hooks_scripts - INFO - hook_handler.py:254 - 🎯 Hook handler attempting to broadcast event: hook.pre_tool_use
+2025-07-31 08:10:39,455 - claude_mpm_hooks_scripts - INFO - hook_handler.py:260 - 📡 Calling websocket_server.broadcast_event for: hook.pre_tool_use
+2025-07-31 08:10:40,563 - claude_mpm_hooks_scripts - INFO - hook_handler.py:268 - ✅ Successfully called websocket_server.broadcast_event for: hook.pre_tool_use

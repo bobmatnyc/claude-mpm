@@ -1,0 +1,24 @@
+2025-07-26 23:14:03,009 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:03,010 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: Bash (exit code: N/A)
+2025-07-26 23:14:15,322 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:15,322 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: Task (exit code: N/A)
+2025-07-26 23:14:20,631 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:14:20,631 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: TodoWrite
+2025-07-26 23:14:21,752 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:21,752 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: TodoWrite (exit code: N/A)
+2025-07-26 23:14:32,619 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:14:32,619 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: Task
+2025-07-26 23:14:37,877 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:14:37,877 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: Bash
+2025-07-26 23:14:38,237 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:38,237 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: Bash (exit code: N/A)
+2025-07-26 23:14:41,683 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:14:41,683 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: Bash
+2025-07-26 23:14:42,182 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:42,182 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: Bash (exit code: N/A)
+2025-07-26 23:14:47,256 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:14:47,256 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: Read
+2025-07-26 23:14:47,636 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PostToolUse (session: c6e4642b)
+2025-07-26 23:14:47,636 - claude_mpm_hooks_scripts - INFO - hook_handler.py:165 - PostToolUse: Read (exit code: N/A)
+2025-07-26 23:15:05,162 - claude_mpm_hooks_scripts - INFO - hook_handler.py:142 - Claude Code hook event: PreToolUse (session: c6e4642b)
+2025-07-26 23:15:05,162 - claude_mpm_hooks_scripts - INFO - hook_handler.py:158 - PreToolUse: Bash

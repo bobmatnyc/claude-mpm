@@ -11,6 +11,7 @@ from typing import Any, Dict, Optional, Union
 import logging
 
 from ..utils.config_manager import ConfigurationManager
+from .config_paths import ConfigPaths
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +226,7 @@ class Config:
             "fallback_tracking_method": "logging",  # Options: "logging", "file", "disabled"
             # Evaluation system - Phase 2 Mirascope integration
             "enable_evaluation": True,
-            "evaluation_storage_path": str(Path.home() / ".claude-pm" / "training"),
+            "evaluation_storage_path": str(ConfigPaths.get_user_config_dir() / "training"),
             "correction_capture_enabled": True,
             "correction_storage_rotation_days": 30,
             "evaluation_logging_enabled": True,

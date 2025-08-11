@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-10T17:17:16.091296",
+  "session_id": "perf_concurrent_test_20250810_171716",
+  "request_summary": "Concurrent perf test - thread 15, iteration 3",
+  "response": "Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. Concurrent performance test response. ",
+  "metadata": {
+    "thread": 15,
+    "iteration": 3,
+    "test": "concurrent_perf"
+  }
+}

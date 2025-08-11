@@ -75,15 +75,15 @@ class AgentsGenerator(BaseSectionGenerator):
 **ALL AGENT OPERATIONS FOLLOW HIERARCHICAL PRECEDENCE**
 
 #### Agent Hierarchy (Highest to Lowest Priority)
-1. **Project Agents**: `$PROJECT/.claude-pm/agents/project-specific/`
+1. **Project Agents**: `$PROJECT/.claude-mpm/agents/project-specific/`
    - Project-specific implementations and overrides
    - Highest precedence for project context
    - Custom agents tailored to project requirements
 
 2. **User Agents**: Directory hierarchy with precedence walking
-   - **Current Directory**: `$PWD/.claude-pm/agents/user-agents/` (highest user precedence)
+   - **Current Directory**: `$PWD/.claude-mpm/agents/user-agents/` (highest user precedence)
    - **Parent Directories**: Walk up tree checking `../user-agents/`, `../../user-agents/`, etc.
-   - **User Home**: `~/.claude-pm/agents/user-defined/` (fallback user location)
+   - **User Home**: `~/.claude-mpm/agents/user-defined/` (fallback user location)
    - User-specific customizations across projects
    - Mid-priority, can override system defaults
 
@@ -376,15 +376,15 @@ for agent_id, metadata in agents.items():
 #### Directory Precedence Rules and Agent Discovery
 
 **Enhanced Agent Discovery Pattern (Highest to Lowest Priority):**
-1. **Project Agents**: `$PROJECT/.claude-pm/agents/project-specific/`
-2. **Current Directory User Agents**: `$PWD/.claude-pm/agents/user-agents/`
+1. **Project Agents**: `$PROJECT/.claude-mpm/agents/project-specific/`
+2. **Current Directory User Agents**: `$PWD/.claude-mpm/agents/user-agents/`
 3. **Parent Directory User Agents**: Walk up tree checking `../user-agents/`, `../../user-agents/`, etc.
-4. **User Home Agents**: `~/.claude-pm/agents/user-defined/`
+4. **User Home Agents**: `~/.claude-mpm/agents/user-defined/`
 5. **System Agents**: `claude_pm/agents/`
 
 **User-Agents Directory Structure:**
 ```
-$PWD/.claude-pm/agents/user-agents/
+$PWD/.claude-mpm/agents/user-agents/
 ├── specialized/
 │   ├── performance-agent.md
 │   ├── architecture-agent.md
