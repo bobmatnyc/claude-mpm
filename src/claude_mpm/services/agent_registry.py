@@ -30,6 +30,7 @@ from datetime import datetime
 from enum import Enum
 
 from claude_mpm.core.config_paths import ConfigPaths
+from claude_mpm.services.simple_cache_service import SimpleCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +54,7 @@ ALL_AGENT_TYPES = CORE_AGENT_TYPES | SPECIALIZED_AGENT_TYPES
 
 class AgentTier(Enum):
     """Agent hierarchy tiers."""
+    PROJECT = "project"  # Highest precedence - project-specific agents
     USER = "user"
     SYSTEM = "system"
 
@@ -117,7 +119,15 @@ class AgentRegistry:
     
     def __init__(self, cache_service=None, model_selector=None):
         """Initialize AgentRegistry with optional cache service and model selector."""
-        self.cache_service = cache_service
+        # Use provided cache service or create a default one
+        if cache_service is None:
+            # Create a simple in-memory cache with 1 hour TTL by default
+            self.cache_service = SimpleCacheService(default_ttl=3600, max_size=500)
+            self.cache_enabled = True
+        else:
+            self.cache_service = cache_service
+            self.cache_enabled = True
+        
         self.model_selector = model_selector
         
         # Registry storage
@@ -125,9 +135,11 @@ class AgentRegistry:
         self.discovery_paths: List[Path] = []
         
         # Cache configuration
-        self.cache_enabled = cache_service is not None
         self.cache_ttl = 3600  # 1 hour
         self.cache_prefix = "agent_registry"
+        
+        # Track discovered files for cache invalidation
+        self.discovered_files: Set[Path] = set()
         
         # Discovery configuration
         self.file_extensions = {'.md', '.json', '.yaml', '.yml'}
@@ -149,6 +161,11 @@ class AgentRegistry:
     
     def _setup_discovery_paths(self) -> None:
         """Setup standard discovery paths for agent files."""
+        # Project-level agents (highest priority)
+        project_path = ConfigPaths.get_project_agents_dir()
+        if project_path.exists():
+            self.discovery_paths.append(project_path)
+        
         # User-level agents
         user_path = ConfigPaths.get_user_agents_dir()
         if user_path.exists():
@@ -194,8 +211,9 @@ class AgentRegistry:
         
         self.discovery_stats['cache_misses'] += 1
         
-        # Clear existing registry
+        # Clear existing registry and discovered files
         self.registry.clear()
+        self.discovered_files.clear()
         
         # Discover agents from all paths
         for discovery_path in self.discovery_paths:
@@ -205,7 +223,7 @@ class AgentRegistry:
         # Handle tier precedence
         self._apply_tier_precedence()
         
-        # Cache the results
+        # Cache the results with file tracking
         if self.cache_enabled:
             self._cache_registry()
         
@@ -239,6 +257,9 @@ class AgentRegistry:
             agent_name = self._extract_agent_name(file_path)
             if not agent_name:
                 continue
+            
+            # Track discovered file for cache invalidation
+            self.discovered_files.add(file_path)
             
             # Create metadata
             metadata = self._create_agent_metadata(file_path, agent_name, tier)
@@ -394,16 +415,26 @@ class AgentRegistry:
     
     def _determine_tier(self, path: Path) -> AgentTier:
         """Determine tier based on path location."""
-        path_str = str(path).lower()
+        path_str = str(path)
         
-        if ConfigPaths.CONFIG_DIR in path_str or str(Path.home()) in str(path):
+        # Check if it's a project-level path (in current working directory)
+        # Project agents are in <project_root>/.claude-mpm/agents
+        project_agents_dir = ConfigPaths.get_project_agents_dir()
+        if project_agents_dir.exists() and (path == project_agents_dir or project_agents_dir in path.parents):
+            return AgentTier.PROJECT
+        
+        # Check if it's a user-level path (in home directory)
+        user_agents_dir = ConfigPaths.get_user_agents_dir()
+        if user_agents_dir.exists() and (path == user_agents_dir or user_agents_dir in path.parents):
             return AgentTier.USER
-        else:
-            return AgentTier.SYSTEM
+        
+        # Everything else is system-level
+        return AgentTier.SYSTEM
     
     def _has_tier_precedence(self, tier1: AgentTier, tier2: AgentTier) -> bool:
         """Check if tier1 has precedence over tier2."""
         precedence = {
+            AgentTier.PROJECT: 3,  # Highest precedence
             AgentTier.USER: 2,
             AgentTier.SYSTEM: 1
         }
@@ -426,7 +457,7 @@ class AgentRegistry:
                 self.registry[agent_name] = agents[0]
             else:
                 # Sort by tier precedence
-                agents.sort(key=lambda a: {AgentTier.USER: 2, AgentTier.SYSTEM: 1}.get(a.tier, 0), reverse=True)
+                agents.sort(key=lambda a: {AgentTier.PROJECT: 3, AgentTier.USER: 2, AgentTier.SYSTEM: 1}.get(a.tier, 0), reverse=True)
                 self.registry[agent_name] = agents[0]
                 
                 if len(agents) > 1:
@@ -484,6 +515,13 @@ class AgentRegistry:
                 registry = {}
                 for name, data in cached_data.items():
                     registry[name] = AgentMetadata.from_dict(data)
+                
+                # Also restore discovered files set
+                files_key = f"{self.cache_prefix}_discovered_files"
+                discovered_files = self.cache_service.get(files_key)
+                if discovered_files:
+                    self.discovered_files = {Path(f) for f in discovered_files}
+                
                 return registry
         
         except Exception as e:
@@ -492,20 +530,47 @@ class AgentRegistry:
         return None
     
     def _cache_registry(self) -> None:
-        """Cache the current registry."""
+        """Cache the current registry with file tracking."""
         if not self.cache_service:
             return
         
         try:
             cache_key = f"{self.cache_prefix}_registry"
+            
             # Serialize metadata
             cache_data = {
                 name: metadata.to_dict() 
                 for name, metadata in self.registry.items()
             }
             
-            self.cache_service.set(cache_key, cache_data, ttl=self.cache_ttl)
-            logger.debug("Cached agent registry")
+            # If the cache service supports file tracking, use it
+            if hasattr(self.cache_service, 'set'):
+                import inspect
+                sig = inspect.signature(self.cache_service.set)
+                if 'tracked_files' in sig.parameters:
+                    # Cache with file tracking for automatic invalidation
+                    self.cache_service.set(
+                        cache_key, 
+                        cache_data, 
+                        ttl=self.cache_ttl,
+                        tracked_files=list(self.discovered_files)
+                    )
+                else:
+                    # Fall back to regular caching
+                    self.cache_service.set(cache_key, cache_data, ttl=self.cache_ttl)
+            else:
+                # Fall back to regular caching
+                self.cache_service.set(cache_key, cache_data, ttl=self.cache_ttl)
+            
+            # Also cache the discovered files list
+            files_key = f"{self.cache_prefix}_discovered_files"
+            self.cache_service.set(
+                files_key, 
+                [str(f) for f in self.discovered_files],
+                ttl=self.cache_ttl
+            )
+            
+            logger.debug(f"Cached agent registry with {len(self.discovered_files)} tracked files")
         
         except Exception as e:
             logger.warning(f"Failed to cache registry: {e}")
@@ -514,8 +579,17 @@ class AgentRegistry:
         """Invalidate the registry cache."""
         if self.cache_service:
             try:
-                cache_key = f"{self.cache_prefix}_registry"
-                self.cache_service.delete(cache_key)
+                # Invalidate both registry and files cache
+                registry_key = f"{self.cache_prefix}_registry"
+                files_key = f"{self.cache_prefix}_discovered_files"
+                
+                self.cache_service.delete(registry_key)
+                self.cache_service.delete(files_key)
+                
+                # Also clear in-memory registry to force re-discovery
+                self.registry.clear()
+                self.discovered_files.clear()
+                
                 logger.debug("Invalidated registry cache")
             except Exception as e:
                 logger.warning(f"Failed to invalidate cache: {e}")
@@ -602,8 +676,13 @@ class AgentRegistry:
                 'valid': 0,
                 'invalid': 0,
                 'errors': []
-            }
+            },
+            'cache_metrics': {}
         }
+        
+        # Add cache metrics if available
+        if self.cache_enabled and hasattr(self.cache_service, 'get_cache_metrics'):
+            stats['cache_metrics'] = self.cache_service.get_cache_metrics()
         
         # Count by tier
         for agent in self.registry.values():
@@ -653,6 +732,8 @@ class AgentRegistry:
             logger.info(f"Added discovery path: {path}")
             # Invalidate cache since paths changed
             self.invalidate_cache()
+            # Force re-discovery with new path
+            self.discover_agents(force_refresh=True)
     
     def remove_discovery_path(self, path: Union[str, Path]) -> None:
         """Remove a path from agent discovery."""
@@ -662,6 +743,8 @@ class AgentRegistry:
             logger.info(f"Removed discovery path: {path}")
             # Invalidate cache since paths changed
             self.invalidate_cache()
+            # Force re-discovery without the removed path
+            self.discover_agents(force_refresh=True)
     
     def export_registry(self, output_path: Union[str, Path]) -> None:
         """Export registry to JSON file."""

@@ -184,10 +184,39 @@ class LaunchMode(Enum):
 
 ## AgentRegistry
 
-The agent registry system provides agent discovery and management capabilities.
+The agent registry system provides agent discovery and management capabilities with support for three-tier agent precedence (PROJECT > USER > SYSTEM).
 
 ### Location
 `src/claude_mpm/core/agent_registry.py`
+
+### Agent Tier System
+
+The agent system supports three tiers with hierarchical precedence:
+
+1. **PROJECT Tier** (Highest Precedence): `.claude-mpm/agents/` in project directory
+2. **USER Tier**: `~/.claude-mpm/agents/` in user home directory  
+3. **SYSTEM Tier** (Lowest Precedence): Framework built-in agents
+
+#### AgentTier Enum
+
+```python
+class AgentTier(Enum):
+    """Agent hierarchy tiers."""
+    PROJECT = "project"  # Highest precedence
+    USER = "user"
+    SYSTEM = "system"    # Lowest precedence
+```
+
+#### AgentType Enum
+
+```python
+class AgentType(Enum):
+    """Agent classification types."""
+    CORE = "core"              # Core framework agents
+    SPECIALIZED = "specialized" # Specialized domain agents
+    CUSTOM = "custom"          # User-defined agents
+    UNKNOWN = "unknown"        # Unclassified agents
+```
 
 ### AgentRegistryAdapter
 
@@ -313,6 +342,187 @@ Format agent delegation for Task Tool.
 - `context` (str): Additional context
 
 **Returns:** Formatted Task Tool prompt
+
+### New Agent Tier API Functions
+
+The following functions are available from `src/claude_mpm/agents/agent_loader.py` for working with the three-tier agent system:
+
+#### get_agent_tier()
+
+```python
+def get_agent_tier(agent_name: str) -> Optional[str]
+```
+
+Get the tier from which an agent was loaded.
+
+**Parameters:**
+- `agent_name` (str): Agent name or ID to check
+
+**Returns:** Tier name ("project", "user", "system") or None if agent not found
+
+**Example:**
+```python
+from claude_mpm.agents.agent_loader import get_agent_tier
+
+tier = get_agent_tier("engineer")
+if tier == "project":
+    print("Using project-specific engineer agent")
+elif tier == "system":
+    print("Using system default engineer agent")
+```
+
+#### list_agents_by_tier()
+
+```python
+def list_agents_by_tier() -> Dict[str, List[str]]
+```
+
+List available agents organized by their tier.
+
+**Returns:** Dictionary mapping tier names to lists of agent IDs available in that tier
+
+**Example:**
+```python
+from claude_mpm.agents.agent_loader import list_agents_by_tier
+
+agents_by_tier = list_agents_by_tier()
+print("Project agents:", agents_by_tier.get("project", []))
+print("User agents:", agents_by_tier.get("user", []))
+print("System agents:", agents_by_tier.get("system", []))
+
+# Example output:
+# {
+#   "project": ["engineer", "custom_domain"],
+#   "user": ["research"],
+#   "system": ["engineer", "qa", "research", "security", ...]
+# }
+```
+
+#### reload_agents()
+
+```python
+def reload_agents() -> None
+```
+
+Force reload all agents from disk, clearing the registry and cache.
+
+**Use Cases:**
+- Hot-reloading during development
+- Picking up new agent files without restart
+- Switching between projects with different agents
+
+**Example:**
+```python
+from claude_mpm.agents.agent_loader import reload_agents
+
+# After adding new project agents
+reload_agents()
+
+# Next agent access will discover new agents
+```
+
+#### validate_agent_files()
+
+```python
+def validate_agent_files() -> Dict[str, Dict[str, Any]]
+```
+
+Validate all agent template files against the schema.
+
+**Returns:** Dictionary mapping agent names to validation results
+
+**Example:**
+```python
+from claude_mpm.agents.agent_loader import validate_agent_files
+
+results = validate_agent_files()
+for agent_name, result in results.items():
+    if not result["valid"]:
+        print(f"❌ {agent_name}:")
+        for error in result["errors"]:
+            print(f"  - {error}")
+    else:
+        print(f"✅ {agent_name}: Valid")
+```
+
+### AgentRegistry Class Methods
+
+The `AgentRegistry` class from `src/claude_mpm/services/agent_registry.py` provides additional tier-aware functionality:
+
+#### discover_agents()
+
+```python
+def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]
+```
+
+Discover all available agents across configured paths with tier precedence.
+
+**Parameters:**
+- `force_refresh` (bool): Force re-discovery even if cache is valid
+
+**Returns:** Dictionary of agent name to metadata
+
+**Example:**
+```python
+from claude_mpm.services.agent_registry import AgentRegistry
+
+registry = AgentRegistry()
+agents = registry.discover_agents(force_refresh=True)
+
+for name, metadata in agents.items():
+    print(f"{name}: {metadata.tier.value} tier")
+```
+
+#### list_agents()
+
+```python
+def list_agents(
+    self, 
+    tier: Optional[AgentTier] = None, 
+    agent_type: Optional[AgentType] = None
+) -> List[AgentMetadata]
+```
+
+List agents with optional filtering by tier or type.
+
+**Parameters:**
+- `tier` (Optional[AgentTier]): Filter by specific tier
+- `agent_type` (Optional[AgentType]): Filter by agent type
+
+**Returns:** List of agent metadata matching filters
+
+**Example:**
+```python
+from claude_mpm.services.agent_registry import AgentRegistry, AgentTier, AgentType
+
+registry = AgentRegistry()
+
+# Get only project-level agents
+project_agents = registry.list_agents(tier=AgentTier.PROJECT)
+
+# Get only core framework agents
+core_agents = registry.list_agents(agent_type=AgentType.CORE)
+
+# Get project-level core agents
+project_core = registry.list_agents(
+    tier=AgentTier.PROJECT, 
+    agent_type=AgentType.CORE
+)
+```
+
+#### invalidate_cache()
+
+```python
+def invalidate_cache(self) -> None
+```
+
+Invalidate the registry cache to force fresh discovery.
+
+**Example:**
+```python
+registry = AgentRegistry()
+registry.invalidate_cache()  # Next access will reload from disk
+```
 
 ---
 
