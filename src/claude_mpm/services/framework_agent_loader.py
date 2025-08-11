@@ -2,10 +2,14 @@
 Framework Agent Loader Service
 
 Implements agent profile loading logic based on directory hierarchy:
-1. Framework .claude-mpm (next to agents/INSTRUCTIONS.md or CLAUDE.md): system, trained, user agents
-2. Project .claude-mpm (in project root): project agents
+1. Project .claude-mpm (in project root): project agents - HIGHEST PRECEDENCE
+2. User .claude-mpm (~/.claude-mpm): user agents - MEDIUM PRECEDENCE  
+3. Framework/System agents: built-in agents - LOWEST PRECEDENCE
 
-Loading precedence: Project → Framework (user → trained → system)
+Loading precedence: Project → User → System
+
+This service integrates with the main agent_loader.py to provide
+markdown-based agent profiles alongside JSON-based templates.
 """
 
 import os
@@ -15,39 +19,55 @@ from typing import Dict, Optional, Any
 import logging
 
 from claude_mpm.core.config_paths import ConfigPaths
+from claude_mpm.agents.agent_loader import AgentTier, get_agent_tier, list_agents_by_tier
 
 logger = logging.getLogger(__name__)
 
 class FrameworkAgentLoader:
-    """Loads agent profiles from framework and project .claude-mpm directories"""
+    """Loads agent profiles from project, user, and system directories with proper precedence"""
     
     def __init__(self):
-        self.framework_agents_dir = None
         self.project_agents_dir = None
+        self.user_agents_dir = None
+        self.system_agents_dir = None
         self._profile_cache = {}
+        self._tier_mapping = {
+            AgentTier.PROJECT: 'project',
+            AgentTier.USER: 'user',
+            AgentTier.SYSTEM: 'system'
+        }
         
     def initialize(self, framework_claude_md_path: Optional[str] = None):
         """
-        Initialize loader with framework and project directory detection
+        Initialize loader with project, user, and system directory detection
         
         Args:
             framework_claude_md_path: Optional explicit path to agents/INSTRUCTIONS.md or CLAUDE.md
         """
-        # Find framework .claude-mpm directory (next to framework/CLAUDE.md)
+        # Find project .claude-mpm directory (highest precedence)
+        project_dir = self._find_project_directory()
+        if project_dir:
+            self.project_agents_dir = project_dir / ConfigPaths.CONFIG_DIR / "agents"
+            logger.info(f"Project agents directory: {self.project_agents_dir}")
+        
+        # Find user .claude-mpm directory (medium precedence)
+        user_config_dir = ConfigPaths.get_user_config_dir()
+        if user_config_dir:
+            self.user_agents_dir = user_config_dir / "agents"
+            if self.user_agents_dir.exists():
+                logger.info(f"User agents directory: {self.user_agents_dir}")
+            else:
+                self.user_agents_dir = None
+        
+        # Find system/framework agents directory (lowest precedence)
         if framework_claude_md_path:
             framework_dir = Path(framework_claude_md_path).parent.parent
         else:
             framework_dir = self._find_framework_directory()
             
         if framework_dir:
-            self.framework_agents_dir = framework_dir / ConfigPaths.CONFIG_DIR / "agents"
-            logger.info(f"Framework agents directory: {self.framework_agents_dir}")
-        
-        # Find project .claude-mpm directory
-        project_dir = self._find_project_directory()
-        if project_dir:
-            self.project_agents_dir = project_dir / ConfigPaths.CONFIG_DIR / "agents"
-            logger.info(f"Project agents directory: {self.project_agents_dir}")
+            self.system_agents_dir = framework_dir / ConfigPaths.CONFIG_DIR / "agents"
+            logger.info(f"System agents directory: {self.system_agents_dir}")
     
     def _find_framework_directory(self) -> Optional[Path]:
         """Find directory containing agents/INSTRUCTIONS.md (or legacy CLAUDE.md)"""
@@ -90,7 +110,10 @@ class FrameworkAgentLoader:
     
     def load_agent_profile(self, agent_type: str) -> Optional[Dict[str, Any]]:
         """
-        Load agent profile with precedence: Project → Framework (user → trained → system)
+        Load agent profile with precedence: Project → User → System
+        
+        This method now properly integrates with the main agent_loader.py
+        tier system for consistent precedence handling.
         
         Args:
             agent_type: Agent type (Engineer, Documenter, QA, etc.)
@@ -104,31 +127,57 @@ class FrameworkAgentLoader:
             return self._profile_cache[cache_key]
         
         profile = None
+        loaded_tier = None
         
         # 1. Try project agents first (highest precedence)
         if self.project_agents_dir:
+            # Check both 'project' subdirectory and direct directory
             profile = self._load_profile_from_directory(
                 self.project_agents_dir / "project", agent_type
             )
+            if not profile:
+                profile = self._load_profile_from_directory(
+                    self.project_agents_dir, agent_type
+                )
+            if profile:
+                loaded_tier = AgentTier.PROJECT
         
-        # 2. Try framework agents (user → trained → system)
-        if not profile and self.framework_agents_dir:
-            # Framework user agents
+        # 2. Try user agents (medium precedence)
+        if not profile and self.user_agents_dir:
+            # Check both 'user' subdirectory and direct directory
             profile = self._load_profile_from_directory(
-                self.framework_agents_dir / "user", agent_type
+                self.user_agents_dir / "user", agent_type
             )
-            
-            # Framework trained agents
             if not profile:
                 profile = self._load_profile_from_directory(
-                    self.framework_agents_dir / "trained", agent_type
+                    self.user_agents_dir, agent_type
                 )
+            if profile:
+                loaded_tier = AgentTier.USER
+        
+        # 3. Try system agents (lowest precedence)
+        if not profile and self.system_agents_dir:
+            # Check subdirectories in order: trained → system
+            for subdir in ["trained", "system"]:
+                profile = self._load_profile_from_directory(
+                    self.system_agents_dir / subdir, agent_type
+                )
+                if profile:
+                    loaded_tier = AgentTier.SYSTEM
+                    break
             
-            # Framework system agents (fallback)
+            # Also check root system directory
             if not profile:
                 profile = self._load_profile_from_directory(
-                    self.framework_agents_dir / "system", agent_type
+                    self.system_agents_dir, agent_type
                 )
+                if profile:
+                    loaded_tier = AgentTier.SYSTEM
+        
+        # Add tier information to profile
+        if profile and loaded_tier:
+            profile['_tier'] = loaded_tier.value
+            logger.debug(f"Loaded {agent_type} profile from {loaded_tier.value} tier")
         
         # Cache result
         if profile:
@@ -272,23 +321,48 @@ class FrameworkAgentLoader:
         """Get list of available agents by tier"""
         agents = {
             'project': [],
-            'framework_user': [],
-            'framework_trained': [],
-            'framework_system': []
+            'user': [],
+            'system': []
         }
         
         # Project agents
         if self.project_agents_dir:
-            project_dir = self.project_agents_dir / "project"
-            if project_dir.exists():
-                agents['project'] = [f.stem for f in project_dir.glob("*.md")]
+            # Check both project subdirectory and root
+            for search_dir in [self.project_agents_dir / "project", self.project_agents_dir]:
+                if search_dir.exists():
+                    md_files = [f.stem for f in search_dir.glob("*.md")]
+                    agents['project'].extend([f for f in md_files if f not in agents['project']])
         
-        # Framework agents
-        if self.framework_agents_dir:
-            for tier in ['user', 'trained', 'system']:
-                tier_dir = self.framework_agents_dir / tier
-                if tier_dir.exists():
-                    agents[f'framework_{tier}'] = [f.stem for f in tier_dir.glob("*.md")]
+        # User agents
+        if self.user_agents_dir:
+            # Check both user subdirectory and root
+            for search_dir in [self.user_agents_dir / "user", self.user_agents_dir]:
+                if search_dir.exists():
+                    md_files = [f.stem for f in search_dir.glob("*.md")]
+                    agents['user'].extend([f for f in md_files if f not in agents['user']])
+        
+        # System agents
+        if self.system_agents_dir:
+            # Check subdirectories and root
+            for subdir in ["trained", "system", ""]:
+                search_dir = self.system_agents_dir / subdir if subdir else self.system_agents_dir
+                if search_dir.exists():
+                    md_files = [f.stem for f in search_dir.glob("*.md")]
+                    agents['system'].extend([f for f in md_files if f not in agents['system']])
+        
+        # Also integrate with main agent_loader to get JSON-based agents
+        try:
+            json_agents = list_agents_by_tier()
+            for tier, agent_list in json_agents.items():
+                if tier in agents:
+                    # Merge lists, avoiding duplicates
+                    for agent in agent_list:
+                        # Remove _agent suffix for consistency
+                        agent_name = agent.replace('_agent', '')
+                        if agent_name not in agents[tier]:
+                            agents[tier].append(agent_name)
+        except Exception as e:
+            logger.debug(f"Could not integrate with agent_loader: {e}")
         
         return agents
     

@@ -16,11 +16,14 @@ claude-mpm/
 │   ├── settings.json                 # Claude settings
 │   └── hooks/                        # Claude hooks directory
 │
-├── .claude-pm/                       # Claude PM framework directory
-│   ├── agents/                       # Agent definitions
-│   │   └── project-specific/         # Project-specific agents
-│   ├── config/                       # Framework configuration
-│   └── logs/                         # Log files
+├── .claude-mpm/                      # Project-specific Claude MPM directory
+│   ├── agents/                       # PROJECT tier agent definitions (highest precedence)
+│   │   ├── engineer.md               # Override system engineer with project customizations
+│   │   ├── custom_domain.json        # Project-specific domain agent
+│   │   └── templates/                # JSON agent templates (legacy support)
+│   ├── config/                       # Project configuration
+│   ├── hooks/                        # Project-specific hooks
+│   └── logs/                         # Project log files
 │
 ├── docs/                             # Documentation
 │   ├── archive/                      # Archived documentation and QA reports
@@ -138,6 +141,26 @@ The main Python package following the src layout pattern. All source code lives 
   - Includes resource tier assignments (intensive, standard, lightweight)
 - Agent templates are dynamically discovered and loaded by the agent registry
 
+### Agent Tier System
+The system supports three tiers of agents with clear precedence:
+
+1. **PROJECT Tier** (`.claude-mpm/agents/` in current project)
+   - Highest precedence
+   - Project-specific customizations and domain agents
+   - Can override USER and SYSTEM agents
+   - Supports `.md`, `.json`, and `.yaml` formats
+   - Automatically discovered and cached
+
+2. **USER Tier** (`~/.claude-mpm/agents/` in user home)
+   - User-level customizations across projects
+   - Can override SYSTEM agents
+   - Useful for personal preferences and workflows
+
+3. **SYSTEM Tier** (`/src/claude_mpm/agents/templates/`)
+   - Framework built-in agents (lowest precedence)
+   - Maintained by Claude MPM developers
+   - Fallback when no higher-tier agent exists
+
 ### `/src/claude_mpm/schemas/` - Validation Schemas
 - **agent_schema.json**: JSON Schema for agent validation (v2.0.0)
   - Enforces required fields: id, version, metadata, capabilities, instructions
@@ -193,7 +216,10 @@ All executable scripts and command-line utilities should be placed here:
 When creating new files, follow these guidelines:
 
 1. **Python modules**: Place in appropriate subdirectory under `/src/claude_mpm/`
-2. **Agent definitions**: Place in `/src/claude_mpm/agents/` (as JSON files with clean IDs)
+2. **Agent definitions**: 
+   - **Project agents**: Place in `.claude-mpm/agents/` (highest precedence)
+   - **User agents**: Place in `~/.claude-mpm/agents/` 
+   - **System agents**: Place in `/src/claude_mpm/agents/templates/` (framework only)
 3. **Service classes**: Place in `/src/claude_mpm/services/`
 4. **Validation schemas**: Place in `/src/claude_mpm/schemas/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`

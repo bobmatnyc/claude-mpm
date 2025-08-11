@@ -48,10 +48,10 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 
 class ProfileTier(Enum):
-    """Agent profile hierarchy tiers."""
-    SYSTEM = "system"
-    USER = "user" 
-    PROJECT = "project"
+    """Agent profile hierarchy tiers with precedence order."""
+    PROJECT = "project"  # Highest precedence - project-specific agents
+    USER = "user"       # Medium precedence - user-level agents
+    SYSTEM = "system"   # Lowest precedence - framework/built-in agents
 
 
 class ProfileStatus(Enum):
