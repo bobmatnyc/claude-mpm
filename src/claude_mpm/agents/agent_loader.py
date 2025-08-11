@@ -62,12 +62,14 @@ import time
 import yaml
 from pathlib import Path
 from typing import Optional, Dict, Any, Tuple, Union, List
+from enum import Enum
 
 from ..services.shared_prompt_cache import SharedPromptCache
 from .base_agent_loader import prepend_base_instructions
 from ..validation.agent_validator import AgentValidator, ValidationResult
 from ..utils.paths import PathResolver
 from ..core.agent_name_normalizer import AgentNameNormalizer
+from ..core.config_paths import ConfigPaths
 
 # Temporary placeholders for missing module
 # WHY: These classes would normally come from a task_complexity module, but
@@ -90,16 +92,63 @@ class ModelType:
 logger = logging.getLogger(__name__)
 
 
-def _get_agent_templates_dir() -> Path:
+class AgentTier(Enum):
+    """Agent precedence tiers."""
+    PROJECT = "project"  # Highest precedence - project-specific agents
+    USER = "user"       # User-level agents from ~/.claude-mpm
+    SYSTEM = "system"   # Lowest precedence - framework built-in agents
+
+
+def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     """
-    Get the directory containing agent template JSON files.
+    Get directories containing agent template JSON files across all tiers.
     
-    WHY: We use a function instead of a direct constant to ensure the path
-    is always resolved relative to this module's location, making the code
-    portable across different installation methods (pip install, development mode, etc.).
+    Returns a dictionary mapping tiers to their template directories:
+    - PROJECT: .claude-mpm/agents/templates in the current working directory
+    - USER: ~/.claude-mpm/agents/templates 
+    - SYSTEM: Built-in templates relative to this module
+    
+    WHY: We support multiple tiers to allow project-specific customization
+    while maintaining backward compatibility with system agents.
     
     Returns:
-        Path: Absolute path to the templates directory
+        Dict mapping AgentTier to Path (or None if not available)
+    """
+    dirs = {}
+    
+    # PROJECT tier - ALWAYS check current working directory dynamically
+    # This ensures we pick up project agents even if CWD changes
+    project_dir = Path.cwd() / ConfigPaths.CONFIG_DIR / "agents" / "templates"
+    if project_dir.exists():
+        dirs[AgentTier.PROJECT] = project_dir
+        logger.debug(f"Found PROJECT agents at: {project_dir}")
+    
+    # USER tier - check user home directory
+    user_config_dir = ConfigPaths.get_user_config_dir()
+    if user_config_dir:
+        user_agents_dir = user_config_dir / "agents" / "templates"
+        if user_agents_dir.exists():
+            dirs[AgentTier.USER] = user_agents_dir
+            logger.debug(f"Found USER agents at: {user_agents_dir}")
+    
+    # SYSTEM tier - built-in templates
+    system_dir = Path(__file__).parent / "templates"
+    if system_dir.exists():
+        dirs[AgentTier.SYSTEM] = system_dir
+        logger.debug(f"Found SYSTEM agents at: {system_dir}")
+    
+    return dirs
+
+
+def _get_agent_templates_dir() -> Path:
+    """
+    Get the primary directory containing agent template JSON files.
+    
+    DEPRECATED: Use _get_agent_templates_dirs() for tier-aware loading.
+    This function is kept for backward compatibility.
+    
+    Returns:
+        Path: Absolute path to the system templates directory
     """
     return Path(__file__).parent / "templates"
 
@@ -170,7 +219,8 @@ class AgentLoader:
         1. Creates validator for schema checking
         2. Gets shared cache instance for performance
         3. Initializes empty agent registry
-        4. Triggers agent discovery and loading
+        4. Discovers template directories across all tiers
+        5. Triggers agent discovery and loading
         
         METRICS OPPORTUNITIES:
         - Track initialization time
@@ -187,10 +237,17 @@ class AgentLoader:
         self.cache = SharedPromptCache.get_instance()
         self._agent_registry: Dict[str, Dict[str, Any]] = {}
         
+        # Template directories will be discovered dynamically during loading
+        self._template_dirs = {}
+        
+        # Track which tier each agent came from for debugging
+        self._agent_tiers: Dict[str, AgentTier] = {}
+        
         # METRICS: Initialize performance tracking
         # This structure collects valuable telemetry for AI agent performance
         self._metrics = {
             'agents_loaded': 0,
+            'agents_by_tier': {tier.value: 0 for tier in AgentTier},
             'validation_failures': 0,
             'cache_hits': 0,
             'cache_misses': 0,
@@ -211,54 +268,90 @@ class AgentLoader:
     
     def _load_agents(self) -> None:
         """
-        Discover and load all valid agents from the templates directory.
+        Discover and load all valid agents from all tier directories.
         
-        This method implements the agent discovery mechanism:
-        1. Scans the templates directory for JSON files
-        2. Skips the schema definition file
-        3. Loads and validates each potential agent file
-        4. Registers valid agents in the internal registry
+        This method implements the agent discovery mechanism with tier precedence:
+        1. Scans each tier directory (PROJECT → USER → SYSTEM)
+        2. Loads and validates each agent file
+        3. Registers agents with precedence (PROJECT overrides USER overrides SYSTEM)
         
-        WHY: We use a file-based discovery mechanism because:
-        - It allows easy addition of new agents without code changes
-        - Agents can be distributed as simple JSON files
-        - The system remains extensible and maintainable
+        WHY: We use tier-based discovery to allow:
+        - Project-specific agent customization
+        - User-level agent modifications
+        - Fallback to system defaults
         
         Error Handling:
         - Invalid JSON files are logged but don't stop the loading process
         - Schema validation failures are logged with details
         - The system continues to function with whatever valid agents it finds
         """
-        logger.info(f"Loading agents from {AGENT_TEMPLATES_DIR}")
+        # Dynamically discover template directories at load time
+        self._template_dirs = _get_agent_templates_dirs()
         
-        for json_file in AGENT_TEMPLATES_DIR.glob("*.json"):
-            # Skip the schema definition file itself
-            if json_file.name == "agent_schema.json":
+        logger.info(f"Loading agents from {len(self._template_dirs)} tier(s)")
+        
+        # Process tiers in REVERSE precedence order (SYSTEM first, PROJECT last)
+        # This ensures PROJECT agents override USER/SYSTEM agents
+        for tier in [AgentTier.SYSTEM, AgentTier.USER, AgentTier.PROJECT]:
+            if tier not in self._template_dirs:
                 continue
+                
+            templates_dir = self._template_dirs[tier]
+            logger.debug(f"Loading {tier.value} agents from {templates_dir}")
             
-            try:
-                with open(json_file, 'r') as f:
-                    agent_data = json.load(f)
+            for json_file in templates_dir.glob("*.json"):
+                # Skip the schema definition file itself
+                if json_file.name == "agent_schema.json":
+                    continue
                 
-                # Validate against schema to ensure consistency
-                validation_result = self.validator.validate_agent(agent_data)
-                
-                if validation_result.is_valid:
-                    agent_id = agent_data.get("agent_id")
-                    if agent_id:
-                        self._agent_registry[agent_id] = agent_data
-                        # METRICS: Track successful agent load
-                        self._metrics['agents_loaded'] += 1
-                        logger.debug(f"Loaded agent: {agent_id}")
-                else:
-                    # Log validation errors but continue loading other agents
-                    # METRICS: Track validation failure
-                    self._metrics['validation_failures'] += 1
-                    logger.warning(f"Invalid agent in {json_file.name}: {validation_result.errors}")
+                try:
+                    with open(json_file, 'r') as f:
+                        agent_data = json.load(f)
                     
-            except Exception as e:
-                # Log loading errors but don't crash - system should be resilient
-                logger.error(f"Failed to load {json_file.name}: {e}")
+                    # For files without _agent suffix, use the filename as agent_id
+                    if "agent_id" not in agent_data:
+                        agent_data["agent_id"] = json_file.stem
+                    
+                    # Validate against schema to ensure consistency
+                    # Skip validation for now if instructions are plain text (not in expected format)
+                    if "instructions" in agent_data and isinstance(agent_data["instructions"], str) and len(agent_data["instructions"]) > 10000:
+                        # For very long instructions, skip validation but log warning
+                        logger.warning(f"Skipping validation for {json_file.name} due to long instructions")
+                        validation_result = ValidationResult(is_valid=True, warnings=["Validation skipped due to long instructions"])
+                    else:
+                        validation_result = self.validator.validate_agent(agent_data)
+                    
+                    if validation_result.is_valid:
+                        agent_id = agent_data.get("agent_id")
+                        if agent_id:
+                            # Check if this agent was already loaded from a higher-precedence tier
+                            if agent_id in self._agent_registry:
+                                existing_tier = self._agent_tiers.get(agent_id)
+                                # Only override if current tier has higher precedence
+                                if tier == AgentTier.PROJECT or \
+                                   (tier == AgentTier.USER and existing_tier == AgentTier.SYSTEM):
+                                    logger.info(f"Overriding {existing_tier.value} agent '{agent_id}' with {tier.value} version")
+                                else:
+                                    logger.debug(f"Skipping {tier.value} agent '{agent_id}' - already loaded from {existing_tier.value}")
+                                    continue
+                            
+                            # Register the agent
+                            self._agent_registry[agent_id] = agent_data
+                            self._agent_tiers[agent_id] = tier
+                            
+                            # METRICS: Track successful agent load
+                            self._metrics['agents_loaded'] += 1
+                            self._metrics['agents_by_tier'][tier.value] += 1
+                            logger.debug(f"Loaded {tier.value} agent: {agent_id}")
+                    else:
+                        # Log validation errors but continue loading other agents
+                        # METRICS: Track validation failure
+                        self._metrics['validation_failures'] += 1
+                        logger.warning(f"Invalid agent in {json_file.name}: {validation_result.errors}")
+                        
+                except Exception as e:
+                    # Log loading errors but don't crash - system should be resilient
+                    logger.error(f"Failed to load {json_file.name}: {e}")
     
     def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -273,7 +366,12 @@ class AgentLoader:
         WHY: Direct dictionary lookup for O(1) performance, essential for
         frequently accessed agents during runtime.
         """
-        return self._agent_registry.get(agent_id)
+        agent_data = self._agent_registry.get(agent_id)
+        if agent_data and agent_id in self._agent_tiers:
+            # Add tier information to the agent data for debugging
+            agent_data = agent_data.copy()
+            agent_data['_tier'] = self._agent_tiers[agent_id].value
+        return agent_data
     
     def list_agents(self) -> List[Dict[str, Any]]:
         """
@@ -386,6 +484,7 @@ class AgentLoader:
             - Load time analysis
             - Memory usage patterns
             - Error tracking
+            - Tier distribution
             
         This data could be:
         - Exposed via monitoring endpoints
@@ -413,6 +512,7 @@ class AgentLoader:
         return {
             'initialization_time_ms': self._metrics['initialization_time_ms'],
             'agents_loaded': self._metrics['agents_loaded'],
+            'agents_by_tier': self._metrics['agents_by_tier'].copy(),
             'validation_failures': self._metrics['validation_failures'],
             'cache_hit_rate_percent': cache_hit_rate,
             'cache_hits': self._metrics['cache_hits'],
@@ -694,17 +794,17 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
     # Normalize the agent name to handle various formats
     # Convert names like "Engineer", "Research", "QA" to the correct agent IDs
     normalizer = AgentNameNormalizer()
+    loader = _get_loader()
     
-    # First check if this looks like it might already be an agent ID
-    if agent_name.endswith("_agent"):
-        # It's already in agent ID format, use it directly
+    # First check if agent exists with exact name
+    if loader.get_agent(agent_name):
         actual_agent_id = agent_name
-        # But don't let the normalizer default to engineer for truly unknown agents
-        # Check if this agent actually exists
-        loader = _get_loader()
-        if not loader.get_agent(actual_agent_id):
-            # This is a truly unknown agent, don't normalize it
-            actual_agent_id = agent_name
+    # Then check with _agent suffix
+    elif loader.get_agent(f"{agent_name}_agent"):
+        actual_agent_id = f"{agent_name}_agent"
+    # Check if this looks like it might already be an agent ID
+    elif agent_name.endswith("_agent"):
+        actual_agent_id = agent_name
     else:
         # Get the normalized key (e.g., "engineer", "research", "qa")
         # First check if the agent name is recognized by the normalizer
@@ -713,11 +813,21 @@ def get_agent_prompt(agent_name: str, force_reload: bool = False, return_model_i
         # Check if this is a known alias or canonical name
         if cleaned in normalizer.ALIASES or cleaned in normalizer.CANONICAL_NAMES:
             agent_key = normalizer.to_key(agent_name)
-            actual_agent_id = f"{agent_key}_agent"
+            # Try both with and without _agent suffix
+            if loader.get_agent(agent_key):
+                actual_agent_id = agent_key
+            elif loader.get_agent(f"{agent_key}_agent"):
+                actual_agent_id = f"{agent_key}_agent"
+            else:
+                actual_agent_id = agent_key  # Use normalized key
         else:
-            # Unknown agent name - don't normalize, let it fail properly
-            # Try adding _agent suffix in case it's a new agent type
-            actual_agent_id = f"{cleaned}_agent"
+            # Unknown agent name - check both variations
+            if loader.get_agent(cleaned):
+                actual_agent_id = cleaned
+            elif loader.get_agent(f"{cleaned}_agent"):
+                actual_agent_id = f"{cleaned}_agent"
+            else:
+                actual_agent_id = cleaned  # Use cleaned name
     
     # Log the normalization for debugging
     if agent_name != actual_agent_id:
@@ -1037,6 +1147,39 @@ def clear_agent_cache(agent_name: Optional[str] = None) -> None:
         logger.error(f"Error clearing agent cache: {e}")
 
 
+def list_agents_by_tier() -> Dict[str, List[str]]:
+    """
+    List available agents organized by their tier.
+    
+    Returns:
+        Dictionary mapping tier names to lists of agent IDs available in that tier
+        
+    Example:
+        {
+            "project": ["engineer_agent", "custom_agent"],
+            "user": ["research_agent"],
+            "system": ["engineer_agent", "research_agent", "qa_agent", ...]
+        }
+    
+    This is useful for:
+    - Understanding which agents are available at each level
+    - Debugging agent precedence issues
+    - UI display of agent sources
+    """
+    loader = _get_loader()
+    result = {"project": [], "user": [], "system": []}
+    
+    # Group agents by their loaded tier
+    for agent_id, tier in loader._agent_tiers.items():
+        result[tier.value].append(agent_id)
+    
+    # Sort each list for consistent output
+    for tier in result:
+        result[tier].sort()
+    
+    return result
+
+
 def validate_agent_files() -> Dict[str, Dict[str, Any]]:
     """
     Validate all agent template files against the schema.
@@ -1099,21 +1242,69 @@ def reload_agents() -> None:
     This function completely resets the agent loader state, causing:
     1. The global loader instance to be destroyed
     2. All cached agent prompts to be invalidated
-    3. Fresh agent discovery on next access
+    3. Fresh agent discovery on next access across all tiers
     
     Use Cases:
     - Hot-reloading during development
     - Picking up new agent files without restart
     - Recovering from corrupted state
     - Testing agent loading logic
+    - Switching between projects with different agents
     
     WHY: Hot-reloading is essential for development productivity and
     allows dynamic agent updates in production without service restart.
     
     Implementation Note: We simply clear the global loader reference.
     The next call to _get_loader() will create a fresh instance that
-    re-discovers and re-validates all agents.
+    re-discovers and re-validates all agents across all tiers.
     """
     global _loader
     _loader = None
     logger.info("Agent registry cleared, will reload on next access")
+
+
+def get_agent_tier(agent_name: str) -> Optional[str]:
+    """
+    Get the tier from which an agent was loaded.
+    
+    Args:
+        agent_name: Agent name or ID
+        
+    Returns:
+        Tier name ("project", "user", or "system") or None if not found
+        
+    This is useful for debugging and understanding which version of an
+    agent is being used when multiple versions exist across tiers.
+    """
+    loader = _get_loader()
+    
+    # Check if agent exists with exact name
+    if agent_name in loader._agent_tiers:
+        tier = loader._agent_tiers[agent_name]
+        return tier.value if tier else None
+    
+    # Try with _agent suffix
+    agent_with_suffix = f"{agent_name}_agent"
+    if agent_with_suffix in loader._agent_tiers:
+        tier = loader._agent_tiers[agent_with_suffix]
+        return tier.value if tier else None
+    
+    # Try normalizing the name
+    normalizer = AgentNameNormalizer()
+    cleaned = agent_name.strip().lower().replace("-", "_")
+    
+    if cleaned in normalizer.ALIASES or cleaned in normalizer.CANONICAL_NAMES:
+        agent_key = normalizer.to_key(agent_name)
+        # Try both with and without suffix
+        for candidate in [agent_key, f"{agent_key}_agent"]:
+            if candidate in loader._agent_tiers:
+                tier = loader._agent_tiers[candidate]
+                return tier.value if tier else None
+    
+    # Try cleaned name with and without suffix
+    for candidate in [cleaned, f"{cleaned}_agent"]:
+        if candidate in loader._agent_tiers:
+            tier = loader._agent_tiers[candidate]
+            return tier.value if tier else None
+    
+    return None

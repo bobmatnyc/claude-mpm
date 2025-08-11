@@ -51,13 +51,19 @@ class SimpleAgentRegistry:
         self._discover_agents()
     
     def _discover_agents(self):
-        """Discover agents from the framework."""
-        # Check multiple possible locations
+        """Discover agents from the framework and project."""
+        # Check multiple possible locations, including project-level
         agent_locations = [
+            # Project-level agents (highest priority)
+            Path.cwd() / ".claude-mpm" / "agents",
+            # Framework/system agents
             self.framework_path / "src" / "claude_mpm" / "agents" / "templates",
             self.framework_path / "src" / "claude_mpm" / "agents",
             self.framework_path / "agents",
         ]
+        
+        # Track discovered agents to handle precedence
+        discovered_agents = {}
         
         for agents_dir in agent_locations:
             if agents_dir.exists():
@@ -65,15 +71,29 @@ class SimpleAgentRegistry:
                 for pattern in ["*.md", "*.json"]:
                     for agent_file in agents_dir.glob(pattern):
                         agent_id = agent_file.stem
-                        self.agents[agent_id] = {
+                        tier = self._determine_tier(agent_file)
+                        
+                        # Check if we already have this agent
+                        if agent_id in discovered_agents:
+                            existing_tier = discovered_agents[agent_id]['tier']
+                            # Skip if existing has higher precedence
+                            # Precedence: project > user > system
+                            tier_precedence = {'project': 3, 'user': 2, 'system': 1}
+                            if tier_precedence.get(existing_tier, 0) >= tier_precedence.get(tier, 0):
+                                continue
+                        
+                        discovered_agents[agent_id] = {
                             'name': agent_id,
                             'type': agent_id,
                             'path': str(agent_file),
                             'last_modified': agent_file.stat().st_mtime,
-                            'tier': self._determine_tier(agent_file),
+                            'tier': tier,
                             'specializations': self._extract_specializations(agent_id),
                             'description': self._extract_description(agent_id)
                         }
+        
+        # Store the final agents
+        self.agents = discovered_agents
     
     def _determine_tier(self, agent_path: Path) -> str:
         """Determine agent tier based on path."""
@@ -113,11 +133,21 @@ class SimpleAgentRegistry:
         }
         return descriptions.get(agent_id, f'{agent_id.title()} agent')
     
-    def listAgents(self, **kwargs) -> Dict[str, Any]:
-        """List all agents (camelCase for compatibility)."""
+    def list_agents(self, **kwargs) -> Dict[str, Any]:
+        """List all agents."""
         return self.agents
     
-    def list_agents(self, agent_type: Optional[str] = None, tier: Optional[str] = None) -> List[AgentMetadata]:
+    def listAgents(self, **kwargs) -> Dict[str, Any]:
+        """DEPRECATED: Use list_agents() instead. Kept for backward compatibility."""
+        import warnings
+        warnings.warn(
+            "listAgents() is deprecated, use list_agents() instead",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        return self.list_agents(**kwargs)
+    
+    def list_agents_filtered(self, agent_type: Optional[str] = None, tier: Optional[str] = None) -> List[AgentMetadata]:
         """List agents with optional filtering."""
         results = []
         for agent_id, metadata in self.agents.items():
@@ -294,7 +324,7 @@ class AgentRegistryAdapter:
             return {}
         
         try:
-            return self.registry.listAgents(**kwargs)
+            return self.registry.list_agents(**kwargs)
         except Exception as e:
             self.logger.error(f"Error listing agents: {e}")
             return {}
@@ -314,7 +344,7 @@ class AgentRegistryAdapter:
         
         try:
             # Try to load agent definition
-            agents = self.registry.listAgents()
+            agents = self.registry.list_agents()
             for agent_id, metadata in agents.items():
                 if agent_name in agent_id or agent_name == metadata.get('type'):
                     # Load the agent file
@@ -344,7 +374,7 @@ class AgentRegistryAdapter:
         
         try:
             # Get agents with required specializations
-            agents = self.registry.listAgents()
+            agents = self.registry.list_agents()
             
             if required_specializations:
                 # Filter by specializations
@@ -386,7 +416,7 @@ class AgentRegistryAdapter:
         
         try:
             # Get all agents
-            all_agents = self.registry.listAgents()
+            all_agents = self.registry.list_agents()
             
             hierarchy = {
                 'project': [],
@@ -526,17 +556,32 @@ def get_specialized_agent_types() -> Set[str]:
         return adapter.registry.specialized_agent_types
     return set()
 
-def listAgents() -> Dict[str, Dict[str, Any]]:
+def list_agents_all() -> Dict[str, Dict[str, Any]]:
     """
-    Synchronous function for listing all agents (camelCase compatibility)
+    Synchronous function for listing all agents
     
     Returns:
         Dictionary of agent name -> agent metadata
     """
     adapter = AgentRegistryAdapter()
     if adapter.registry:
-        return adapter.registry.listAgents()
+        return adapter.registry.list_agents()
     return {}
+
+def listAgents() -> Dict[str, Dict[str, Any]]:
+    """
+    DEPRECATED: Use list_agents_all() instead. Kept for backward compatibility.
+    
+    Returns:
+        Dictionary of agent name -> agent metadata
+    """
+    import warnings
+    warnings.warn(
+        "listAgents() is deprecated, use list_agents_all() instead",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    return list_agents_all()
 
 def list_agents(agent_type: Optional[str] = None, tier: Optional[str] = None) -> List[AgentMetadata]:
     """
@@ -551,7 +596,7 @@ def list_agents(agent_type: Optional[str] = None, tier: Optional[str] = None) ->
     """
     adapter = AgentRegistryAdapter()
     if adapter.registry:
-        return adapter.registry.list_agents(agent_type=agent_type, tier=tier)
+        return adapter.registry.list_agents_filtered(agent_type=agent_type, tier=tier)
     return []
 
 def discover_agents_sync(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
@@ -600,7 +645,7 @@ def get_registry_stats() -> Dict[str, Any]:
     """
     adapter = AgentRegistryAdapter()
     if adapter.registry:
-        agents = adapter.registry.list_agents()
+        agents = adapter.registry.list_agents_filtered()
         return {
             'total_agents': len(agents),
             'agent_types': len(set(a.type for a in agents)),
@@ -619,8 +664,9 @@ __all__ = [
     'discover_agents',
     'get_core_agent_types',
     'get_specialized_agent_types',
-    'listAgents',
+    'list_agents_all',
     'list_agents',
+    'listAgents',  # Deprecated
     'discover_agents_sync',
     'get_agent',
     'get_registry_stats'
