@@ -176,11 +176,15 @@ class AgentDeploymentService:
         deployment_start_time = time.time()
         
         if not target_dir:
-            target_dir = Path(Paths.CLAUDE_AGENTS_DIR.value).expanduser()
+            # Default to user's home .claude/agents directory
+            agents_dir = Path(Paths.CLAUDE_AGENTS_DIR.value).expanduser()
+        else:
+            # If target_dir provided, create .claude/agents within it
+            target_dir = Path(target_dir)
+            agents_dir = target_dir / ".claude" / "agents"
         
-        target_dir = Path(target_dir)
         results = {
-            "target_dir": str(target_dir),
+            "target_dir": str(agents_dir),
             "deployed": [],
             "errors": [],
             "skipped": [],
@@ -200,9 +204,9 @@ class AgentDeploymentService:
         }
         
         try:
-            # Create target directory if needed
-            target_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.info(f"Building and deploying agents to: {target_dir}")
+            # Create agents directory if needed
+            agents_dir.mkdir(parents=True, exist_ok=True)
+            self.logger.info(f"Building and deploying agents to: {agents_dir}")
             
             # Note: System instructions are now loaded directly by SimpleClaudeRunner
             
@@ -214,7 +218,7 @@ class AgentDeploymentService:
                 return results
             
             # Convert any existing YAML files to MD format
-            conversion_results = self._convert_yaml_to_md(target_dir)
+            conversion_results = self._convert_yaml_to_md(agents_dir)
             results["converted"] = conversion_results.get("converted", [])
             
             # Load base agent content
@@ -237,8 +241,14 @@ class AgentDeploymentService:
             
             # Get all template files
             template_files = list(self.templates_dir.glob("*.json"))
-            # Filter out non-agent files
-            template_files = [f for f in template_files if f.stem != "__init__" and not f.stem.startswith(".")]
+            # Filter out non-agent files - exclude system files and uppercase special files
+            excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README"}
+            template_files = [
+                f for f in template_files 
+                if f.stem not in excluded_names 
+                and not f.stem.startswith(".")
+                and not f.stem.endswith(".backup")
+            ]
             results["total"] = len(template_files)
             
             for template_file in template_files:
@@ -247,7 +257,7 @@ class AgentDeploymentService:
                     agent_start_time = time.time()
                     
                     agent_name = template_file.stem
-                    target_file = target_dir / f"{agent_name}.md"
+                    target_file = agents_dir / f"{agent_name}.md"
                     
                     # Check if agent needs update
                     needs_update = force_rebuild
@@ -524,26 +534,47 @@ class AgentDeploymentService:
         model = (
             template_data.get('capabilities', {}).get('model') or
             template_data.get('configuration_fields', {}).get('model') or
-            "claude-sonnet-4-20250514"  # Default fallback
+            "sonnet"  # Default fallback
         )
         
-        frontmatter = f"""---
-name: {agent_name}
-description: "{description}"
-version: "{version_string}"
-author: "{template_data.get('author', 'claude-mpm@anthropic.com')}"
-created: "{datetime.now().isoformat()}Z"
-updated: "{datetime.now().isoformat()}Z"
-tags: {tags}
-tools: {tools}
-model: "{model}"
-metadata:
-  base_version: "{self._format_version_display(base_version)}"
-  agent_version: "{self._format_version_display(agent_version)}"
-  deployment_type: "system"
----
-
-"""
+        # Simplify model name for Claude Code
+        model_map = {
+            'claude-4-sonnet-20250514': 'sonnet',
+            'claude-sonnet-4-20250514': 'sonnet', 
+            'claude-3-opus-20240229': 'opus',
+            'claude-3-haiku-20240307': 'haiku',
+            'claude-3.5-sonnet': 'sonnet',
+            'claude-3-sonnet': 'sonnet'
+        }
+        model = model_map.get(model, model.split('-')[-1] if '-' in model else model)
+        
+        # Get response format from template or use base agent default
+        response_format = template_data.get('response', {}).get('format', 'structured')
+        
+        # Convert lists to space-separated strings for Claude Code compatibility
+        tags_str = ' '.join(tags) if isinstance(tags, list) else tags
+        tools_str = ', '.join(tools) if isinstance(tools, list) else tools
+        
+        # Build frontmatter with only the fields Claude Code uses
+        frontmatter_lines = [
+            "---",
+            f"name: {agent_name}",
+            f"description: {description}",
+            f"version: {version_string}",
+            f"base_version: {self._format_version_display(base_version)}",
+            f"tools: {tools_str}",
+            f"model: {model}"
+        ]
+        
+        # Add optional fields if present
+        if template_data.get('color'):
+            frontmatter_lines.append(f"color: {template_data['color']}")
+        
+        frontmatter_lines.append("---")
+        frontmatter_lines.append("")
+        frontmatter_lines.append("")
+        
+        frontmatter = '\n'.join(frontmatter_lines)
         
         # Get the main content (instructions)
         # Check multiple possible locations for instructions
@@ -874,14 +905,18 @@ temperature: {temperature}"""
                     "path": str(agent_file)
                 }
                 
-                # Extract name and version from YAML frontmatter
+                # Extract name, version, and base_version from YAML frontmatter
                 version_str = None
+                base_version_str = None
                 for line in lines:
                     if line.startswith("name:"):
                         agent_info["name"] = line.split(":", 1)[1].strip().strip('"\'')
                     elif line.startswith("version:"):
                         version_str = line.split(":", 1)[1].strip().strip('"\'')
                         agent_info["version"] = version_str
+                    elif line.startswith("base_version:"):
+                        base_version_str = line.split(":", 1)[1].strip().strip('"\'')
+                        agent_info["base_version"] = base_version_str
                 
                 # Check if agent needs migration
                 if version_str and self._is_old_version_format(version_str):
@@ -904,6 +939,87 @@ temperature: {temperature}"""
         
         return results
     
+    def deploy_agent(self, agent_name: str, target_dir: Path, force_rebuild: bool = False) -> bool:
+        """
+        Deploy a single agent to the specified directory.
+        
+        Args:
+            agent_name: Name of the agent to deploy
+            target_dir: Target directory for deployment (Path object)
+            force_rebuild: Whether to force rebuild even if version is current
+            
+        Returns:
+            True if deployment was successful, False otherwise
+            
+        WHY: Single agent deployment because:
+        - Users may want to deploy specific agents only
+        - Reduces deployment time for targeted updates
+        - Enables selective agent management in projects
+        
+        FIXED: Method now correctly handles all internal calls to:
+        - _check_agent_needs_update (with 3 arguments)
+        - _build_agent_markdown (with 3 arguments including base_agent_data)
+        - Properly loads base_agent_data before building agent content
+        """
+        try:
+            # Find the template file
+            template_file = self.templates_dir / f"{agent_name}.json"
+            if not template_file.exists():
+                self.logger.error(f"Agent template not found: {agent_name}")
+                return False
+            
+            # Ensure target directory exists
+            agents_dir = target_dir / '.claude' / 'agents'
+            agents_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Build and deploy the agent
+            target_file = agents_dir / f"{agent_name}.md"
+            
+            # Check if update is needed
+            if not force_rebuild and target_file.exists():
+                # Load base agent data for version checking
+                base_agent_data = {}
+                base_agent_version = (0, 0, 0)
+                if self.base_agent_path.exists():
+                    try:
+                        import json
+                        base_agent_data = json.loads(self.base_agent_path.read_text())
+                        base_agent_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
+                    except Exception as e:
+                        self.logger.warning(f"Could not load base agent for version check: {e}")
+                
+                needs_update, reason = self._check_agent_needs_update(target_file, template_file, base_agent_version)
+                if not needs_update:
+                    self.logger.info(f"Agent {agent_name} is up to date")
+                    return True
+                else:
+                    self.logger.info(f"Updating agent {agent_name}: {reason}")
+            
+            # Load base agent data for building
+            base_agent_data = {}
+            if self.base_agent_path.exists():
+                try:
+                    import json
+                    base_agent_data = json.loads(self.base_agent_path.read_text())
+                except Exception as e:
+                    self.logger.warning(f"Could not load base agent: {e}")
+            
+            # Build the agent markdown
+            agent_content = self._build_agent_markdown(agent_name, template_file, base_agent_data)
+            if not agent_content:
+                self.logger.error(f"Failed to build agent content for {agent_name}")
+                return False
+            
+            # Write to target file
+            target_file.write_text(agent_content)
+            self.logger.info(f"Successfully deployed agent: {agent_name} to {target_file}")
+            
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to deploy agent {agent_name}: {e}")
+            return False
+    
     def list_available_agents(self) -> List[Dict[str, Any]]:
         """
         List available agent templates.
@@ -918,8 +1034,14 @@ temperature: {temperature}"""
             return agents
         
         template_files = sorted(self.templates_dir.glob("*.json"))
-        # Filter out non-agent files
-        template_files = [f for f in template_files if f.stem != "__init__" and not f.stem.startswith(".")]
+        # Filter out non-agent files - exclude system files and uppercase special files
+        excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README"}
+        template_files = [
+            f for f in template_files 
+            if f.stem not in excluded_names 
+            and not f.stem.startswith(".")
+            and not f.stem.endswith(".backup")
+        ]
         
         for template_file in template_files:
             try:

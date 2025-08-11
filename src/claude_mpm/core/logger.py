@@ -212,7 +212,10 @@ def setup_logging(
         else:
             # Use default log directory
             if log_dir is None:
-                log_dir = Path.home() / ".claude-mpm" / "logs"
+                # Use deployment root for logs to keep everything centralized
+                from claude_mpm.deployment_paths import get_project_root
+                deployment_root = get_project_root()
+                log_dir = deployment_root / ".claude-mpm" / "logs"
             
             log_dir.mkdir(parents=True, exist_ok=True)
             

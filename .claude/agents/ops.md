@@ -1,17 +1,10 @@
 ---
 name: ops
-description: "Operations, deployment, and infrastructure"
-version: "1.3.0"
-author: "claude-mpm@anthropic.com"
-created: "2025-08-08T12:22:50.088395Z"
-updated: "2025-08-08T12:22:50.088396Z"
-tags: ['ops', 'deployment', 'docker', 'infrastructure']
-tools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'LS', 'TodoWrite']
-model: "claude-3-opus-20240229"
-metadata:
-  base_version: "0.2.0"
-  agent_version: "1.3.0"
-  deployment_type: "system"
+description: Operations, deployment, and infrastructure
+version: 2.3.2
+base_version: 0.3.0
+tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
+model: sonnet
 ---
 
 # Ops Agent

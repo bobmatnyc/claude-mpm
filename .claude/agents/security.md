@@ -1,17 +1,10 @@
 ---
 name: security
-description: "Security analysis and vulnerability assessment"
-version: "1.3.0"
-author: "claude-mpm@anthropic.com"
-created: "2025-08-08T12:22:50.087028Z"
-updated: "2025-08-08T12:22:50.087030Z"
-tags: ['security', 'vulnerability', 'compliance', 'protection']
-tools: ['Read', 'Grep', 'Glob', 'LS', 'WebSearch', 'TodoWrite']
-model: "claude-3-5-sonnet-20241022"
-metadata:
-  base_version: "0.2.0"
-  agent_version: "1.3.0"
-  deployment_type: "system"
+description: Security analysis and vulnerability assessment
+version: 2.3.2
+base_version: 0.3.0
+tools: Read, Grep, Glob, LS, WebSearch, TodoWrite
+model: sonnet
 ---
 
 # Security Agent - AUTO-ROUTED

@@ -71,17 +71,22 @@ class ProjectInitializer:
           - agents/
             - project-specific/
           - config/
+          - responses/
           - logs/
         """
         try:
-            # Find project root
+            # Find project root - always define project_root for consistent messaging
             if project_path:
+                project_root = project_path
                 self.project_dir = project_path / ".claude-mpm"
             else:
-                project_root = self._find_project_root()
-                if not project_root:
-                    project_root = Path.cwd()
+                # Always use current working directory for project directories
+                # This ensures .claude-mpm is created where the user launches the tool
+                project_root = Path.cwd()
                 self.project_dir = project_root / ".claude-mpm"
+            
+            # Check if directory already exists
+            directory_existed = self.project_dir.exists()
             
             # Create project directory
             self.project_dir.mkdir(exist_ok=True)
@@ -90,6 +95,7 @@ class ProjectInitializer:
             directories = [
                 self.project_dir / "agents" / "project-specific",
                 self.project_dir / "config",
+                self.project_dir / "responses",
                 self.project_dir / "logs",
             ]
             
@@ -106,11 +112,21 @@ class ProjectInitializer:
             if not gitignore.exists():
                 gitignore.write_text("logs/\n*.log\n*.pyc\n__pycache__/\n")
             
+            # Log successful creation with details
             self.logger.info(f"Initialized project directory at {self.project_dir}")
+            self.logger.debug(f"Created directories: agents, config, responses, logs")
+            
+            # Print appropriate message to console for visibility during startup
+            if directory_existed:
+                print(f"✓ Found existing .claude-mpm/ directory in {project_root}")
+            else:
+                print(f"✓ Initialized .claude-mpm/ in {project_root}")
+            
             return True
             
         except Exception as e:
             self.logger.error(f"Failed to initialize project directory: {e}")
+            print(f"✗ Failed to create .claude-mpm/ directory: {e}")
             return False
     
     def _find_project_root(self) -> Optional[Path]:
@@ -218,9 +234,25 @@ class ProjectInitializer:
         return dependencies
     
     def ensure_initialized(self) -> bool:
-        """Ensure both user and project directories are initialized."""
+        """Ensure both user and project directories are initialized.
+        
+        Shows clear information about where directories are being created.
+        """
+        # Show working directory info at startup
+        cwd = Path.cwd()
+        framework_path = Path(__file__).parent.parent.parent
+        
+        # Log startup context
+        self.logger.info(f"Working directory: {cwd}")
+        self.logger.info(f"Framework path: {framework_path}")
+        
+        # Initialize user directory (in home)
         user_ok = self.initialize_user_directory()
+        
+        # Initialize project directory (in current working directory)
+        self.logger.info(f"Checking for .claude-mpm/ in {cwd}")
         project_ok = self.initialize_project_directory()
+        
         return user_ok and project_ok
 
 
