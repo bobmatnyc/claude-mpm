@@ -38,6 +38,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileSystemEvent
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.config_paths import ConfigPaths
 from claude_mpm.services.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.agent_registry import AgentRegistry
 from claude_mpm.utils.path_operations import path_ops
@@ -217,7 +218,7 @@ class AgentModificationTracker(BaseService):
         self.watched_paths: Set[Path] = set()
         
         # Persistence paths
-        self.persistence_root = Path.home() / '.claude-pm' / 'agent_tracking'
+        self.persistence_root = ConfigPaths.get_tracking_dir()
         self.backup_root = self.persistence_root / 'backups'
         self.history_root = self.persistence_root / 'history'
         
@@ -410,7 +411,7 @@ class AgentModificationTracker(BaseService):
             agent_dirs = [
                 Path("agents"),
                 Path("src/claude_mpm/agents"),
-                Path.home() / ".claude-pm" / "agents"
+                ConfigPaths.get_user_agents_dir()
             ]
             
             for agent_dir in agent_dirs:
@@ -576,7 +577,7 @@ class AgentModificationTracker(BaseService):
             path_str = str(path).lower()
             if 'system' in path_str or '/claude_mpm/agents/' in path_str:
                 tier = ModificationTier.SYSTEM
-            elif '.claude-pm' in path_str or str(Path.home()) in path_str:
+            elif ConfigPaths.CONFIG_DIR.lower() in path_str or str(Path.home()) in path_str:
                 tier = ModificationTier.USER
             else:
                 tier = ModificationTier.PROJECT

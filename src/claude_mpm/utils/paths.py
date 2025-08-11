@@ -10,6 +10,8 @@ from typing import Optional, Union, List
 from functools import lru_cache
 import logging
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 logger = logging.getLogger(__name__)
 
 
@@ -109,7 +111,7 @@ class PathResolver:
         """
         # Project root markers in order of preference
         markers = ['.git', 'pyproject.toml', 'package.json', 'Cargo.toml', 
-                   'go.mod', 'pom.xml', 'build.gradle', '.claude-pm']
+                   'go.mod', 'pom.xml', 'build.gradle', ConfigPaths.CONFIG_DIR]
         
         current = Path.cwd()
         while current != current.parent:
@@ -139,22 +141,22 @@ class PathResolver:
             FileNotFoundError: If directory cannot be determined
         """
         if scope == 'project':
-            return cls.get_project_root() / '.claude-pm'
+            return cls.get_project_root() / ConfigPaths.CONFIG_DIR
         elif scope == 'user':
             # Support XDG_CONFIG_HOME if set
             xdg_config = os.environ.get('XDG_CONFIG_HOME')
             if xdg_config:
-                return Path(xdg_config) / 'claude-pm'
-            return Path.home() / '.config' / 'claude-pm'
+                return Path(xdg_config) / 'claude-mpm'
+            return Path.home() / '.config' / 'claude-mpm'
         elif scope == 'system':
             # System-wide configuration
             if os.name == 'posix':
-                return Path('/etc/claude-pm')
+                return Path('/etc/claude-mpm')
             else:
                 # Windows: Use ProgramData
-                return Path(os.environ.get('ProgramData', 'C:\\ProgramData')) / 'claude-pm'
+                return Path(os.environ.get('ProgramData', 'C:\\ProgramData')) / 'claude-mpm'
         elif scope == 'framework':
-            return cls.get_framework_root() / '.claude-pm'
+            return cls.get_framework_root() / ConfigPaths.CONFIG_DIR
         else:
             raise ValueError(f"Invalid scope: {scope}. Must be one of: project, user, system, framework")
     
@@ -186,15 +188,15 @@ class PathResolver:
     @classmethod
     @lru_cache(maxsize=8)
     def get_claude_pm_dir(cls, base_path: Optional[Path] = None) -> Optional[Path]:
-        """Find .claude-pm directory starting from base_path.
+        """Find .claude-mpm directory starting from base_path.
         
         Args:
             base_path: Starting directory (defaults to current directory)
             
         Returns:
-            Path: The .claude-pm directory, or None if not found
+            Path: The .claude-mpm directory, or None if not found
         """
-        result = cls.find_file_upwards('.claude-pm', base_path)
+        result = cls.find_file_upwards(ConfigPaths.CONFIG_DIR, base_path)
         return result if result and result.is_dir() else None
     
     @classmethod

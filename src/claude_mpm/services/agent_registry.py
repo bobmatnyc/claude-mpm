@@ -29,6 +29,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime
 from enum import Enum
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 logger = logging.getLogger(__name__)
 
 
@@ -148,7 +150,7 @@ class AgentRegistry:
     def _setup_discovery_paths(self) -> None:
         """Setup standard discovery paths for agent files."""
         # User-level agents
-        user_path = Path.home() / '.claude-pm' / 'agents'
+        user_path = ConfigPaths.get_user_agents_dir()
         if user_path.exists():
             self.discovery_paths.append(user_path)
         
@@ -394,7 +396,7 @@ class AgentRegistry:
         """Determine tier based on path location."""
         path_str = str(path).lower()
         
-        if '.claude-pm' in path_str or str(Path.home()) in str(path):
+        if ConfigPaths.CONFIG_DIR in path_str or str(Path.home()) in str(path):
             return AgentTier.USER
         else:
             return AgentTier.SYSTEM

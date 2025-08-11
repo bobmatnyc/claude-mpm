@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-10T17:44:09.372928",
+  "agent_name": "qa",
+  "session_id": "session_20250810_174409",
+  "request_summary": "Global function test 1",
+  "response_content": "First test of global async logging",
+  "metadata": {
+    "agent": "qa"
+  },
+  "microseconds": 372928
+}

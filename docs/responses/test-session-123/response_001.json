@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-08-10T17:07:38.924813",
+  "session_id": "test-session-123",
+  "request_summary": "Environment session test",
+  "response": "This response uses session ID from environment variable.",
+  "metadata": {
+    "source": "env_test"
+  }
+}

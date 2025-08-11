@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-10T17:13:22.204812",
+  "session_id": "hook_length_test_20250810_171322",
+  "request_summary": "Long response test",
+  "response": "This is a long response that exceeds the minimum length requirement and should be logged by the system. It contains enough characters to pass the filter.",
+  "metadata": {
+    "agent": "test_agent",
+    "model": "claude-3",
+    "tools_used": []
+  }
+}

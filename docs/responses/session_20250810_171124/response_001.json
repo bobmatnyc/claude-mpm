@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-10T17:11:24.114851",
+  "session_id": "session_20250810_171124",
+  "request_summary": "Test request 1: Testing the logging system",
+  "response": "This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. This is test response 1. The logging system is working correctly. ",
+  "metadata": {
+    "agent": "test_agent",
+    "model": "claude-3",
+    "test_number": 1
+  }
+}

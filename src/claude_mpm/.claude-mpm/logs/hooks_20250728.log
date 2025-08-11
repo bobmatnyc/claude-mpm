@@ -1,0 +1,10 @@
+2025-07-28 09:57:00,914 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: 9a641bea)
+2025-07-28 09:57:00,914 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:254 - PostToolUse: Bash (exit code: N/A)
+2025-07-28 09:57:09,289 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: 9a641bea)
+2025-07-28 09:57:09,290 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:247 - PreToolUse: Bash
+2025-07-28 09:57:21,601 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: 9a641bea)
+2025-07-28 09:57:21,601 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:247 - PreToolUse: LS
+2025-07-28 09:57:25,939 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: 9a641bea)
+2025-07-28 09:57:25,939 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:254 - PostToolUse: LS (exit code: N/A)
+2025-07-28 09:57:35,668 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: 9a641bea)
+2025-07-28 09:57:35,668 - claude_mpm_hooks_claude_mpm - INFO - hook_handler.py:247 - PreToolUse: Bash

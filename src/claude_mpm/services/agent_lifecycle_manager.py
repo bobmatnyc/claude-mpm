@@ -50,6 +50,7 @@ from claude_mpm.services.agent_persistence_service import (
 from claude_mpm.services.agent_management_service import AgentManager
 from claude_mpm.models.agent_definition import AgentDefinition, AgentType
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.config_paths import ConfigPaths
 from claude_mpm.utils.path_operations import path_ops
 from claude_mpm.utils.config_manager import ConfigurationManager
 
@@ -275,7 +276,7 @@ class AgentLifecycleManager(BaseService):
     async def _load_agent_records(self) -> None:
         """Load existing agent lifecycle records."""
         try:
-            records_file = Path.home() / '.claude-pm' / 'agent_tracking' / 'lifecycle_records.json'
+            records_file = ConfigPaths.get_tracking_dir() / 'lifecycle_records.json'
             if path_ops.validate_exists(records_file):
                 data = self.config_mgr.load_json(records_file)
                 
@@ -294,7 +295,7 @@ class AgentLifecycleManager(BaseService):
     async def _save_agent_records(self) -> None:
         """Save agent lifecycle records to disk."""
         try:
-            records_file = Path.home() / '.claude-pm' / 'agent_tracking' / 'lifecycle_records.json'
+            records_file = ConfigPaths.get_tracking_dir() / 'lifecycle_records.json'
             path_ops.ensure_dir(records_file.parent)
             
             data = {}
@@ -788,9 +789,9 @@ class AgentLifecycleManager(BaseService):
     async def _determine_agent_file_path(self, agent_name: str, tier: ModificationTier) -> Path:
         """Determine appropriate file path for agent."""
         if tier == ModificationTier.USER:
-            base_path = Path.home() / '.claude-pm' / 'agents'
+            base_path = ConfigPaths.get_user_agents_dir()
         elif tier == ModificationTier.PROJECT:
-            base_path = Path.cwd() / '.claude-pm' / 'agents'
+            base_path = ConfigPaths.get_project_agents_dir()
         else:  # SYSTEM
             base_path = Path.cwd() / 'claude_pm' / 'agents'
         
@@ -804,7 +805,7 @@ class AgentLifecycleManager(BaseService):
             if not path_ops.validate_exists(source_path):
                 return None
             
-            backup_dir = Path.home() / '.claude-pm' / 'agent_tracking' / 'backups'
+            backup_dir = ConfigPaths.get_tracking_dir() / 'backups'
             path_ops.ensure_dir(backup_dir)
             
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')

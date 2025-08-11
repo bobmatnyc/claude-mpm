@@ -44,6 +44,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 # Import ai-trackdown-pytools
 try:
     from ai_trackdown_pytools import Task, Project
@@ -147,8 +149,8 @@ class TicketingService:
         if tickets_path.exists():
             return tickets_path
         
-        # Check for .claude-pm directory
-        claude_pm_dir = current_dir / ".claude-pm"
+        # Check for .claude-mpm directory
+        claude_pm_dir = current_dir / ConfigPaths.CONFIG_DIR
         if claude_pm_dir.exists():
             tickets_path = claude_pm_dir / "tickets"
             tickets_path.mkdir(exist_ok=True)

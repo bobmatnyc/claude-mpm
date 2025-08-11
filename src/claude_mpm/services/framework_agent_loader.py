@@ -2,8 +2,8 @@
 Framework Agent Loader Service
 
 Implements agent profile loading logic based on directory hierarchy:
-1. Framework .claude-pm (next to agents/INSTRUCTIONS.md or CLAUDE.md): system, trained, user agents
-2. Project .claude-pm (in project root): project agents
+1. Framework .claude-mpm (next to agents/INSTRUCTIONS.md or CLAUDE.md): system, trained, user agents
+2. Project .claude-mpm (in project root): project agents
 
 Loading precedence: Project → Framework (user → trained → system)
 """
@@ -14,10 +14,12 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 import logging
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 logger = logging.getLogger(__name__)
 
 class FrameworkAgentLoader:
-    """Loads agent profiles from framework and project .claude-pm directories"""
+    """Loads agent profiles from framework and project .claude-mpm directories"""
     
     def __init__(self):
         self.framework_agents_dir = None
@@ -31,20 +33,20 @@ class FrameworkAgentLoader:
         Args:
             framework_claude_md_path: Optional explicit path to agents/INSTRUCTIONS.md or CLAUDE.md
         """
-        # Find framework .claude-pm directory (next to framework/CLAUDE.md)
+        # Find framework .claude-mpm directory (next to framework/CLAUDE.md)
         if framework_claude_md_path:
             framework_dir = Path(framework_claude_md_path).parent.parent
         else:
             framework_dir = self._find_framework_directory()
             
         if framework_dir:
-            self.framework_agents_dir = framework_dir / ".claude-pm" / "agents"
+            self.framework_agents_dir = framework_dir / ConfigPaths.CONFIG_DIR / "agents"
             logger.info(f"Framework agents directory: {self.framework_agents_dir}")
         
-        # Find project .claude-pm directory
+        # Find project .claude-mpm directory
         project_dir = self._find_project_directory()
         if project_dir:
-            self.project_agents_dir = project_dir / ".claude-pm" / "agents"
+            self.project_agents_dir = project_dir / ConfigPaths.CONFIG_DIR / "agents"
             logger.info(f"Project agents directory: {self.project_agents_dir}")
     
     def _find_framework_directory(self) -> Optional[Path]:
@@ -75,12 +77,12 @@ class FrameworkAgentLoader:
         return None
     
     def _find_project_directory(self) -> Optional[Path]:
-        """Find project directory containing .claude-pm"""
+        """Find project directory containing .claude-mpm"""
         current = Path.cwd()
         
-        # Check current directory and parents for .claude-pm
+        # Check current directory and parents for .claude-mpm
         for path in [current] + list(current.parents):
-            claude_pm_dir = path / ".claude-pm"
+            claude_pm_dir = path / ConfigPaths.CONFIG_DIR
             if claude_pm_dir.exists():
                 return path
                 

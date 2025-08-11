@@ -1,0 +1,34 @@
+2025-07-30 12:40:20,992 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 12:40:20,992 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Bash (exit code: N/A)
+2025-07-30 12:40:33,117 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 12:40:33,117 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Edit
+2025-07-30 12:40:33,276 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 12:40:33,276 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Edit (exit code: N/A)
+2025-07-30 12:40:39,276 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 12:40:39,276 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Bash
+2025-07-30 12:40:39,541 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 12:40:39,541 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Bash (exit code: N/A)
+2025-07-30 12:40:48,610 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 12:40:48,610 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Bash
+2025-07-30 12:40:49,941 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 12:40:49,941 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Bash (exit code: N/A)
+2025-07-30 12:44:50,358 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: UserPromptSubmit (session: df539357)
+2025-07-30 12:44:50,358 - claude_mpm_hooks_core - INFO - hook_handler.py:244 - UserPromptSubmit: OK. Let's make the subprocess the default method
+2025-07-30 13:05:35,872 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: UserPromptSubmit (session: df539357)
+2025-07-30 13:05:35,872 - claude_mpm_hooks_core - INFO - hook_handler.py:244 - UserPromptSubmit: actually leave as is.  I want to figure out a simple test to trigger the terminal flow.  Use docs/de...
+2025-07-30 13:05:42,930 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 13:05:42,930 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Read
+2025-07-30 13:05:43,133 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 13:05:43,133 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Read (exit code: N/A)
+2025-07-30 13:05:49,996 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 13:05:49,996 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Grep
+2025-07-30 13:05:50,548 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 13:05:50,548 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Grep (exit code: N/A)
+2025-07-30 13:05:56,341 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 13:05:56,341 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Read
+2025-07-30 13:05:56,527 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PostToolUse (session: df539357)
+2025-07-30 13:05:56,528 - claude_mpm_hooks_core - INFO - hook_handler.py:254 - PostToolUse: Read (exit code: N/A)
+2025-07-30 13:06:01,890 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 13:06:01,890 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Bash
+2025-07-30 13:06:08,115 - claude_mpm_hooks_core - INFO - hook_handler.py:231 - Claude Code hook event: PreToolUse (session: df539357)
+2025-07-30 13:06:08,115 - claude_mpm_hooks_core - INFO - hook_handler.py:247 - PreToolUse: Bash
