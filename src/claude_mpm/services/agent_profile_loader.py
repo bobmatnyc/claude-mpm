@@ -34,6 +34,7 @@ import yaml
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.config import Config
+from claude_mpm.core.config_paths import ConfigPaths
 from claude_mpm.services.shared_prompt_cache import SharedPromptCache
 from claude_mpm.services.agent_registry import AgentRegistry
 from claude_mpm.utils.path_operations import path_ops
@@ -117,7 +118,7 @@ class AgentProfileLoader(BaseService):
         # Tier paths configuration
         self.tier_paths = {
             ProfileTier.PROJECT: self.working_directory / 'agents',
-            ProfileTier.USER: self.user_home / '.claude-pm' / 'agents',
+            ProfileTier.USER: ConfigPaths.get_user_agents_dir(),
             ProfileTier.SYSTEM: Path(__file__).parent.parent / 'agents' / 'templates'
         }
         
@@ -133,7 +134,7 @@ class AgentProfileLoader(BaseService):
         self.agent_registry: Optional[AgentRegistry] = None
         
         # Improved prompts storage
-        self.improved_prompts_path = self.user_home / '.claude-pm' / 'improved_prompts'
+        self.improved_prompts_path = ConfigPaths.get_user_config_dir() / 'improved_prompts'
         self.improved_prompts_path.mkdir(parents=True, exist_ok=True)
         
         # Performance tracking

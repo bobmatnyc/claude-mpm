@@ -1,0 +1,4 @@
+✓ Initialized .claude-mpm/ in /Users/masa/Projects/claude-mpm/final_verification
+INFO: Templates directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates
+INFO: Base agent path: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json
+Use --system to list system agents or --deployed to list deployed agents

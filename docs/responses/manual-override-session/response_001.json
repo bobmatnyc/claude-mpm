@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-08-10T17:12:19.850350",
+  "session_id": "manual-override-session",
+  "request_summary": "Test manual override",
+  "response": "Testing manual session ID override functionality",
+  "metadata": {
+    "test": "manual_override"
+  }
+}

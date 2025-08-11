@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-08-10T17:09:41.013325",
+  "session_id": "cli_test_20250810_170940",
+  "request_summary": "[pm] Task 4: Perform pm analysis on the codebase",
+  "response": "## PM Agent Response\n\nThis is a simulated response from the pm agent.\n\n### Analysis Results\n- Found 40 relevant files\n- Identified 20 key patterns\n- Generated 12 recommendations\n\n### Summary\nThe pm agent has completed the requested task successfully.\nThis response demonstrates the session logging capability.",
+  "metadata": {
+    "model": "claude-3",
+    "tokens": 48,
+    "task_number": 4,
+    "timestamp": "2025-08-10T17:09:41.013314",
+    "agent": "pm"
+  }
+}

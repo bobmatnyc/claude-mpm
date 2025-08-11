@@ -1,0 +1,10 @@
+{
+  "timestamp": "2025-08-10T17:12:19.850055",
+  "session_id": "persistence-test-session",
+  "request_summary": "Persistence test 1",
+  "response": "Testing session ID persistence - response 1",
+  "metadata": {
+    "test": "persistence",
+    "response_num": 1
+  }
+}

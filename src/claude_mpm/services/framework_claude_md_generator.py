@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Dict, Optional, Any, List, Tuple, Callable
 from dataclasses import dataclass, field
 
+from claude_mpm.core.config_paths import ConfigPaths
+
 logger = logging.getLogger(__name__)
 
 
@@ -338,7 +340,7 @@ class FrameworkClaudeMdGenerator:
         self.framework_root = self._find_framework_root()
         self.deployment_targets = {
             'framework': self.framework_root / 'INSTRUCTIONS.md' if self.framework_root else None,
-            'user': Path.home() / '.claude-pm' / 'INSTRUCTIONS.md',
+            'user': ConfigPaths.get_user_config_dir() / 'INSTRUCTIONS.md',
             'project': Path.cwd() / 'INSTRUCTIONS.md'
         }
         
@@ -353,7 +355,7 @@ class FrameworkClaudeMdGenerator:
         version_locations = [
             Path(__file__).parent.parent / 'framework' / 'VERSION',
             Path.cwd() / 'framework' / 'VERSION',
-            Path.home() / '.claude-pm' / 'VERSION'
+            ConfigPaths.get_user_config_dir() / 'VERSION'
         ]
         
         for version_file in version_locations:

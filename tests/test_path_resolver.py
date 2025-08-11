@@ -77,19 +77,19 @@ class TestPathResolver:
         """Test project config directory."""
         with patch.object(PathResolver, 'get_project_root', return_value=Path('/test/project')):
             config_dir = PathResolver.get_config_dir('project')
-            assert config_dir == Path('/test/project/.claude-pm')
+            assert config_dir == Path('/test/project/.claude-mpm')
     
     def test_get_config_dir_user(self):
         """Test user config directory."""
         config_dir = PathResolver.get_config_dir('user')
-        assert 'claude-pm' in str(config_dir)
+        assert 'claude-mpm' in str(config_dir)
         assert str(config_dir).startswith(str(Path.home()))
     
     def test_get_config_dir_user_with_xdg(self):
         """Test user config directory with XDG_CONFIG_HOME."""
         with patch.dict(os.environ, {'XDG_CONFIG_HOME': '/test/xdg'}):
             config_dir = PathResolver.get_config_dir('user')
-            assert config_dir == Path('/test/xdg/claude-pm')
+            assert config_dir == Path('/test/xdg/claude-mpm')
     
     def test_get_config_dir_invalid_scope(self):
         """Test invalid config scope."""
@@ -115,9 +115,9 @@ class TestPathResolver:
         assert result is None
     
     def test_get_claude_pm_dir(self, tmp_path):
-        """Test .claude-pm directory search."""
-        # Create .claude-pm directory
-        claude_pm_dir = tmp_path / '.claude-pm'
+        """Test .claude-mpm directory search."""
+        # Create .claude-mpm directory
+        claude_pm_dir = tmp_path / '.claude-mpm'
         claude_pm_dir.mkdir()
         
         # Search from subdirectory

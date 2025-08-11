@@ -28,6 +28,7 @@ from ..models.agent_definition import (
 from .agent_versioning import AgentVersionManager
 from .shared_prompt_cache import SharedPromptCache
 from ..utils.paths import PathResolver
+from ..core.config_paths import ConfigPaths
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ class AgentManager:
             
         if project_dir is None:
             project_root = PathResolver.get_project_root()
-            self.project_dir = project_root / ".claude-pm" / "agents" / "project-specific"
+            self.project_dir = project_root / ConfigPaths.CONFIG_DIR / "agents" / "project-specific"
         else:
             self.project_dir = project_dir
         self.version_manager = AgentVersionManager()

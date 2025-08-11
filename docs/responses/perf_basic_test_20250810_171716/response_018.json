@@ -1,0 +1,11 @@
+{
+  "timestamp": "2025-08-10T17:17:16.066880",
+  "session_id": "perf_basic_test_20250810_171716",
+  "request_summary": "Performance test Medium - iteration 8",
+  "response": "Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. Medium length response. ",
+  "metadata": {
+    "test": "performance",
+    "size": "Medium",
+    "iteration": 8
+  }
+}

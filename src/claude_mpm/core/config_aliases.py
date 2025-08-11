@@ -5,10 +5,10 @@ Manages friendly directory aliases for configuration paths, allowing users to
 reference configurations using memorable names instead of full paths.
 
 Example:
-    claude-pm --config personal  # Resolves to ~/.claude-pm/configs/personal/
+    claude-pm --config personal  # Resolves to ~/.claude-mpm/configs/personal/
     claude-pm --config work      # Resolves to ~/work/claude-configs/
 
-Aliases are stored in ~/.claude-pm/config_aliases.json
+Aliases are stored in ~/.claude-mpm/config_aliases.json
 """
 
 import json
@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Dict, Optional, List, Tuple
 
 from ..utils.config_manager import ConfigurationManager
+from .config_paths import ConfigPaths
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ class ConfigAliasManager:
                          ~/.claude-pm/config_aliases.json
         """
         if aliases_file is None:
-            self.aliases_file = Path.home() / ".claude-pm" / "config_aliases.json"
+            self.aliases_file = ConfigPaths.get_user_config_dir() / "config_aliases.json"
         else:
             self.aliases_file = Path(aliases_file)
         

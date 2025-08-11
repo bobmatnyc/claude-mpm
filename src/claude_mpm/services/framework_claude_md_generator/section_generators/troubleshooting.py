@@ -21,7 +21,7 @@ class TroubleshootingGenerator(BaseSectionGenerator):
 4. **Permission Issues**: Ensure proper file permissions on CLI executables
 
 ### claude-pm init and Agent Hierarchy Issues
-5. **Missing .claude-pm Directories**: Run `claude-pm init --setup`
+5. **Missing .claude-mpm Directories**: Run `claude-pm init --setup`
 6. **Agent Hierarchy Validation Errors**: Run `claude-pm init --verify` for detailed validation
 
 ### Core System Issues
