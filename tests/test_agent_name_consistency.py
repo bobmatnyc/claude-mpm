@@ -15,11 +15,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from datetime import datetime
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer, agent_name_normalizer
-from claude_mpm.hooks.builtin.todo_agent_prefix_hook import (
-    TodoAgentPrefixHook,
-    TodoAgentPrefixValidatorHook
-)
-from claude_mpm.hooks.base_hook import HookContext, HookType
 
 
 def print_section(title):
@@ -125,8 +120,14 @@ def demonstrate_hook_behavior():
     """Demonstrate the TodoAgentPrefixHook behavior."""
     print_section("TodoAgentPrefixHook Behavior")
     
-    hook = TodoAgentPrefixHook()
+    # NOTE: TodoAgentPrefixHook has been deprecated
+    # Use AgentNameNormalizer.to_todo_prefix() instead
+    print("\nNote: TodoAgentPrefixHook has been deprecated.")
+    print("Use AgentNameNormalizer for agent name normalization.")
+    return  # Skip deprecated functionality
     
+    # Original code below (commented out for reference)
+    # hook = TodoAgentPrefixHook()
     # Test auto-prefix addition
     print("\nAuto-prefix addition:")
     test_todos = [
@@ -216,9 +217,14 @@ def demonstrate_error_cases():
         print(f"  '{agent:20}' -> '{normalized}' (fallback)")
     
     # Invalid TODO formats
-    validator = TodoAgentPrefixValidatorHook()
+    # NOTE: TodoAgentPrefixValidatorHook has been deprecated
+    print("\nNote: TodoAgentPrefixValidatorHook has been deprecated.")
+    print("Use AgentNameNormalizer for validation.")
+    return  # Skip deprecated functionality
     
-    print("\nValidating invalid TODO formats:")
+    # Original code below (commented out)
+    # validator = TodoAgentPrefixValidatorHook()
+    # print("\nValidating invalid TODO formats:")
     invalid_todos = [
         "No prefix here",
         "[Unknown] Invalid agent",

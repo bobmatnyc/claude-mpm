@@ -184,7 +184,7 @@ class RichTerminalUI:
         def run_claude():
             try:
                 # Load system instructions
-                from ..core.simple_runner import SimpleClaudeRunner
+                from ..core.claude_runner import SimpleClaudeRunner
                 runner = SimpleClaudeRunner(enable_tickets=False)
                 system_prompt = runner._create_system_prompt()
                 

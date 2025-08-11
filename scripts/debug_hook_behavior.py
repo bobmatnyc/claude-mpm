@@ -1,62 +1,67 @@
 #!/usr/bin/env python3
-"""Debug script to understand hook behavior."""
+"""Debug script to understand agent name normalization behavior."""
 
 import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from datetime import datetime
-from claude_mpm.hooks.builtin.todo_agent_prefix_hook import TodoAgentPrefixHook
-from claude_mpm.hooks.base_hook import HookContext, HookType
+from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
-# Create hook instance
-hook = TodoAgentPrefixHook()
+# Test cases
+test_todos = [
+    "Research best practices for testing",
+    "Implement new feature",
+    "Test the API endpoints",
+    "Document the process",
+    "[Engineer] Fix bug",
+    "[QA] Run tests",
+]
 
-# Test case
-test_todo = "Research best practices for testing"
-context = HookContext(
-    hook_type=HookType.CUSTOM,
-    data={
-        'tool_name': 'TodoWrite',
-        'parameters': {
-            'todos': [{'content': test_todo}]
-        }
-    },
-    metadata={},
-    timestamp=datetime.now()
-)
+print("Testing Agent Name Normalization")
+print("-" * 50)
 
-print(f"Testing todo: '{test_todo}'")
-print(f"Hook validation: {hook.validate(context)}")
+for todo in test_todos:
+    # Check if todo already has a prefix
+    import re
+    has_prefix = bool(re.match(r'^\[[^\]]+\]', todo))
+    
+    if has_prefix:
+        print(f"Todo: '{todo}'")
+        print(f"  Already has prefix: Yes")
+    else:
+        # Try to determine agent based on keywords
+        todo_lower = todo.lower()
+        agent = "Engineer"  # default
+        
+        if "research" in todo_lower or "analyze" in todo_lower:
+            agent = "Research"
+        elif "test" in todo_lower or "qa" in todo_lower:
+            agent = "QA"
+        elif "document" in todo_lower:
+            agent = "Documentation"
+        elif "deploy" in todo_lower:
+            agent = "Ops"
+        elif "security" in todo_lower or "audit" in todo_lower:
+            agent = "Security"
+        
+        prefix = AgentNameNormalizer.to_todo_prefix(agent)
+        new_todo = f"{prefix} {todo}"
+        
+        print(f"Todo: '{todo}'")
+        print(f"  Detected agent: {agent}")
+        print(f"  With prefix: '{new_todo}'")
+    
+    print()
 
-# Execute hook
-result = hook.execute(context)
-
-print(f"\nResult:")
-print(f"  Success: {result.success}")
-print(f"  Modified: {result.modified}")
-print(f"  Error: {result.error}")
-
-if result.success and result.modified:
-    updated_todos = result.data['parameters']['todos']
-    print(f"  Updated content: '{updated_todos[0]['content']}'")
-
-# Test with a todo that already has a prefix
-prefixed_todo = "[Research] Analyze patterns"
-context2 = HookContext(
-    hook_type=HookType.CUSTOM,
-    data={
-        'tool_name': 'TodoWrite',
-        'parameters': {
-            'todos': [{'content': prefixed_todo}]
-        }
-    },
-    metadata={},
-    timestamp=datetime.now()
-)
-
-print(f"\n\nTesting prefixed todo: '{prefixed_todo}'")
-result2 = hook.execute(context2)
-print(f"Result:")
-print(f"  Success: {result2.success}")
-print(f"  Modified: {result2.modified}")
+print("\nAgent Name Normalization Examples:")
+print("-" * 50)
+test_names = ["research", "ENGINEER", "qa", "Version Control", "data-engineer"]
+for name in test_names:
+    normalized = AgentNameNormalizer.normalize(name)
+    key = AgentNameNormalizer.to_key(name)
+    prefix = AgentNameNormalizer.to_todo_prefix(name)
+    print(f"Input: '{name}'")
+    print(f"  Normalized: {normalized}")
+    print(f"  Key: {key}")
+    print(f"  Prefix: {prefix}")
+    print()
