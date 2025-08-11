@@ -22,7 +22,7 @@ The new architecture introduces AgentLifecycleManager as the primary interface f
 #### Before (Direct AgentManager)
 
 ```python
-from claude_mpm.services.agent_management_service import AgentManager
+from claude_mpm.services.agents.management import AgentManager
 from claude_mpm.models.agent_definition import AgentDefinition, AgentMetadata
 
 # Synchronous creation
@@ -60,7 +60,7 @@ registry.discover_agents()
 #### After (AgentLifecycleManager)
 
 ```python
-from claude_mpm.services.agent_lifecycle_manager import (
+from claude_mpm.services.agents.deployment import (
     AgentLifecycleManager,
     ModificationTier
 )
@@ -213,7 +213,7 @@ for name, info in all_agents.items():
 
 ```python
 # Rich lifecycle information
-from claude_mpm.services.agent_lifecycle_manager import LifecycleState
+from claude_mpm.services.agents.deployment import LifecycleState
 
 # List with state filtering
 active_agents = await lifecycle_manager.list_agents(

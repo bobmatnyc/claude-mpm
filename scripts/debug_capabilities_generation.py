@@ -4,12 +4,13 @@
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Use centralized path management
+from claude_mpm.config.paths import paths
+paths.ensure_in_path()
 
 from claude_mpm.services.framework_claude_md_generator.content_assembler import ContentAssembler
-from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
-from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGenerator
+from claude_mpm.services.agents.registry import DeployedAgentDiscovery
+from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 
 
 def debug_capabilities_generation():
@@ -76,7 +77,7 @@ def debug_capabilities_generation():
     
     # Test 4: Full INSTRUCTIONS.md processing
     print("\n4. Testing full INSTRUCTIONS.md processing:")
-    instructions_path = Path(__file__).parent.parent / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
+    instructions_path = paths.agents_dir / "INSTRUCTIONS.md"
     if instructions_path.exists():
         raw_content = instructions_path.read_text()
         print(f"   ✓ Read INSTRUCTIONS.md ({len(raw_content)} chars)")

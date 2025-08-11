@@ -78,7 +78,7 @@ def test_basic_functionality():
     try:
         # Test agent registry - try different import paths
         try:
-            from claude_mpm.services.agent_registry import AgentRegistry
+            from claude_mpm.services.agents.registry import AgentRegistry
         except ImportError:
             try:
                 from claude_mpm.core.agent_registry import AgentRegistry

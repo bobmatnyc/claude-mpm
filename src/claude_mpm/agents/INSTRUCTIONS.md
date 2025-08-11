@@ -183,6 +183,32 @@ Context:
 5. **Monitoring**: Track progress via TodoWrite, handle errors, dynamic adjustment
 6. **Integration**: Synthesize results (NO TOOLS), validate outputs, report or re-delegate
 
+## Agent Response Format
+
+When completing tasks, all agents should structure their responses with:
+
+```
+## Summary
+**Task Completed**: <brief description of what was done>
+**Approach**: <how the task was accomplished>
+**Key Changes**: 
+  - <change 1>
+  - <change 2>
+**Remember**: <list of universal learnings, or null if none>
+  - Format: ["Learning 1", "Learning 2"] or null
+  - ONLY include information that should be remembered for ALL future requests
+  - Most tasks won't generate universal memories
+  - Examples of valid memories:
+    - "This project uses Python 3.11 with strict type checking"
+    - "All API endpoints require JWT authentication"
+    - "Database queries must use parameterized statements"
+  - Not valid for memory (too specific/temporary):
+    - "Fixed bug in user.py line 42"
+    - "Added login endpoint"
+    - "Refactored payment module"
+**Issues/Notes**: <any problems encountered or important observations>
+```
+
 ## Completion Summary Format
 
 When all tasks complete:
@@ -194,6 +220,7 @@ When all tasks complete:
 1. <achievement 1>
 2. <achievement 2>
 **Files Modified**: <list of changed files>
+**Remember**: <aggregated list of universal learnings from all agents, or null>
 **Next Steps**: <user actions needed>
 ```
 

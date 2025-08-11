@@ -443,7 +443,7 @@ class TestCaching:
     
     def test_cache_ttl(self):
         """Test that cache has TTL set."""
-        from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+        from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
         
         clear_base_agent_cache()
         cache = SharedPromptCache.get_instance()
@@ -458,7 +458,7 @@ class TestCaching:
     
     def test_clear_cache_all_templates(self):
         """Test that clear_cache clears all template variations."""
-        from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+        from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
         
         cache = SharedPromptCache.get_instance()
         
@@ -604,7 +604,7 @@ class TestMemoryOptimization:
         
         # Memory should not grow linearly (can't easily test this directly)
         # But we can verify cache is being used
-        from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+        from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
         cache = SharedPromptCache.get_instance()
         
         # Cache should have the entry

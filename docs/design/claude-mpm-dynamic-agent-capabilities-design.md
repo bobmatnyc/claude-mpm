@@ -217,7 +217,7 @@ class AgentCapabilitiesGenerator:
 # (Enhancement to existing ContentAssembler)
 
 from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
-from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGenerator
+from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 from jinja2 import Template
 
 class ContentAssembler:

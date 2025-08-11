@@ -11,7 +11,7 @@ import shutil
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.core.config import Config
 
 

@@ -62,7 +62,7 @@ def test_system_prompt_creation():
 
 def test_agent_deployment_integration():
     """Test that agent deployment works with capabilities loading."""
-    from claude_mpm.services.agent_deployment import AgentDeploymentService
+    from claude_mpm.services.agents.deployment import AgentDeploymentService
     
     print("\nTesting agent deployment integration...")
     

@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to Python path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agent_deployment import AgentDeploymentService
+from claude_mpm.services.agents.deployment import AgentDeploymentService
 from claude_mpm.core.claude_runner import SimpleClaudeRunner
 
 

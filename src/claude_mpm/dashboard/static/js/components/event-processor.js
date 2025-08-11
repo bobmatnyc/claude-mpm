@@ -324,9 +324,10 @@ class EventProcessor {
         
         return filteredInstances.map((instance, index) => {
             const agentName = instance.agentName;
-            const timestamp = this.formatTimestamp(instance.timestamp);
+            const timestamp = this.formatTimestamp(instance.firstTimestamp || instance.timestamp);
             const delegationType = instance.isImplied ? 'implied' : 'explicit';
-            const eventCount = instance.eventCount || 0;
+            // Fix: Use totalEventCount which is the actual property name from getUniqueAgentInstances()
+            const eventCount = instance.totalEventCount || instance.eventCount || 0;
             
             const onclickString = `dashboard.selectCard('agents', ${index}, 'agent_instance', '${instance.id}'); dashboard.showAgentInstanceDetails('${instance.id}');`;
 

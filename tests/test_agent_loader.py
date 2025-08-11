@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.agents.agent_loader import AgentLoader, get_agent_prompt, list_available_agents
-from claude_mpm.services.agent_registry import AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 
 def main():
     """Test agent loader functionality."""

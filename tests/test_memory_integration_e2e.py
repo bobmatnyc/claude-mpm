@@ -15,7 +15,7 @@ from claude_mpm.hooks.memory_integration_hook import (
 )
 from claude_mpm.hooks.base_hook import HookContext, HookType
 from claude_mpm.core.config import Config
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 
 def test_memory_hooks_integration():

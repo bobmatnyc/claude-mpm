@@ -11,7 +11,7 @@ from unittest.mock import patch, MagicMock
 import pytest
 
 from claude_mpm.agents.agent_loader import AgentLoader
-from claude_mpm.services.agent_registry import AgentRegistry  
+from claude_mpm.services.agents.registry import AgentRegistry  
 from claude_mpm.hooks.validation_hooks import ValidationError
 
 

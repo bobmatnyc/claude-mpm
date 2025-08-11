@@ -28,7 +28,7 @@ def manage_agents(args):
     logger = get_logger("cli")
     
     try:
-        from ...services.agent_deployment import AgentDeploymentService
+        from ...services import AgentDeploymentService
         deployment_service = AgentDeploymentService()
         
         if not args.agents_command:

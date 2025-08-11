@@ -1,0 +1,96 @@
+{
+  "summary": {
+    "total_tests": 7,
+    "successful_tests": 0,
+    "success_rate": 0.0,
+    "remember_field_coverage": 0.0,
+    "format_validity": 0.0,
+    "recommendations": [
+      {
+        "category": "Missing Remember Field",
+        "severity": "High",
+        "description": "Agents QA, Engineer, Research, QA, Engineer, Security, PM do not include Remember field in responses",
+        "action": "Update agent response templates to include Remember field"
+      }
+    ]
+  },
+  "detailed_results": [
+    {
+      "agent": "QA",
+      "task": "Check if the current directory contains any Python files",
+      "expect_memories": 0,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "Engineer",
+      "task": "Print 'Hello World' to the console",
+      "expect_memories": 0,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "Research",
+      "task": "What is the current working directory?",
+      "expect_memories": 0,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "QA",
+      "task": "Analyze the testing patterns in this codebase and identify universal quality standards that should apply to all future testing",
+      "expect_memories": 1,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "Engineer",
+      "task": "Review the codebase architecture and identify universal coding patterns that should be followed for all implementations",
+      "expect_memories": 1,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "Security",
+      "task": "Identify universal security requirements that should apply to all features in this project",
+      "expect_memories": 1,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    },
+    {
+      "agent": "PM",
+      "task": "\n        I need to implement a new user authentication system. Please:\n        1. First research best practices for authentication\n        2. Then implement the authentication system\n        3. Finally, have QA validate the implementation\n        \n        Make sure to capture any universal patterns or requirements discovered during this process.\n        ",
+      "expect_memories": null,
+      "success": false,
+      "remember_field_present": false,
+      "remember_field_format_valid": false,
+      "remember_content": null,
+      "memories_appropriate": null,
+      "error": "Command failed: /Users/masa/Projects/claude-mpm/venv/bin/python: No module named claude_mpm.cli.main\n"
+    }
+  ]
+}

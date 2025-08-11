@@ -11,7 +11,7 @@ Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables 
 - 📁 **Project Structure**: See [docs/STRUCTURE.md](docs/STRUCTURE.md) for file organization
 - 🧪 **Quality Assurance**: See [docs/QA.md](docs/QA.md) for testing guidelines
 - 🚀 **Deployment**: See [docs/DEPLOY.md](docs/DEPLOY.md) for versioning and deployment
-- 📊 **Logging**: See [docs/LOGGING.md](docs/LOGGING.md) for comprehensive logging guide
+- 📊 **Logging**: See [docs/RESPONSE_LOGGING_CONFIG.md](docs/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
 - 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
 - 🧠 **Memory System**: See [docs/MEMORY.md](docs/MEMORY.md) for agent memory management
 - 🤖 **Local Agents**: See [docs/PROJECT_AGENTS.md](docs/PROJECT_AGENTS.md) for local agent deployment

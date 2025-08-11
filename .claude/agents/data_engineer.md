@@ -1,8 +1,9 @@
 ---
 name: data_engineer
 description: Data engineering and AI API integrations
-version: 2.3.2
+version: 1.3.0
 base_version: 0.3.0
+author: claude-mpm
 tools: Read, Write, Edit, Bash, Grep, Glob, LS, WebSearch, TodoWrite
 model: opus
 ---

@@ -13,7 +13,7 @@ sys.path.insert(0, str(project_root / "src"))
 
 # Import the classes directly to test them
 from claude_mpm.core.config import Config
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 def test_memory_manager_directly():
     """Test the AgentMemoryManager class directly"""

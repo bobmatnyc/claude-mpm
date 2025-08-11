@@ -1,10 +1,11 @@
 ---
 name: documentation
 description: Documentation creation and maintenance
-version: 2.3.2
+version: 1.3.0
 base_version: 0.3.0
+author: claude-mpm
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, WebSearch, TodoWrite
-model: sonnet
+model: 20241022
 ---
 
 # Documentation Agent

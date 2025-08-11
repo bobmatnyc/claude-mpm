@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 
 # Try to import memory manager with fallback handling
 try:
-    from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+    from claude_mpm.services.agents.memory import AgentMemoryManager
     MEMORY_MANAGER_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"AgentMemoryManager not available: {e}")

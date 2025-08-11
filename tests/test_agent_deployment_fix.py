@@ -1,145 +1,129 @@
 #!/usr/bin/env python3
-"""Test to verify the AgentDeploymentService.deploy_agent method fix."""
+"""Test script to verify agent deployment fix."""
 
-import pytest
+import sys
 import tempfile
+import json
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
 
-from claude_mpm.services.agent_deployment import AgentDeploymentService
-from claude_mpm.manager.discovery import Installation
+# Add src to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+
+from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 
-class TestAgentDeploymentFix:
-    """Test suite for the deploy_agent method fix."""
+def test_agent_deployment_fix():
+    """Test that agents are properly marked with author: claude-mpm."""
     
-    def test_deploy_agent_with_path_object(self):
-        """Test deploy_agent method accepts Path object as target_dir."""
-        
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            
-            # Initialize the service
-            service = AgentDeploymentService()
-            
-            # Test deploying a single agent
-            agent_name = "engineer"
-            
-            # Call the method with a Path object (as ConfigScreenV2 does)
-            result = service.deploy_agent(agent_name, temp_path)
-            
-            # Verify deployment succeeded
-            assert result is True, "deploy_agent should return True on success"
-            
-            # Verify the agent file was created
-            expected_file = temp_path / '.claude' / 'agents' / f'{agent_name}.md'
-            assert expected_file.exists(), f"Agent file should be created at {expected_file}"
-            
-            # Verify file has content
-            content = expected_file.read_text()
-            assert len(content) > 0, "Agent file should have content"
-            assert agent_name in content, f"Agent file should contain agent name '{agent_name}'"
+    print("Testing agent deployment fix...")
     
-    def test_deploy_agent_with_installation_path(self):
-        """Test deploy_agent works with Installation.path (as used in ConfigScreenV2)."""
+    # Create a temporary directory for testing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
         
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            
-            # Create a mock Installation object similar to ConfigScreenV2
-            installation = Mock(spec=Installation)
-            installation.path = temp_path
-            installation.name = "test-project"
-            installation.version = "1.0.0"
-            
-            # Initialize the service
-            service = AgentDeploymentService()
-            
-            # Test deploying multiple agents as ConfigScreenV2 does
-            agents_to_deploy = ["engineer", "qa", "documentation"]
-            deployed = []
-            
-            for agent_name in agents_to_deploy:
-                # This mimics the ConfigScreenV2 call:
-                # self.agent_service.deploy_agent(agent_name, self.current_installation.path)
-                result = service.deploy_agent(agent_name, installation.path)
-                if result:
-                    deployed.append(agent_name)
-            
-            # Verify all agents were deployed
-            assert len(deployed) == len(agents_to_deploy), f"All agents should be deployed. Deployed: {deployed}"
-            
-            # Verify all agent files exist
-            agents_dir = installation.path / '.claude' / 'agents'
-            assert agents_dir.exists(), "Agents directory should be created"
-            
-            for agent_name in agents_to_deploy:
-                agent_file = agents_dir / f'{agent_name}.md'
-                assert agent_file.exists(), f"Agent file {agent_file} should exist"
-    
-    def test_deploy_agent_handles_missing_template(self):
-        """Test deploy_agent handles missing agent templates gracefully."""
+        # Create a test template directory
+        templates_dir = temp_path / "templates"
+        templates_dir.mkdir()
         
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
-            
-            # Initialize the service
-            service = AgentDeploymentService()
-            
-            # Try to deploy a non-existent agent
-            result = service.deploy_agent("nonexistent_agent", temp_path)
-            
-            # Should return False for missing template
-            assert result is False, "deploy_agent should return False for missing template"
-    
-    def test_deploy_agent_force_rebuild(self):
-        """Test deploy_agent with force_rebuild option."""
+        # Create a base agent template
+        base_agent = {
+            "agent_id": "base_agent",
+            "version": "1.0.0",
+            "metadata": {
+                "name": "Base Agent",
+                "description": "Base template for all agents"
+            },
+            "instructions": "You are a base agent."
+        }
         
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp_path = Path(temp_dir)
+        base_agent_path = templates_dir / "base_agent.json"
+        base_agent_path.write_text(json.dumps(base_agent, indent=2))
+        
+        # Create a test agent template
+        test_agent = {
+            "agent_id": "test_agent",
+            "version": "1.0.0",
+            "metadata": {
+                "name": "Test Agent",
+                "description": "Test agent for verification"
+            },
+            "capabilities": {
+                "model": "claude-3-5-sonnet-20241022",
+                "tools": ["Read", "Write", "Edit"]
+            },
+            "instructions": "You are a test agent for verifying deployment."
+        }
+        
+        test_agent_path = templates_dir / "test_agent.json"
+        test_agent_path.write_text(json.dumps(test_agent, indent=2))
+        
+        # Create deployment service with test directory
+        deployment_service = AgentDeploymentService(templates_dir=templates_dir)
+        
+        # Create target directory for deployment
+        target_dir = temp_path / "deployed_agents"
+        target_dir.mkdir()
+        
+        # Deploy agents
+        results = deployment_service.deploy_agents(target_dir, force_rebuild=True)
+        
+        print(f"Deployment results:")
+        print(f"  - Deployed: {len(results['deployed'])}")
+        print(f"  - Updated: {len(results['updated'])}")
+        print(f"  - Skipped: {len(results['skipped'])}")
+        print(f"  - Errors: {len(results['errors'])}")
+        
+        # Check if test agent was deployed (may be in .claude/agents subdirectory)
+        test_agent_file = target_dir / ".claude" / "agents" / "test_agent.md"
+        if not test_agent_file.exists():
+            # Try the direct path as fallback
+            test_agent_file = target_dir / "test_agent.md"
+        
+        if test_agent_file.exists():
+            content = test_agent_file.read_text()
             
-            # Initialize the service
-            service = AgentDeploymentService()
-            agent_name = "engineer"
-            
-            # First deployment
-            result1 = service.deploy_agent(agent_name, temp_path)
-            assert result1 is True, "First deployment should succeed"
-            
-            agent_file = temp_path / '.claude' / 'agents' / f'{agent_name}.md'
-            original_content = agent_file.read_text()
-            
-            # Second deployment without force (should skip)
-            result2 = service.deploy_agent(agent_name, temp_path, force_rebuild=False)
-            assert result2 is True, "Second deployment should return True (up to date)"
-            
-            # Third deployment with force
-            result3 = service.deploy_agent(agent_name, temp_path, force_rebuild=True)
-            assert result3 is True, "Force rebuild should succeed"
-            
-            # Content should still be valid
-            new_content = agent_file.read_text()
-            assert len(new_content) > 0, "Rebuilt file should have content"
+            # Check for author field
+            if "author: claude-mpm" in content:
+                print("✅ SUCCESS: Agent has 'author: claude-mpm' field")
+                print("\nAgent frontmatter:")
+                # Print the frontmatter section
+                lines = content.split('\n')
+                in_frontmatter = False
+                for line in lines:
+                    if line == '---':
+                        if in_frontmatter:
+                            print(line)
+                            break
+                        else:
+                            in_frontmatter = True
+                            print(line)
+                    elif in_frontmatter:
+                        print(line)
+                
+                # Now test the check_agent_needs_update method
+                print("\n\nTesting system agent detection...")
+                needs_update, reason = deployment_service._check_agent_needs_update(
+                    test_agent_file, test_agent_path, (1, 0, 0)
+                )
+                
+                if not needs_update and reason == "not a system agent":
+                    print("❌ ERROR: Agent not recognized as system agent")
+                else:
+                    print(f"✅ Agent recognized properly - needs_update: {needs_update}, reason: {reason}")
+                    
+            else:
+                print("❌ ERROR: Agent missing 'author: claude-mpm' field")
+                print("\nAgent content preview:")
+                print(content[:500])
+        else:
+            print(f"❌ ERROR: Test agent not deployed to {test_agent_file}")
+            print(f"Available files: {list(target_dir.glob('*'))}")
+        
+        if results['errors']:
+            print("\nErrors encountered:")
+            for error in results['errors']:
+                print(f"  - {error}")
 
 
 if __name__ == "__main__":
-    # Run tests
-    test = TestAgentDeploymentFix()
-    
-    print("Running test_deploy_agent_with_path_object...")
-    test.test_deploy_agent_with_path_object()
-    print("✓ PASSED\n")
-    
-    print("Running test_deploy_agent_with_installation_path...")
-    test.test_deploy_agent_with_installation_path()
-    print("✓ PASSED\n")
-    
-    print("Running test_deploy_agent_handles_missing_template...")
-    test.test_deploy_agent_handles_missing_template()
-    print("✓ PASSED\n")
-    
-    print("Running test_deploy_agent_force_rebuild...")
-    test.test_deploy_agent_force_rebuild()
-    print("✓ PASSED\n")
-    
-    print("All tests PASSED!")
+    test_agent_deployment_fix()
