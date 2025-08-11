@@ -51,6 +51,11 @@ class Config:
         # Load from file if provided
         if config_file:
             self.load_file(config_file)
+        else:
+            # Try to load from standard location: .claude-mpm/configuration.yaml
+            default_config = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+            if default_config.exists():
+                self.load_file(default_config)
 
         # Load from environment variables (new and legacy prefixes)
         self._load_env_vars()

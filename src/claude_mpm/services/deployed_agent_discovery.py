@@ -213,7 +213,8 @@ class DeployedAgentDiscovery:
             True if agent is valid, False if it's a template or invalid
         """
         # Filter out known templates and non-agent files
-        invalid_names = ['BASE_AGENT_TEMPLATE', 'INSTRUCTIONS', 'base_agent', 'template']
+        invalid_names = ['BASE_AGENT_TEMPLATE', 'INSTRUCTIONS', 'base_agent', 'template', 
+                        'MEMORIES', 'TODOWRITE']
         
         agent_id = agent_info.get('id', '').upper()
         agent_name = agent_info.get('name', '').upper()
@@ -224,3 +225,12 @@ class DeployedAgentDiscovery:
                 return False
         
         return True
+    
+    def get_precedence_order(self) -> List[str]:
+        """
+        Get the precedence order for agent discovery.
+        
+        Returns:
+            List of tiers in precedence order (highest to lowest)
+        """
+        return ['project', 'user', 'system']

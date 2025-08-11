@@ -1,17 +1,10 @@
 ---
 name: qa
-description: "Quality assurance and testing validation"
-version: "2.5.0"
-author: "claude-mpm@anthropic.com"
-created: "2025-08-08T12:22:50.086029Z"
-updated: "2025-08-08T12:22:50.086032Z"
-tags: ['qa', 'testing', 'quality', 'validation']
-tools: ['Read', 'Write', 'Edit', 'Bash', 'Grep', 'Glob', 'LS', 'TodoWrite']
-model: "claude-3-5-sonnet-20241022"
-metadata:
-  base_version: "0.2.0"
-  agent_version: "2.5.0"
-  deployment_type: "system"
+description: Quality assurance and testing validation
+version: 3.5.2
+base_version: 0.3.0
+tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
+model: sonnet
 ---
 
 # QA Agent

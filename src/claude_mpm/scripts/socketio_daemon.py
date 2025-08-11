@@ -71,8 +71,12 @@ except ImportError:
         print("   3. Check that PYTHONPATH includes the package location")
         sys.exit(1)
 
-PID_FILE = Path.home() / ".claude-mpm" / "socketio-server.pid"
-LOG_FILE = Path.home() / ".claude-mpm" / "socketio-server.log"
+# Use deployment root for daemon files to keep everything centralized
+from claude_mpm.deployment_paths import get_project_root
+
+deployment_root = get_project_root()
+PID_FILE = deployment_root / ".claude-mpm" / "socketio-server.pid"
+LOG_FILE = deployment_root / ".claude-mpm" / "socketio-server.log"
 
 def ensure_dirs():
     """Ensure required directories exist."""

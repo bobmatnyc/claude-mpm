@@ -141,7 +141,7 @@ class AgentInference {
             return {
                 type: 'subagent',
                 confidence: 'high',
-                agentName: subagentType,
+                agentName: this.normalizeAgentName(subagentType),
                 reason: 'subagent_type field'
             };
         }
@@ -150,7 +150,7 @@ class AgentInference {
             return {
                 type: 'subagent',
                 confidence: 'medium',
-                agentName: agentType,
+                agentName: this.normalizeAgentName(agentType),
                 reason: 'agent_type field'
             };
         }
@@ -160,7 +160,7 @@ class AgentInference {
             return {
                 type: 'subagent',
                 confidence: 'high',
-                agentName: data.delegation_details.agent_type,
+                agentName: this.normalizeAgentName(data.delegation_details.agent_type),
                 reason: 'delegation_details'
             };
         }
@@ -170,11 +170,11 @@ class AgentInference {
             // Extract the hook type
             const hookType = event.type.replace('hook.', '');
             if (hookType === 'subagent_stop' || (data.hook_event_name === 'SubagentStop')) {
-                const agentName = data.agent_type || data.agent_id || 'Subagent';
+                const rawAgentName = data.agent_type || data.agent_id || 'Subagent';
                 return {
                     type: 'subagent',
                     confidence: 'high',
-                    agentName: agentName,
+                    agentName: this.normalizeAgentName(rawAgentName),
                     reason: 'Socket.IO hook SubagentStop'
                 };
             }
@@ -190,32 +190,76 @@ class AgentInference {
     }
 
     /**
+     * Normalize agent name from lowercase/underscore format to display format
+     * @param {string} agentName - Raw agent name (e.g., 'engineer', 'test_integration')
+     * @returns {string} - Normalized display name (e.g., 'Engineer Agent', 'Test Integration Agent')
+     */
+    normalizeAgentName(agentName) {
+        if (!agentName) return 'Unknown';
+        
+        // Agent name mapping from raw format to display format
+        const agentNameMap = {
+            'engineer': 'Engineer Agent',
+            'research': 'Research Agent',
+            'qa': 'QA Agent',
+            'documentation': 'Documentation Agent',
+            'security': 'Security Agent',
+            'ops': 'Ops Agent',
+            'version_control': 'Version Control Agent',
+            'data_engineer': 'Data Engineer Agent',
+            'test_integration': 'Test Integration Agent',
+            'pm': 'PM Agent'
+        };
+        
+        // Check if we have a direct mapping
+        const normalized = agentNameMap[agentName.toLowerCase()];
+        if (normalized) {
+            return normalized;
+        }
+        
+        // If no direct mapping, apply basic formatting:
+        // Convert underscore to space, capitalize words, and add "Agent" if not present
+        let formatted = agentName
+            .replace(/_/g, ' ')
+            .split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+        
+        // Add "Agent" suffix if not already present
+        if (!formatted.toLowerCase().includes('agent')) {
+            formatted += ' Agent';
+        }
+        
+        return formatted;
+    }
+
+    /**
      * Extract subagent type from Task tool parameters
      * @param {Object} event - Event with Task tool
      * @returns {string|null} - Subagent type or null
      */
     extractSubagentTypeFromTask(event) {
+        let rawAgentName = null;
+        
         // Check tool_parameters directly
         if (event.tool_parameters?.subagent_type) {
-            return event.tool_parameters.subagent_type;
+            rawAgentName = event.tool_parameters.subagent_type;
         }
-        
         // Check nested in data.tool_parameters (hook events)
-        if (event.data?.tool_parameters?.subagent_type) {
-            return event.data.tool_parameters.subagent_type;
+        else if (event.data?.tool_parameters?.subagent_type) {
+            rawAgentName = event.data.tool_parameters.subagent_type;
         }
-        
         // Check delegation_details (new structure)
-        if (event.data?.delegation_details?.agent_type) {
-            return event.data.delegation_details.agent_type;
+        else if (event.data?.delegation_details?.agent_type) {
+            rawAgentName = event.data.delegation_details.agent_type;
         }
-        
         // Check tool_input fallback
-        if (event.tool_input?.subagent_type) {
-            return event.tool_input.subagent_type;
+        else if (event.tool_input?.subagent_type) {
+            rawAgentName = event.tool_input.subagent_type;
         }
         
-        return null;
+        // Normalize the agent name before returning
+        return rawAgentName ? this.normalizeAgentName(rawAgentName) : null;
     }
 
     /**
@@ -235,40 +279,40 @@ class AgentInference {
         
         // 2. Direct subagent_type field
         if (event.subagent_type && event.subagent_type !== 'unknown') {
-            return event.subagent_type;
+            return this.normalizeAgentName(event.subagent_type);
         }
         if (data.subagent_type && data.subagent_type !== 'unknown') {
-            return data.subagent_type;
+            return this.normalizeAgentName(data.subagent_type);
         }
         
         // 2.5. Check delegation_details
         if (data.delegation_details?.agent_type && data.delegation_details.agent_type !== 'unknown') {
-            return data.delegation_details.agent_type;
+            return this.normalizeAgentName(data.delegation_details.agent_type);
         }
         
         // 3. Agent type fields (but not 'main' or 'unknown')
         if (event.agent_type && !['main', 'unknown'].includes(event.agent_type)) {
-            return event.agent_type;
+            return this.normalizeAgentName(event.agent_type);
         }
         if (data.agent_type && !['main', 'unknown'].includes(data.agent_type)) {
-            return data.agent_type;
+            return this.normalizeAgentName(data.agent_type);
         }
         
         // 4. Agent ID field as fallback
         if (event.agent_id && !['main', 'unknown'].includes(event.agent_id)) {
-            return event.agent_id;
+            return this.normalizeAgentName(event.agent_id);
         }
         if (data.agent_id && !['main', 'unknown'].includes(data.agent_id)) {
-            return data.agent_id;
+            return this.normalizeAgentName(data.agent_id);
         }
         
         // 5. Other fallbacks
         if (event.agent && event.agent !== 'unknown') {
-            return event.agent;
+            return this.normalizeAgentName(event.agent);
         }
         
         if (event.name && event.name !== 'unknown') {
-            return event.name;
+            return this.normalizeAgentName(event.name);
         }
         
         // Default fallback
