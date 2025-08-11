@@ -30,7 +30,7 @@ TEST COVERAGE GAPS:
 import pytest
 import logging
 
-from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGenerator
+from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 
 
 class TestAgentCapabilitiesGenerator:

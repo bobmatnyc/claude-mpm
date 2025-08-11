@@ -12,9 +12,8 @@ from typing import Any, Dict, Optional, Type, TypeVar
 from .container import DIContainer
 from .logger import get_logger
 from .config import Config
-from ..services.agent_deployment import AgentDeploymentService
-from ..orchestration.factory import OrchestratorFactory
-from ..orchestration.base import BaseOrchestrator
+from ..services import AgentDeploymentService
+# Note: Orchestration functionality has been replaced by claude_runner
 
 logger = get_logger(__name__)
 
@@ -32,52 +31,7 @@ class ServiceFactory(ABC):
 
 
 
-class OrchestratorFactoryWrapper(ServiceFactory):
-    """Factory wrapper for creating orchestrator instances."""
-    
-    def __init__(self):
-        """Initialize the factory wrapper."""
-        self._factory = OrchestratorFactory()
-        
-    def create(
-        self,
-        container: DIContainer,
-        orchestrator_type: Optional[str] = None,
-        **kwargs
-    ) -> BaseOrchestrator:
-        """
-        Create an orchestrator instance.
-        
-        Args:
-            container: DI container
-            orchestrator_type: Type of orchestrator to create
-            **kwargs: Additional arguments for orchestrator
-            
-        Returns:
-            Orchestrator instance
-        """
-        config = container.resolve(Config)
-        
-        # Get orchestrator type from config if not provided
-        if orchestrator_type is None:
-            orchestrator_type = config.get('orchestrator.type', 'subprocess')
-            
-        # Get orchestrator config
-        orch_config = config.get(f'orchestrator.{orchestrator_type}', {})
-        
-        # Merge with provided kwargs
-        orch_config.update(kwargs)
-        
-        # No hook manager injection needed - Claude Code hooks are external
-            
-        # Create orchestrator
-        orchestrator = self._factory.create_orchestrator(
-            orchestrator_type,
-            **orch_config
-        )
-        
-        logger.info(f"Created {orchestrator_type} orchestrator")
-        return orchestrator
+# OrchestratorFactoryWrapper has been removed - orchestration replaced by claude_runner
 
 
 class AgentServiceFactory(ServiceFactory):
@@ -204,7 +158,7 @@ class FactoryRegistry:
     def __init__(self):
         """Initialize factory registry."""
         self._factories: Dict[str, ServiceFactory] = {
-            'orchestrator': OrchestratorFactoryWrapper(),
+            # 'orchestrator' removed - replaced by claude_runner
             'agent_service': AgentServiceFactory(),
             'session_manager': SessionManagerFactory(),
             'configuration': ConfigurationFactory(),

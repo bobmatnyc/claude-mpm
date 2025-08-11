@@ -90,7 +90,7 @@ my-project/
 ## API Usage
 
 ```python
-from claude_mpm.services.agent_registry import AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 
 # Initialize registry
 registry = AgentRegistry()

@@ -116,7 +116,7 @@ Create a `.claude-mpm/config.json` file:
 
 ```python
 from claude_mpm.core.config import Config
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 config = Config({
     'memory': {

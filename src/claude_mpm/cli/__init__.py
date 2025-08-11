@@ -22,21 +22,20 @@ from .commands import (
     list_tickets,
     show_info,
     manage_agents,
-    run_terminal_ui,
     manage_memory,
     manage_monitor
 )
+from claude_mpm.config.paths import paths
 
-# Get version from VERSION file - single source of truth
+# Get version using centralized path management
 # Try package VERSION file first (for installed packages)
 package_version_file = Path(__file__).parent.parent / "VERSION"
 if package_version_file.exists():
     __version__ = package_version_file.read_text().strip()
 else:
-    # Fall back to project root VERSION file (for development)
-    root_version_file = Path(__file__).parent.parent.parent.parent / "VERSION"
-    if root_version_file.exists():
-        __version__ = root_version_file.read_text().strip()
+    # Use centralized path management for VERSION file
+    if paths.version_file.exists():
+        __version__ = paths.version_file.read_text().strip()
     else:
         # Try to import from package as fallback
         try:
@@ -180,7 +179,6 @@ def _execute_command(command: str, args) -> int:
         CLICommands.TICKETS.value: list_tickets,
         CLICommands.INFO.value: show_info,
         CLICommands.AGENTS.value: manage_agents,
-        CLICommands.UI.value: run_terminal_ui,
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
     }

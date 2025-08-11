@@ -35,7 +35,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from claude_mpm.agents.agent_loader import get_agent_prompt
-from claude_mpm.services.agent_deployment import AgentDeploymentService
+from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 
 def test_agent_deployment():

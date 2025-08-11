@@ -13,8 +13,8 @@ Get up and running with Claude Multi-agent Project Manager in 5 minutes!
 # Install from PyPI
 pip install claude-mpm
 
-# Or install with monitoring support
-pip install "claude-mpm[monitor]"
+# Install with development dependencies
+pip install "claude-mpm[dev]"
 ```
 
 ## Basic Usage
@@ -53,6 +53,11 @@ Claude MPM automatically delegates tasks to specialized agents:
 - **Engineer Agent**: Implements code changes
 - **QA Agent**: Tests and validates changes
 - **Documentation Agent**: Creates and updates documentation
+- **Security Agent**: Security analysis and compliance
+- **Ops Agent**: Deployment and infrastructure
+- **Data Engineer Agent**: Data pipelines and AI integrations
+- **Test Integration Agent**: E2E testing and cross-system validation
+- **Version Control Agent**: Git workflows and release management
 
 ### Session Management
 - All work is tracked in sessions
@@ -81,11 +86,11 @@ claude-mpm run --monitor
 # Non-interactive with input
 claude-mpm run -i "your task here" --non-interactive
 
-# List recent sessions
-claude-mpm sessions
+# Show system information
+claude-mpm info
 
 # Show version
-claude-mpm version
+claude-mpm --version
 
 # Get help
 claude-mpm --help
@@ -99,10 +104,28 @@ The monitoring dashboard supports per-session working directories:
 3. Click the 📁 icon to change working directory
 4. Git operations will use the session's directory
 
+## Agent Memory System
+
+Claude MPM agents learn and improve over time with persistent memory:
+
+```bash
+# Initialize project-specific memories
+claude-mpm memory init
+
+# View memory status
+claude-mpm memory status
+
+# Add specific learning
+claude-mpm memory add engineer pattern "Use src/ layout for Python packages"
+```
+
+See [docs/MEMORY.md](docs/MEMORY.md) for comprehensive memory documentation.
+
 ## Next Steps
 
 - Read the full [README](README.md) for detailed documentation
-- Check out [monitoring guide](docs/monitoring.md) for dashboard features
+- Explore [Agent Memory System](docs/MEMORY.md) for persistent learning
+- Check out [monitoring guide](docs/developer/monitoring.md) for dashboard features
 - See [architecture docs](docs/STRUCTURE.md) for project structure
 - Review [deployment guide](docs/DEPLOY.md) for publishing
 
@@ -112,13 +135,13 @@ The monitoring dashboard supports per-session working directories:
 If you see connection errors with `--monitor`:
 - Check if port 8765 is available
 - Try a different port: `--websocket-port 8080`
-- Ensure Socket.IO dependencies are installed: `pip install "claude-mpm[monitor]"`
+- Socket.IO dependencies are included by default
 
 ### Session Issues
 If sessions aren't resuming properly:
-- Check session exists: `claude-mpm sessions`
-- Use full session ID if needed
-- Sessions are stored in `~/.claude-mpm/sessions/`
+- Use full session ID: `claude-mpm run --resume <session-id>`
+- Check that the session directory exists
+- Sessions are stored in working directory
 
 ### Git Diff Not Working
 If git diff viewer shows "No git history":
@@ -128,6 +151,6 @@ If git diff viewer shows "No git history":
 
 ## Getting Help
 
-- Report issues: [GitHub Issues](https://github.com/Anthropic/claude-mpm/issues)
+- Report issues: [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
 - Read docs: [Documentation](docs/)
 - Check examples: [Examples](examples/)

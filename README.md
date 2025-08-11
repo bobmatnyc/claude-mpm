@@ -6,7 +6,7 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 
 ## Features
 
-- 🤖 **Multi-Agent System**: Automatically delegates tasks to specialized agents (PM, Research, Engineer, QA, Documentation, Security, Ops, Data Engineer)
+- 🤖 **Multi-Agent System**: Automatically delegates tasks to specialized agents (PM, Research, Engineer, QA, Documentation, Security, Ops, Data Engineer, Test Integration, Version Control)
 - 🧠 **Agent Memory System**: Persistent learning with project-specific knowledge retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume` 
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
@@ -20,8 +20,8 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 # Install from PyPI
 pip install claude-mpm
 
-# Or with monitoring support
-pip install "claude-mpm[monitor]"
+# Install with development dependencies
+pip install "claude-mpm[dev]"
 ```
 
 ## Basic Usage
@@ -52,6 +52,9 @@ The PM agent automatically delegates work to specialized agents:
 - **Documentation**: Docs and guides
 - **Security**: Security analysis
 - **Ops**: Deployment and infrastructure
+- **Data Engineer**: Data pipelines and AI integrations
+- **Test Integration**: E2E testing and cross-system validation
+- **Version Control**: Git workflows and release management
 
 ### Session Management
 - All work is tracked in persistent sessions
@@ -75,6 +78,9 @@ claude-mpm memory status
 
 # Add specific learning
 claude-mpm memory add engineer pattern "Always use async/await for I/O"
+
+# Start with monitoring dashboard
+claude-mpm run --monitor
 ```
 
 See [docs/MEMORY.md](docs/MEMORY.md) for comprehensive memory system documentation.
@@ -86,39 +92,41 @@ The `--monitor` flag opens a web dashboard showing:
 - Tool usage and results
 - Session management UI
 
-See [docs/monitoring.md](docs/monitoring.md) for full monitoring guide.
+See [docs/developer/monitoring.md](docs/developer/monitoring.md) for full monitoring guide.
 
 
 ## Documentation
 
 - **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
 - **[Agent Memory System](docs/MEMORY.md)** - Comprehensive memory documentation
-- **[Monitoring Dashboard](docs/monitoring.md)** - Real-time monitoring features
+- **[Monitoring Dashboard](docs/developer/monitoring.md)** - Real-time monitoring features
 - **[Project Structure](docs/STRUCTURE.md)** - Codebase organization
 - **[Deployment Guide](docs/DEPLOY.md)** - Publishing and versioning
 - **[User Guide](docs/user/)** - Detailed usage documentation
 - **[Developer Guide](docs/developer/)** - Architecture and API reference
 
-## Recent Updates (v3.4.0)
+## Recent Updates (v3.4.27)
 
-### Agent Memory System
-- **Project-Specific Memory Generation**: Automatic analysis of project characteristics
-- **Memory Initialization Command**: New `/mpm memory init` for quick project onboarding
-- **Enhanced Documentation Processing**: Dynamic file discovery based on project type
-- **Improved Memory Templates**: Clean section headers with programmatic limit enforcement
+### Core System Enhancements
+- **Project Structure Reorganization**: Centralized path management with ClaudeMPMPaths enum
+- **Agent Services Hierarchy**: Reorganized agent and memory services into hierarchical structures  
+- **Response Logging Improvements**: Flat structure logging without session_ prefix
+- **Memory System Expansion**: Added data_engineer and test_integration agents with specialized keywords
+- **Path Management System**: Implemented centralized configuration path handling
 
-### Project Organization
-- **Deep Clean**: Comprehensive project structure cleanup for publishing readiness
-- **Documentation Archives**: Historical reports organized in docs/archive/
-- **Test Organization**: All tests properly relocated to /tests/ directory
-- **Enhanced .gitignore**: Prevents temporary and debug file commits
+### Project Cleanup & Organization
+- **Test File Migration**: Moved 66 test files from scripts/ to tests/ directory
+- **Documentation Archives**: Archived 35+ QA reports to docs/archive/
+- **Obsolete Directory Removal**: Cleaned up orchestration, docker, security, and terminal_wrapper directories
+- **Agent Registry Caching**: Enhanced performance with intelligent caching mechanisms
+- **Improved TodoWrite Integration**: Enhanced agent prefix guidelines across all agent templates
 
 See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ## Development
 
 ### Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! Please see our [project structure guide](docs/STRUCTURE.md) and follow the established patterns.
 
 ### Project Structure
 See [docs/STRUCTURE.md](docs/STRUCTURE.md) for codebase organization.

@@ -30,7 +30,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 import logging
 
-from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
+from claude_mpm.services.agents.registry import DeployedAgentDiscovery
 
 
 class TestDeployedAgentDiscovery:

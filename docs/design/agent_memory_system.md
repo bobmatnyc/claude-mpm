@@ -440,7 +440,7 @@ Standard markdown with structured sections. Agents expect:
 # File: src/claude_mpm/hooks/memory_integration_hook.py
 
 from claude_mpm.hooks.base_hook import PreDelegationHook, PostDelegationHook
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 from typing import Dict, Any
 import re
 

@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import jsonschema
 from jsonschema import validate, ValidationError, Draft7Validator
+from claude_mpm.config.paths import paths
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +56,7 @@ class AgentValidator:
     def __init__(self, schema_path: Optional[Path] = None):
         """Initialize the validator with the agent schema."""
         if schema_path is None:
-            schema_path = Path(__file__).parent.parent / "schemas" / "agent_schema.json"
+            schema_path = paths.schemas_dir / "agent_schema.json"
         
         self.schema_path = schema_path
         self.schema = self._load_schema()

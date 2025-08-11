@@ -51,11 +51,11 @@ from claude_mpm.agents.agent_loader import (
     clear_agent_cache, reload_agents, validate_agent_files,
     get_agent_prompt_with_model_info
 )
-from claude_mpm.services.agent_deployment import AgentDeploymentService
-from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
+from claude_mpm.services.agents.deployment import AgentDeploymentService
+from claude_mpm.services.agents.registry import DeployedAgentDiscovery
 # Skip AgentLifecycleManager due to missing dependencies
-# from claude_mpm.services.agent_lifecycle_manager import AgentLifecycleManager
-from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+# from claude_mpm.services.agents.deployment import AgentLifecycleManager
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.validation.agent_validator import AgentValidator
 from claude_mpm.core.logger import get_logger, setup_logging
 

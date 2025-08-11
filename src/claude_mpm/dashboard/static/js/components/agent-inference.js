@@ -77,6 +77,14 @@ class AgentInference {
         // Direct event detection (highest confidence) - from design doc
         if (eventType === 'SubagentStop' || subtype === 'subagent_stop') {
             const agentName = this.extractAgentNameFromEvent(event);
+            // Log SubagentStop events for debugging
+            console.log('SubagentStop event detected:', {
+                agentName: agentName,
+                sessionId: sessionId,
+                eventType: eventType,
+                subtype: subtype,
+                rawAgentType: event.agent_type || data.agent_type
+            });
             return {
                 type: 'subagent',
                 confidence: 'definitive',
@@ -98,6 +106,12 @@ class AgentInference {
         if (toolName === 'Task') {
             const agentName = this.extractSubagentTypeFromTask(event);
             if (agentName) {
+                // Log Task delegations for debugging
+                console.log('Task delegation detected:', {
+                    agentName: agentName,
+                    sessionId: sessionId,
+                    eventType: eventType
+                });
                 return {
                     type: 'subagent',
                     confidence: 'high',
@@ -169,6 +183,24 @@ class AgentInference {
         if (event.type && event.type.startsWith('hook.')) {
             // Extract the hook type
             const hookType = event.type.replace('hook.', '');
+            
+            // Handle SubagentStart events
+            if (hookType === 'subagent_start' || (data.hook_event_name === 'SubagentStart')) {
+                const rawAgentName = data.agent_type || data.agent_id || 'Subagent';
+                console.log('SubagentStart event from Socket.IO:', {
+                    agentName: rawAgentName,
+                    sessionId: sessionId,
+                    hookType: hookType
+                });
+                return {
+                    type: 'subagent',
+                    confidence: 'definitive',
+                    agentName: this.normalizeAgentName(rawAgentName),
+                    reason: 'Socket.IO hook SubagentStart'
+                };
+            }
+            
+            // Handle SubagentStop events
             if (hookType === 'subagent_stop' || (data.hook_event_name === 'SubagentStop')) {
                 const rawAgentName = data.agent_type || data.agent_id || 'Subagent';
                 return {

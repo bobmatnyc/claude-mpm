@@ -18,8 +18,7 @@ cli/
 │   ├── run.py        # Default command - runs Claude sessions
 │   ├── tickets.py    # Lists tickets
 │   ├── info.py       # Shows system information
-│   ├── agents.py     # Manages agent deployments
-│   └── ui.py         # Terminal UI launcher
+│   └── agents.py     # Manages agent deployments
 └── README.md         # This file
 ```
 

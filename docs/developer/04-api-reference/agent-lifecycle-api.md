@@ -465,7 +465,7 @@ else:
 
 ```python
 import asyncio
-from claude_mpm.services.agent_lifecycle_manager import (
+from claude_mpm.services.agents.deployment import (
     AgentLifecycleManager,
     ModificationTier,
     LifecycleState

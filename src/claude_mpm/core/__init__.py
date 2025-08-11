@@ -16,9 +16,8 @@ try:
     from .service_registry import ServiceRegistry, get_service_registry, initialize_services
     from .injectable_service import InjectableService
     from .factories import (
-        ServiceFactory, HookManagerFactory, OrchestratorFactoryWrapper,
-        AgentServiceFactory, SessionManagerFactory, ConfigurationFactory,
-        get_factory_registry
+        ServiceFactory, AgentServiceFactory, SessionManagerFactory, 
+        ConfigurationFactory, get_factory_registry
     )
 except ImportError:
     pass
@@ -36,8 +35,6 @@ __all__ = [
     "initialize_services",
     "InjectableService",
     "ServiceFactory",
-    "HookManagerFactory",
-    "OrchestratorFactoryWrapper",
     "AgentServiceFactory",
     "SessionManagerFactory",
     "ConfigurationFactory",

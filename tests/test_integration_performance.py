@@ -12,7 +12,7 @@ import concurrent.futures
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.agents.agent_loader import AgentLoader
-from claude_mpm.services.agent_registry import AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 from claude_mpm.validation.agent_validator import AgentValidator
 
 def test_performance():

@@ -30,9 +30,9 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from claude_mpm.services.memory_router import MemoryRouter
-from claude_mpm.services.memory_builder import MemoryBuilder
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.memory.router import MemoryRouter
+from claude_mpm.services.memory.builder import MemoryBuilder
+from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.core.config import Config
 
 

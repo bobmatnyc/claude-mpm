@@ -8,7 +8,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agent_deployment import AgentDeploymentService
+from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 def create_old_format_agent(agent_dir: Path, agent_name: str, version_format: str = "serial"):
     """Create a test agent with old version format."""

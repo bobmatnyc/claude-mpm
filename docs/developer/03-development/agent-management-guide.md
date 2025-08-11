@@ -91,7 +91,7 @@ for agent_name in agent_list:
 
 ```python
 import asyncio
-from claude_mpm.services.agent_lifecycle_manager import (
+from claude_mpm.services.agents.deployment import (
     AgentLifecycleManager,
     ModificationTier,
     LifecycleState
@@ -406,7 +406,7 @@ async def validate_all_agents():
    from claude_mpm.services import AgentLifecycleManager  # Won't work
    
    # Correct
-   from claude_mpm.services.agent_lifecycle_manager import AgentLifecycleManager
+   from claude_mpm.services.agents.deployment import AgentLifecycleManager
    ```
 
 2. **Sync/Async Mismatch**

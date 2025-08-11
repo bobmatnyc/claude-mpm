@@ -73,7 +73,7 @@ class ImportVerifier:
         
         third_party_modules = {
             'pytest', 'numpy', 'pandas', 'requests', 'flask', 'django',
-            'sqlalchemy', 'pydantic', 'click', 'rich', 'tqdm', 'matplotlib',
+            'sqlalchemy', 'pydantic', 'click', 'tqdm', 'matplotlib',
             'scipy', 'sklearn', 'tensorflow', 'torch', 'PIL', 'cv2',
             'yaml', 'toml', 'jinja2', 'beautifulsoup4', 'selenium', 'paramiko',
             'cryptography', 'jwt', 'redis', 'celery', 'aiogram', 'aiohttp',

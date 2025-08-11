@@ -1,9 +1,0 @@
-{
-  "timestamp": "2025-08-10T17:12:19.849685",
-  "session_id": "generic-test-session-789",
-  "request_summary": "Test SESSION_ID",
-  "response": "Testing SESSION_ID environment variable detection",
-  "metadata": {
-    "test": "session_id"
-  }
-}

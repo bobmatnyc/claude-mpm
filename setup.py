@@ -103,7 +103,6 @@ setup(
         "ai-trackdown-pytools>=1.4.0",
         "pyyaml>=6.0",
         "python-dotenv>=0.19.0",
-        "rich>=13.0.0",
         "click>=8.0.0",
         "pexpect>=4.8.0",
         "psutil>=5.9.0",
@@ -113,6 +112,8 @@ setup(
         "watchdog>=3.0.0",
         "tree-sitter>=0.21.0",
         "tree-sitter-language-pack>=0.8.0",
+        "python-frontmatter>=1.0.0",
+        "mistune>=3.0.0",
     ],
     extras_require={
         "dev": [
@@ -122,9 +123,6 @@ setup(
             "black",
             "flake8",
             "mypy",
-        ],
-        "ui": [
-            "rich>=13.0.0",
         ]
     },
     entry_points={

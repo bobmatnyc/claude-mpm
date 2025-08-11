@@ -464,7 +464,7 @@ Discover all available agents across configured paths with tier precedence.
 
 **Example:**
 ```python
-from claude_mpm.services.agent_registry import AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 
 registry = AgentRegistry()
 agents = registry.discover_agents(force_refresh=True)
@@ -493,7 +493,7 @@ List agents with optional filtering by tier or type.
 
 **Example:**
 ```python
-from claude_mpm.services.agent_registry import AgentRegistry, AgentTier, AgentType
+from claude_mpm.services.agents.registry import AgentRegistry, AgentTier, AgentType
 
 registry = AgentRegistry()
 

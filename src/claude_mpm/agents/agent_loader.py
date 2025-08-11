@@ -64,7 +64,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any, Tuple, Union, List
 from enum import Enum
 
-from ..services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from .base_agent_loader import prepend_base_instructions
 from ..validation.agent_validator import AgentValidator, ValidationResult
 from ..utils.paths import PathResolver

@@ -10,8 +10,8 @@ from typing import Dict, List, Optional, Any
 from collections import OrderedDict
 import logging
 
-from claude_mpm.services.deployed_agent_discovery import DeployedAgentDiscovery
-from claude_mpm.services.agent_capabilities_generator import AgentCapabilitiesGenerator
+from claude_mpm.services.agents.registry import DeployedAgentDiscovery
+from claude_mpm.services.agents.management import AgentCapabilitiesGenerator
 
 logger = logging.getLogger(__name__)
 

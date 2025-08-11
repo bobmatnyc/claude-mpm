@@ -1,10 +1,11 @@
 ---
 name: test_integration
 description: Integration testing and cross-system validation
-version: 2.3.2
+version: 1.3.0
 base_version: 0.3.0
+author: claude-mpm
 tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
-model: sonnet
+model: 20241022
 ---
 
 # Test Integration Agent

@@ -8,7 +8,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from claude_mpm.services.agent_registry import AgentRegistry
+from claude_mpm.services.agents.registry import AgentRegistry
 from claude_mpm.agents.agent_loader import AgentLoader
 
 

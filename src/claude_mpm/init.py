@@ -214,7 +214,6 @@ class ProjectInitializer:
             'ai_trackdown_pytools',
             'yaml',
             'dotenv',
-            'rich',
             'click',
             'pexpect',
             'psutil',

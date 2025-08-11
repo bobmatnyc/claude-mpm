@@ -38,6 +38,7 @@ claude-mpm/
 │   ├── design/                       # Design documents and technical specifications
 │   ├── developer/                    # Developer documentation (API, internals, guides)
 │   ├── examples/                     # Usage examples and configurations
+│   ├── qa/                           # QA reports and test documentation
 │   ├── user/                         # User-facing documentation
 │   └── STRUCTURE.md                  # This file
 │

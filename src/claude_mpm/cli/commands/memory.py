@@ -18,7 +18,7 @@ import click
 
 from ...core.logger import get_logger
 from ...core.config import Config
-from ...services.agent_memory_manager import AgentMemoryManager
+from ...services.agents.memory import AgentMemoryManager
 
 
 def manage_memory(args):
