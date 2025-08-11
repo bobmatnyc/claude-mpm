@@ -5,6 +5,32 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.2] - 2025-08-11
+
+### Changed
+- **Documentation Cleanup**: Major documentation reorganization
+  - Archived 43+ outdated QA reports and implementation summaries
+  - Removed 500+ test response files from docs/responses
+  - Consolidated logging documentation into single guide
+  - Added docs/qa directory for QA reports
+  - Reduced documentation files by ~85% while preserving essential content
+
+### Fixed
+- **Service Import Paths**: Fixed 5 critical import failures in core modules
+  - Updated imports to use backward compatibility layer
+  - Fixed service_registry.py, factories.py, cli/utils.py, cli/commands/agents.py
+  - All services now accessible through both old and new import patterns
+- **Response Logging**: Enabled response logging by default
+  - Created proper configuration in .claude-mpm/config.json
+  - Response tracking now captures agent interactions
+  - Flat file structure working correctly
+
+### Improved
+- **Code Organization**: Services properly organized in subdirectories
+  - All "deleted" services were actually reorganized, not removed
+  - Backward compatibility fully maintained
+  - Cleaner separation of concerns with agents/ and memory/ subdirs
+
 ## [3.5.1] - 2025-08-11
 
 ### Fixed
