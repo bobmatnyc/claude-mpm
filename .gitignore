@@ -37,16 +37,10 @@ test_dir/
 ai-trackdown-pytools-bug-support/
 
 # Claude MPM runtime files
-# Keep configuration.yaml but ignore runtime data
-.claude-mpm/sessions/
-.claude-mpm/registry/
-.claude-mpm/responses/
-.claude-mpm/config_backup/
-.claude-mpm/shell-snapshots/
-.claude-mpm/stats/
-# Legacy config files (migrated to configuration.yaml)
-.claude-mpm/config.yaml
-.claude-mpm/config/*.json
+# Exclude entire .claude-mpm directory (project-specific runtime data)
+.claude-mpm/
+# If you want to track specific config files, use:
+# !.claude-mpm/configuration.yaml
 
 # Auto-generated version file (no longer used)
 src/claude_mpm/_version.py
