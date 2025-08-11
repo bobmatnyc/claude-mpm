@@ -132,12 +132,12 @@ Monitor these key metrics:
 
 ```bash
 # Verify agent deployment
-python -c "from claude_mpm.services.agent_deployment import AgentDeploymentService; \
+python -c "from claude_mpm.services.agents.deployment import AgentDeploymentService; \
           s = AgentDeploymentService(); \
           print(s.verify_deployment())"
 
 # List available agents
-python -c "from claude_mpm.services.agent_deployment import AgentDeploymentService; \
+python -c "from claude_mpm.services.agents.deployment import AgentDeploymentService; \
           s = AgentDeploymentService(); \
           print(s.list_available_agents())"
 
@@ -200,7 +200,7 @@ jq . src/claude_mpm/agents/base_agent.json
 **Symptom**: Agents not discovered by Claude Code
 ```bash
 # Set in current shell
-source <(python -c "from claude_mpm.services.agent_deployment import AgentDeploymentService; \
+source <(python -c "from claude_mpm.services.agents.deployment import AgentDeploymentService; \
                      s = AgentDeploymentService(); \
                      for k,v in s.set_claude_environment().items(): \
                          print(f'export {k}={v}')")
@@ -218,7 +218,7 @@ echo 'export CLAUDE_CONFIG_DIR=~/.claude' >> ~/.bashrc
 cp -r ~/.claude/agents ~/.claude/agents.backup
 
 # 2. Clean system agents
-python -c "from claude_mpm.services.agent_deployment import AgentDeploymentService; \
+python -c "from claude_mpm.services.agents.deployment import AgentDeploymentService; \
           s = AgentDeploymentService(); \
           s.clean_deployment()"
 

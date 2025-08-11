@@ -13,7 +13,7 @@ All imports should use absolute imports from the `claude_mpm` package:
 ```python
 # Good
 from claude_mpm.core.logger import get_logger
-from claude_mpm.services.agent_management_service import AgentManager
+from claude_mpm.services.agents.management import AgentManager
 
 # Bad - relative imports
 from ..core.logger import get_logger
@@ -182,7 +182,7 @@ After making import changes:
 3. Try importing in a Python shell:
    ```python
    >>> from claude_mpm.core.logger import get_logger
-   >>> from claude_mpm.services.agent_management_service import AgentManager
+   >>> from claude_mpm.services.agents.management import AgentManager
    ```
 
 ## Benefits of Absolute Imports

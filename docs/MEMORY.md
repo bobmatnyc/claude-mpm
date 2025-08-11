@@ -729,7 +729,7 @@ Memory hooks are automatically registered when:
 **Creating Custom Memory Hooks:**
 ```python
 from claude_mpm.hooks.base_hook import PreDelegationHook, HookContext, HookResult
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 class CustomMemoryHook(PreDelegationHook):
     def __init__(self):

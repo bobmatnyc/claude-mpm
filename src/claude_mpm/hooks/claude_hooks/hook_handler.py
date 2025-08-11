@@ -27,12 +27,9 @@ DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', '').lower() == 'true'
 # Add imports for memory hook integration with comprehensive error handling
 MEMORY_HOOKS_AVAILABLE = False
 try:
-    # Try to add src to path if not already there (fallback for missing PYTHONPATH)
-    import sys
-    from pathlib import Path
-    src_path = Path(__file__).parent.parent.parent.parent
-    if src_path.exists() and str(src_path) not in sys.path:
-        sys.path.insert(0, str(src_path))
+    # Use centralized path management for adding src to path
+    from claude_mpm.config.paths import paths
+    paths.ensure_in_path()
     
     from claude_mpm.services.hook_service import HookService
     from claude_mpm.hooks.memory_integration_hook import (
@@ -385,12 +382,13 @@ class ClaudeHookHandler:
             return 'Unknown'
     
     def _get_socketio_client(self):
-        """Get or create Socket.IO client.
+        """Get or create Socket.IO client with improved reliability.
         
-        WHY this approach:
-        - Reuses existing connection when possible
-        - Creates new connection only when needed
-        - Handles connection failures gracefully
+        WHY improved approach:
+        - Implements retry logic with exponential backoff
+        - Properly tests connection before returning
+        - Ensures connection persists across events
+        - Better error handling and recovery
         """
         if not SOCKETIO_AVAILABLE:
             return None
@@ -401,35 +399,68 @@ class ClaudeHookHandler:
                 # Test if still connected
                 if self.sio_client.connected:
                     return self.sio_client
+                else:
+                    # Connection lost, clear it
+                    if DEBUG:
+                        print("Hook handler: Socket.IO connection lost, reconnecting...", file=sys.stderr)
+                    self.sio_connected = False
             except:
-                pass
+                self.sio_connected = False
         
-        # Need to create new client
-        try:
-            port = int(os.environ.get('CLAUDE_MPM_SOCKETIO_PORT', '8765'))
-            self.sio_client = socketio.Client(
-                reconnection=False,  # Don't auto-reconnect in hooks
-                logger=False,
-                engineio_logger=False
-            )
-            
-            # Try to connect with short timeout, don't wait for connection
-            self.sio_client.connect(f'http://localhost:{port}', wait=False, wait_timeout=0.5)
-            # Give it a tiny moment to establish connection
-            time.sleep(0.1)
-            self.sio_connected = self.sio_client.connected
-            
-            if DEBUG:
-                print(f"Hook handler: Connected to Socket.IO server on port {port}", file=sys.stderr)
-            
-            return self.sio_client
-            
-        except Exception as e:
-            if DEBUG:
-                print(f"Hook handler: Failed to connect to Socket.IO: {e}", file=sys.stderr)
-            self.sio_client = None
-            self.sio_connected = False
-            return None
+        # Need to create or reconnect client
+        port = int(os.environ.get('CLAUDE_MPM_SOCKETIO_PORT', '8765'))
+        max_retries = 3
+        retry_delay = 0.1  # Start with 100ms
+        
+        for attempt in range(max_retries):
+            try:
+                # Clean up old client if exists
+                if self.sio_client and not self.sio_connected:
+                    try:
+                        self.sio_client.disconnect()
+                    except:
+                        pass
+                    self.sio_client = None
+                
+                # Create new client
+                self.sio_client = socketio.Client(
+                    reconnection=True,  # Enable auto-reconnection
+                    reconnection_attempts=3,
+                    reconnection_delay=0.5,
+                    reconnection_delay_max=2,
+                    logger=False,
+                    engineio_logger=False
+                )
+                
+                # Try to connect with proper wait
+                self.sio_client.connect(
+                    f'http://localhost:{port}', 
+                    wait=True, 
+                    wait_timeout=1.0  # Reasonable timeout
+                )
+                
+                # Verify connection
+                if self.sio_client.connected:
+                    self.sio_connected = True
+                    if DEBUG:
+                        print(f"Hook handler: Successfully connected to Socket.IO server on port {port} (attempt {attempt + 1})", file=sys.stderr)
+                    return self.sio_client
+                    
+            except Exception as e:
+                if DEBUG and attempt == max_retries - 1:
+                    print(f"Hook handler: Failed to connect to Socket.IO after {max_retries} attempts: {e}", file=sys.stderr)
+                elif DEBUG:
+                    print(f"Hook handler: Connection attempt {attempt + 1} failed, retrying...", file=sys.stderr)
+                
+                # Exponential backoff
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # Double the delay for next attempt
+        
+        # All attempts failed
+        self.sio_client = None
+        self.sio_connected = False
+        return None
     
     def handle(self):
         """Process hook event with minimal overhead and zero blocking delays.
@@ -473,39 +504,75 @@ class ClaudeHookHandler:
             print(json.dumps({"action": "continue"}))
     
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
-        """Emit Socket.IO event using direct client.
+        """Emit Socket.IO event with improved reliability and logging.
         
-        WHY direct client approach:
-        - Simple synchronous emission
-        - No threading complexity
-        - Reliable delivery
-        - Fast when connection is reused
+        WHY improved approach:
+        - Better error handling and recovery
+        - Comprehensive event logging for debugging
+        - Automatic reconnection on failure
+        - Validates data before emission
         """
         # Always try to emit Socket.IO events if available
         # The daemon should be running when manager is active
         
         # Get Socket.IO client
         client = self._get_socketio_client()
-        if client:
-            try:
-                # Format event for Socket.IO server
-                claude_event_data = {
-                    'type': f'hook.{event}',  # Changed from 'event_type' to 'type' for dashboard compatibility
-                    'timestamp': datetime.now().isoformat(),
-                    'data': data
-                }
-                
-                # Emit synchronously
-                client.emit('claude_event', claude_event_data)
-                
-                if DEBUG:
-                    print(f"Emitted Socket.IO event: hook.{event}", file=sys.stderr)
+        if not client:
+            if DEBUG:
+                print(f"Hook handler: No Socket.IO client available for event: hook.{event}", file=sys.stderr)
+            return
+        
+        try:
+            # Format event for Socket.IO server
+            claude_event_data = {
+                'type': f'hook.{event}',  # Dashboard expects 'hook.' prefix
+                'timestamp': datetime.now().isoformat(),
+                'data': data
+            }
+            
+            # Log important events for debugging
+            if DEBUG and event in ['subagent_stop', 'pre_tool']:
+                if event == 'subagent_stop':
+                    agent_type = data.get('agent_type', 'unknown')
+                    print(f"Hook handler: Emitting SubagentStop for agent '{agent_type}'", file=sys.stderr)
+                elif event == 'pre_tool' and data.get('tool_name') == 'Task':
+                    delegation = data.get('delegation_details', {})
+                    agent_type = delegation.get('agent_type', 'unknown')
+                    print(f"Hook handler: Emitting Task delegation to agent '{agent_type}'", file=sys.stderr)
+            
+            # Emit synchronously with verification
+            client.emit('claude_event', claude_event_data)
+            
+            # Verify emission for critical events
+            if event in ['subagent_stop', 'pre_tool'] and DEBUG:
+                if client.connected:
+                    print(f"✅ Successfully emitted Socket.IO event: hook.{event}", file=sys.stderr)
+                else:
+                    print(f"⚠️ Event emitted but connection status uncertain: hook.{event}", file=sys.stderr)
+                    self.sio_connected = False  # Force reconnection next time
                     
-            except Exception as e:
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Socket.IO emit failed for hook.{event}: {e}", file=sys.stderr)
+            # Mark as disconnected so next call will reconnect
+            self.sio_connected = False
+            
+            # Try to reconnect immediately for critical events
+            if event in ['subagent_stop', 'pre_tool']:
                 if DEBUG:
-                    print(f"Socket.IO emit failed: {e}", file=sys.stderr)
-                # Mark as disconnected so next call will reconnect
-                self.sio_connected = False
+                    print(f"Hook handler: Attempting immediate reconnection for critical event: hook.{event}", file=sys.stderr)
+                # Clear the client to force reconnection
+                self.sio_client = None
+                # Try to get a new client and emit again
+                retry_client = self._get_socketio_client()
+                if retry_client:
+                    try:
+                        retry_client.emit('claude_event', claude_event_data)
+                        if DEBUG:
+                            print(f"✅ Successfully re-emitted event after reconnection: hook.{event}", file=sys.stderr)
+                    except Exception as retry_e:
+                        if DEBUG:
+                            print(f"❌ Re-emission failed: {retry_e}", file=sys.stderr)
     
     def _handle_user_prompt_fast(self, event):
         """Handle user prompt with comprehensive data capture.
@@ -611,9 +678,25 @@ class ClaudeHookHandler:
                     'agent_type': agent_type
                 }
                 self._track_delegation(session_id, agent_type, request_data)
+                
+                # Log important delegations for debugging
+                if DEBUG or agent_type in ['research', 'engineer', 'qa', 'documentation']:
+                    print(f"Hook handler: Task delegation started - agent: '{agent_type}', session: '{session_id}'", file=sys.stderr)
             
             # Trigger memory pre-delegation hook
             self._trigger_memory_pre_delegation_hook(agent_type, tool_input, session_id)
+            
+            # Emit a subagent_start event for better tracking
+            subagent_start_data = {
+                'agent_type': agent_type,
+                'agent_id': f"{agent_type}_{session_id}",
+                'session_id': session_id,
+                'prompt': tool_input.get('prompt', ''),
+                'description': tool_input.get('description', ''),
+                'timestamp': datetime.now().isoformat(),
+                'hook_event_name': 'SubagentStart'  # For dashboard compatibility
+            }
+            self._emit_socketio_event('/hook', 'subagent_start', subagent_start_data)
         
         self._emit_socketio_event('/hook', 'pre_tool', pre_tool_data)
     
@@ -911,7 +994,7 @@ class ClaudeHookHandler:
         self._emit_socketio_event('/hook', 'stop', stop_data)
     
     def _handle_subagent_stop_fast(self, event):
-        """Handle subagent stop events when subagent processing stops.
+        """Handle subagent stop events with improved agent type detection.
         
         WHY comprehensive subagent stop capture:
         - Provides visibility into subagent lifecycle and delegation patterns
@@ -940,6 +1023,10 @@ class ClaudeHookHandler:
             elif 'pm' in task_desc or 'project' in task_desc:
                 agent_type = 'pm'
         
+        # Always log SubagentStop events for debugging
+        if DEBUG or agent_type != 'unknown':
+            print(f"Hook handler: Processing SubagentStop - agent: '{agent_type}', session: '{session_id}', reason: '{reason}'", file=sys.stderr)
+        
         # Get working directory and git branch
         working_dir = event.get('cwd', '')
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
@@ -948,22 +1035,23 @@ class ClaudeHookHandler:
             'agent_type': agent_type,
             'agent_id': agent_id,
             'reason': reason,
-            'session_id': event.get('session_id', ''),
+            'session_id': session_id,
             'working_directory': working_dir,
             'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
             'is_successful_completion': reason in ['completed', 'finished', 'done'],
             'is_error_termination': reason in ['error', 'timeout', 'failed', 'blocked'],
-            'is_delegation_related': agent_type in ['research', 'engineer', 'pm', 'ops'],
+            'is_delegation_related': agent_type in ['research', 'engineer', 'pm', 'ops', 'qa', 'documentation', 'security'],
             'has_results': bool(event.get('results') or event.get('output')),
-            'duration_context': event.get('duration_ms')
+            'duration_context': event.get('duration_ms'),
+            'hook_event_name': 'SubagentStop'  # Explicitly set for dashboard
         }
         
-        # Debug log the raw event data
+        # Debug log the processed data
         if DEBUG:
-            print(f"SubagentStop raw event data: {json.dumps(event, indent=2)}", file=sys.stderr)
+            print(f"SubagentStop processed data: agent_type='{agent_type}', session_id='{session_id}'", file=sys.stderr)
         
-        # Emit to /hook namespace
+        # Emit to /hook namespace with high priority
         self._emit_socketio_event('/hook', 'subagent_stop', subagent_stop_data)
     
     def _trigger_memory_pre_delegation_hook(self, agent_type: str, tool_input: dict, session_id: str):

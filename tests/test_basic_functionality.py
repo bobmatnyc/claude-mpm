@@ -9,9 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.agents import list_available_agents
-from claude_mpm.services.agent_registry import AgentRegistry
-from claude_mpm.services.hook_service import HookRegistry
-from claude_mpm.core.claude_runner import SimpleClaudeRunner
+from claude_mpm.services.agents.registry import AgentRegistry
+from claude_mpm.services.hook_service import HookService
 
 def test_agents():
     """Test agent loading and listing."""
@@ -21,8 +20,7 @@ def test_agents():
     agents = list_available_agents()
     print(f"Found {len(agents)} agents:")
     for name, info in agents.items():
-        status = "✓" if info['has_md'] else "✗"
-        print(f"  {status} {name}: {info['default_model']}")
+        print(f"  ✓ {name}: {info.get('name', name)}")
     
     # Test AgentRegistry
     registry = AgentRegistry()
@@ -35,9 +33,9 @@ def test_hooks():
     """Test hook system."""
     print("\n=== Testing Hook System ===")
     
-    # Create hook registry
-    registry = HookRegistry()
-    print("✓ HookRegistry created successfully")
+    # Create hook service
+    service = HookService()
+    print("✓ HookService created successfully")
     
     # List hook types
     from claude_mpm.hooks.base_hook import HookType
@@ -46,34 +44,31 @@ def test_hooks():
     return True
 
 def test_runner():
-    """Test SimpleClaudeRunner basics."""
-    print("\n=== Testing SimpleClaudeRunner ===")
+    """Test ClaudeRunner basics."""
+    print("\n=== Testing ClaudeRunner ===")
     
     # Import and verify
-    from claude_mpm.core.claude_runner import SimpleClaudeRunner
-    print("✓ SimpleClaudeRunner imported successfully")
+    from claude_mpm.core.claude_runner import ClaudeRunner
+    print("✓ ClaudeRunner imported successfully")
     
     # Check if we can access key methods
-    runner_methods = ['run_interactive', 'run_oneshot', 'setup_agents']
+    runner_methods = ['run', 'launch_subprocess']
     all_found = True
     for method in runner_methods:
-        if hasattr(SimpleClaudeRunner, method):
-            print(f"✓ SimpleClaudeRunner.{method} method exists")
+        if hasattr(ClaudeRunner, method):
+            print(f"✓ ClaudeRunner.{method} method exists")
         else:
-            print(f"✗ SimpleClaudeRunner.{method} method not found")
+            print(f"✗ ClaudeRunner.{method} method not found")
             all_found = False
     
     if not all_found:
         # These are instance methods, let's check properly
         try:
-            runner = SimpleClaudeRunner(
-                agent_name="pm",
-                config={"model": "claude-sonnet-3.5", "temperature": 0.7}
-            )
-            print("✓ SimpleClaudeRunner instantiated successfully")
+            runner = ClaudeRunner()
+            print("✓ ClaudeRunner instantiated successfully")
             return True
         except Exception as e:
-            print(f"✗ Failed to instantiate SimpleClaudeRunner: {e}")
+            print(f"✗ Failed to instantiate ClaudeRunner: {e}")
             return False
     
     return True

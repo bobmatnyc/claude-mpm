@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from claude_mpm.services.agent_deployment import AgentDeploymentService
+from claude_mpm.services.agents.deployment import AgentDeploymentService
 from pathlib import Path
 import logging
 

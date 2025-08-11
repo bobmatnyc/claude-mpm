@@ -38,7 +38,7 @@ from claude_mpm.agents.base_agent_loader import (
     PromptTemplate,
     _remove_test_mode_instructions
 )
-from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 
 class TestInstructionLoadingCore(unittest.TestCase):

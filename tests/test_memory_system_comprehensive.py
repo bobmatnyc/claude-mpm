@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
     from claude_mpm.core.config import Config
-    from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+    from claude_mpm.services.agents.memory import AgentMemoryManager
     from claude_mpm.hooks.memory_integration_hook import (
         MemoryPreDelegationHook,
         MemoryPostDelegationHook

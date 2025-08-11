@@ -415,7 +415,7 @@ engineer: 9.7 KB, 118 items, 8 sections
 
 ```python
 from claude_mpm.hooks.base_hook import PreDelegationHook
-from claude_mpm.services.agent_memory_manager import get_memory_manager
+from claude_mpm.services.agents.memory import get_memory_manager
 
 class ProjectContextHook(PreDelegationHook):
     def __init__(self):
@@ -444,8 +444,8 @@ class ProjectContextHook(PreDelegationHook):
 ### API Integration
 
 ```python
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
-from claude_mpm.services.memory_router import MemoryRouter
+from claude_mpm.services.agents.memory import AgentMemoryManager
+from claude_mpm.services.memory.router import MemoryRouter
 
 class MemoryService:
     def __init__(self):

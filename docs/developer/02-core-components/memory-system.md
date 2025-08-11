@@ -24,7 +24,7 @@ src/claude_mpm/services/
 Central service for all memory operations.
 
 ```python
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 # Initialize with configuration
 manager = AgentMemoryManager(config, working_directory)
@@ -52,7 +52,7 @@ status = manager.get_memory_status()
 Routes memory commands to appropriate agents based on content analysis.
 
 ```python
-from claude_mpm.services.memory_router import MemoryRouter
+from claude_mpm.services.memory.router import MemoryRouter
 
 router = MemoryRouter(config)
 
@@ -202,7 +202,7 @@ Create hooks that integrate with the memory system:
 
 ```python
 from claude_mpm.hooks.base_hook import PreDelegationHook
-from claude_mpm.services.agent_memory_manager import get_memory_manager
+from claude_mpm.services.agents.memory import get_memory_manager
 
 class CustomMemoryHook(PreDelegationHook):
     def __init__(self):
@@ -224,7 +224,7 @@ class CustomMemoryHook(PreDelegationHook):
 Extend the memory building system to process custom file types:
 
 ```python
-from claude_mpm.services.memory_builder import MemoryBuilder
+from claude_mpm.services.memory.builder import MemoryBuilder
 
 class CustomMemoryBuilder(MemoryBuilder):
     def process_custom_files(self, file_patterns: List[str]) -> Dict[str, Any]:
@@ -379,8 +379,8 @@ claude-mpm memory route --content "content to analyze"
 
 ```python
 import pytest
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
-from claude_mpm.services.memory_router import MemoryRouter
+from claude_mpm.services.agents.memory import AgentMemoryManager
+from claude_mpm.services.memory.router import MemoryRouter
 
 def test_memory_routing():
     router = MemoryRouter()

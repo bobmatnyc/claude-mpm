@@ -36,9 +36,9 @@ class ServiceRegistry:
         
     def register_core_services(self) -> None:
         """Register all core framework services."""
-        from ..services.shared_prompt_cache import SharedPromptCache
+        from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
         from ..services.ticket_manager import TicketManager
-        from ..services.agent_deployment import AgentDeploymentService
+        from ..services import AgentDeploymentService
         from .session_manager import SessionManager
         from .agent_session_manager import AgentSessionManager
         from .config import Config

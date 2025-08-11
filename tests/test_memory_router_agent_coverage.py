@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from claude_mpm.services.memory_router import MemoryRouter
+from claude_mpm.services.memory.router import MemoryRouter
 
 def test_memory_router_agent_coverage():
     """Test that memory router supports all agent types."""

@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.websocket_server import get_websocket_server
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.hooks.memory_integration_hook import MemoryPreDelegationHook
 from claude_mpm.hooks.base_hook import HookContext, HookType
 from claude_mpm.core.config import Config

@@ -1,0 +1,167 @@
+# Dockerfile for clean installation verification of claude-mpm
+# This tests a complete installation from scratch in an isolated environment
+
+FROM python:3.11-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    git \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create a non-root user for running the application
+RUN groupadd -r claude && useradd -r -g claude -m -d /home/claude claude
+
+# Set working directory
+WORKDIR /app
+
+# Copy project files (excluding development artifacts)
+COPY --chown=claude:claude requirements.txt setup.py VERSION README.md CHANGELOG.md pyproject.toml ./
+COPY --chown=claude:claude src/ ./src/
+COPY --chown=claude:claude .claude/ ./.claude/
+COPY --chown=claude:claude docs/ ./docs/
+COPY --chown=claude:claude scripts/ ./scripts/
+COPY --chown=claude:claude tests/ ./tests/
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /home/claude/.claude-mpm/agents/user-defined \
+    /home/claude/.claude-mpm/logs \
+    /home/claude/.claude-mpm/config \
+    /home/claude/.claude-mpm/memories \
+    && chown -R claude:claude /home/claude/.claude-mpm
+
+# Switch to non-root user for installation
+USER claude
+
+# Upgrade pip and install wheel
+RUN pip install --user --upgrade pip wheel setuptools
+
+# Install the package in editable mode (simulating development installation)
+RUN pip install --user -e .
+
+# Add user's local bin to PATH
+ENV PATH="/home/claude/.local/bin:${PATH}"
+
+# Create a test script to verify installation
+RUN echo '#!/bin/bash\n\
+# Exit on first error and track failures\n\
+FAILED=0\n\
+TESTS_RUN=0\n\
+TESTS_PASSED=0\n\
+\n\
+# Function to run a test and track result\n\
+run_test() {\n\
+    local test_name="$1"\n\
+    local test_cmd="$2"\n\
+    TESTS_RUN=$((TESTS_RUN + 1))\n\
+    echo "Test $TESTS_RUN: $test_name"\n\
+    if eval "$test_cmd"; then\n\
+        echo "✓ PASSED"\n\
+        TESTS_PASSED=$((TESTS_PASSED + 1))\n\
+    else\n\
+        echo "✗ FAILED"\n\
+        FAILED=1\n\
+    fi\n\
+    echo ""\n\
+}\n\
+\n\
+echo "=== Claude-MPM Installation Verification ===" \n\
+echo "" \n\
+\n\
+# Test 1: Python version\n\
+run_test "Checking Python version" "python --version"\n\
+\n\
+# Test 2: Package installation\n\
+run_test "Checking installed packages" "pip list | grep -i claude-mpm"\n\
+\n\
+# Test 3: CLI availability\n\
+run_test "Checking CLI availability" "which claude-mpm"\n\
+\n\
+# Test 4: Module import\n\
+run_test "Testing module import" "python -c \"import claude_mpm; print(f\\\"claude_mpm imported from {claude_mpm.__file__}\\\")\""\n\
+\n\
+# Test 5: CLI module execution\n\
+run_test "Testing CLI module execution" "python -m claude_mpm.cli --help > /dev/null 2>&1"\n\
+\n\
+# Test 6: Agent listing\n\
+run_test "Listing available agents" "python -m claude_mpm.cli agents list > /dev/null 2>&1"\n\
+\n\
+# Test 7: Directory structure\n\
+run_test "Checking directory structure" "ls -la ~/.claude-mpm/ > /dev/null 2>&1"\n\
+\n\
+# Test 8: Version command\n\
+run_test "Testing version command" "python -m claude_mpm.cli --version 2>/dev/null | grep -E \"[0-9]+\\.[0-9]+\\.[0-9]+\""\n\
+\n\
+# Test 9: Core modules\n\
+run_test "Verifying core modules" "python -c \"\n\
+from claude_mpm.core import logger\n\
+from claude_mpm.cli import parser\n\
+from claude_mpm.agents import agent_loader\n\
+from claude_mpm.services import async_session_logger\n\
+print(\\\"Core modules imported successfully\\\")\n\
+\""\n\
+\n\
+# Test 10: Memory system with correct imports\n\
+run_test "Testing memory system" "python -c \"\n\
+# Test general memory services\n\
+from claude_mpm.services.memory import MemoryBuilder, MemoryRouter, MemoryOptimizer\n\
+print(\\\"General memory services imported\\\")\n\
+# Test agent-specific memory services\n\
+from claude_mpm.services.agents.memory import AgentMemoryManager, get_memory_manager\n\
+print(\\\"Agent memory services imported\\\")\n\
+print(\\\"Memory system modules imported successfully\\\")\n\
+\""\n\
+\n\
+# Test 11: Agent services\n\
+run_test "Testing agent services" "python -c \"\n\
+from claude_mpm.services.agents.deployment import AgentDeploymentService\n\
+from claude_mpm.services.agents.registry import AgentRegistry\n\
+from claude_mpm.services.agents.management import AgentManagementService\n\
+print(\\\"Agent services imported successfully\\\")\n\
+\""\n\
+\n\
+echo "=== Verification Results ===" \n\
+echo "Tests run: $TESTS_RUN" \n\
+echo "Tests passed: $TESTS_PASSED" \n\
+echo "Tests failed: $((TESTS_RUN - TESTS_PASSED))" \n\
+echo "" \n\
+\n\
+if [ $FAILED -eq 0 ]; then\n\
+    echo "✓ All tests passed successfully!" \n\
+    echo "=== Installation verification complete ===" \n\
+    exit 0\n\
+else\n\
+    echo "✗ Some tests failed. Please check the output above." \n\
+    echo "=== Installation verification failed ===" \n\
+    exit 1\n\
+fi\n\
+' > /home/claude/verify_installation.sh && chmod +x /home/claude/verify_installation.sh
+
+# Health check script
+RUN echo '#!/bin/bash\n\
+python -c "import claude_mpm; print(\"Health check: OK\")" 2>/dev/null && exit 0 || exit 1\n\
+' > /home/claude/healthcheck.sh && chmod +x /home/claude/healthcheck.sh
+
+# Set up entry point for testing
+ENTRYPOINT ["/bin/bash"]
+
+# Default command runs verification
+CMD ["/home/claude/verify_installation.sh"]
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD /home/claude/healthcheck.sh
+
+# Labels for documentation
+LABEL maintainer="Claude-MPM Team" \
+      description="Clean installation verification container for claude-mpm" \
+      version="1.0.0" \
+      purpose="testing"

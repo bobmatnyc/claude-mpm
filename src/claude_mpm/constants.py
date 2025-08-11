@@ -26,7 +26,6 @@ class CLICommands(str, Enum):
     TICKETS = "tickets"
     INFO = "info"
     AGENTS = "agents"
-    UI = "ui"
     MEMORY = "memory"
     MONITOR = "monitor"
     

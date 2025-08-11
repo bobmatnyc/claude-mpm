@@ -12,11 +12,9 @@ from typing import Optional, Dict, Any
 
 from .agent_loader import (
     load_agent_prompt_from_md,
-    get_agent_prompt,
-    AGENT_MAPPINGS,
-    FRAMEWORK_AGENT_ROLES_DIR
+    get_agent_prompt
 )
-from ..services.agent_management_service import AgentManager
+from ..services import AgentManager
 from ..models.agent_definition import AgentDefinition
 
 logger = logging.getLogger(__name__)
@@ -40,8 +38,8 @@ class EnhancedAgentLoader:
             AgentDefinition or None
         """
         # Map from old naming to new naming if needed
-        md_filename = AGENT_MAPPINGS.get(agent_name, f"{agent_name}.md")
-        agent_file_name = md_filename.replace('.md', '')
+        # Since AGENT_MAPPINGS no longer exists, use direct naming
+        agent_file_name = agent_name
         
         return self.manager.read_agent(agent_file_name)
     
@@ -127,9 +125,8 @@ class EnhancedAgentLoader:
         Returns:
             True if updated, False otherwise
         """
-        # Map name
-        md_filename = AGENT_MAPPINGS.get(agent_name, f"{agent_name}.md")
-        agent_file_name = md_filename.replace('.md', '')
+        # Map name - since AGENT_MAPPINGS no longer exists, use direct naming
+        agent_file_name = agent_name
         
         result = self.manager.update_agent(agent_file_name, {}, increment_version=True)
         return result is not None

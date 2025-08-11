@@ -17,7 +17,7 @@ import logging
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agent_lifecycle_manager import AgentLifecycleManager, ModificationTier
+from claude_mpm.services.agents.deployment import AgentLifecycleManager, ModificationTier
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

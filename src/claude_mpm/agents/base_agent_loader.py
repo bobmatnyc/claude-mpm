@@ -28,7 +28,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 from enum import Enum
 
-from ..services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 
 # Module-level logger
 logger = logging.getLogger(__name__)

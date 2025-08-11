@@ -20,7 +20,7 @@ script_dir = Path(__file__).parent
 src_dir = script_dir.parent / 'src'
 sys.path.insert(0, str(src_dir))
 
-from claude_mpm.services.agent_memory_manager import AgentMemoryManager
+from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.core.config import Config
 
 def test_file_access_tracking():

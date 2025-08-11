@@ -9,15 +9,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 import uuid
+from claude_mpm.config.paths import paths
 
 try:
-    from claude_mpm.services.agent_deployment import AgentDeploymentService
+    from claude_mpm.services.agents.deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
     from claude_mpm.services.hook_service import HookService
     from claude_mpm.core.config import Config
     from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 except ImportError:
-    from claude_mpm.services.agent_deployment import AgentDeploymentService
+    from claude_mpm.services.agents.deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
     from claude_mpm.services.hook_service import HookService
     from claude_mpm.core.config import Config
@@ -222,6 +223,67 @@ class ClaudeRunner:
             if self.project_logger:
                 self.project_logger.log_system(error_msg, level="ERROR", component="deployment")
             # Continue without agents rather than failing completely
+            return False
+    
+    def ensure_project_agents(self) -> bool:
+        """Ensure system agents are available in the project directory.
+        
+        Deploys system agents to project's .claude-mpm/agents/ directory
+        if they don't exist or are outdated. This enables project-level
+        agent customization and ensures all agents are available locally.
+        
+        Returns:
+            bool: True if agents are available, False on error
+        """
+        try:
+            # Check if we're in a project directory
+            project_dir = Path.cwd()
+            project_agents_dir = project_dir / ".claude-mpm" / "agents"
+            
+            # Create directory if it doesn't exist
+            project_agents_dir.mkdir(parents=True, exist_ok=True)
+            
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Ensuring agents are available in project: {project_agents_dir}",
+                    level="INFO",
+                    component="deployment"
+                )
+            
+            # Deploy agents to project directory with project deployment mode
+            # This ensures all system agents are deployed regardless of version
+            results = self.deployment_service.deploy_agents(
+                target_dir=project_dir / ".claude-mpm",
+                force_rebuild=False,
+                deployment_mode="project"
+            )
+            
+            if results["deployed"] or results.get("updated", []):
+                deployed_count = len(results['deployed'])
+                updated_count = len(results.get('updated', []))
+                
+                if deployed_count > 0:
+                    self.logger.info(f"Deployed {deployed_count} agents to project")
+                if updated_count > 0:
+                    self.logger.info(f"Updated {updated_count} agents in project")
+                    
+                return True
+            elif results.get("skipped", []):
+                # Agents already exist and are current
+                self.logger.debug(f"Project agents up to date: {len(results['skipped'])} agents")
+                return True
+            else:
+                self.logger.warning("No agents deployed to project")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Failed to ensure project agents: {e}")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Failed to ensure project agents: {e}",
+                    level="ERROR",
+                    component="deployment"
+                )
             return False
     
     def run_interactive(self, initial_context: Optional[str] = None):
@@ -1037,14 +1099,13 @@ class ClaudeRunner:
         # Method 3: Try reading VERSION file directly (development fallback)
         if version == "0.0.0":
             try:
-                # Calculate path relative to this file
-                version_file = Path(__file__).parent.parent.parent.parent / "VERSION"
-                if version_file.exists():
-                    version = version_file.read_text().strip()
+                # Use centralized path management for VERSION file
+                if paths.version_file.exists():
+                    version = paths.version_file.read_text().strip()
                     method_used = "version_file"
                     self.logger.debug(f"Version obtained via VERSION file: {version}")
                 else:
-                    self.logger.debug(f"VERSION file not found at: {version_file}")
+                    self.logger.debug(f"VERSION file not found at: {paths.version_file}")
             except Exception as e:
                 self.logger.warning(f"Failed to read VERSION file: {e}")
         

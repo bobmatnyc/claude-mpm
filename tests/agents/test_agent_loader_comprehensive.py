@@ -51,7 +51,7 @@ from claude_mpm.agents.agent_loader import (
     get_qa_agent_prompt,
     get_engineer_agent_prompt,
 )
-from claude_mpm.services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.validation.agent_validator import ValidationResult
 
 

@@ -421,6 +421,6 @@ done
 ## Next Steps
 
 - Learn about [Session Logging](session-logging.md) to track memory usage
-- Explore [Subprocess Orchestration](../02-guides/subprocess-orchestration.md) for isolation
+- See [Session Management](../02-guides/session-management.md) for isolation features
 - See [Configuration](../04-reference/configuration.md) for memory settings
 - Check [Troubleshooting](../04-reference/troubleshooting.md) for solutions

@@ -278,19 +278,6 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     )
     add_common_arguments(info_parser)
     
-    # UI command
-    ui_parser = subparsers.add_parser(
-        CLICommands.UI.value,
-        help="Launch terminal UI with multiple panes"
-    )
-    add_common_arguments(ui_parser)
-    ui_parser.add_argument(
-        "--mode",
-        choices=["terminal", "curses"],
-        default="terminal",
-        help="UI mode to launch (default: terminal)"
-    )
-    
     # Agents command with subcommands
     agents_parser = subparsers.add_parser(
         CLICommands.AGENTS.value,

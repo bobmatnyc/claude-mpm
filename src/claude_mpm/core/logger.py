@@ -18,13 +18,8 @@ from enum import Enum
 from collections import defaultdict
 import functools
 
-# Optional Rich support
-try:
-    from rich.logging import RichHandler
-    from rich.console import Console
-    HAS_RICH = True
-except ImportError:
-    HAS_RICH = False
+# Rich support has been removed
+HAS_RICH = False
 
 
 class LogLevel(Enum):
@@ -150,7 +145,7 @@ def setup_logging(
         log_file: Specific log file path (overrides log_dir)
         console_output: Enable console output
         file_output: Enable file output
-        use_rich: Use Rich handler for colored console output
+        use_rich: (Deprecated) Rich support has been removed
         json_format: Use JSON format for structured logging
         use_streaming: Use streaming handler for single-line INFO messages
         
@@ -187,10 +182,10 @@ def setup_logging(
             # Use streaming handler for single-line INFO messages
             console_handler = StreamingHandler(sys.stdout)
             console_handler.setFormatter(simple_formatter)
-        elif use_rich and HAS_RICH and not json_format:
-            console = Console(stderr=True)
-            console_handler = RichHandler(console=console, show_time=True, show_path=True, markup=True)
-            console_handler.setFormatter(logging.Formatter(fmt="%(message)s", datefmt="[%X]"))
+        elif use_rich and not json_format:
+            # Rich support has been removed, use standard handler
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setFormatter(simple_formatter)
         else:
             console_handler = logging.StreamHandler(sys.stdout)
             console_handler.setFormatter(formatter if json_format else simple_formatter)

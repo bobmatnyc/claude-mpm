@@ -5,12 +5,198 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.4.27] - 2025-08-08
+## [3.5.1] - 2025-08-11
 
+### Fixed
+- **Critical**: Added missing dependencies `python-frontmatter` and `mistune` that were causing `ModuleNotFoundError` on fresh installations
+  - These dependencies are required by the agent management service for markdown parsing
+  - Added to pyproject.toml, requirements.txt, and setup.py for complete coverage
+  - This hotfix ensures all users can run claude-mpm without dependency errors
+
+## [3.5.0] - 2025-08-11
+
+### BREAKING CHANGES
+- **Service Import Paths**: Service import paths changed due to hierarchical reorganization
+  - Agent services: `claude_mpm.services.agent_*` → `claude_mpm.services.agents.*`
+  - Memory services: `claude_mpm.services.memory_*` → `claude_mpm.services.memory.*`
+  - Backward compatibility maintained through lazy imports in `__init__.py` files
+- **Response Log Structure**: Response log file naming changed from session-based to flat structure
+  - Old format: `session_<timestamp>/response_<id>.json`
+  - New format: `<id>-<agent>-<timestamp>.json`
+  - Improved file discoverability and organization
+
+### Added
+- **Centralized Path Management**: New `ClaudeMPMPaths` enum for consistent path handling
+  - Eliminates fragile `Path(__file__).parent.parent` patterns throughout codebase
+  - Smart project root detection supporting multiple deployment scenarios
+  - Centralized configuration for all system paths
+  - Enhanced reliability across different installation methods
+
+- **Hierarchical Service Organization**: Enhanced service architecture
+  - Agent services organized in `/services/agents/` directory
+  - Memory services organized in `/services/memory/` directory with cache submodule
+  - Improved code organization and maintainability
+  - Clear separation of concerns between different service types
+
+- **Comprehensive Documentation Structure**: Major documentation reorganization
+  - Archived 35+ historical QA reports to `docs/archive/qa-reports/`
+  - Fixed all broken documentation references and links
+  - Updated README.md and QUICKSTART.md for current project state
+  - Enhanced developer documentation with accurate API references
+
+### Changed
+- **Project Structure Reorganization**: Complete restructuring for better maintainability
+  - **Test Organization**: Moved 66 test files from `scripts/` to proper `tests/` directory
+    - Organized by category: agents, integration, services, e2e, fixtures
+    - Enhanced test discoverability and execution
+    - Proper separation of test code from utility scripts
+  
+  - **Directory Cleanup**: Removed obsolete and deprecated components
+    - Removed `orchestration/archive/` (9 files) - obsolete orchestrator implementations
+    - Removed `hooks/builtin/` (10 files) - deprecated built-in hook examples
+    - Removed `docker/`, `security/`, `terminal_wrapper/` directories
+    - Cleaned up backup files and temporary artifacts
+
+  - **Service Architecture**: Enhanced hierarchical organization
+    - Agent services consolidated under `services/agents/`
+    - Memory services organized under `services/memory/`
+    - Cache services as proper submodule under memory
+    - Improved import structure with backward compatibility
+
+- **Response Logging Improvements**: Enhanced log file organization
+  - Changed from nested session directories to flat structure
+  - New naming scheme: `[id]-[agent]-timestamp.json`
+  - Removed "session_" prefix for cleaner file names
+  - Improved file sorting and discovery capabilities
+  - Better integration with monitoring dashboard
+
+- **Path Management Enhancement**: Eliminated path resolution issues
+  - Replaced hardcoded path patterns throughout codebase
+  - Implemented centralized path management via `ClaudeMPMPaths` enum
+  - Enhanced reliability across development and production environments
+  - Improved working directory enforcement across all services
+
+### Fixed
+- **Import Path Resolution**: Fixed import issues across the codebase
+  - Resolved circular import dependencies
+  - Enhanced module discovery and loading
+  - Improved error handling for missing modules
+  - Better compatibility across different Python environments
+
+- **Documentation Accuracy**: Fixed numerous documentation issues
+  - Corrected broken links and outdated references
+  - Updated API documentation to reflect current implementations
+  - Fixed inconsistencies between code and documentation
+  - Enhanced code examples and usage instructions
+
+- **Configuration Path Issues**: Resolved path-related configuration problems
+  - Fixed configuration file loading across different deployment scenarios
+  - Enhanced path resolution for logging, memory, and cache services
+  - Improved working directory enforcement
+  - Better handling of relative vs. absolute paths
+
+### Removed
+- **Obsolete Components**: Comprehensive cleanup of deprecated code
+  - 19 obsolete files from various directories
+  - Legacy orchestrator implementations no longer needed
+  - Deprecated hook examples and utilities
+  - Temporary debugging scripts and backup files
+  - Unused Docker and security scaffolding
+
+- **Redundant Documentation**: Streamlined documentation structure
+  - Archived historical QA reports to prevent clutter
+  - Removed duplicate documentation files
+  - Consolidated overlapping content
+  - Eliminated outdated technical specifications
+
+### Migration Guide
+- **Service Imports**: Update import statements for hierarchical services
+  - Replace `from claude_mpm.services.agent_registry import ...` with `from claude_mpm.services.agents.agent_registry import ...`
+  - Replace `from claude_mpm.services.memory_service import ...` with `from claude_mpm.services.memory.memory_service import ...`
+  - Old imports will continue working through compatibility layer
+
+- **Response Logs**: Update any scripts or monitoring tools expecting old log structure
+  - Look for files matching pattern `*-*-*.json` instead of `session_*/response_*.json`
+  - Parse new filename format: `<id>-<agent>-<timestamp>.json`
+  - Update log parsing logic to handle flat directory structure
+
+- **Path References**: Update any hardcoded path references
+  - Use `ClaudeMPMPaths` enum instead of manual path construction
+  - Import via `from claude_mpm.config.paths import ClaudeMPMPaths`
+  - Access paths via `ClaudeMPMPaths.PROJECT_ROOT.value`, etc.
+
+### Performance Improvements
+- **Service Loading**: Faster service initialization through hierarchical organization
+- **Path Resolution**: Reduced filesystem operations with centralized path management
+- **Import Performance**: Improved module loading with better dependency organization
+- **Test Execution**: Enhanced test discovery and execution speed
+
+### Notes
+- This version represents a major architectural improvement while maintaining backward compatibility
+- All changes from 3.4.28 are consolidated in this release
+- Version bump reflects the significance of structural improvements and future-proofing
+- Extensive QA validation performed across all major components and workflows
+
+## [3.4.28] - 2025-08-11
+
+### Added
+- **Enhanced Agent System**: Expanded multi-agent system to include 10 specialized agents
+  - Added Data Engineer agent with specialized keywords for data pipelines, AI API integrations, and analytics
+  - Added Test Integration agent focused on E2E testing, cross-system validation, and workflow testing
+  - Added Version Control agent for Git workflows, branching strategies, and release management
+  - All 10 agent types now fully supported with optimized memory routing
+
+### Changed
+- **Project Structure Reorganization**: Major cleanup and reorganization for better maintainability
+  - Implemented centralized path management with ClaudeMPMPaths enum
+  - Reorganized agent and memory services into hierarchical structures
+  - Changed response logging to flat structure without session_ prefix
+  - Enhanced agent services with better hierarchical organization
+- **Test Organization**: Comprehensive test file migration and organization
+  - Moved 66 test files from scripts/ to tests/ directory structure
+  - Organized tests by category: agents, integration, services, e2e, and fixtures
+  - Enhanced test structure for better maintainability
+- **Documentation Reorganization**: Improved documentation structure and content
+  - Archived 35+ QA reports to docs/archive/ directory
+  - Updated documentation to reflect current project state
+  - Enhanced README.md and QUICKSTART.md with current features and capabilities
+  - Fixed broken links and outdated references
+
+### Improved
+- **Memory System Enhancement**: Enhanced memory routing with better agent support
+  - Improved routing algorithm with square root normalization
+  - Enhanced multi-word keyword matching with 1.5x multiplier for better semantic relevance
+  - Lowered routing threshold from 0.1 to 0.05 for better handling of diverse agent patterns
+  - Added comprehensive validation functions for agent types
+- **Agent Registry Caching**: Enhanced performance with intelligent caching mechanisms
+  - Improved agent discovery and loading performance
+  - Better cache invalidation and management
+  - Reduced startup time with optimized agent loading
+
+### Removed
+- **Obsolete Directory Cleanup**: Removed outdated and unused directories
+  - Removed obsolete orchestration archive directory
+  - Cleaned up docker, security, and terminal_wrapper directories
+  - Removed redundant parent_directory_manager references
+  - Streamlined project structure by removing deprecated components
+
+### Fixed
+- **Path Management**: Resolved path-related issues with centralized management
+  - Fixed import path issues with ClaudeMPMPaths enum integration
+  - Resolved configuration path inconsistencies
+  - Enhanced working directory enforcement across all services
+- **Agent Registry Issues**: Fixed agent naming convention and loading problems
+  - Resolved agent naming inconsistencies between different formats
+  - Fixed cache-related agent loading issues
+  - Improved error handling for missing or invalid agent definitions
+
+## [3.4.27] - 2025-08-08
 
 ### Chores
 
-- update package.json version to 3.4.26 ([6dbf358])
+- update package.json version to 3.4.27 ([dd275b6])
+- refactor: Centralize config paths with enum and remove obsolete parent_directory_manager ([dd275b6])
+- feat: Add agent versioning system and strengthen PM delegation rules ([a9377db])
 ## [3.4.26] - 2025-08-08
 
 

@@ -60,7 +60,7 @@ def get_agent_versions_display() -> Optional[str]:
         Formatted string containing agent version information, or None if failed
     """
     try:
-        from ..services.agent_deployment import AgentDeploymentService
+        from ..services import AgentDeploymentService
         deployment_service = AgentDeploymentService()
         
         # Get deployed agents

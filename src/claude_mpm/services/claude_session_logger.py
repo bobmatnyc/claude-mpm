@@ -120,12 +120,34 @@ class ClaudeSessionLogger:
         # Generate a default based on timestamp if nothing found
         if not session_id:
             # Use a timestamp-based session ID as fallback
-            session_id = datetime.now().strftime('session_%Y%m%d_%H%M%S')
+            session_id = datetime.now().strftime('%Y%m%d_%H%M%S')
             logger.info(f"No Claude session ID found, using generated: {session_id}")
         else:
             logger.info(f"Using Claude session ID: {session_id}")
         
         return session_id
+    
+    def _generate_filename(self, agent: Optional[str] = None) -> str:
+        """
+        Generate a flat filename with session ID, agent, and timestamp.
+        
+        Args:
+            agent: Optional agent name
+            
+        Returns:
+            Filename in format: [session_id]-[agent]-timestamp.json
+        """
+        # Get agent name, defaulting to "unknown" if not provided
+        agent_name = agent or "unknown"
+        # Sanitize agent name (replace spaces with underscores, lowercase)
+        agent_name = agent_name.replace(" ", "_").lower()
+        
+        # Generate timestamp with microseconds for uniqueness
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+        
+        # Create filename: session_id-agent-timestamp.json
+        filename = f"{self.session_id}-{agent_name}-{timestamp}.json"
+        return filename
     
     def log_response(
         self,
@@ -166,26 +188,19 @@ class ClaudeSessionLogger:
             if success:
                 # Return expected path for compatibility
                 # Async logger uses timestamp-based names, so we can't return exact path
-                return self.base_dir / self.session_id / "async_response.json"
+                return self.base_dir / "async_response.json"
             return None
         
         # Fall back to synchronous logging
-        # Create session directory
-        session_dir = self.base_dir / self.session_id
-        session_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure base directory exists (flat structure, no subdirs)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get next response number for this session
-        if self.session_id not in self.response_counter:
-            # Count existing files to continue numbering
-            existing_files = list(session_dir.glob("response_*.json"))
-            self.response_counter[self.session_id] = len(existing_files)
+        # Extract agent name from parameter or metadata
+        agent_name = agent or (metadata.get("agent") if metadata else None) or "unknown"
         
-        self.response_counter[self.session_id] += 1
-        response_num = self.response_counter[self.session_id]
-        
-        # Create filename: response_001.json, response_002.json, etc.
-        filename = f"response_{response_num:03d}.json"
-        file_path = session_dir / filename
+        # Generate filename with flat structure
+        filename = self._generate_filename(agent_name)
+        file_path = self.base_dir / filename
         
         # Prepare response data with standardized field names
         response_data = {
@@ -202,7 +217,7 @@ class ClaudeSessionLogger:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(response_data, f, indent=2, ensure_ascii=False)
             
-            logger.debug(f"Logged response {response_num} to session {self.session_id}")
+            logger.debug(f"Logged response to {filename} for session {self.session_id}")
             return file_path
             
         except Exception as e:
@@ -221,14 +236,16 @@ class ClaudeSessionLogger:
     
     def get_session_path(self) -> Optional[Path]:
         """
-        Get the path to the current session directory.
+        Get the path to the responses directory.
+        
+        Note: With flat structure, returns the base directory.
         
         Returns:
-            Path to session directory, or None if no session
+            Path to responses directory, or None if no session
         """
         if not self.session_id:
             return None
-        return self.base_dir / self.session_id
+        return self.base_dir
     
     def is_enabled(self) -> bool:
         """

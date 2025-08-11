@@ -165,7 +165,7 @@ class AsyncSessionLogger:
                 return session_id
         
         # Generate timestamp-based session ID
-        session_id = datetime.now().strftime('session_%Y%m%d_%H%M%S')
+        session_id = datetime.now().strftime('%Y%m%d_%H%M%S')
         logger.info(f"Generated session ID: {session_id}")
         return session_id
     
@@ -261,18 +261,33 @@ class AsyncSessionLogger:
             with self._lock:
                 self.stats["errors"] += 1
     
-    def _write_json_entry(self, entry: LogEntry):
-        """Write entry as JSON file with timestamp-based filename."""
-        # Create session directory
-        session_dir = self.base_dir / entry.session_id
-        session_dir.mkdir(parents=True, exist_ok=True)
+    def _generate_filename(self, entry: LogEntry) -> str:
+        """
+        Generate a flat filename with session ID, agent, and timestamp.
         
-        # Generate timestamp-based filename with microseconds to avoid collisions
-        filename = f"{entry.agent}_{entry.timestamp.replace(':', '').replace('-', '').replace('.', '_')}.json"
+        Args:
+            entry: Log entry with session, agent, and timestamp info
+            
+        Returns:
+            Filename in format: [session_id]-[agent]-timestamp.json
+        """
+        # Format timestamp for filename (remove special chars)
+        timestamp_str = entry.timestamp.replace(':', '').replace('-', '').replace('.', '_')
+        
+        # Create filename: session_id-agent-timestamp.json
+        filename = f"{entry.session_id}-{entry.agent}-{timestamp_str}.json"
         if self.enable_compression:
             filename += ".gz"
+        return filename
+    
+    def _write_json_entry(self, entry: LogEntry):
+        """Write entry as JSON file with timestamp-based filename."""
+        # Ensure base directory exists (flat structure, no subdirs)
+        self.base_dir.mkdir(parents=True, exist_ok=True)
         
-        file_path = session_dir / filename
+        # Generate flat filename
+        filename = self._generate_filename(entry)
+        file_path = self.base_dir / filename
         
         # Prepare data (exclude microseconds field which is internal only)
         data = asdict(entry)
