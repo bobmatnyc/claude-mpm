@@ -31,7 +31,7 @@ def test_non_interactive_mode():
 
 def test_system_prompt_creation():
     """Test that system prompt is correctly created with capabilities."""
-    from claude_mpm.core.simple_runner import SimpleClaudeRunner
+    from claude_mpm.core.claude_runner import SimpleClaudeRunner
     
     print("\nTesting system prompt creation...")
     

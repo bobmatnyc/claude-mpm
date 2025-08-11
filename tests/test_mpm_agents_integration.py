@@ -56,7 +56,7 @@ def test_interactive_wrapper():
     
     # Simulate the simple runner handling
     try:
-        from claude_mpm.core.simple_runner import SimpleClaudeRunner
+        from claude_mpm.core.claude_runner import SimpleClaudeRunner
         runner = SimpleClaudeRunner()
         
         # Test the command handler

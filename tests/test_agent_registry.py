@@ -70,12 +70,12 @@ class TestAgentRegistryAdapter:
             'engineer': {'type': 'engineer', 'path': '/path/to/engineer.md'},
             'qa': {'type': 'qa', 'path': '/path/to/qa.md'}
         }
-        mock_registry.listAgents.return_value = mock_agents
+        mock_registry.list_agents.return_value = mock_agents
         adapter.registry = mock_registry
         
         result = adapter.list_agents()
         assert result == mock_agents
-        mock_registry.listAgents.assert_called_once()
+        mock_registry.list_agents.assert_called_once()
     
     def test_get_agent_definition(self, tmp_path):
         """Test getting agent definition."""
@@ -87,7 +87,7 @@ class TestAgentRegistryAdapter:
         
         # Mock registry
         mock_registry = Mock()
-        mock_registry.listAgents.return_value = {
+        mock_registry.list_agents.return_value = {
             'engineer': {'type': 'engineer', 'path': str(agent_file)}
         }
         adapter.registry = mock_registry
@@ -103,7 +103,7 @@ class TestAgentRegistryAdapter:
         
         # Mock registry
         mock_registry = Mock()
-        mock_registry.listAgents.return_value = {
+        mock_registry.list_agents.return_value = {
             'engineer': {'type': 'engineer', 'specializations': ['coding']},
             'qa': {'type': 'qa', 'specializations': ['testing']}
         }

@@ -258,7 +258,7 @@ task_type = "performance_optimization"
 required_specializations = ["performance", "monitoring"]
 
 # Discover optimal agent
-all_agents = registry.listAgents()
+all_agents = registry.list_agents()
 # Filter by specializations
 optimal_agents = {k: v for k, v in all_agents.items()
                   if any(spec in v.get('specializations', [])
@@ -352,7 +352,7 @@ TEMPORAL CONTEXT: Today is [date]. Apply date awareness to data operations.
 
 **CRITICAL: Agent Registry provides dynamic agent discovery beyond core 9 agent types**
 
-#### AgentRegistry.listAgents() Method Usage
+#### AgentRegistry.list_agents() Method Usage
 
 **Comprehensive Agent Discovery API:**
 ```python
@@ -362,7 +362,7 @@ from claude_pm.core.agent_registry import AgentRegistry
 registry = AgentRegistry()
 
 # List all available agents with metadata
-agents = registry.listAgents()
+agents = registry.list_agents()
 
 # Access agent metadata
 for agent_id, metadata in agents.items():
@@ -403,7 +403,7 @@ $PWD/.claude-mpm/agents/user-agents/
 registry = AgentRegistry()
 
 # Discover all agents
-all_agents = registry.listAgents()
+all_agents = registry.list_agents()
 
 # Filter by tier if needed
 project_agents = {k: v for k, v in all_agents.items() if v.get('tier') == 'project'}
@@ -420,7 +420,7 @@ system_agents = {k: v for k, v in all_agents.items() if v.get('tier') == 'system
 **Specialized Discovery Usage:**
 ```python
 # Discover agents by type (note: specialization filtering would require custom filtering)
-all_agents = registry.listAgents()
+all_agents = registry.list_agents()
 
 # Filter by specialization manually
 ui_agents = {k: v for k, v in all_agents.items() if 'ui_ux' in v.get('specializations', [])}
@@ -440,7 +440,7 @@ multi_spec = {k: v for k, v in all_agents.items()
 registry = AgentRegistry()
 
 # Get all agents (modification timestamps are included by default)
-agents_with_tracking = registry.listAgents()
+agents_with_tracking = registry.list_agents()
 
 # Filter agents modified since last orchestration manually
 recent_agents = {k: v for k, v in agents_with_tracking.items() 
@@ -464,7 +464,7 @@ cache = SharedPromptCache()
 registry = AgentRegistry(prompt_cache=cache)
 
 # Agent discovery (caching is automatic)
-cached_agents = registry.listAgents()
+cached_agents = registry.list_agents()
 
 # Cache optimization for repeated orchestration
 cache.preload_agent_prompts(agent_ids=['documentation', 'qa', 'engineer'])
@@ -486,7 +486,7 @@ def select_optimal_agent(task_type, specialization_requirements):
     registry = AgentRegistry()
     
     # Find agents matching requirements
-    all_agents = registry.listAgents()
+    all_agents = registry.list_agents()
     matching_agents = {k: v for k, v in all_agents.items() 
                        if any(spec in v.get('specializations', []) 
                              for spec in specialization_requirements)}
@@ -541,7 +541,7 @@ TEMPORAL CONTEXT: Today is [date]. Using agent registry for optimal agent select
 
 **Enhanced Orchestration with Dynamic Discovery:**
 
-1. **Dynamic Agent Selection**: Use AgentRegistry.listAgents() to select optimal agents based on task requirements and available specializations
+1. **Dynamic Agent Selection**: Use AgentRegistry.list_agents() to select optimal agents based on task requirements and available specializations
 
 2. **Precedence-Aware Delegation**: Respect directory precedence when multiple agents of same type exist
 
@@ -562,7 +562,7 @@ def orchestrate_with_registry(task_description, requirements):
     registry = AgentRegistry()
     
     # Discover optimal agents
-    all_agents = registry.listAgents()
+    all_agents = registry.list_agents()
     # Filter by requirements
     agents = {k: v for k, v in all_agents.items()
               if any(spec in v.get('specializations', [])

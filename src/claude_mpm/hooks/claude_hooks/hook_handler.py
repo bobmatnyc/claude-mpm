@@ -219,15 +219,18 @@ class ClaudeHookHandler:
             config_file = os.environ.get('CLAUDE_PM_CONFIG_FILE')
             config = Config(config_file=config_file) if config_file else Config()
             
-            # Check if response tracking is enabled
-            if not config.get('response_tracking.enabled', False):
+            # Check if response tracking is enabled (check both sections for compatibility)
+            response_tracking_enabled = config.get('response_tracking.enabled', False)
+            response_logging_enabled = config.get('response_logging.enabled', False)
+            
+            if not (response_tracking_enabled or response_logging_enabled):
                 if DEBUG:
                     print("Response tracking disabled - skipping initialization", file=sys.stderr)
                 return
             
-            # Initialize response tracker
-            self.response_tracker = ResponseTracker()
-            self.response_tracking_enabled = True
+            # Initialize response tracker with config
+            self.response_tracker = ResponseTracker(config=config)
+            self.response_tracking_enabled = self.response_tracker.is_enabled()
             
             if DEBUG:
                 print("✅ Response tracking initialized", file=sys.stderr)
@@ -310,8 +313,10 @@ class ClaudeHookHandler:
                 metadata=metadata
             )
             
-            if DEBUG:
+            if file_path and DEBUG:
                 print(f"✅ Tracked response for {agent_type} agent in session {session_id}: {file_path.name}", file=sys.stderr)
+            elif DEBUG and not file_path:
+                print(f"Response tracking returned None for {agent_type} agent (might be excluded or disabled)", file=sys.stderr)
             
             # Clean up the request data after successful tracking
             if session_id in self.delegation_requests:

@@ -146,6 +146,12 @@ class ClaudeSessionLogger:
         Returns:
             Path to the saved response file, or None if disabled
         """
+        # Check if logging is actually enabled
+        response_config = self.config.get('response_logging', {})
+        if not response_config.get('enabled', True):
+            logger.debug("Response logging is disabled in configuration")
+            return None
+            
         if not self.session_id:
             return None
         

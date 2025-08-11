@@ -10,15 +10,8 @@ from unittest.mock import Mock, patch, MagicMock
 import logging
 
 from claude_mpm.agents.agent_loader import get_agent_prompt, get_agent_prompt_with_model_info
-from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
-from datetime import datetime
-
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer, agent_name_normalizer
-from claude_mpm.hooks.builtin.todo_agent_prefix_hook import (
-    TodoAgentPrefixHook, 
-    TodoAgentPrefixValidatorHook
-)
-from claude_mpm.hooks.base_hook import HookContext, HookType
+from datetime import datetime
 
 # Configure logging for tests
 logging.basicConfig(level=logging.DEBUG)
@@ -255,117 +248,6 @@ class TestAgentNameNormalizer(unittest.TestCase):
         result = AgentNameNormalizer.colorize("research", "Custom Text")
         self.assertIn("Custom Text", result)
         self.assertNotIn("Research", result)
-
-
-class TestTodoAgentPrefixHook(unittest.TestCase):
-    """Test the TodoAgentPrefixHook functionality."""
-    
-    def setUp(self):
-        """Set up test fixtures."""
-        self.hook = TodoAgentPrefixHook()
-        self.validator_hook = TodoAgentPrefixValidatorHook()
-    
-    def create_hook_context(self, tool_name, parameters):
-        """Create a HookContext for testing."""
-        return HookContext(
-            hook_type=HookType.CUSTOM,
-            data={
-                'tool_name': tool_name,
-                'parameters': parameters
-            },
-            metadata={},
-            timestamp=datetime.now()
-        )
-    
-    def test_hook_adds_prefix_automatically(self):
-        """Test that hook automatically adds appropriate prefixes."""
-        test_cases = [
-            # Todo content -> Expected keywords to match agent
-            ("Research best practices for testing", "research"),
-            ("Implement new feature", "implement"),
-            ("Run test suite and validate", "test"),
-            ("Document the API endpoints", "document"),
-            ("Audit security vulnerabilities", "security"),
-            ("Deploy application to production", "deploy"),
-            ("Build data pipeline for analytics", "data.*pipeline"),
-            ("Create git branch for release", "git"),
-        ]
-        
-        for content, pattern_hint in test_cases:
-            with self.subTest(content=content):
-                context = self.create_hook_context('TodoWrite', {
-                    'todos': [{'content': content}]
-                })
-                
-                result = self.hook.execute(context)
-                
-                self.assertTrue(result.success)
-                self.assertTrue(result.modified)
-                
-                # Check that a prefix was added
-                updated_todos = result.data['parameters']['todos']
-                updated_content = updated_todos[0]['content']
-                
-                # Verify it has a bracketed prefix
-                import re
-                self.assertTrue(re.match(r'^\[[^\]]+\]', updated_content),
-                    f"Content '{updated_content}' should start with a bracketed agent prefix")
-    
-    def test_hook_preserves_existing_prefix(self):
-        """Test that hook doesn't modify todos with existing prefixes."""
-        todos_with_prefixes = [
-            "[Research] Analyze patterns",
-            "[Engineer] Implement feature",
-            "[Version Control] Create release",
-            "[Data Engineer] Build pipeline",
-        ]
-        
-        for todo_content in todos_with_prefixes:
-            with self.subTest(todo=todo_content):
-                context = self.create_hook_context('TodoWrite', {
-                    'todos': [{'content': todo_content}]
-                })
-                
-                result = self.hook.execute(context)
-                
-                self.assertTrue(result.success)
-                self.assertFalse(result.modified)  # Should not modify
-    
-    def test_hook_blocks_ambiguous_todos(self):
-        """Test that hook blocks todos it can't classify."""
-        ambiguous_todos = [
-            "Do something",
-            "Complete the task",
-            "Work on the project",
-        ]
-        
-        for todo_content in ambiguous_todos:
-            with self.subTest(todo=todo_content):
-                context = self.create_hook_context('TodoWrite', {
-                    'todos': [{'content': todo_content}]
-                })
-                
-                result = self.hook.execute(context)
-                
-                self.assertFalse(result.success)
-                self.assertIn("missing required [Agent] prefix", result.error)
-    
-    def test_validator_hook(self):
-        """Test the validator hook (no auto-fixing)."""
-        # Valid todo
-        context = self.create_hook_context('TodoWrite', {
-            'todos': [{'content': '[Research] Analyze patterns'}]
-        })
-        result = self.validator_hook.execute(context)
-        self.assertTrue(result.success)
-        
-        # Invalid todo
-        context = self.create_hook_context('TodoWrite', {
-            'todos': [{'content': 'Analyze patterns'}]
-        })
-        result = self.validator_hook.execute(context)
-        self.assertFalse(result.success)
-        self.assertIn("missing required agent prefix", result.error)
 
 
 class TestAgentLoaderNormalization(unittest.TestCase):

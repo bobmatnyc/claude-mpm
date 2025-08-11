@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from claude_mpm.agents import list_available_agents
 from claude_mpm.services.agent_registry import AgentRegistry
 from claude_mpm.services.hook_service import HookRegistry
-from claude_mpm.core.simple_runner import SimpleClaudeRunner
+from claude_mpm.core.claude_runner import SimpleClaudeRunner
 
 def test_agents():
     """Test agent loading and listing."""
@@ -50,7 +50,7 @@ def test_runner():
     print("\n=== Testing SimpleClaudeRunner ===")
     
     # Import and verify
-    from claude_mpm.core.simple_runner import SimpleClaudeRunner
+    from claude_mpm.core.claude_runner import SimpleClaudeRunner
     print("✓ SimpleClaudeRunner imported successfully")
     
     # Check if we can access key methods
