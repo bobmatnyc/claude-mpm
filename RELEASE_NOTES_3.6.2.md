@@ -1,35 +1,38 @@
-# Claude MPM 3.6.2 - Documentation Update
+# Release Notes for v3.6.2
 
-This patch release updates the documentation to properly acknowledge contributors and highlight the new Code Analyzer agent.
+## Version Correction Release
 
-## Changes
+This release corrects the version number from the incorrectly published 3.7.1 back to the proper 3.6.2, maintaining proper semantic versioning sequence.
 
-### Documentation
-- Updated acknowledgments for WhatsApp support group members
-- Added comprehensive documentation for the Code Analyzer agent
-- Improved roadmap section to encourage community feedback
-- Enhanced release notes with detailed agent capabilities
+## What's Changed
 
-### What's Updated
-- `RELEASE_NOTES_3.6.0.md` - Added Code Analyzer agent documentation and updated acknowledgments
-- `CHANGELOG.md` - Included Code Analyzer details and contributor acknowledgments
+### Documentation Updates
+- Enhanced PM architecture documentation
+- Updated response logging configuration
+- Improved technical references for agent responses
+- Clarified TodoWrite format requirements across all agents
 
-## No Code Changes
-This is a documentation-only release. All functionality remains the same as 3.6.0.
+### Bug Fixes
+- Fixed agent deployment path and duplication issues
+- Prevented PM agent from being deployed as subagent
+- Resolved version numbering discrepancy
 
 ## Installation
 
+### PyPI
 ```bash
-pip install --upgrade claude-mpm
+pip install claude-mpm==3.6.2
 ```
 
-## Verification
-
+### npm
 ```bash
-claude-mpm --version
-# Should show: claude-mpm version 3.6.2
+npm install -g @bobmatnyc/claude-mpm@3.6.2
 ```
 
----
+## Important Note
 
-For the full feature list of version 3.6.0, please see [RELEASE_NOTES_3.6.0.md](RELEASE_NOTES_3.6.0.md).
+Version 3.7.1 has been deprecated/yanked. Please use 3.6.2 instead. The version jump was made in error and has been corrected.
+
+## Full Changelog
+
+For detailed changes, see the commit history from v3.5.6 to v3.6.2.
