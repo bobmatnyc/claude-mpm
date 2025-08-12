@@ -15,6 +15,19 @@ Claude MPM 3.6.0 introduces **three major architectural improvements** that sign
 2. **Enhanced PM Instructions** - Separation of framework requirements from customizable PM instructions with structured response formats
 3. **Improved Agent Deployment** - State tracking, dependency caching, and better deployment verification with comprehensive audit tools
 
+### New Agents
+
+#### Code Analyzer Agent
+- **Advanced AST-powered code analysis**: New specialized agent for comprehensive code quality assessment
+- **Multi-language support**: Uses tree-sitter for cross-language analysis and Python's native ast module for Python-specific analysis
+- **Pattern detection**: Identifies code quality issues, security vulnerabilities, and performance bottlenecks
+- **Structural analysis**: Detects god objects/functions, circular dependencies, code duplication, and architectural issues
+- **Security scanning**: Finds hardcoded secrets, SQL injection risks, command injection, unsafe deserialization
+- **Quality metrics**: Measures complexity, coupling, cohesion with configurable thresholds
+- **Dependencies**: Requires tree-sitter>=0.21.0 and tree-sitter-language-pack>=0.8.0 (auto-managed via dynamic dependency system)
+- **Dynamic analysis**: Creates on-the-fly analysis scripts for specific codebase needs
+- **Actionable reporting**: Provides prioritized findings with specific file:line references and remediation examples
+
 ### Major Features
 
 #### Dynamic Agent Dependencies System
@@ -62,6 +75,16 @@ Claude MPM 3.6.0 introduces **three major architectural improvements** that sign
 - New documentation: `docs/DYNAMIC_DEPENDENCIES.md`, `docs/developer/02-core-components/pm-architecture.md`
 - Enhanced response logging with default debug mode
 - Smart dependency checking with three-phase approach: Discovery → Resolution → Verification
+
+### Acknowledgments
+Special thanks to our WhatsApp support group members for their invaluable contributions to this release:
+- **Chris Bunk**
+- **Daniel Seltzer**
+- **Dirk Liebich**
+- **Eddie Hudson**
+- **Oliver Anson**
+
+Their dedication to quality assurance and constructive feedback were instrumental in shaping version 3.6.0.
 
 ## [3.5.6] - 2025-08-11
 
