@@ -5,7 +5,27 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.4] - 2025-08-11
+
 ## [3.5.3] - 2025-08-11
+
+### Fixed
+- **Agent Deployment Directory Bug**: Fixed critical issue in project-local agent deployment where agents weren't being properly deployed to `.claude/agents/`
+- **YAML Tools Formatting Issue**: Corrected tools field formatting in agent schema to ensure proper YAML structure
+- **Agent Memory System**: Fixed agent memory persistence and retrieval across sessions
+
+### Added
+- **Color Support for Agents**: Added visual identification support for agents in Claude Code interface
+- **Frontmatter Validation**: Enhanced schema validation for agent frontmatter to prevent deployment errors
+- **Agent Schema Documentation**: Comprehensive documentation for agent configuration and deployment
+
+### Improved
+- **Documentation Reorganization**: Major cleanup and restructuring of documentation for better navigation
+  - Consolidated developer documentation into organized sections
+  - Archived obsolete implementation files and QA reports
+  - Streamlined documentation structure by 85% while preserving essential content
+- **Agent Registry**: Enhanced three-tier agent precedence system (PROJECT > USER > SYSTEM)
+- **Error Handling**: Better error messages for agent deployment failures
 
 ## [3.5.2] - 2025-08-11
 
