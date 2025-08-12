@@ -269,7 +269,8 @@ class AgentDeploymentService:
             # Get all template files
             template_files = list(self.templates_dir.glob("*.json"))
             # Filter out non-agent files - exclude system files and uppercase special files
-            excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README"}
+            # CRITICAL: PM (Project Manager) must NEVER be deployed as it's the main Claude instance
+            excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README", "pm", "PM", "project_manager"}
             template_files = [
                 f for f in template_files 
                 if f.stem not in excluded_names 
@@ -1094,7 +1095,8 @@ temperature: {temperature}"""
         
         template_files = sorted(self.templates_dir.glob("*.json"))
         # Filter out non-agent files - exclude system files and uppercase special files
-        excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README"}
+        # CRITICAL: PM (Project Manager) must NEVER be deployed as it's the main Claude instance
+        excluded_names = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README", "pm", "PM", "project_manager"}
         template_files = [
             f for f in template_files 
             if f.stem not in excluded_names 

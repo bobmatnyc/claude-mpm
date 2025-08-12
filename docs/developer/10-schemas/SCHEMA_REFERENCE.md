@@ -571,6 +571,6 @@ def schema_to_markdown(schema: dict) -> str:
 ## Related Documentation
 
 - [Agent Schema Guide](../AGENT_SCHEMA_GUIDE.md)
-- [Agent Development Guide](../agents/AGENT_DEVELOPMENT.md)
-- [Frontmatter Validation](../agents/frontmatter.md)
-- [Schema Security Notes](../security/agent_schema_security_notes.md)
+- [Agent Development Guide](../07-agent-system/AGENT_DEVELOPMENT.md)
+- [Frontmatter Validation](../07-agent-system/frontmatter.md)
+- [Schema Security Notes](../09-security/agent_schema_security_notes.md)

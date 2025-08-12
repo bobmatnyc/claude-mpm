@@ -47,6 +47,51 @@ The system replaces the static `{{capabilities-list}}` placeholder in INSTRUCTIO
    - New standardized schema (v2.0.0+)
    - Legacy agent formats for backward compatibility
 
+### Capabilities Source of Truth
+
+**Important**: Agent capabilities are discovered from deployed agents in `.claude/agents/` directory, not from source definitions in `.claude-mpm/agents/`. This ensures consistency with what Claude Code actually has access to.
+
+#### Discovery Order and Precedence
+
+The `SimpleAgentRegistry` implements the three-tier precedence system:
+
+1. **PROJECT Tier**: `.claude/agents/` agents deployed from `.claude-mpm/agents/`
+2. **USER Tier**: `.claude/agents/` agents deployed from `~/.claude-mpm/agents/`
+3. **SYSTEM Tier**: `.claude/agents/` built-in framework agents
+
+#### Technical Implementation
+
+```python
+# DeployedAgentDiscovery queries the deployed agents
+def discover_agents(self):
+    agents = self.registry.list_agents()  # Gets from .claude/agents/
+    for agent in agents:
+        metadata = self.registry.get_agent_metadata(agent.id)  # From deployed files
+        capabilities = self._extract_capabilities(metadata)
+```
+
+**Key Points**:
+- **Deployed Only**: Only agents in `.claude/agents/` appear in capabilities
+- **Real-time Reflection**: Shows capabilities of currently deployed versions
+- **Consistency Guarantee**: Capabilities match what Claude Code uses
+- **Deployment Requirement**: Project agents must be deployed to be discoverable
+
+#### Example: Deployment Impact on Capabilities
+
+```bash
+# 1. Create project agent with capabilities
+echo '{"capabilities": {"tools": ["custom_tool"]}}' > .claude-mpm/agents/test.json
+
+# 2. Capabilities NOT discoverable yet
+./claude-mpm agents list --deployed  # test agent missing
+
+# 3. Deploy to make discoverable
+./claude-mpm agents deploy
+
+# 4. NOW discoverable in capabilities
+./claude-mpm agents list --deployed  # test agent appears with tools
+```
+
 ### Content Generation
 
 The generated content includes:
@@ -83,6 +128,64 @@ Final INSTRUCTIONS.md deployed
 ```
 
 ## Implementation Details
+
+### Code References
+
+The capabilities discovery system relies on several key components:
+
+#### SimpleAgentRegistry (`src/claude_mpm/services/agents/registry.py`)
+
+The registry provides the foundation for agent discovery:
+
+```python
+class SimpleAgentRegistry:
+    def list_agents(self) -> List[AgentInfo]:
+        """Lists agents from .claude/agents/ following precedence rules"""
+        
+    def get_agent_metadata(self, agent_id: str) -> Dict:
+        """Gets metadata from deployed agent files"""
+        
+    def discover_agents(self, force_refresh: bool = False) -> Dict:
+        """Discovers agents with three-tier precedence"""
+```
+
+#### DeployedAgentDiscovery (`src/claude_mpm/services/deployed_agent_discovery.py`)
+
+Wraps the registry to provide capability-focused discovery:
+
+```python
+class DeployedAgentDiscovery:
+    def __init__(self):
+        self.registry = SimpleAgentRegistry()
+        
+    def discover_agents(self) -> List[Dict]:
+        """Discovers deployed agents and extracts capabilities"""
+        agents = self.registry.list_agents()
+        return [self._process_agent(agent) for agent in agents]
+```
+
+#### File System Organization
+
+The discovery system reads from the standardized directory structure:
+
+```
+project/
+├── .claude-mpm/agents/          # Source agents (JSON only)
+│   ├── custom_engineer.json     # Project-specific source
+│   └── domain_expert.json       # Project-specific source
+├── .claude/agents/              # Deployed agents (Markdown)
+│   ├── custom_engineer.md       # ← Capabilities read from here
+│   ├── domain_expert.md         # ← Capabilities read from here
+│   ├── engineer.md              # System agent (deployed)
+│   └── qa.md                    # System agent (deployed)
+```
+
+**Discovery Flow**:
+1. Scan `.claude/agents/` for deployed agents
+2. Parse frontmatter from Markdown files
+3. Extract capabilities, tools, model preferences
+4. Apply precedence rules (project > user > system)
+5. Return consolidated capabilities list
 
 ### Error Handling
 

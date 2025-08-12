@@ -491,8 +491,8 @@ def create_git_tag(version: str, message: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Manage Claude MPM versioning")
-    parser.add_argument("command", choices=["check", "bump", "changelog", "tag", "auto", "sync", "validate"],
-                       help="Command to run")
+    parser.add_argument("command", choices=["check", "current", "bump", "changelog", "tag", "auto", "sync", "validate"],
+                       help="Command to run (check/current: show version, bump: increment version, etc.)")
     parser.add_argument("--bump-type", choices=["major", "minor", "patch", "auto"],
                        default="auto", help="Version bump type")
     parser.add_argument("--dry-run", action="store_true",
@@ -529,7 +529,7 @@ def main():
     current_version = get_current_version()
     print(f"Current version: {current_version}")
     
-    if args.command == "check":
+    if args.command in ["check", "current"]:
         # Just display current version
         return
     

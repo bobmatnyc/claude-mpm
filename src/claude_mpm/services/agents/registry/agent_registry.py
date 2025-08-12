@@ -31,6 +31,7 @@ from enum import Enum
 
 from claude_mpm.core.config_paths import ConfigPaths
 from claude_mpm.services.memory.cache.simple_cache import SimpleCacheService
+from claude_mpm.agents.frontmatter_validator import FrontmatterValidator, ValidationResult
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +130,9 @@ class AgentRegistry:
             self.cache_enabled = True
         
         self.model_selector = model_selector
+        
+        # Initialize frontmatter validator
+        self.frontmatter_validator = FrontmatterValidator()
         
         # Registry storage
         self.registry: Dict[str, AgentMetadata] = {}
@@ -337,10 +341,27 @@ class AgentRegistry:
                             if len(parts) >= 3:
                                 frontmatter_text = parts[1].strip()
                                 data = yaml.safe_load(frontmatter_text)
+                                
+                                # Validate and correct frontmatter
+                                validation_result = self.frontmatter_validator.validate_and_correct(data)
+                                if validation_result.corrections:
+                                    logger.info(f"Applied corrections to {file_path.name}:")
+                                    for correction in validation_result.corrections:
+                                        logger.info(f"  - {correction}")
+                                    
+                                    # Use corrected frontmatter if available
+                                    if validation_result.corrected_frontmatter:
+                                        data = validation_result.corrected_frontmatter
+                                
+                                if validation_result.errors:
+                                    logger.warning(f"Validation errors in {file_path.name}:")
+                                    for error in validation_result.errors:
+                                        logger.warning(f"  - {error}")
+                                
                                 description = data.get('description', '')
                                 version = data.get('version', '0.0.0')
                                 capabilities = data.get('tools', [])  # Tools in .md format
-                                metadata = data.get('metadata', {})
+                                metadata = data
                             else:
                                 # No frontmatter, use defaults
                                 description = f"{file_path.stem} agent"

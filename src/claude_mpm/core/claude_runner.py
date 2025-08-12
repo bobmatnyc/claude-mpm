@@ -352,9 +352,18 @@ class ClaudeRunner:
             errors = []
             
             # Deploy each JSON agent
+            # CRITICAL: PM (Project Manager) must NEVER be deployed as it's the main Claude instance
+            EXCLUDED_AGENTS = {'pm', 'project_manager'}
+            
             for json_file in json_files:
                 try:
                     agent_name = json_file.stem
+                    
+                    # Skip PM agent - it's the main Claude instance, not a subagent
+                    if agent_name.lower() in EXCLUDED_AGENTS:
+                        self.logger.info(f"Skipping {agent_name} (PM is the main Claude instance)")
+                        continue
+                    
                     target_file = claude_agents_dir / f"{agent_name}.md"
                     
                     # Check if agent needs update

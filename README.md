@@ -22,6 +22,12 @@ pip install claude-mpm
 
 # Install with development dependencies
 pip install "claude-mpm[dev]"
+
+# Install with agent dependencies (recommended for full functionality)
+pip install "claude-mpm[agents]"
+
+# Install with all optional dependencies
+pip install "claude-mpm[agents,dev]"
 ```
 
 ## Basic Usage
@@ -40,7 +46,51 @@ claude-mpm run --monitor
 claude-mpm run --resume
 ```
 
+### Agent Management
+
+```bash
+# View agent hierarchy and precedence
+claude-mpm agents list --by-tier
+
+# Inspect specific agent configuration
+claude-mpm agents view engineer
+
+# Fix agent configuration issues
+claude-mpm agents fix --all --dry-run
+```
+
 For detailed usage, see [QUICKSTART.md](QUICKSTART.md)
+
+### Agent Dependencies
+
+Claude MPM automatically manages Python dependencies required by agents. Agents can declare their dependencies in their configuration files, and the system aggregates them for easy installation.
+
+```bash
+# Install all agent dependencies
+pip install "claude-mpm[agents]"
+
+# View current agent dependencies
+python scripts/aggregate_agent_dependencies.py --dry-run
+
+# Update pyproject.toml with latest agent dependencies
+python scripts/aggregate_agent_dependencies.py
+```
+
+**Agent developers** can declare dependencies in their agent configurations:
+
+```json
+{
+  "agent_id": "my_agent",
+  "dependencies": {
+    "python": ["pandas>=2.0.0", "numpy>=1.24.0"],
+    "system": ["ripgrep", "git"]
+  }
+}
+```
+
+Dependencies are automatically aggregated from all agent sources (PROJECT > USER > SYSTEM) during the build process, with intelligent version conflict resolution taking the highest compatible version.
+
+For comprehensive documentation, see [docs/AGENT_DEPENDENCIES.md](docs/AGENT_DEPENDENCIES.md).
 
 ## Key Capabilities
 
@@ -55,6 +105,8 @@ The PM agent automatically delegates work to specialized agents:
 - **Data Engineer**: Data pipelines and AI integrations
 - **Test Integration**: E2E testing and cross-system validation
 - **Version Control**: Git workflows and release management
+
+**Three-Tier Agent System**: PROJECT > USER > SYSTEM precedence allows project-specific agent customization while maintaining fallbacks. Use `claude-mpm agents list --by-tier` to see the active agent hierarchy.
 
 ### Session Management
 - All work is tracked in persistent sessions
@@ -92,14 +144,14 @@ The `--monitor` flag opens a web dashboard showing:
 - Tool usage and results
 - Session management UI
 
-See [docs/developer/monitoring.md](docs/developer/monitoring.md) for full monitoring guide.
+See [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for full monitoring guide.
 
 
 ## Documentation
 
 - **[Quick Start Guide](QUICKSTART.md)** - Get running in 5 minutes
 - **[Agent Memory System](docs/MEMORY.md)** - Comprehensive memory documentation
-- **[Monitoring Dashboard](docs/developer/monitoring.md)** - Real-time monitoring features
+- **[Monitoring Dashboard](docs/developer/11-dashboard/README.md)** - Real-time monitoring features
 - **[Project Structure](docs/STRUCTURE.md)** - Codebase organization
 - **[Deployment Guide](docs/DEPLOY.md)** - Publishing and versioning
 - **[User Guide](docs/user/)** - Detailed usage documentation

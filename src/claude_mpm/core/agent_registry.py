@@ -55,6 +55,9 @@ class SimpleAgentRegistry:
         # Check multiple possible locations, including project-level
         agent_locations = [
             # Project-level agents (highest priority)
+            # Project-level deployed agents (highest priority - what Claude Code uses)
+            Path.cwd() / ".claude" / "agents",
+            # Project-level source agents (fallback)
             Path.cwd() / ".claude-mpm" / "agents",
             # Framework/system agents
             self.framework_path / "src" / "claude_mpm" / "agents" / "templates",
@@ -98,7 +101,7 @@ class SimpleAgentRegistry:
     def _determine_tier(self, agent_path: Path) -> str:
         """Determine agent tier based on path."""
         path_str = str(agent_path)
-        if 'project' in path_str or '.claude-mpm' in path_str:
+        if 'project' in path_str or '.claude-mpm' in path_str or '.claude/agents' in path_str:
             return 'project'
         elif 'user' in path_str or str(Path.home()) in path_str:
             return 'user'

@@ -17,12 +17,12 @@ Documentation for Claude MPM's JSON schema system, covering agent schema validat
 
 ## Related Documentation
 
-- [Agent Development](../agents/AGENT_DEVELOPMENT.md) - Using schemas in agent creation
-- [Security Guide](../security/SECURITY.md) - Schema security considerations
+- [Agent Development](../07-agent-system/AGENT_DEVELOPMENT.md) - Using schemas in agent creation
+- [Security Guide](../09-security/SECURITY.md) - Schema security considerations
 - [Core Components](../02-core-components/SCHEMA_ARCHITECTURE.md) - Schema architecture
 
 ## Quick Links
 
-- [Agent System](../agents/README.md)
-- [Schema Security](../security/agent_schema_security_notes.md)
+- [Agent System](../07-agent-system/README.md)
+- [Schema Security](../09-security/agent_schema_security_notes.md)
 - [Validation Tools](../03-development/testing.md)

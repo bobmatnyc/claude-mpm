@@ -286,7 +286,7 @@ The system gracefully handles:
 
 If you encounter issues with the dashboard enhancements:
 
-1. **Check Documentation**: Refer to the technical documentation in `docs/developer/dashboard/`
+1. **Check Documentation**: Refer to the technical documentation in `docs/developer/11-dashboard/`
 2. **Enable Debug Mode**: Set `localStorage.setItem('dashboard-debug', 'true')` in browser console
 3. **Check Server Logs**: Review claude-mpm monitoring server logs
 4. **Report Issues**: Create an issue with specific error details and reproduction steps

@@ -114,6 +114,60 @@ Automated knowledge extraction with dynamic discovery:
 - Python projects: Focuses on requirements.txt, setup.py, and pytest configurations
 - Multi-language projects: Analyzes all relevant config files and creates comprehensive memories
 
+### Response Handling and Memory Integration
+
+The memory system integrates deeply with response handling to capture and learn from every agent interaction:
+
+#### How Response Handling Feeds Memory
+
+1. **Automatic Response Capture**: All agent responses are captured through the dual-logger architecture
+2. **Memory Marker Detection**: Responses are scanned for memory markers during processing
+3. **Learning Extraction**: Valuable insights are automatically extracted and stored
+4. **Context Preservation**: Full interaction context is maintained for quality review
+
+#### Response Logging Architecture
+
+The system uses a sophisticated dual-logger design for optimal performance:
+
+- **ClaudeSessionLogger**: Main interface that intelligently routes between sync/async modes
+- **AsyncSessionLogger**: High-performance async logging with near-zero latency impact
+- **Session Organization**: Responses organized by Claude Code session for easy correlation
+- **Timestamp Precision**: Microsecond-precision timestamps ensure accurate ordering
+
+#### Configuration
+
+Response logging is configured via `.claude-mpm/configuration.yaml`:
+
+```yaml
+response_logging:
+  enabled: true           # Enable response capture
+  use_async: true        # Use async mode for performance
+  format: json          # Storage format (json/syslog/journald)
+  session_directory: ".claude-mpm/responses"
+```
+
+#### Memory Extraction from Responses
+
+Agents can add to memory using special markers in their responses:
+
+```
+# Add To Memory:
+Type: pattern
+Content: Always use dependency injection for service initialization
+#
+```
+
+This seamless integration ensures that:
+- **No Learning is Lost**: Every valuable insight is captured automatically
+- **Performance is Maintained**: Async logging ensures minimal impact on agent operations
+- **Context is Preserved**: Full interaction history available for review and analysis
+- **Quality is Assured**: Responses can be reviewed before memory commitment
+
+For detailed technical documentation, see:
+- [Response Handling Architecture](/docs/developer/08-memory-system/response-handling.md)
+- [Response Logging Implementation](/docs/developer/08-memory-system/response-logging.md)
+- [Response Configuration Guide](/docs/RESPONSE_LOGGING_CONFIG.md)
+
 ## Usage Guide
 
 ### Adding Memories
@@ -1015,6 +1069,6 @@ memory:
 
 ---
 
-For additional configuration options, see [MEMORY_CONFIG.md](MEMORY_CONFIG.md).
+For additional configuration options, see [MEMORY_CONFIG.md](developer/MEMORY_CONFIG.md).
 
 For implementation details, see the source code in `src/claude_mpm/services/` and `src/claude_mpm/cli/commands/memory.py`.
