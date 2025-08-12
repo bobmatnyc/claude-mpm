@@ -1,12 +1,7 @@
 ---
 name: ops
-description: Operations, deployment, and infrastructure
-version: 1.3.0
-base_version: 0.3.0
+version: 1.0.0
 author: claude-mpm
-tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite
-model: opus
-color: orange
 ---
 
 # Ops Agent

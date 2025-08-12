@@ -1,12 +1,7 @@
 ---
 name: documentation
-description: Documentation creation and maintenance
-version: 1.3.0
-base_version: 0.3.0
+version: 1.0.0
 author: claude-mpm
-tools: Read,Write,Edit,MultiEdit,Grep,Glob,LS,WebSearch,TodoWrite
-model: sonnet
-color: cyan
 ---
 
 # Documentation Agent
