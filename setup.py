@@ -7,6 +7,7 @@ from setuptools.command.develop import develop
 import os
 import sys
 import shutil
+import subprocess
 from pathlib import Path
 
 # Read version from VERSION file - single source of truth
@@ -76,6 +77,28 @@ class PostDevelopCommand(develop):
         PostInstallCommand._post_install(self)
 
 
+def aggregate_agent_dependencies():
+    """Run agent dependency aggregation script."""
+    try:
+        script_path = Path(__file__).parent / "scripts" / "aggregate_agent_dependencies.py"
+        if script_path.exists():
+            print("Aggregating agent dependencies...")
+            result = subprocess.run(
+                [sys.executable, str(script_path)],
+                capture_output=True,
+                text=True,
+                cwd=Path(__file__).parent
+            )
+            if result.returncode != 0:
+                print(f"Warning: Agent dependency aggregation failed: {result.stderr}")
+            else:
+                print("Agent dependencies aggregated successfully")
+        else:
+            print("Agent dependency aggregation script not found, skipping...")
+    except Exception as e:
+        print(f"Warning: Failed to aggregate agent dependencies: {e}")
+
+
 def read_requirements():
     """Read requirements from requirements.txt if it exists."""
     req_file = Path(__file__).parent / "requirements.txt"
@@ -84,6 +107,40 @@ def read_requirements():
             return [line.strip() for line in f if line.strip() and not line.startswith('#')]
     return []
 
+
+def read_optional_dependencies():
+    """Read optional dependencies from pyproject.toml if it exists."""
+    try:
+        pyproject_path = Path(__file__).parent / "pyproject.toml"
+        if pyproject_path.exists():
+            # Try different TOML libraries based on Python version
+            if sys.version_info >= (3, 11):
+                import tomllib
+                with open(pyproject_path, 'rb') as f:
+                    data = tomllib.load(f)
+            else:
+                try:
+                    import tomli as tomllib
+                    with open(pyproject_path, 'rb') as f:
+                        data = tomllib.load(f)
+                except ImportError:
+                    import toml
+                    with open(pyproject_path, 'r') as f:
+                        data = toml.load(f)
+                
+            optional_deps = data.get('project', {}).get('optional-dependencies', {})
+            return optional_deps
+        return {}
+    except ImportError:
+        print("Warning: TOML library not available, skipping optional dependencies")
+        return {}
+    except Exception as e:
+        print(f"Warning: Failed to read optional dependencies: {e}")
+        return {}
+
+
+# Aggregate agent dependencies before setup
+aggregate_agent_dependencies()
 
 setup(
     name="claude-mpm",
@@ -110,21 +167,13 @@ setup(
         "flask>=3.0.0",
         "flask-cors>=4.0.0",
         "watchdog>=3.0.0",
-        "tree-sitter>=0.21.0",
-        "tree-sitter-language-pack>=0.8.0",
+        "websockets>=12.0",
         "python-frontmatter>=1.0.0",
         "mistune>=3.0.0",
+        "toml>=0.10.2",
+        "packaging>=21.0",
     ],
-    extras_require={
-        "dev": [
-            "pytest>=7.0",
-            "pytest-asyncio",
-            "pytest-cov",
-            "black",
-            "flake8",
-            "mypy",
-        ]
-    },
+    extras_require=read_optional_dependencies(),
     entry_points={
         "console_scripts": [
             "claude-mpm=claude_mpm.cli:main",

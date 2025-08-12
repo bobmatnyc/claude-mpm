@@ -20,7 +20,7 @@ claude-mpm/
 │   ├── agents/                       # PROJECT tier agent definitions (highest precedence)
 │   │   ├── engineer.md               # Override system engineer with project customizations
 │   │   ├── custom_domain.json        # Project-specific domain agent
-│   │   └── templates/                # JSON agent templates (legacy support)
+│   │   # Agents support .md, .json, and .yaml formats in flat directory structure
 │   ├── config/                       # Project configuration
 │   ├── hooks/                        # Project-specific hooks
 │   └── logs/                         # Project log files
@@ -157,7 +157,7 @@ The system supports three tiers of agents with clear precedence:
    - Can override SYSTEM agents
    - Useful for personal preferences and workflows
 
-3. **SYSTEM Tier** (`/src/claude_mpm/agents/templates/`)
+3. **SYSTEM Tier** (`/src/claude_mpm/agents/templates/`) - Framework built-in agents
    - Framework built-in agents (lowest precedence)
    - Maintained by Claude MPM developers
    - Fallback when no higher-tier agent exists
@@ -220,7 +220,7 @@ When creating new files, follow these guidelines:
 2. **Agent definitions**: 
    - **Project agents**: Place in `.claude-mpm/agents/` (highest precedence)
    - **User agents**: Place in `~/.claude-mpm/agents/` 
-   - **System agents**: Place in `/src/claude_mpm/agents/templates/` (framework only)
+   - **System agents**: Built-in framework agents in `/src/claude_mpm/agents/templates/` (framework development only)
 3. **Service classes**: Place in `/src/claude_mpm/services/`
 4. **Validation schemas**: Place in `/src/claude_mpm/schemas/`
 5. **Hook implementations**: Place in `/src/claude_mpm/hooks/builtin/`
@@ -255,7 +255,7 @@ When creating new files, follow these guidelines:
    - `/src/claude_mpm/__main__.py` (Python module entry point)
    - `/src/claude_mpm/cli/__init__.py` (CLI implementation)
 4. Configuration files use YAML format
-5. Agent templates use JSON format
+5. Agent files support multiple formats: JSON, Markdown (.md), and YAML
 
 ## Recent Additions
 

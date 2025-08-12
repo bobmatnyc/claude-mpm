@@ -16,9 +16,9 @@ Documentation for the Claude MPM agent system, covering development, deployment,
 
 ## Related Documentation
 
-- [Schema Reference](../schemas/SCHEMA_REFERENCE.md) - JSON schema documentation
-- [Security Guide](../security/SECURITY.md) - Security considerations for agents
-- [Memory System](../memory/MEMORY_SYSTEM.md) - Agent memory integration
+- [Schema Reference](../10-schemas/SCHEMA_REFERENCE.md) - JSON schema documentation
+- [Security Guide](../09-security/SECURITY.md) - Security considerations for agents
+- [Memory System](../08-memory-system/MEMORY_SYSTEM.md) - Agent memory integration
 
 ## Quick Links
 

@@ -5,6 +5,28 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **Agent Dependency Management System**: Complete dependency management for agents with automatic aggregation
+  - Agents can declare Python and system dependencies in their configuration files
+  - Dependencies are automatically aggregated from all agent sources (PROJECT > USER > SYSTEM)
+  - Intelligent version conflict resolution with highest compatible version strategy
+  - Optional installation via `pip install "claude-mpm[agents]"`
+  - Build process integration with automatic pyproject.toml updates
+  - Comprehensive validation and error handling
+  - Support for all dependency formats: exact versions, ranges, extras
+  - New aggregation script: `scripts/aggregate_agent_dependencies.py`
+
+### Documentation
+- **Comprehensive Agent Dependencies Guide**: [docs/AGENT_DEPENDENCIES.md](docs/AGENT_DEPENDENCIES.md)
+  - Complete dependency management system documentation
+  - Best practices for agent developers and package maintainers
+  - Advanced topics including CI/CD integration and troubleshooting
+  - Migration guide for existing projects
+- **Updated Agent Documentation**: Enhanced [docs/AGENTS.md](docs/AGENTS.md) with dependency field specifications
+- **README Updates**: Added installation options and dependency management overview
+
 ## [3.5.4] - 2025-08-11
 
 ## [3.5.3] - 2025-08-11

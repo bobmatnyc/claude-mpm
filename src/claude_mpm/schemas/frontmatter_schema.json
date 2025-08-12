@@ -1,0 +1,165 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "1.0.0",
+  "title": "Agent Frontmatter Schema",
+  "description": "Schema for validating agent file frontmatter in .md, .claude, and .claude-mpm files",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "version",
+    "model"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "Agent identifier (snake_case)"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Brief description of agent purpose"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., 1.0.0)"
+    },
+    "base_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Base agent version this extends"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Author name or organization"
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Read",
+          "Write",
+          "Edit",
+          "MultiEdit",
+          "Grep",
+          "Glob",
+          "LS",
+          "Bash",
+          "WebSearch",
+          "WebFetch",
+          "NotebookRead",
+          "NotebookEdit",
+          "TodoWrite",
+          "ExitPlanMode",
+          "git",
+          "docker",
+          "kubectl",
+          "terraform",
+          "aws",
+          "gcloud",
+          "azure"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "List of available tools for the agent"
+    },
+    "model": {
+      "type": "string",
+      "enum": ["opus", "sonnet", "haiku"],
+      "description": "Claude model tier to use"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "uniqueItems": true,
+      "description": "Tags for categorization"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["engineering", "research", "quality", "operations", "specialized"],
+      "description": "Agent category"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1000,
+      "maximum": 200000,
+      "default": 8192,
+      "description": "Maximum tokens for response"
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.7,
+      "description": "Model temperature setting"
+    },
+    "resource_tier": {
+      "type": "string",
+      "enum": ["basic", "standard", "intensive", "lightweight"],
+      "description": "Resource allocation tier"
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Other agents this agent depends on"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of agent capabilities"
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "model_mappings": {
+      "description": "Mappings for model normalization",
+      "mappings": {
+        "claude-3-5-sonnet-20241022": "sonnet",
+        "claude-3-5-sonnet-20240620": "sonnet",
+        "claude-sonnet-4-20250514": "sonnet",
+        "claude-4-sonnet-20250514": "sonnet",
+        "claude-3-sonnet-20240229": "sonnet",
+        "20241022": "sonnet",
+        "claude-3-opus-20240229": "opus",
+        "claude-opus-4-20250514": "opus",
+        "claude-4-opus-20250514": "opus",
+        "claude-3-haiku-20240307": "haiku",
+        "claude-3-5-haiku-20241022": "haiku"
+      }
+    },
+    "tool_corrections": {
+      "description": "Common tool name corrections",
+      "mappings": {
+        "read": "Read",
+        "write": "Write",
+        "edit": "Edit",
+        "multiedit": "MultiEdit",
+        "grep": "Grep",
+        "glob": "Glob",
+        "ls": "LS",
+        "bash": "Bash",
+        "websearch": "WebSearch",
+        "webfetch": "WebFetch",
+        "notebookread": "NotebookRead",
+        "notebookedit": "NotebookEdit",
+        "todowrite": "TodoWrite",
+        "exitplanmode": "ExitPlanMode"
+      }
+    }
+  }
+}

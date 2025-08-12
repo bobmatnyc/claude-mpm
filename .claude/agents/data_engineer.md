@@ -4,8 +4,9 @@ description: Data engineering and AI API integrations
 version: 1.3.0
 base_version: 0.3.0
 author: claude-mpm
-tools: Read, Write, Edit, Bash, Grep, Glob, LS, WebSearch, TodoWrite
+tools: Read,Write,Edit,Bash,Grep,Glob,LS,WebSearch,TodoWrite
 model: opus
+color: yellow
 ---
 
 # Data Engineer Agent

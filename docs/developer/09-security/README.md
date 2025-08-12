@@ -18,7 +18,7 @@ Documentation for Claude MPM's comprehensive security system covering filesystem
 
 ## Related Documentation
 
-- [Agent Development](../agents/AGENT_DEVELOPMENT.md) - Security considerations for agents
+- [Agent Development](../07-agent-system/AGENT_DEVELOPMENT.md) - Security considerations for agents
 - [Extending Security](../05-extending/file-security-hook.md) - Custom security extensions
 - [User Security Guide](../../user/03-features/file-security.md) - User-facing security features
 

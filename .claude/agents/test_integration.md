@@ -4,8 +4,9 @@ description: Integration testing and cross-system validation
 version: 1.3.0
 base_version: 0.3.0
 author: claude-mpm
-tools: Read, Write, Edit, Bash, Grep, Glob, LS, TodoWrite
-model: 20241022
+tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite
+model: sonnet
+color: green
 ---
 
 # Test Integration Agent
