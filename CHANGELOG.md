@@ -5,7 +5,7 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.7.1] - 2025-08-12
+## [3.6.2] - 2025-08-12
 
 ### Documentation Update
 
@@ -17,18 +17,6 @@ This patch release updates the documentation to properly acknowledge contributor
 - Improved roadmap section to encourage community feedback
 - Enhanced CHANGELOG with Code Analyzer details and contributor acknowledgments
 
-#### Previous Commits
-- update package.json version to 3.7.0 ([a518e05])
-## [3.7.0] - 2025-08-12
-
-
-### Documentation
-
-- update CHANGELOG with 3.6.0 release notes ([e17f8fc])
-
-### Chores
-
-- prepare for 3.6.0 release - add new features and test files ([b8a2fde])
 ## [3.6.0] - 2025-08-12
 
 ### Executive Summary
