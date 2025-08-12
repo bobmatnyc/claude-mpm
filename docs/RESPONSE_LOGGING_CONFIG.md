@@ -4,7 +4,33 @@ This document explains how to configure response logging in Claude MPM using the
 
 ## Overview
 
-Response logging can now be configured via the `.claude-mpm/configuration.yaml` file instead of environment variables. This provides a more centralized and maintainable configuration approach.
+Response logging in Claude MPM uses a **hook-based architecture** that integrates with Claude Code's hook system. The system captures agent responses through `SubagentStop` and `Stop` hook events, not through subprocess control. 
+
+Response logging can be configured via the `.claude-mpm/configuration.yaml` file instead of environment variables. This provides a more centralized and maintainable configuration approach.
+
+## Architecture
+
+### Hook-Based Response Capture
+
+Claude MPM's response logging works through Claude Code's hook system:
+
+1. **SubagentStop Events**: Triggered when a subagent (delegated agent) completes execution
+2. **Stop Events**: Triggered when a main session or task stops  
+3. **Hook Handler Processing**: Events are processed by the hook handler which extracts structured response data
+4. **Response Logging**: Processed responses are logged to configured storage
+
+**Important**: Response logging does NOT work through subprocess mode switching. It relies entirely on Claude Code hooks being properly configured and firing.
+
+### Structured Response Format
+
+Agents must return responses in a structured JSON format for proper logging. The hook handler looks for JSON blocks in agent responses with fields like:
+
+- `task_completed`: Boolean indicating task completion
+- `instructions`: Task completion summary
+- `results`: Specific results or findings
+- `files_modified`: List of files changed
+- `tools_used`: Tools utilized during execution
+- `remember`: Information to store in agent memory
 
 ## Configuration Structure
 
@@ -164,7 +190,38 @@ This will verify that your configuration is being loaded and applied correctly.
 
 ## Troubleshooting
 
+### Configuration Issues
 1. **Logs not being created**: Check that `enabled: true` and verify the `session_directory` exists and is writable
 2. **Performance issues**: Ensure `use_async: true` unless debugging
 3. **Disk space issues**: Enable compression with `enable_compression: true`
 4. **Missing logs during high load**: Increase `max_queue_size` to handle bursts
+
+### Hook-Related Issues
+
+**Response logging depends on Claude Code hooks working properly:**
+
+1. **No response logs captured**: 
+   - Verify Claude Code hooks are installed and active
+   - Check that `.claude/hooks/` directory exists with hook scripts
+   - Ensure hook handler is receiving `SubagentStop` and `Stop` events
+
+2. **Incomplete response data**:
+   - Agents must return structured JSON responses for full logging
+   - Check agent templates include proper response format
+   - Verify hook handler can parse agent response JSON
+
+3. **Missing agent identification**:
+   - Agent responses must include identifiable agent type information
+   - Check that `agent_type` is properly passed through hook events
+   - Ensure agent names are properly normalized in hook processing
+
+4. **Hook system debugging**:
+   ```bash
+   # Check if hooks are firing
+   tail -f .claude-mpm/logs/latest.log | grep -i hook
+   
+   # Verify hook handler connectivity
+   python -c "from claude_mpm.hooks.claude_hooks.hook_handler import HookHandler; print('Hook handler available')"
+   ```
+
+**Important**: If Claude Code hooks are not working, response logging will not capture any data, regardless of configuration settings.

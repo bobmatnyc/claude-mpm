@@ -18,11 +18,13 @@ import os
 import subprocess
 from datetime import datetime
 import time
+import asyncio
 from pathlib import Path
 from collections import deque
 
-# Quick environment check - must be defined before any code that might use it
-DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', '').lower() == 'true'
+# Debug mode is enabled by default for better visibility into hook processing
+# Set CLAUDE_MPM_HOOK_DEBUG=false to disable debug output
+DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', 'true').lower() != 'false'
 
 # Add imports for memory hook integration with comprehensive error handling
 MEMORY_HOOKS_AVAILABLE = False
@@ -103,13 +105,24 @@ class ClaudeHookHandler:
         # Initialize response tracking if available and enabled
         self.response_tracker = None
         self.response_tracking_enabled = False
+        self.track_all_interactions = False  # Track all Claude interactions, not just delegations
         if RESPONSE_TRACKING_AVAILABLE:
             self._initialize_response_tracking()
+        
+        # Store current user prompts for comprehensive response tracking
+        self.pending_prompts = {}  # session_id -> prompt data
         
         # No fallback server needed - we only use Socket.IO now
     
     def _track_delegation(self, session_id: str, agent_type: str, request_data: dict = None):
         """Track a new agent delegation with optional request data for response correlation."""
+        if DEBUG:
+            print(f"\n[DEBUG] _track_delegation called:", file=sys.stderr)
+            print(f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr)
+            print(f"  - agent_type: {agent_type}", file=sys.stderr)
+            print(f"  - request_data provided: {bool(request_data)}", file=sys.stderr)
+            print(f"  - delegation_requests size before: {len(self.delegation_requests)}", file=sys.stderr)
+        
         if session_id and agent_type and agent_type != 'unknown':
             self.active_delegations[session_id] = agent_type
             key = f"{session_id}:{datetime.now().timestamp()}"
@@ -122,6 +135,9 @@ class ClaudeHookHandler:
                     'request': request_data,
                     'timestamp': datetime.now().isoformat()
                 }
+                if DEBUG:
+                    print(f"  - ✅ Stored in delegation_requests[{session_id[:16]}...]", file=sys.stderr)
+                    print(f"  - delegation_requests size after: {len(self.delegation_requests)}", file=sys.stderr)
             
             # Clean up old delegations (older than 5 minutes)
             cutoff_time = datetime.now().timestamp() - 300
@@ -229,8 +245,13 @@ class ClaudeHookHandler:
             self.response_tracker = ResponseTracker(config=config)
             self.response_tracking_enabled = self.response_tracker.is_enabled()
             
+            # Check if we should track all interactions (not just delegations)
+            self.track_all_interactions = config.get('response_tracking.track_all_interactions', False) or \
+                                         config.get('response_logging.track_all_interactions', False)
+            
             if DEBUG:
-                print("✅ Response tracking initialized", file=sys.stderr)
+                mode = "all interactions" if self.track_all_interactions else "Task delegations only"
+                print(f"✅ Response tracking initialized (mode: {mode})", file=sys.stderr)
                 
         except Exception as e:
             if DEBUG:
@@ -273,6 +294,20 @@ class ClaudeHookHandler:
             # Convert response to string if it's not already
             response_text = str(response)
             
+            # Try to extract structured JSON response from agent output
+            structured_response = None
+            try:
+                # Look for JSON block in the response (agents should return JSON at the end)
+                import re
+                json_match = re.search(r'```json\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+                if json_match:
+                    structured_response = json.loads(json_match.group(1))
+                    if DEBUG:
+                        print(f"Extracted structured response from {agent_type} agent", file=sys.stderr)
+            except (json.JSONDecodeError, AttributeError) as e:
+                if DEBUG:
+                    print(f"No structured JSON response found in {agent_type} agent output: {e}", file=sys.stderr)
+            
             # Get the original request (prompt + description)
             original_request = request_info.get('request', {})
             prompt = original_request.get('prompt', '')
@@ -289,7 +324,7 @@ class ClaudeHookHandler:
             if not full_request:
                 full_request = f"Task delegation to {agent_type} agent"
             
-            # Prepare metadata
+            # Prepare metadata with structured response data if available
             metadata = {
                 'exit_code': event.get('exit_code', 0),
                 'success': event.get('exit_code', 0) == 0,
@@ -300,6 +335,26 @@ class ClaudeHookHandler:
                 'tool_name': 'Task',
                 'original_request_timestamp': request_info.get('timestamp')
             }
+            
+            # Add structured response data to metadata if available
+            if structured_response:
+                metadata['structured_response'] = {
+                    'task_completed': structured_response.get('task_completed', False),
+                    'instructions': structured_response.get('instructions', ''),
+                    'results': structured_response.get('results', ''),
+                    'files_modified': structured_response.get('files_modified', []),
+                    'tools_used': structured_response.get('tools_used', []),
+                    'remember': structured_response.get('remember')
+                }
+                
+                # Check if task was completed for logging purposes
+                if structured_response.get('task_completed'):
+                    metadata['task_completed'] = True
+                
+                # Log files modified for debugging
+                if DEBUG and structured_response.get('files_modified'):
+                    files = [f['file'] for f in structured_response['files_modified']]
+                    print(f"Agent {agent_type} modified files: {files}", file=sys.stderr)
             
             # Track the response
             file_path = self.response_tracker.track_response(
@@ -452,9 +507,20 @@ class ClaudeHookHandler:
                 elif DEBUG:
                     print(f"Hook handler: Connection attempt {attempt + 1} failed, retrying...", file=sys.stderr)
                 
-                # Exponential backoff
+                # Exponential backoff with async delay
                 if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
+                    # Use asyncio.sleep if in async context, otherwise fall back to time.sleep
+                    try:
+                        loop = asyncio.get_event_loop()
+                        if loop.is_running():
+                            # We're in an async context, use async sleep
+                            asyncio.create_task(asyncio.sleep(retry_delay))
+                        else:
+                            # Sync context, use regular sleep
+                            time.sleep(retry_delay)
+                    except:
+                        # Fallback to sync sleep if asyncio not available
+                        time.sleep(retry_delay)
                     retry_delay *= 2  # Double the delay for next attempt
         
         # All attempts failed
@@ -492,6 +558,8 @@ class ClaudeHookHandler:
                 self._handle_stop_fast(event)
             elif hook_type == 'SubagentStop':
                 self._handle_subagent_stop_fast(event)
+            elif hook_type == 'AssistantResponse':
+                self._handle_assistant_response(event)
             
             # Socket.IO emit is non-blocking and will complete asynchronously
             # Removed sleep() to eliminate 100ms delay that was blocking Claude execution
@@ -606,6 +674,18 @@ class ClaudeHookHandler:
             'urgency': 'high' if any(word in prompt.lower() for word in ['urgent', 'error', 'bug', 'fix', 'broken']) else 'normal'
         }
         
+        # Store prompt for comprehensive response tracking if enabled
+        if self.response_tracking_enabled and self.track_all_interactions:
+            session_id = event.get('session_id', '')
+            if session_id:
+                self.pending_prompts[session_id] = {
+                    'prompt': prompt,
+                    'timestamp': datetime.now().isoformat(),
+                    'working_directory': working_dir
+                }
+                if DEBUG:
+                    print(f"Stored prompt for comprehensive tracking: session {session_id[:8]}...", file=sys.stderr)
+        
         # Emit to /hook namespace
         self._emit_socketio_event('/hook', 'user_prompt', prompt_data)
     
@@ -617,6 +697,13 @@ class ClaudeHookHandler:
         - Provides context about what Claude is about to do
         - Enables pattern analysis and security monitoring
         """
+        # Enhanced debug logging for session correlation
+        session_id = event.get('session_id', '')
+        if DEBUG:
+            print(f"\n[DEBUG] PreToolUse event received:", file=sys.stderr)
+            print(f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr)
+            print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
+        
         tool_name = event.get('tool_name', '')
         tool_input = event.get('tool_input', {})
         
@@ -669,7 +756,14 @@ class ClaudeHookHandler:
             }
             
             # Track this delegation for SubagentStop correlation and response tracking
-            session_id = event.get('session_id', '')
+            # session_id already extracted at method start
+            if DEBUG:
+                print(f"[DEBUG] Task delegation tracking:", file=sys.stderr)
+                print(f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr)
+                print(f"  - agent_type: {agent_type}", file=sys.stderr)
+                print(f"  - raw_agent_type: {raw_agent_type}", file=sys.stderr)
+                print(f"  - tool_name: {tool_name}", file=sys.stderr)
+            
             if session_id and agent_type != 'unknown':
                 # Prepare request data for response tracking correlation
                 request_data = {
@@ -678,6 +772,17 @@ class ClaudeHookHandler:
                     'agent_type': agent_type
                 }
                 self._track_delegation(session_id, agent_type, request_data)
+                
+                if DEBUG:
+                    print(f"  - Delegation tracked successfully", file=sys.stderr)
+                    print(f"  - Request data keys: {list(request_data.keys())}", file=sys.stderr)
+                    print(f"  - delegation_requests size: {len(self.delegation_requests)}", file=sys.stderr)
+                    # Show all session IDs for debugging
+                    all_sessions = list(self.delegation_requests.keys())
+                    if all_sessions:
+                        print(f"  - All stored sessions (first 16 chars):", file=sys.stderr)
+                        for sid in all_sessions[:10]:  # Show up to 10
+                            print(f"    - {sid[:16]}... (agent: {self.delegation_requests[sid].get('agent_type', 'unknown')})", file=sys.stderr)
                 
                 # Log important delegations for debugging
                 if DEBUG or agent_type in ['research', 'engineer', 'qa', 'documentation']:
@@ -972,15 +1077,75 @@ class ClaudeHookHandler:
         """
         reason = event.get('reason', 'unknown')
         stop_type = event.get('stop_type', 'normal')
+        session_id = event.get('session_id', '')
         
         # Get working directory and git branch
         working_dir = event.get('cwd', '')
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
+        # Track response for Stop events (main Claude responses, not delegations)
+        if DEBUG:
+            print(f"[DEBUG] Stop event processing:", file=sys.stderr)
+            print(f"  - response_tracking_enabled: {self.response_tracking_enabled}", file=sys.stderr)
+            print(f"  - response_tracker exists: {self.response_tracker is not None}", file=sys.stderr)
+            print(f"  - session_id: {session_id[:8] if session_id else 'None'}...", file=sys.stderr)
+            print(f"  - reason: {reason}", file=sys.stderr)
+            print(f"  - stop_type: {stop_type}", file=sys.stderr)
+        
+        if self.response_tracking_enabled and self.response_tracker:
+            try:
+                # Extract output from event
+                output = event.get('output', '') or event.get('final_output', '') or event.get('response', '')
+                
+                # Check if we have a pending prompt for this session
+                prompt_data = self.pending_prompts.get(session_id)
+                
+                if DEBUG:
+                    print(f"  - output present: {bool(output)} (length: {len(str(output)) if output else 0})", file=sys.stderr)
+                    print(f"  - prompt_data present: {bool(prompt_data)}", file=sys.stderr)
+                    if prompt_data:
+                        print(f"  - prompt preview: {str(prompt_data.get('prompt', ''))[:100]}...", file=sys.stderr)
+                
+                if output and prompt_data:
+                    # Track the main Claude response
+                    metadata = {
+                        'timestamp': datetime.now().isoformat(),
+                        'prompt_timestamp': prompt_data.get('timestamp'),
+                        'working_directory': working_dir,
+                        'git_branch': git_branch,
+                        'event_type': 'stop',
+                        'reason': reason,
+                        'stop_type': stop_type
+                    }
+                    
+                    file_path = self.response_tracker.track_response(
+                        agent_name='claude_main',
+                        request=prompt_data['prompt'],
+                        response=str(output),
+                        session_id=session_id,
+                        metadata=metadata
+                    )
+                    
+                    if file_path and DEBUG:
+                        print(f"✅ Tracked main Claude response on Stop event for session {session_id[:8]}...: {file_path.name}", file=sys.stderr)
+                    
+                    # Clean up the stored prompt
+                    if session_id in self.pending_prompts:
+                        del self.pending_prompts[session_id]
+                        
+                elif DEBUG and not prompt_data:
+                    print(f"No stored prompt for Stop event session {session_id[:8]}...", file=sys.stderr)
+                elif DEBUG and not output:
+                    print(f"No output in Stop event for session {session_id[:8]}...", file=sys.stderr)
+                    
+            except Exception as e:
+                if DEBUG:
+                    print(f"❌ Failed to track response on Stop event: {e}", file=sys.stderr)
+        
         stop_data = {
             'reason': reason,
             'stop_type': stop_type,
-            'session_id': event.get('session_id', ''),
+            'session_id': session_id,
             'working_directory': working_dir,
             'git_branch': git_branch,
             'timestamp': datetime.now().isoformat(),
@@ -1002,8 +1167,23 @@ class ClaudeHookHandler:
         - Enables tracking of delegation success/failure patterns
         - Useful for understanding subagent performance and reliability
         """
-        # First try to get agent type from our tracking
+        # Enhanced debug logging for session correlation
         session_id = event.get('session_id', '')
+        if DEBUG:
+            print(f"\n[DEBUG] SubagentStop event received:", file=sys.stderr)
+            print(f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr)
+            print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
+            print(f"  - delegation_requests size: {len(self.delegation_requests)}", file=sys.stderr)
+            # Show all stored session IDs for comparison
+            all_sessions = list(self.delegation_requests.keys())
+            if all_sessions:
+                print(f"  - Stored sessions (first 16 chars):", file=sys.stderr)
+                for sid in all_sessions[:10]:  # Show up to 10
+                    print(f"    - {sid[:16]}... (agent: {self.delegation_requests[sid].get('agent_type', 'unknown')})", file=sys.stderr)
+            else:
+                print(f"  - No stored sessions in delegation_requests!", file=sys.stderr)
+        
+        # First try to get agent type from our tracking
         agent_type = self._get_delegation_agent_type(session_id) if session_id else 'unknown'
         
         # Fall back to event data if tracking didn't have it
@@ -1031,6 +1211,137 @@ class ClaudeHookHandler:
         working_dir = event.get('cwd', '')
         git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
         
+        # Try to extract structured response from output if available
+        output = event.get('output', '')
+        structured_response = None
+        if output:
+            try:
+                import re
+                json_match = re.search(r'```json\s*(\{.*?\})\s*```', str(output), re.DOTALL)
+                if json_match:
+                    structured_response = json.loads(json_match.group(1))
+                    if DEBUG:
+                        print(f"Extracted structured response from {agent_type} agent in SubagentStop", file=sys.stderr)
+            except (json.JSONDecodeError, AttributeError):
+                pass  # No structured response, that's okay
+        
+        # Track agent response even without structured JSON
+        if DEBUG:
+            print(f"[DEBUG] SubagentStop response tracking check:", file=sys.stderr)
+            print(f"  - response_tracking_enabled: {self.response_tracking_enabled}", file=sys.stderr)
+            print(f"  - response_tracker exists: {self.response_tracker is not None}", file=sys.stderr)
+            print(f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr)
+            print(f"  - agent_type: {agent_type}", file=sys.stderr)
+            print(f"  - reason: {reason}", file=sys.stderr)
+            # Check if session exists in our storage
+            if session_id in self.delegation_requests:
+                print(f"  - ✅ Session found in delegation_requests", file=sys.stderr)
+                print(f"  - Stored agent: {self.delegation_requests[session_id].get('agent_type')}", file=sys.stderr)
+            else:
+                print(f"  - ❌ Session NOT found in delegation_requests!", file=sys.stderr)
+                print(f"  - Looking for partial match...", file=sys.stderr)
+                # Try to find partial matches
+                for stored_sid in list(self.delegation_requests.keys())[:10]:
+                    if stored_sid.startswith(session_id[:8]) or session_id.startswith(stored_sid[:8]):
+                        print(f"    - Partial match found: {stored_sid[:16]}...", file=sys.stderr)
+        
+        if self.response_tracking_enabled and self.response_tracker:
+            try:
+                # Get the original request data (with fuzzy matching fallback)
+                request_info = self.delegation_requests.get(session_id)
+                
+                # If exact match fails, try partial matching
+                if not request_info and session_id:
+                    if DEBUG:
+                        print(f"  - Trying fuzzy match for session {session_id[:16]}...", file=sys.stderr)
+                    # Try to find a session that matches the first 8-16 characters
+                    for stored_sid in list(self.delegation_requests.keys()):
+                        if (stored_sid.startswith(session_id[:8]) or 
+                            session_id.startswith(stored_sid[:8]) or
+                            (len(session_id) >= 16 and len(stored_sid) >= 16 and 
+                             stored_sid[:16] == session_id[:16])):
+                            if DEBUG:
+                                print(f"  - \u2705 Fuzzy match found: {stored_sid[:16]}...", file=sys.stderr)
+                            request_info = self.delegation_requests.get(stored_sid)
+                            # Update the key to use the current session_id for consistency
+                            if request_info:
+                                self.delegation_requests[session_id] = request_info
+                                # Optionally remove the old key to avoid duplicates
+                                if stored_sid != session_id:
+                                    del self.delegation_requests[stored_sid]
+                            break
+                
+                if DEBUG:
+                    print(f"  - request_info present: {bool(request_info)}", file=sys.stderr)
+                    if request_info:
+                        print(f"  - ✅ Found request data for response tracking", file=sys.stderr)
+                        print(f"  - stored agent_type: {request_info.get('agent_type')}", file=sys.stderr)
+                        print(f"  - request keys: {list(request_info.get('request', {}).keys())}", file=sys.stderr)
+                    else:
+                        print(f"  - ❌ No request data found for session {session_id[:16]}...", file=sys.stderr)
+                
+                if request_info:
+                    # Use the output as the response
+                    response_text = str(output) if output else f"Agent {agent_type} completed with reason: {reason}"
+                    
+                    # Get the original request
+                    original_request = request_info.get('request', {})
+                    prompt = original_request.get('prompt', '')
+                    description = original_request.get('description', '')
+                    
+                    # Combine prompt and description
+                    full_request = prompt
+                    if description and description != prompt:
+                        if full_request:
+                            full_request += f"\n\nDescription: {description}"
+                        else:
+                            full_request = description
+                    
+                    if not full_request:
+                        full_request = f"Task delegation to {agent_type} agent"
+                    
+                    # Prepare metadata
+                    metadata = {
+                        'exit_code': event.get('exit_code', 0),
+                        'success': reason in ['completed', 'finished', 'done'],
+                        'has_error': reason in ['error', 'timeout', 'failed', 'blocked'],
+                        'duration_ms': event.get('duration_ms'),
+                        'working_directory': working_dir,
+                        'git_branch': git_branch,
+                        'timestamp': datetime.now().isoformat(),
+                        'event_type': 'subagent_stop',
+                        'reason': reason,
+                        'original_request_timestamp': request_info.get('timestamp')
+                    }
+                    
+                    # Add structured response if available
+                    if structured_response:
+                        metadata['structured_response'] = structured_response
+                        metadata['task_completed'] = structured_response.get('task_completed', False)
+                    
+                    # Track the response
+                    file_path = self.response_tracker.track_response(
+                        agent_name=agent_type,
+                        request=full_request,
+                        response=response_text,
+                        session_id=session_id,
+                        metadata=metadata
+                    )
+                    
+                    if file_path and DEBUG:
+                        print(f"✅ Tracked {agent_type} agent response on SubagentStop: {file_path.name}", file=sys.stderr)
+                    
+                    # Clean up the request data
+                    if session_id in self.delegation_requests:
+                        del self.delegation_requests[session_id]
+                        
+                elif DEBUG:
+                    print(f"No request data for SubagentStop session {session_id[:8]}..., agent: {agent_type}", file=sys.stderr)
+                    
+            except Exception as e:
+                if DEBUG:
+                    print(f"❌ Failed to track response on SubagentStop: {e}", file=sys.stderr)
+        
         subagent_stop_data = {
             'agent_type': agent_type,
             'agent_id': agent_id,
@@ -1047,12 +1358,83 @@ class ClaudeHookHandler:
             'hook_event_name': 'SubagentStop'  # Explicitly set for dashboard
         }
         
+        # Add structured response data if available
+        if structured_response:
+            subagent_stop_data['structured_response'] = {
+                'task_completed': structured_response.get('task_completed', False),
+                'instructions': structured_response.get('instructions', ''),
+                'results': structured_response.get('results', ''),
+                'files_modified': structured_response.get('files_modified', []),
+                'tools_used': structured_response.get('tools_used', []),
+                'remember': structured_response.get('remember')
+            }
+        
         # Debug log the processed data
         if DEBUG:
             print(f"SubagentStop processed data: agent_type='{agent_type}', session_id='{session_id}'", file=sys.stderr)
         
         # Emit to /hook namespace with high priority
         self._emit_socketio_event('/hook', 'subagent_stop', subagent_stop_data)
+    
+    def _handle_assistant_response(self, event):
+        """Handle assistant response events for comprehensive response tracking.
+        
+        WHY: This enables capture of all Claude responses, not just Task delegations.
+        When track_all_interactions is enabled, we capture every Claude response
+        paired with its original user prompt.
+        
+        DESIGN DECISION: We correlate responses with stored prompts using session_id.
+        This provides complete conversation tracking for analysis and learning.
+        """
+        if not self.response_tracking_enabled or not self.track_all_interactions:
+            return
+        
+        session_id = event.get('session_id', '')
+        if not session_id:
+            return
+        
+        # Get the stored prompt for this session
+        prompt_data = self.pending_prompts.get(session_id)
+        if not prompt_data:
+            if DEBUG:
+                print(f"No stored prompt for session {session_id[:8]}..., skipping response tracking", file=sys.stderr)
+            return
+        
+        try:
+            # Extract response content from event
+            response_content = event.get('response', '') or event.get('content', '') or event.get('text', '')
+            
+            if not response_content:
+                if DEBUG:
+                    print(f"No response content in event for session {session_id[:8]}...", file=sys.stderr)
+                return
+            
+            # Track the response
+            metadata = {
+                'timestamp': datetime.now().isoformat(),
+                'prompt_timestamp': prompt_data.get('timestamp'),
+                'working_directory': prompt_data.get('working_directory', ''),
+                'event_type': 'assistant_response',
+                'session_type': 'interactive'
+            }
+            
+            file_path = self.response_tracker.track_response(
+                agent_name='claude',
+                request=prompt_data['prompt'],
+                response=response_content,
+                session_id=session_id,
+                metadata=metadata
+            )
+            
+            if file_path and DEBUG:
+                print(f"✅ Tracked Claude response for session {session_id[:8]}...: {file_path.name}", file=sys.stderr)
+            
+            # Clean up the stored prompt
+            del self.pending_prompts[session_id]
+            
+        except Exception as e:
+            if DEBUG:
+                print(f"❌ Failed to track assistant response: {e}", file=sys.stderr)
     
     def _trigger_memory_pre_delegation_hook(self, agent_type: str, tool_input: dict, session_id: str):
         """Trigger memory pre-delegation hook for agent memory injection.
