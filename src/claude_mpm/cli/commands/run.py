@@ -10,10 +10,12 @@ import subprocess
 import sys
 import time
 import webbrowser
+import logging
 from pathlib import Path
 from datetime import datetime
 
 from ...core.logger import get_logger
+from ...core.config import Config
 from ...constants import LogLevel
 from ..utils import get_user_input, list_agent_versions_at_startup
 from ...utils.dependency_manager import ensure_socketio_dependencies
@@ -52,6 +54,11 @@ def filter_claude_mpm_args(claude_args):
         '--no-native-agents',
         '--launch-method',
         '--resume',
+        # Dependency checking flags (MPM-specific)
+        '--no-check-dependencies',
+        '--force-check-dependencies',
+        '--no-prompt',
+        '--force-prompt',
         # Input/output flags (these are MPM-specific, not Claude CLI flags)
         '--input',
         '--non-interactive',
@@ -172,6 +179,9 @@ def run_session(args):
     if args.logging != LogLevel.OFF.value:
         logger.info("Starting Claude MPM session")
     
+    # Perform startup configuration check
+    _check_configuration_health(logger)
+    
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
         from ...core.session_manager import SessionManager
@@ -219,6 +229,98 @@ def run_session(args):
     else:
         # List deployed agent versions at startup
         list_agent_versions_at_startup()
+        
+        # Smart dependency checking - only when needed
+        if getattr(args, 'check_dependencies', True):  # Default to checking
+            try:
+                from ...utils.agent_dependency_loader import AgentDependencyLoader
+                from ...utils.dependency_cache import SmartDependencyChecker
+                from ...utils.environment_context import should_prompt_for_dependencies
+                
+                # Initialize smart checker
+                smart_checker = SmartDependencyChecker()
+                loader = AgentDependencyLoader(auto_install=False)
+                
+                # Check if agents have changed
+                has_changed, deployment_hash = loader.has_agents_changed()
+                
+                # Determine if we should check dependencies
+                should_check, check_reason = smart_checker.should_check_dependencies(
+                    force_check=getattr(args, 'force_check_dependencies', False),
+                    deployment_hash=deployment_hash
+                )
+                
+                if should_check:
+                    # Check if we're in an environment where prompting makes sense
+                    can_prompt, prompt_reason = should_prompt_for_dependencies(
+                        force_prompt=getattr(args, 'force_prompt', False),
+                        force_skip=getattr(args, 'no_prompt', False)
+                    )
+                    
+                    logger.debug(f"Dependency check needed: {check_reason}")
+                    logger.debug(f"Interactive prompting: {can_prompt} ({prompt_reason})")
+                    
+                    # Get or check dependencies
+                    results, was_cached = smart_checker.get_or_check_dependencies(
+                        loader=loader,
+                        force_check=getattr(args, 'force_check_dependencies', False)
+                    )
+                    
+                    # Show summary if there are missing dependencies
+                    if results['summary']['missing_python']:
+                        missing_count = len(results['summary']['missing_python'])
+                        print(f"⚠️  {missing_count} agent dependencies missing")
+                        
+                        if can_prompt and missing_count > 0:
+                            # Interactive prompt for installation
+                            print(f"\n📦 Missing dependencies detected:")
+                            for dep in results['summary']['missing_python'][:5]:
+                                print(f"   - {dep}")
+                            if missing_count > 5:
+                                print(f"   ... and {missing_count - 5} more")
+                            
+                            print("\nWould you like to install them now?")
+                            print("  [y] Yes, install missing dependencies")
+                            print("  [n] No, continue without installing")
+                            print("  [q] Quit")
+                            
+                            try:
+                                response = input("\nChoice [y/n/q]: ").strip().lower()
+                                if response == 'y':
+                                    print("\n🔧 Installing missing dependencies...")
+                                    loader.auto_install = True
+                                    success, error = loader.install_missing_dependencies(
+                                        results['summary']['missing_python']
+                                    )
+                                    if success:
+                                        print("✅ Dependencies installed successfully")
+                                        # Invalidate cache after installation
+                                        smart_checker.cache.invalidate(deployment_hash)
+                                    else:
+                                        print(f"❌ Installation failed: {error}")
+                                elif response == 'q':
+                                    print("👋 Exiting...")
+                                    return
+                                else:
+                                    print("⏩ Continuing without installing dependencies")
+                            except (EOFError, KeyboardInterrupt):
+                                print("\n⏩ Continuing without installing dependencies")
+                        else:
+                            # Non-interactive environment or prompting disabled
+                            print("   Run 'pip install \"claude-mpm[agents]\"' to install all agent dependencies")
+                            if not can_prompt:
+                                logger.debug(f"Not prompting for installation: {prompt_reason}")
+                    elif was_cached:
+                        logger.debug("Dependencies satisfied (cached result)")
+                    else:
+                        logger.debug("All dependencies satisfied")
+                else:
+                    logger.debug(f"Skipping dependency check: {check_reason}")
+                        
+            except Exception as e:
+                if args.logging != LogLevel.OFF.value:
+                    logger.debug(f"Could not check agent dependencies: {e}")
+                # Continue anyway - don't block execution
     
     # Create simple runner
     enable_tickets = not args.no_tickets
@@ -421,13 +523,17 @@ def launch_socketio_monitor(port, logger):
                 print(f"✅ Socket.IO server started successfully")
                 print(f"📊 Dashboard: {dashboard_url}")
                 
-                # Final verification that server is responsive
+                # Final verification that server is responsive using event-based checking
                 final_check_passed = False
-                for i in range(3):
+                check_start = time.time()
+                max_wait = 3  # Maximum 3 seconds
+                
+                while time.time() - check_start < max_wait:
                     if _check_socketio_server_running(socketio_port, logger):
                         final_check_passed = True
                         break
-                    time.sleep(1)
+                    # Use a very short sleep just to yield CPU
+                    time.sleep(0.1)  # 100ms polling interval
                 
                 if not final_check_passed:
                     logger.warning("Server started but final connectivity check failed")
@@ -513,20 +619,26 @@ def _check_socketio_server_running(port, logger):
                 else:
                     logger.debug(f"⚠️ HTTP response code {response.getcode()} from port {port} (attempt {retry + 1})")
                     if retry < max_retries - 1:
-                        time.sleep(0.5)  # Brief pause before retry
+                        # Use exponential backoff with shorter initial delay
+                        backoff = min(0.1 * (2 ** retry), 1.0)  # 0.1s, 0.2s, 0.4s...
+                        time.sleep(backoff)
                     
             except urllib.error.HTTPError as e:
                 logger.debug(f"⚠️ HTTP error {e.code} from server on port {port} (attempt {retry + 1})")
                 if retry < max_retries - 1 and e.code in [404, 503]:  # Server starting but not ready
                     logger.debug("Server appears to be starting, retrying...")
-                    time.sleep(0.5)
+                    # Use exponential backoff for retries
+                    backoff = min(0.1 * (2 ** retry), 1.0)
+                    time.sleep(backoff)
                     continue
                 return False
             except urllib.error.URLError as e:
                 logger.debug(f"⚠️ URL error connecting to port {port} (attempt {retry + 1}): {e.reason}")
                 if retry < max_retries - 1:
                     logger.debug("Connection refused - server may still be initializing, retrying...")
-                    time.sleep(0.5)
+                    # Use exponential backoff for retries
+                    backoff = min(0.1 * (2 ** retry), 1.0)
+                    time.sleep(backoff)
                     continue
                 return False
         
@@ -585,44 +697,46 @@ def _start_standalone_socketio_server(port, logger):
             logger.error(f"Failed to start Socket.IO daemon: {result.stderr}")
             return False
         
-        # Wait for server to be ready with reasonable timeouts and progressive delays
-        # WHY: Socket.IO server startup involves async initialization:
-        # 1. Thread creation (~0.1s)
-        # 2. Event loop setup (~0.5s) 
-        # 3. aiohttp server binding (~2-5s)
-        # 4. Socket.IO service initialization (~1-3s)
-        # Total: typically 2-5 seconds, up to 15 seconds max
-        max_attempts = 12  # Reduced from 30 - provides ~15 second total timeout
-        initial_delay = 0.75  # Reduced from 1.0s - balanced startup time
-        max_delay = 2.0  # Reduced from 3.0s - sufficient for binding delays
+        # Wait for server using event-based polling instead of fixed delays
+        # WHY: Replace fixed sleep delays with active polling for faster startup detection
+        max_wait_time = 15  # Maximum 15 seconds
+        poll_interval = 0.1  # Start with 100ms polling
         
-        logger.info(f"Waiting up to ~15 seconds for server to be fully ready...")
+        logger.info(f"Waiting up to {max_wait_time} seconds for server to be ready...")
         
-        # Give the daemon initial time to fork and start before checking
-        logger.debug("Allowing initial daemon startup time...")
-        time.sleep(0.5)
+        # Give daemon minimal time to fork
+        time.sleep(0.2)  # Reduced from 0.5s
         
-        for attempt in range(max_attempts):
-            # Progressive delay - start fast, then slow down for socket binding
-            if attempt < 5:
-                delay = initial_delay
+        start_time = time.time()
+        attempt = 0
+        
+        while time.time() - start_time < max_wait_time:
+            attempt += 1
+            elapsed = time.time() - start_time
+            
+            logger.debug(f"Checking server readiness (attempt {attempt}, elapsed {elapsed:.1f}s)")
+            
+            # Adaptive polling - start fast, slow down over time
+            if elapsed < 2:
+                poll_interval = 0.1  # 100ms for first 2 seconds
+            elif elapsed < 5:
+                poll_interval = 0.25  # 250ms for next 3 seconds
             else:
-                delay = min(max_delay, initial_delay + (attempt - 5) * 0.2)
+                poll_interval = 0.5  # 500ms after 5 seconds
             
-            logger.debug(f"Checking server readiness (attempt {attempt + 1}/{max_attempts}, waiting {delay}s)")
-            
-            # Give the daemon process time to initialize and bind to the socket
-            time.sleep(delay)
+            time.sleep(poll_interval)
             
             # Check if the daemon server is accepting connections
             if _check_socketio_server_running(port, logger):
                 logger.info(f"✅ Standalone Socket.IO server started successfully on port {port}")
-                logger.info(f"🕐 Server ready after {attempt + 1} attempts ({(attempt + 1) * delay:.1f}s)")
+                logger.info(f"🕐 Server ready after {attempt} attempts ({elapsed:.1f}s)")
                 return True
             else:
-                logger.debug(f"Server not yet accepting connections on attempt {attempt + 1}")
+                logger.debug(f"Server not yet accepting connections on attempt {attempt}")
         
-        logger.error(f"❌ Socket.IO server health check failed after {max_attempts} attempts (~15s timeout)")
+        # Timeout reached
+        elapsed_total = time.time() - start_time
+        logger.error(f"❌ Socket.IO server health check failed after {max_wait_time}s timeout ({attempt} attempts)")
         logger.warning(f"⏱️  Server may still be starting - try waiting a few more seconds")
         logger.warning(f"💡 The daemon process might be running but not yet accepting HTTP connections")
         logger.error(f"🔧 Troubleshooting steps:")
@@ -690,3 +804,77 @@ def open_in_browser_tab(url, logger):
         logger.warning(f"Browser opening failed: {e}")
         # Final fallback
         webbrowser.open(url)
+
+
+def _check_configuration_health(logger):
+    """Check configuration health at startup and warn about issues.
+    
+    WHY: Configuration errors can cause silent failures, especially for response
+    logging. This function proactively checks configuration at startup and warns
+    users about any issues, providing actionable guidance.
+    
+    DESIGN DECISIONS:
+    - Non-blocking: Issues are logged as warnings, not errors
+    - Actionable: Provides specific commands to fix issues
+    - Focused: Only checks critical configuration that affects runtime
+    
+    Args:
+        logger: Logger instance for output
+    """
+    try:
+        # Load configuration
+        config = Config()
+        
+        # Validate configuration
+        is_valid, errors, warnings = config.validate_configuration()
+        
+        # Get configuration status for additional context
+        status = config.get_configuration_status()
+        
+        # Report critical errors that will affect functionality
+        if errors:
+            logger.warning("⚠️  Configuration issues detected:")
+            for error in errors[:3]:  # Show first 3 errors
+                logger.warning(f"  • {error}")
+            if len(errors) > 3:
+                logger.warning(f"  • ... and {len(errors) - 3} more")
+            logger.info("💡 Run 'claude-mpm config validate' to see all issues and fixes")
+            
+        # Check response logging specifically since it's commonly misconfigured
+        response_logging_enabled = config.get('response_logging.enabled', False)
+        if not response_logging_enabled:
+            logger.debug("Response logging is disabled (response_logging.enabled=false)")
+        else:
+            # Check if session directory is writable
+            session_dir = Path(config.get('response_logging.session_directory', '.claude-mpm/responses'))
+            if not session_dir.is_absolute():
+                session_dir = Path.cwd() / session_dir
+                
+            if not session_dir.exists():
+                try:
+                    session_dir.mkdir(parents=True, exist_ok=True)
+                    logger.debug(f"Created response logging directory: {session_dir}")
+                except Exception as e:
+                    logger.warning(f"Cannot create response logging directory {session_dir}: {e}")
+                    logger.info("💡 Fix with: mkdir -p " + str(session_dir))
+            elif not os.access(session_dir, os.W_OK):
+                logger.warning(f"Response logging directory is not writable: {session_dir}")
+                logger.info("💡 Fix with: chmod 755 " + str(session_dir))
+                
+        # Report non-critical warnings (only in debug mode)
+        if warnings and logger.isEnabledFor(logging.DEBUG):
+            logger.debug("Configuration warnings:")
+            for warning in warnings:
+                logger.debug(f"  • {warning}")
+                
+        # Log loaded configuration source for debugging
+        if status.get('loaded_from') and status['loaded_from'] != 'defaults':
+            logger.debug(f"Configuration loaded from: {status['loaded_from']}")
+            
+    except Exception as e:
+        # Don't let configuration check errors prevent startup
+        logger.debug(f"Configuration check failed (non-critical): {e}")
+        # Only show user-facing message if it's likely to affect them
+        if "yaml" in str(e).lower():
+            logger.warning("⚠️  Configuration file may have YAML syntax errors")
+            logger.info("💡 Validate with: claude-mpm config validate")

@@ -15,6 +15,7 @@ from ...constants import AgentCommands
 from ..utils import get_agent_versions_display
 from ...core.agent_registry import AgentRegistryAdapter
 from ...agents.frontmatter_validator import FrontmatterValidator
+from ...core.config import Config
 
 
 def manage_agents(args):
@@ -74,6 +75,15 @@ def manage_agents(args):
         
         elif args.agents_command == AgentCommands.FIX.value:
             _fix_agents(args)
+        
+        elif args.agents_command == 'deps-check':
+            _check_agent_dependencies(args)
+        
+        elif args.agents_command == 'deps-install':
+            _install_agent_dependencies(args)
+        
+        elif args.agents_command == 'deps-list':
+            _list_agent_dependencies(args)
         
     except ImportError:
         logger.error("Agent deployment service not available")
@@ -152,13 +162,38 @@ def _deploy_agents(args, deployment_service, force=False):
         deployment_service: Agent deployment service instance
         force: Whether to force rebuild all agents
     """
+    # Load configuration to get exclusion settings
+    config = Config()
+    
+    # Check if user wants to override exclusions
+    if hasattr(args, 'include_all') and args.include_all:
+        # Clear exclusion list if --include-all flag is set
+        config.set('agent_deployment.excluded_agents', [])
+        print("✅ Including all agents (exclusion configuration overridden)\n")
+    else:
+        excluded_agents = config.get('agent_deployment.excluded_agents', [])
+        
+        # Display exclusion information if agents are being excluded
+        if excluded_agents:
+            logger = get_logger("cli")
+            logger.info(f"Configured agent exclusions: {excluded_agents}")
+            print(f"\n⚠️  Excluding agents from deployment: {', '.join(excluded_agents)}")
+            
+            # Warn if commonly used agents are being excluded
+            common_agents = {'engineer', 'qa', 'security', 'documentation'}
+            excluded_common = set(a.lower() for a in excluded_agents) & common_agents
+            if excluded_common:
+                print(f"⚠️  Warning: Common agents are being excluded: {', '.join(excluded_common)}")
+                print("   This may affect normal operations. Use 'claude-mpm agents deploy --include-all' to override.\n")
+    
     # Deploy system agents first
     if force:
         print("Force deploying all system agents...")
     else:
         print("Deploying system agents...")
     
-    results = deployment_service.deploy_agents(args.target, force_rebuild=force)
+    # Pass configuration to deployment service
+    results = deployment_service.deploy_agents(args.target, force_rebuild=force, config=config)
     
     # Also deploy project agents if they exist
     from pathlib import Path
@@ -181,10 +216,12 @@ def _deploy_agents(args, deployment_service, force=False):
                 base_agent_path=project_agents_dir / 'base_agent.json' if (project_agents_dir / 'base_agent.json').exists() else None,
                 working_directory=project_dir  # Pass the project directory
             )
+            # Pass the same configuration to project agent deployment
             project_results = project_service.deploy_agents(
                 target_dir=args.target if args.target else Path.cwd() / '.claude' / 'agents',
                 force_rebuild=force,
-                deployment_mode='project'
+                deployment_mode='project',
+                config=config
             )
             
             # Merge project results into main results
@@ -555,3 +592,175 @@ def _fix_agents(args):
         
     except Exception as e:
         print(f"❌ Error fixing agents: {e}")
+
+
+def _check_agent_dependencies(args):
+    """
+    Check dependencies for deployed agents.
+    
+    Args:
+        args: Parsed command line arguments
+    """
+    from ...utils.agent_dependency_loader import AgentDependencyLoader
+    
+    verbose = getattr(args, 'verbose', False)
+    specific_agent = getattr(args, 'agent', None)
+    
+    loader = AgentDependencyLoader(auto_install=False)
+    
+    # Discover deployed agents
+    loader.discover_deployed_agents()
+    
+    # Filter to specific agent if requested
+    if specific_agent:
+        if specific_agent not in loader.deployed_agents:
+            print(f"❌ Agent '{specific_agent}' is not deployed")
+            print(f"   Available agents: {', '.join(loader.deployed_agents.keys())}")
+            return
+        # Keep only the specified agent
+        loader.deployed_agents = {specific_agent: loader.deployed_agents[specific_agent]}
+    
+    # Load dependencies and check
+    loader.load_agent_dependencies()
+    results = loader.analyze_dependencies()
+    
+    # Print report
+    report = loader.format_report(results)
+    print(report)
+
+
+def _install_agent_dependencies(args):
+    """
+    Install missing dependencies for deployed agents.
+    
+    Args:
+        args: Parsed command line arguments
+    """
+    from ...utils.agent_dependency_loader import AgentDependencyLoader
+    import sys
+    
+    specific_agent = getattr(args, 'agent', None)
+    dry_run = getattr(args, 'dry_run', False)
+    
+    loader = AgentDependencyLoader(auto_install=not dry_run)
+    
+    # Discover deployed agents
+    loader.discover_deployed_agents()
+    
+    # Filter to specific agent if requested
+    if specific_agent:
+        if specific_agent not in loader.deployed_agents:
+            print(f"❌ Agent '{specific_agent}' is not deployed")
+            print(f"   Available agents: {', '.join(loader.deployed_agents.keys())}")
+            return
+        loader.deployed_agents = {specific_agent: loader.deployed_agents[specific_agent]}
+    
+    # Load dependencies
+    loader.load_agent_dependencies()
+    results = loader.analyze_dependencies()
+    
+    missing_deps = results['summary']['missing_python']
+    
+    if not missing_deps:
+        print("✅ All Python dependencies are already installed")
+        return
+    
+    print(f"Found {len(missing_deps)} missing dependencies:")
+    for dep in missing_deps:
+        print(f"  - {dep}")
+    
+    if dry_run:
+        print("\n--dry-run specified, not installing anything")
+        print(f"Would install: pip install {' '.join(missing_deps)}")
+    else:
+        print(f"\nInstalling {len(missing_deps)} dependencies...")
+        success, error = loader.install_missing_dependencies(missing_deps)
+        
+        if success:
+            print("✅ Successfully installed all dependencies")
+            
+            # Re-check after installation
+            loader.checked_packages.clear()
+            results = loader.analyze_dependencies()
+            
+            if results['summary']['missing_python']:
+                print(f"⚠️  {len(results['summary']['missing_python'])} dependencies still missing after installation")
+            else:
+                print("✅ All dependencies verified after installation")
+        else:
+            print(f"❌ Failed to install dependencies: {error}")
+
+
+def _list_agent_dependencies(args):
+    """
+    List all dependencies from deployed agents.
+    
+    Args:
+        args: Parsed command line arguments
+    """
+    from ...utils.agent_dependency_loader import AgentDependencyLoader
+    import json
+    
+    output_format = getattr(args, 'format', 'text')
+    
+    loader = AgentDependencyLoader(auto_install=False)
+    
+    # Discover and load
+    loader.discover_deployed_agents()
+    loader.load_agent_dependencies()
+    
+    # Collect all unique dependencies
+    all_python_deps = set()
+    all_system_deps = set()
+    
+    for agent_id, deps in loader.agent_dependencies.items():
+        if 'python' in deps:
+            all_python_deps.update(deps['python'])
+        if 'system' in deps:
+            all_system_deps.update(deps['system'])
+    
+    # Format output based on requested format
+    if output_format == 'pip':
+        # Output pip-installable format
+        for dep in sorted(all_python_deps):
+            print(dep)
+            
+    elif output_format == 'json':
+        # Output JSON format
+        output = {
+            'python': sorted(list(all_python_deps)),
+            'system': sorted(list(all_system_deps)),
+            'agents': {}
+        }
+        for agent_id, deps in loader.agent_dependencies.items():
+            output['agents'][agent_id] = deps
+        print(json.dumps(output, indent=2))
+        
+    else:  # text format
+        print("=" * 60)
+        print("DEPENDENCIES FROM DEPLOYED AGENTS")
+        print("=" * 60)
+        print()
+        
+        if all_python_deps:
+            print(f"Python Dependencies ({len(all_python_deps)}):")
+            print("-" * 30)
+            for dep in sorted(all_python_deps):
+                print(f"  {dep}")
+            print()
+            
+        if all_system_deps:
+            print(f"System Dependencies ({len(all_system_deps)}):")
+            print("-" * 30)
+            for dep in sorted(all_system_deps):
+                print(f"  {dep}")
+            print()
+            
+        print("Per-Agent Dependencies:")
+        print("-" * 30)
+        for agent_id in sorted(loader.agent_dependencies.keys()):
+            deps = loader.agent_dependencies[agent_id]
+            python_count = len(deps.get('python', []))
+            system_count = len(deps.get('system', []))
+            if python_count or system_count:
+                print(f"  {agent_id}: {python_count} Python, {system_count} System")
