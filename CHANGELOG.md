@@ -5,6 +5,17 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.1] - 2025-08-12
+
+
+### Documentation
+
+- update CHANGELOG with 3.6.0 release notes ([e17f8fc])
+
+### Chores
+
+- sync package.json version to 3.6.0 ([478b801])
+- prepare for 3.6.0 release - add new features and test files ([b8a2fde])
 ## [3.6.0] - 2025-08-12
 
 ### Executive Summary
