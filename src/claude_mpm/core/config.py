@@ -7,8 +7,10 @@ and default values with proper validation and type conversion.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, List, Tuple
 import logging
+import yaml
+import json
 
 from ..utils.config_manager import ConfigurationManager
 from .config_paths import ConfigPaths
@@ -49,14 +51,25 @@ class Config:
         if config:
             self._config.update(config)
 
+        # Track where configuration was loaded from
+        self._loaded_from = None
+        
         # Load from file if provided
         if config_file:
             self.load_file(config_file)
+            self._loaded_from = str(config_file)
         else:
             # Try to load from standard location: .claude-mpm/configuration.yaml
             default_config = Path.cwd() / ".claude-mpm" / "configuration.yaml"
             if default_config.exists():
                 self.load_file(default_config)
+                self._loaded_from = str(default_config)
+            else:
+                # Also try .yml extension
+                alt_config = Path.cwd() / ".claude-mpm" / "configuration.yml"
+                if alt_config.exists():
+                    self.load_file(alt_config)
+                    self._loaded_from = str(alt_config)
 
         # Load from environment variables (new and legacy prefixes)
         self._load_env_vars()
@@ -66,21 +79,64 @@ class Config:
         self._apply_defaults()
 
     def load_file(self, file_path: Union[str, Path]) -> None:
-        """Load configuration from file."""
+        """Load configuration from file with enhanced error handling.
+        
+        WHY: Configuration loading failures can cause silent issues. We need
+        to provide clear, actionable error messages to help users fix problems.
+        """
         file_path = Path(file_path)
 
         if not file_path.exists():
             logger.warning(f"Configuration file not found: {file_path}")
+            logger.info(f"TIP: Create a configuration file with: mkdir -p {file_path.parent} && touch {file_path}")
             return
 
         try:
+            # Check if file is readable
+            if not os.access(file_path, os.R_OK):
+                logger.error(f"Configuration file is not readable: {file_path}")
+                logger.info(f"TIP: Fix permissions with: chmod 644 {file_path}")
+                return
+                
+            # Check file size (warn if too large)
+            file_size = file_path.stat().st_size
+            if file_size > 1024 * 1024:  # 1MB
+                logger.warning(f"Configuration file is large ({file_size} bytes): {file_path}")
+                
+            # Try to load the configuration
             file_config = self._config_mgr.load_auto(file_path)
             if file_config:
                 self._config = self._config_mgr.merge_configs(self._config, file_config)
-                logger.info(f"Loaded configuration from {file_path}")
+                logger.info(f"✓ Successfully loaded configuration from {file_path}")
+                
+                # Log important configuration values for debugging
+                if logger.isEnabledFor(logging.DEBUG):
+                    response_logging = file_config.get('response_logging', {})
+                    if response_logging:
+                        logger.debug(f"Response logging enabled: {response_logging.get('enabled', False)}")
+                        logger.debug(f"Response logging format: {response_logging.get('format', 'json')}")
 
+        except yaml.YAMLError as e:
+            logger.error(f"YAML syntax error in {file_path}: {e}")
+            if hasattr(e, 'problem_mark'):
+                mark = e.problem_mark
+                logger.error(f"Error at line {mark.line + 1}, column {mark.column + 1}")
+            logger.info("TIP: Validate your YAML at https://www.yamllint.com/ or run: python scripts/validate_configuration.py")
+            logger.info("TIP: Common issue - YAML requires spaces, not tabs. Fix with: sed -i '' 's/\t/    /g' " + str(file_path))
+            # Store error for later retrieval
+            self._config['_load_error'] = str(e)
+            
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON syntax error in {file_path}: {e}")
+            logger.error(f"Error at line {e.lineno}, column {e.colno}")
+            logger.info("TIP: Validate your JSON at https://jsonlint.com/")
+            self._config['_load_error'] = str(e)
+            
         except Exception as e:
             logger.error(f"Failed to load configuration from {file_path}: {e}")
+            logger.info("TIP: Check file permissions and format (YAML/JSON)")
+            logger.info("TIP: Run validation with: python scripts/validate_configuration.py")
+            self._config['_load_error'] = str(e)
 
     def _load_env_vars(self) -> None:
         """Load configuration from environment variables."""
@@ -323,6 +379,12 @@ class Config:
                         "emergency_stop": True
                     }
                 }
+            },
+            # Agent deployment configuration
+            "agent_deployment": {
+                "excluded_agents": [],              # List of agent IDs to exclude from deployment
+                "exclude_dependencies": False,      # Whether to exclude agent dependencies too
+                "case_sensitive": False            # Whether agent name matching is case-sensitive
             }
         }
 
@@ -514,6 +576,101 @@ class Config:
             base_config = self._config_mgr.merge_configs(base_config, socketio_config)
         
         return base_config
+
+    def validate_configuration(self) -> Tuple[bool, List[str], List[str]]:
+        """Validate the loaded configuration programmatically.
+        
+        WHY: Provide a programmatic way to validate configuration that can be
+        used by other components to check configuration health.
+        
+        Returns:
+            Tuple of (is_valid, errors, warnings)
+        """
+        errors = []
+        warnings = []
+        
+        # Check if there was a load error
+        if '_load_error' in self._config:
+            errors.append(f"Configuration load error: {self._config['_load_error']}")
+            
+        # Validate response_logging configuration
+        response_logging = self.get('response_logging', {})
+        if response_logging:
+            # Check enabled field
+            if 'enabled' in response_logging and not isinstance(response_logging['enabled'], bool):
+                errors.append(
+                    f"response_logging.enabled must be boolean, got {type(response_logging['enabled']).__name__}"
+                )
+                
+            # Check format field
+            if 'format' in response_logging:
+                valid_formats = ['json', 'syslog', 'journald']
+                if response_logging['format'] not in valid_formats:
+                    errors.append(
+                        f"response_logging.format must be one of {valid_formats}, "
+                        f"got '{response_logging['format']}'"
+                    )
+                    
+            # Check session_directory
+            if 'session_directory' in response_logging:
+                session_dir = Path(response_logging['session_directory'])
+                if session_dir.is_absolute() and not session_dir.parent.exists():
+                    warnings.append(
+                        f"Parent directory for session_directory does not exist: {session_dir.parent}"
+                    )
+                    
+        # Validate memory configuration
+        memory_config = self.get('memory', {})
+        if memory_config:
+            if 'enabled' in memory_config and not isinstance(memory_config['enabled'], bool):
+                errors.append(f"memory.enabled must be boolean")
+                
+            # Check limits
+            limits = memory_config.get('limits', {})
+            for field in ['default_size_kb', 'max_sections', 'max_items_per_section']:
+                if field in limits:
+                    value = limits[field]
+                    if not isinstance(value, int) or value <= 0:
+                        errors.append(f"memory.limits.{field} must be positive integer, got {value}")
+                        
+        # Validate health thresholds
+        health_thresholds = self.get('health_thresholds', {})
+        if health_thresholds:
+            cpu = health_thresholds.get('cpu_percent')
+            if cpu is not None and (not isinstance(cpu, (int, float)) or cpu < 0 or cpu > 100):
+                errors.append(f"health_thresholds.cpu_percent must be 0-100, got {cpu}")
+                
+            mem = health_thresholds.get('memory_mb')
+            if mem is not None and (not isinstance(mem, (int, float)) or mem <= 0):
+                errors.append(f"health_thresholds.memory_mb must be positive, got {mem}")
+                
+        is_valid = len(errors) == 0
+        return is_valid, errors, warnings
+        
+    def get_configuration_status(self) -> Dict[str, Any]:
+        """Get detailed configuration status for debugging.
+        
+        WHY: Provide a comprehensive view of configuration state for
+        troubleshooting and health checks.
+        
+        Returns:
+            Dictionary with configuration status information
+        """
+        is_valid, errors, warnings = self.validate_configuration()
+        
+        status = {
+            'valid': is_valid,
+            'errors': errors,
+            'warnings': warnings,
+            'loaded_from': getattr(self, '_loaded_from', 'defaults'),
+            'key_count': len(self._config),
+            'has_response_logging': 'response_logging' in self._config,
+            'has_memory_config': 'memory' in self._config,
+            'response_logging_enabled': self.get('response_logging.enabled', False),
+            'memory_enabled': self.get('memory.enabled', False)
+        }
+        
+        return status
 
     def __repr__(self) -> str:
         """String representation of configuration."""
