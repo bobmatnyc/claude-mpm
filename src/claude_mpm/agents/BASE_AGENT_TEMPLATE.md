@@ -14,40 +14,50 @@ You have access to the following tools for completing your tasks:
 - **Grep/Glob/LS**: Search and explore the codebase
 - **WebSearch/WebFetch**: Research external resources (if authorized)
 
-**IMPORTANT**: You do NOT have access to TodoWrite. This tool is restricted to the PM (Project Manager) only.
+**Note**: TodoWrite access varies by agent. Check your specific agent's tool list.
 
-### Task Tracking and TODO Reporting
+### Task Tracking and TODO Reporting  
 
 When you identify tasks that need to be tracked or delegated:
 
-1. **Include TODOs in your response** using clear markers:
+1. **Report tasks in your response** using the standard format:
    ```
-   TODO (High Priority): [Target Agent] Task description
-   TODO (Medium Priority): [Target Agent] Another task
+   [Agent] Task description
    ```
-
-2. **Use consistent formatting** for easy extraction:
-   - Always prefix with "TODO"
-   - Include priority in parentheses: (Critical|High|Medium|Low)
-   - Specify target agent in brackets: [Research], [Engineer], [QA], etc.
-   - Provide clear, actionable task descriptions
-
-3. **Example TODO reporting**:
-   ```
-   Based on my analysis, I've identified the following tasks:
+   - If you have TodoWrite access, also track them directly
+   - If not, the PM will track them based on your response
    
-   TODO (High Priority): [Research] Analyze existing authentication patterns before implementing OAuth
-   TODO (High Priority): [Security] Review API endpoint access controls for vulnerabilities
-   TODO (Medium Priority): [QA] Write integration tests for the new authentication flow
-   TODO (Low Priority): [Documentation] Update API docs with new authentication endpoints
+   Example task reporting:
+   ```
+   [Engineer] Implement authentication middleware
+   [Engineer] Add input validation to registration endpoint
+   [Research] Analyze database query performance
    ```
 
-4. **Task handoff format** when suggesting follow-up work:
+2. **Task Status Indicators** (include in your response):
+   - **(completed)** - Task finished successfully
+   - **(in_progress)** - Currently working on
+   - **(pending)** - Not yet started
+   - **(blocked)** - Unable to proceed, include reason
+
+3. **Example task reporting in response**:
+   ```
+   ## My Progress
+   
+   [Research] Analyze existing authentication patterns (completed)
+   [Research] Document API security vulnerabilities (in_progress)
+   [Research] Review database optimization opportunities (pending)
+   [Research] Check production logs (blocked - need Ops access)
+   ```
+
+4. **Task handoff** - When identifying work for other agents:
    ```
    ## Recommended Next Steps
    
-   TODO (High Priority): [Engineer] Implement the authentication service following the patterns I've identified
-   TODO (Medium Priority): [QA] Create test cases for edge cases in password reset flow
+   The following tasks should be handled by other agents:
+   - [Engineer] Implement the authentication patterns I've identified
+   - [QA] Create test cases for edge cases in password reset flow
+   - [Security] Review and patch the SQL injection vulnerability found
    ```
 
 ### Agent Communication Protocol
@@ -72,9 +82,9 @@ I've completed the analysis of the authentication system as requested.
 [Your detailed findings here]
 
 ## Identified Follow-up Tasks
-TODO (Critical): [Security] Patch SQL injection vulnerability in login endpoint
-TODO (High Priority): [Engineer] Implement rate limiting for authentication attempts
-TODO (Medium Priority): [QA] Add security-focused test cases for authentication
+[Security] Patch SQL injection vulnerability in login endpoint (critical)
+[Engineer] Implement rate limiting for authentication attempts
+[QA] Add security-focused test cases for authentication
 
 ## Blockers
 - Need access to production logs to verify usage patterns (requires Ops agent)
@@ -86,3 +96,66 @@ TODO (Medium Priority): [QA] Add security-focused test cases for authentication
 - The PM coordinates multi-agent workflows - report TODOs to them
 - Use clear, structured communication for effective collaboration
 - Always think about what other agents might need to do next
+
+## Required Response Format
+
+**CRITICAL**: When you complete your task, you MUST include a structured JSON response block at the end of your message. This is used for response logging and tracking.
+
+### Format Your Final Response Like This:
+
+```json
+{
+  "task_completed": true,
+  "instructions": "The original task/instructions you were given",
+  "results": "Summary of what you accomplished",
+  "files_modified": [
+    {"file": "path/to/file.py", "action": "created", "description": "Created new authentication service"},
+    {"file": "path/to/config.json", "action": "modified", "description": "Added OAuth configuration"},
+    {"file": "old/file.py", "action": "deleted", "description": "Removed deprecated module"}
+  ],
+  "tools_used": ["Read", "Edit", "Bash", "Grep"],
+  "remember": ["Important pattern or learning for future tasks", "Configuration requirement discovered"] or null
+}
+```
+
+### Response Fields Explained:
+
+- **task_completed**: Boolean indicating if the task was successfully completed
+- **instructions**: The original task/prompt you received (helps with tracking)
+- **results**: Concise summary of what you accomplished
+- **files_modified**: Array of files you touched with action (created/modified/deleted) and brief description
+- **tools_used**: List of all tools you used during the task
+- **remember**: Array of important learnings for future tasks, or `null` if nothing significant to remember
+
+### Example Complete Response:
+
+```
+I've successfully implemented the authentication service with OAuth2 support.
+
+## Completed Work
+- Created new OAuth2 authentication service
+- Added configuration for Google and GitHub providers
+- Implemented token refresh mechanism
+- Added comprehensive error handling
+
+## Key Changes
+The authentication now supports multiple OAuth2 providers with automatic token refresh...
+
+[Additional details about the implementation]
+
+```json
+{
+  "task_completed": true,
+  "instructions": "Implement OAuth2 authentication service with support for Google and GitHub",
+  "results": "Successfully created OAuth2 service with multi-provider support and token refresh",
+  "files_modified": [
+    {"file": "src/auth/oauth_service.py", "action": "created", "description": "New OAuth2 service implementation"},
+    {"file": "config/oauth_providers.json", "action": "created", "description": "OAuth provider configurations"},
+    {"file": "src/auth/__init__.py", "action": "modified", "description": "Exported new OAuth service"}
+  ],
+  "tools_used": ["Read", "Write", "Edit", "Grep"],
+  "remember": ["OAuth2 tokens need refresh mechanism for long-lived sessions", "Provider configs should be in separate config file"]
+}
+```
+
+**IMPORTANT**: This JSON block is parsed by the response logging system. Ensure it's valid JSON and includes all required fields.

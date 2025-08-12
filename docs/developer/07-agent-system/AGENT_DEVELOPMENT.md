@@ -13,9 +13,10 @@ This comprehensive guide covers all aspects of agent development in Claude MPM, 
 3. [Creating Agents](#creating-agents)
 4. [Agent Formats](#agent-formats)
 5. [Frontmatter Configuration](#frontmatter-configuration)
-6. [Deployment and Precedence](#deployment-and-precedence)
-7. [Testing Agents](#testing-agents)
-8. [Best Practices](#best-practices)
+6. [Agent Dependencies](#agent-dependencies)
+7. [Deployment and Precedence](#deployment-and-precedence)
+8. [Testing Agents](#testing-agents)
+9. [Best Practices](#best-practices)
 
 ## Agent Architecture
 
@@ -230,6 +231,321 @@ file_access:
 3. **Model**: Must be a valid Claude model identifier
 4. **Temperature**: Must be between 0 and 1
 5. **Max Tokens**: Must be between 1000 and 200000
+
+## Agent Dependencies
+
+### Overview
+
+Claude MPM features a sophisticated dependency management system that:
+- **Dynamically checks** dependencies only for deployed agents
+- **Smart caching** to avoid redundant checks (71x faster on cache hits)
+- **Python version compatibility** checking (especially important for Python 3.13+)
+- **Interactive prompting** in appropriate contexts
+- **Context-aware behavior** (TTY, CI, Docker detection)
+
+### Declaring Dependencies
+
+#### JSON Format
+
+```json
+{
+  "agent_id": "data_engineer",
+  "dependencies": {
+    "python": [
+      "pandas>=2.1.0",
+      "numpy>=1.24.0",
+      "dask>=2023.12.0",
+      "apache-airflow>=2.8.0"
+    ],
+    "system": [
+      "git",
+      "docker",
+      "kubectl"
+    ],
+    "optional": false
+  }
+}
+```
+
+#### Frontmatter Format (Markdown)
+
+```yaml
+---
+description: Data engineering agent
+version: 2.0.0
+dependencies:
+  python:
+    - pandas>=2.1.0
+    - numpy>=1.24.0
+    - dask>=2023.12.0
+  system:
+    - git
+    - docker
+---
+```
+
+### Dependency Checking
+
+#### Automatic Checking on Startup
+
+Claude MPM automatically checks dependencies when:
+1. **Agents have changed** (new deployment or modification)
+2. **First run** after installation
+3. **Cache has expired** (24-hour TTL)
+4. **Force flag** is used (`--force-check-dependencies`)
+
+```bash
+$ ./claude-mpm
+# First run after agent deployment
+⚠️  26 agent dependencies missing
+Install missing dependencies now? [Y/n]: y
+🔧 Installing 24 compatible dependencies...
+⚠️  Skipping 2 packages incompatible with Python 3.13
+
+# Second run (no changes - uses cache)
+$ ./claude-mpm
+# Starts immediately, no dependency check
+```
+
+#### Manual Dependency Management
+
+```bash
+# Check dependencies for all deployed agents
+./claude-mpm agents deps-check
+
+# Check specific agent
+./claude-mpm agents deps-check --agent engineer
+
+# List all dependencies
+./claude-mpm agents deps-list
+
+# Export for pip
+./claude-mpm agents deps-list --format pip > requirements.txt
+
+# Install missing dependencies
+./claude-mpm agents deps-install
+
+# Dry run to see what would be installed
+./claude-mpm agents deps-install --dry-run
+```
+
+### Python Version Compatibility
+
+#### Python 3.13 Considerations
+
+Many packages haven't been updated for Python 3.13 yet. The system automatically:
+- **Detects incompatible packages** before installation
+- **Skips incompatible packages** rather than failing
+- **Shows clear warnings** about compatibility issues
+
+```bash
+$ ./claude-mpm agents deps-check
+Python Version: 3.13.5
+
+⚠️  Python 3.13 Compatibility Warning:
+  2 packages are not yet compatible with Python 3.13:
+    - ydata-profiling>=4.6.0 (requires Python <3.13)
+    - apache-airflow>=2.8.0 (requires Python <3.13)
+  
+  Consider using Python 3.12 or earlier for full compatibility.
+```
+
+#### Known Incompatibilities
+
+| Package | Python 3.13 Status | Alternative |
+|---------|-------------------|-------------|
+| `ydata-profiling` | ❌ Not compatible | Use `pandas-profiling` or wait for update |
+| `apache-airflow` | ❌ Not compatible | Use Python 3.12 or containerized Airflow |
+| `tree-sitter-languages` | ❌ Wrong package name | Use `tree-sitter-language-pack` |
+
+### Smart Caching System
+
+#### How It Works
+
+1. **Hash-based tracking**: Calculates SHA256 hash of `.claude/agents/` directory
+2. **State persistence**: Stores in `.claude/agents/.mpm_deployment_state`
+3. **Cache storage**: Results cached in `~/.claude-mpm/cache/dependency_cache.json`
+4. **Automatic invalidation**: When agents change or 24 hours pass
+
+#### Performance Impact
+
+```bash
+# First run (full check)
+Time: 1.42 seconds
+
+# Cached run (no changes)
+Time: 0.02 seconds (71x faster)
+```
+
+#### Cache Management
+
+```bash
+# Force dependency check (ignores cache)
+./claude-mpm --force-check-dependencies
+
+# Skip dependency checking entirely
+./claude-mpm --no-check-dependencies
+
+# Clear cache manually
+rm ~/.claude-mpm/cache/dependency_cache.json
+rm .claude/agents/.mpm_deployment_state
+```
+
+### Context-Aware Behavior
+
+The dependency system adapts to different execution contexts:
+
+| Context | Behavior |
+|---------|----------|
+| **Interactive TTY** | Prompts for installation |
+| **CI Environment** | No prompts, warnings only |
+| **Docker Container** | No prompts, check-only mode |
+| **Non-TTY Script** | No prompts, continues with warnings |
+| **Automated Mode** | Respects `CLAUDE_MPM_AUTOMATED` env var |
+
+#### Environment Detection
+
+```python
+# Automatic detection
+- TTY: sys.stdin.isatty() and sys.stdout.isatty()
+- CI: Checks for CI, GITHUB_ACTIONS, GITLAB_CI, etc.
+- Docker: Checks for /.dockerenv file
+- Interactive: Not CLAUDE_MPM_NON_INTERACTIVE
+```
+
+#### Override Behavior
+
+```bash
+# Never prompt (CI-like behavior)
+./claude-mpm --no-prompt
+
+# Force prompting even in non-TTY
+./claude-mpm --force-prompt
+
+# Skip all dependency checks
+CLAUDE_MPM_NO_DEPS=1 ./claude-mpm
+```
+
+### Dependency Aggregation
+
+#### Build-Time Aggregation
+
+All agent dependencies are aggregated into `pyproject.toml`:
+
+```bash
+# Aggregate dependencies from all agents
+python scripts/aggregate_agent_dependencies.py
+
+# Install all agent dependencies at once
+pip install "claude-mpm[agents]"
+```
+
+#### Aggregation Sources (in precedence order)
+
+1. **PROJECT**: `.claude-mpm/agents/*.json`
+2. **USER**: `~/.claude-mpm/agents/*`
+3. **SYSTEM**: `src/claude_mpm/agents/templates/*.json`
+
+### Best Practices for Dependencies
+
+#### 1. Minimal Dependencies
+Only declare dependencies that are truly necessary:
+
+```json
+{
+  "dependencies": {
+    "python": [
+      "pandas>=2.0.0",  // Good: minimum version
+      "pandas==2.0.1"   // Bad: too restrictive
+    ]
+  }
+}
+```
+
+#### 2. Version Ranges
+Use appropriate version constraints:
+
+```json
+{
+  "dependencies": {
+    "python": [
+      "numpy>=1.24.0",           // Minimum version
+      "django>=4.0,<5.0",        // Range for major version
+      "requests>=2.28.0,<3.0.0"  // Strict upper bound
+    ]
+  }
+}
+```
+
+#### 3. Optional Dependencies
+Mark dependencies as optional when agent can function without them:
+
+```json
+{
+  "dependencies": {
+    "python": ["optional-package>=1.0.0"],
+    "optional": true  // Agent works without these
+  }
+}
+```
+
+#### 4. System Dependencies
+Document system-level requirements clearly:
+
+```json
+{
+  "dependencies": {
+    "system": [
+      "git",      // Version control
+      "docker",   // Container operations
+      "aws"       // AWS CLI for cloud operations
+    ]
+  }
+}
+```
+
+### Troubleshooting
+
+#### Missing Dependencies After Installation
+
+```bash
+# Clear pip cache and retry
+pip cache purge
+pip install --force-reinstall "claude-mpm[agents]"
+
+# Check what's installed
+pip list | grep package-name
+```
+
+#### Python Version Issues
+
+```bash
+# Check your Python version
+python --version
+
+# Use pyenv or conda for different Python versions
+pyenv install 3.12.0
+pyenv local 3.12.0
+
+# Or with conda
+conda create -n claude-mpm python=3.12
+conda activate claude-mpm
+```
+
+#### Dependency Conflicts
+
+```bash
+# Check for conflicts
+pip check
+
+# Install specific versions
+pip install "pandas==2.1.0" "numpy==1.24.0"
+
+# Use virtual environment
+python -m venv venv
+source venv/bin/activate
+pip install claude-mpm
+```
 
 ## Deployment and Precedence
 

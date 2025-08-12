@@ -287,6 +287,66 @@ agents:
       memory_limit_mb: 8192
 ```
 
+### Agent Deployment Configuration
+
+```yaml
+agent_deployment:
+  # List of agent IDs to exclude from deployment
+  excluded_agents:
+    - research
+    - data_engineer
+    - ops
+  
+  # Whether agent name matching is case-sensitive (default: false)
+  case_sensitive: false
+  
+  # Whether to exclude agent dependencies (future feature)
+  exclude_dependencies: false
+```
+
+#### Agent Exclusion Examples
+
+**Minimal deployment** (only essential agents):
+```yaml
+agent_deployment:
+  excluded_agents:
+    - research
+    - data_engineer
+    - ops
+    - version_control
+```
+
+**Security-focused deployment**:
+```yaml
+agent_deployment:
+  excluded_agents:
+    - engineer
+    - documentation
+    - research
+    - ops
+    - data_engineer
+    - version_control
+```
+
+**Development environment** (exclude heavy agents):
+```yaml
+agent_deployment:
+  excluded_agents:
+    - ops          # Not needed for local dev
+    - data_engineer # Heavy processing
+  case_sensitive: false
+```
+
+#### CLI Override
+
+Override exclusions for full deployment:
+```bash
+# Deploy all agents, ignoring exclusion configuration
+claude-mpm agents deploy --include-all
+```
+
+See [Agent Exclusion Guide](../../AGENT_EXCLUSION.md) for comprehensive documentation.
+
 ### Memory Protection Configuration
 
 ```yaml
