@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.6.0] - 2025-08-12
 
+### Executive Summary
+
+Claude MPM 3.6.0 introduces **three major architectural improvements** that significantly enhance performance, maintainability, and developer experience:
+
+1. **Dynamic Agent Dependencies** - Smart dependency loading that only checks and installs packages for deployed agents, reducing installation size by up to 90%
+2. **Enhanced PM Instructions** - Separation of framework requirements from customizable PM instructions with structured response formats
+3. **Improved Agent Deployment** - State tracking, dependency caching, and better deployment verification with comprehensive audit tools
+
+### Major Features
+
+#### Dynamic Agent Dependencies System
+- **90% smaller installations**: Core installation ~50 MB vs ~500 MB with all dependencies
+- **Faster startup**: No need to load unused dependencies, cached checks per session
+- **Better compatibility**: Avoid version conflicts from unused agents
+- **Environment awareness**: Python 3.13 compatibility checking with helpful warnings
+- New commands:
+  - `claude-mpm agents deps-check` - Check dependencies for deployed agents
+  - `claude-mpm agents deps-install` - Install missing dependencies automatically
+  - `claude-mpm agents deps-list --format pip` - Export dependencies
+
+#### Enhanced PM Instructions Architecture
+- Separation of non-negotiable framework requirements (BASE_PM.md) from customizable instructions (INSTRUCTIONS.md)
+- Template variable injection for dynamic context ({{current-date}}, {{agent-capabilities}})
+- Structured JSON response format for better logging and tracking
+- TodoWrite prefix rules for clear agent delegation patterns
+
+#### Improved Agent Deployment System
+- Enhanced deployment workflow with state tracking and verification
+- New audit script `scripts/audit_documentation.py` for comprehensive documentation analysis
+- Deployment state persistence in `.claude/agents/.mpm_deployment_state`
+- Dependency cache with intelligent invalidation in `.claude/agents/.dependency_cache`
+
+### Performance Enhancements
+- **Startup Performance**: Only check deployed agents with intelligent caching
+- **Installation Size**: Core ~50 MB (was ~500 MB with all dependencies)
+- **Caching Improvements**: 24-hour TTL with deployment hash-based invalidation
+
+### Bug Fixes
+- Fixed duplication issues in agent deployment process
+- Resolved path resolution problems in `.claude/agents/` directory
+- Fixed configuration file validation edge cases
+- Enhanced agent memory routing with clearer error messages
+- Resolved hook integration issues causing missed responses
+
+### Migration Guide
+- Version 3.6.0 is fully backward compatible
+- After upgrade, run `claude-mpm agents deps-check` to verify dependencies
+- Run `claude-mpm agents deps-install` to install only required dependencies
+- Optionally update configuration for enhanced logging (debug mode now default)
+
+### Technical Details
+- New files: `agent_dependency_loader.py`, `dependency_cache.py`, `dependency_strategies.py`, `environment_context.py`
+- New documentation: `docs/DYNAMIC_DEPENDENCIES.md`, `docs/developer/02-core-components/pm-architecture.md`
+- Enhanced response logging with default debug mode
+- Smart dependency checking with three-phase approach: Discovery → Resolution → Verification
+
 ## [3.5.6] - 2025-08-11
 
 ## [3.5.5] - 2025-08-11
