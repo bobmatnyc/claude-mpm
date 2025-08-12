@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 
-from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel
+from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel, ConfigCommands, AggregateCommands
 
 
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
@@ -127,6 +127,30 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Resume a session (last session if no ID specified, or specific session ID)"
     )
     
+    # Dependency checking options
+    dep_group = parser.add_argument_group('dependency options')
+    dep_group.add_argument(
+        "--no-check-dependencies",
+        action="store_false",
+        dest="check_dependencies",
+        help="Skip agent dependency checking at startup"
+    )
+    dep_group.add_argument(
+        "--force-check-dependencies",
+        action="store_true",
+        help="Force dependency checking even if cached results exist"
+    )
+    dep_group.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Never prompt for dependency installation (non-interactive mode)"
+    )
+    dep_group.add_argument(
+        "--force-prompt",
+        action="store_true",
+        help="Force interactive prompting even in non-TTY environments (use with caution)"
+    )
+    
     # Input/output options
     io_group = parser.add_argument_group('input/output options')
     io_group.add_argument(
@@ -227,6 +251,30 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         nargs="?",
         const="last",
         help="Resume a session (last session if no ID specified, or specific session ID)"
+    )
+    
+    # Dependency checking options (for backward compatibility at top level)
+    dep_group_top = parser.add_argument_group('dependency options (when no command specified)')
+    dep_group_top.add_argument(
+        "--no-check-dependencies",
+        action="store_false",
+        dest="check_dependencies",
+        help="Skip agent dependency checking at startup"
+    )
+    dep_group_top.add_argument(
+        "--force-check-dependencies",
+        action="store_true",
+        help="Force dependency checking even if cached results exist"
+    )
+    dep_group_top.add_argument(
+        "--no-prompt",
+        action="store_true",
+        help="Never prompt for dependency installation (non-interactive mode)"
+    )
+    dep_group_top.add_argument(
+        "--force-prompt",
+        action="store_true",
+        help="Force interactive prompting even in non-TTY environments (use with caution)"
     )
     
     # Input/output options
@@ -353,6 +401,11 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         type=Path,
         help="Target directory (default: .claude/agents/)"
     )
+    deploy_agents_parser.add_argument(
+        "--include-all",
+        action="store_true",
+        help="Include all agents, overriding exclusion configuration"
+    )
     
     # Force deploy agents
     force_deploy_parser = agents_subparsers.add_parser(
@@ -363,6 +416,11 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         "--target",
         type=Path,
         help="Target directory (default: .claude/agents/)"
+    )
+    force_deploy_parser.add_argument(
+        "--include-all",
+        action="store_true",
+        help="Include all agents, overriding exclusion configuration"
     )
     
     # Clean agents
@@ -504,6 +562,119 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         help="Output raw memory content in JSON format for programmatic processing"
     )
     
+    # Add dependency management subcommands to agents
+    deps_check_parser = agents_subparsers.add_parser(
+        'deps-check',
+        help='Check dependencies for deployed agents'
+    )
+    deps_check_parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose output'
+    )
+    deps_check_parser.add_argument(
+        '--agent',
+        type=str,
+        help='Check dependencies for a specific agent only'
+    )
+    
+    deps_install_parser = agents_subparsers.add_parser(
+        'deps-install',
+        help='Install missing dependencies for deployed agents'
+    )
+    deps_install_parser.add_argument(
+        '--agent',
+        type=str,
+        help='Install dependencies for a specific agent only'
+    )
+    deps_install_parser.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be installed without actually installing'
+    )
+    
+    deps_list_parser = agents_subparsers.add_parser(
+        'deps-list',
+        help='List all dependencies from deployed agents'
+    )
+    deps_list_parser.add_argument(
+        '--format',
+        choices=['text', 'pip', 'json'],
+        default='text',
+        help='Output format for dependency list'
+    )
+    
+    # Config command with subcommands
+    config_parser = subparsers.add_parser(
+        CLICommands.CONFIG.value,
+        help="Validate and manage configuration"
+    )
+    add_common_arguments(config_parser)
+    
+    config_subparsers = config_parser.add_subparsers(
+        dest="config_command",
+        help="Config commands",
+        metavar="SUBCOMMAND"
+    )
+    
+    # Validate config
+    validate_config_parser = config_subparsers.add_parser(
+        ConfigCommands.VALIDATE.value,
+        help="Validate configuration file"
+    )
+    validate_config_parser.add_argument(
+        "--config-file",
+        type=Path,
+        help="Path to configuration file (default: .claude-mpm/configuration.yaml)"
+    )
+    validate_config_parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Treat warnings as errors"
+    )
+    
+    # View config
+    view_config_parser = config_subparsers.add_parser(
+        ConfigCommands.VIEW.value,
+        help="View current configuration"
+    )
+    view_config_parser.add_argument(
+        "--config-file",
+        type=Path,
+        help="Path to configuration file"
+    )
+    view_config_parser.add_argument(
+        "--section",
+        help="View specific configuration section"
+    )
+    view_config_parser.add_argument(
+        "--format",
+        choices=["table", "json", "yaml"],
+        default="table",
+        help="Output format (default: table)"
+    )
+    
+    # Config status
+    status_config_parser = config_subparsers.add_parser(
+        ConfigCommands.STATUS.value,
+        help="Show configuration status and health"
+    )
+    status_config_parser.add_argument(
+        "--config-file",
+        type=Path,
+        help="Path to configuration file"
+    )
+    status_config_parser.add_argument(
+        "--check-response-logging",
+        action="store_true",
+        help="Show detailed response logging configuration"
+    )
+    status_config_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed errors and warnings"
+    )
+    
     # Monitor command with subcommands
     monitor_parser = subparsers.add_parser(
         CLICommands.MONITOR.value,
@@ -571,6 +742,10 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         default="localhost",
         help="Host to bind to (default: localhost)"
     )
+    
+    # Import and add aggregate command parser
+    from .commands.aggregate import add_aggregate_parser
+    add_aggregate_parser(subparsers)
     
     return parser
 
