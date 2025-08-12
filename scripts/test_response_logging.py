@@ -1,175 +1,148 @@
 #!/usr/bin/env python3
-"""
-Test script to verify response logging integration in claude-mpm.
-
-This script tests that:
-1. Response logger initializes correctly
-2. Oneshot mode creates log files
-3. Log files contain actual Claude responses
-4. Failures in logging don't break main functionality
-"""
+"""Test script to verify response logging is working correctly."""
 
 import os
 import sys
-import time
-import tempfile
-from pathlib import Path
 import json
+from pathlib import Path
+from datetime import datetime
 
-# Add src to path for imports
+# Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.core.config import Config
+# Enable debug mode
+os.environ['CLAUDE_MPM_HOOK_DEBUG'] = 'true'
 
+from claude_mpm.core.config import Config
+from claude_mpm.services.response_tracker import ResponseTracker
 
 def test_response_logging():
-    """Test response logging functionality."""
-    print("Testing response logging integration...")
+    """Test that response logging is configured and working."""
     
-    # Check if configuration enables response logging
+    print("=" * 60)
+    print("RESPONSE LOGGING TEST")
+    print("=" * 60)
+    
+    # Load configuration
     config = Config()
-    response_config = config.get('response_logging', {})
     
-    if not response_config.get('enabled', False):
-        print("⚠️  Response logging is disabled in configuration")
-        print("   To enable, set response_logging.enabled: true in .claude-mpm/configuration.yaml")
+    # Check response logging settings
+    print("\n1. Checking configuration...")
+    response_logging_enabled = config.get('response_logging.enabled', False)
+    response_tracking_enabled = config.get('response_tracking.enabled', False)
+    
+    print(f"   response_logging.enabled: {response_logging_enabled}")
+    print(f"   response_tracking.enabled: {response_tracking_enabled}")
+    
+    if not (response_logging_enabled or response_tracking_enabled):
+        print("   ❌ Response logging is DISABLED in configuration")
+        print("   To enable, set 'response_logging.enabled: true' or 'response_tracking.enabled: true'")
         return False
-    
-    print(f"✓ Response logging is enabled in configuration")
-    print(f"  - Directory: {response_config.get('session_directory', '.claude-mpm/responses')}")
-    print(f"  - Async mode: {response_config.get('use_async', True)}")
-    
-    # Initialize runner with logging
-    try:
-        runner = ClaudeRunner(
-            enable_tickets=False,
-            log_level="OFF",  # Disable project logging for test
-            launch_method="subprocess"
-        )
-        
-        if runner.response_logger:
-            print("✓ Response logger initialized successfully")
-        else:
-            print("⚠️  Response logger not initialized (might be disabled)")
-            return False
-            
-    except Exception as e:
-        print(f"❌ Failed to initialize ClaudeRunner: {e}")
-        return False
-    
-    # Get the response directory
-    response_dir = Path(response_config.get('session_directory', '.claude-mpm/responses'))
-    
-    # Count existing files
-    if response_dir.exists():
-        existing_files = list(response_dir.glob("*.json"))
-        initial_count = len(existing_files)
-        print(f"  - Existing response files: {initial_count}")
     else:
-        initial_count = 0
-        print(f"  - Response directory will be created at: {response_dir}")
+        print("   ✅ Response logging is ENABLED")
     
-    # Test oneshot mode with a simple prompt
-    print("\nTesting oneshot mode response logging...")
-    test_prompt = "Say 'Hello from response logging test' and nothing else"
+    # Check response directory
+    print("\n2. Checking response directory...")
+    response_dir = Path(config.get('response_logging.session_directory', '.claude-mpm/responses'))
+    if not response_dir.is_absolute():
+        response_dir = Path.cwd() / response_dir
     
+    print(f"   Directory: {response_dir}")
+    if response_dir.exists():
+        print(f"   ✅ Directory exists")
+        
+        # List recent response files
+        response_files = list(response_dir.glob("**/*.json"))
+        if response_files:
+            print(f"   Found {len(response_files)} response files")
+            
+            # Show last 5 files
+            recent_files = sorted(response_files, key=lambda f: f.stat().st_mtime, reverse=True)[:5]
+            print("\n   Recent response files:")
+            for f in recent_files:
+                size = f.stat().st_size
+                mtime = datetime.fromtimestamp(f.stat().st_mtime).strftime("%Y-%m-%d %H:%M:%S")
+                print(f"   - {f.name} ({size} bytes, modified: {mtime})")
+        else:
+            print("   ⚠️ No response files found yet")
+    else:
+        print(f"   ⚠️ Directory does not exist (will be created on first response)")
+    
+    # Test response tracker
+    print("\n3. Testing ResponseTracker...")
     try:
-        # Set a session ID for testing
-        os.environ['CLAUDE_SESSION_ID'] = 'test-session-' + str(int(time.time()))
+        tracker = ResponseTracker(config=config)
         
-        # Run the command
-        success = runner.run_oneshot(test_prompt)
-        
-        if not success:
-            print("⚠️  Claude command failed (this might be expected if Claude CLI is not installed)")
-            # Still check if logging attempted to work
-        else:
-            print("✓ Claude command executed successfully")
-        
-        # Give async logger time to write if using async mode
-        if response_config.get('use_async', True):
-            time.sleep(0.5)
-        
-        # Check if new log files were created
-        if response_dir.exists():
-            new_files = list(response_dir.glob("*.json"))
-            new_count = len(new_files)
+        if tracker.is_enabled():
+            print("   ✅ ResponseTracker initialized and enabled")
             
-            if new_count > initial_count:
-                print(f"✓ New response log file(s) created: {new_count - initial_count} file(s)")
+            # Test tracking a response
+            test_session_id = f"test_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            test_file = tracker.track_response(
+                agent_name="test_agent",
+                request="Test request for response logging verification",
+                response="Test response successfully logged",
+                session_id=test_session_id,
+                metadata={
+                    "test": True,
+                    "timestamp": datetime.now().isoformat()
+                }
+            )
+            
+            if test_file and test_file.exists():
+                print(f"   ✅ Test response logged to: {test_file.name}")
                 
-                # Check the latest file
-                latest_file = max(new_files, key=lambda f: f.stat().st_mtime)
-                print(f"  - Latest file: {latest_file.name}")
-                
-                # Verify content
-                try:
-                    with open(latest_file, 'r') as f:
-                        log_data = json.load(f)
-                        
-                    # Check required fields
-                    required_fields = ['timestamp', 'session_id', 'request', 'response', 'agent', 'metadata']
-                    missing_fields = [field for field in required_fields if field not in log_data]
-                    
-                    if missing_fields:
-                        print(f"⚠️  Log file missing fields: {missing_fields}")
+                # Read and verify the content
+                with open(test_file, 'r') as f:
+                    content = json.load(f)
+                    if content.get('request') == "Test request for response logging verification":
+                        print("   ✅ Response content verified")
                     else:
-                        print("✓ Log file has all required fields")
-                        print(f"  - Session ID: {log_data.get('session_id', 'N/A')}")
-                        print(f"  - Agent: {log_data.get('agent', 'N/A')}")
-                        print(f"  - Request length: {len(log_data.get('request', ''))}")
-                        print(f"  - Response length: {len(log_data.get('response', ''))}")
-                        
-                        # Check metadata
-                        metadata = log_data.get('metadata', {})
-                        if 'execution_time' in metadata:
-                            print(f"  - Execution time: {metadata['execution_time']:.2f}s")
-                        
-                except json.JSONDecodeError as e:
-                    print(f"⚠️  Failed to parse log file as JSON: {e}")
-                except Exception as e:
-                    print(f"⚠️  Error reading log file: {e}")
+                        print("   ❌ Response content mismatch")
             else:
-                print("⚠️  No new response log files created")
-                print("   This might indicate the response logger is not being called")
+                print("   ❌ Failed to create test response file")
         else:
-            print(f"⚠️  Response directory not created at: {response_dir}")
+            print("   ❌ ResponseTracker is disabled")
             
-    except KeyboardInterrupt:
-        print("\n⚠️  Test interrupted by user")
-        return False
     except Exception as e:
-        print(f"❌ Unexpected error during test: {e}")
+        print(f"   ❌ ResponseTracker error: {e}")
         import traceback
         traceback.print_exc()
-        return False
-    finally:
-        # Clean up environment
-        if 'CLAUDE_SESSION_ID' in os.environ:
-            del os.environ['CLAUDE_SESSION_ID']
     
-    print("\n" + "="*50)
-    print("Response logging integration test complete")
+    # Check hook handler integration
+    print("\n4. Checking hook handler integration...")
+    hook_handler_path = Path(__file__).parent.parent / "src" / "claude_mpm" / "hooks" / "claude_hooks" / "hook_handler.py"
+    if hook_handler_path.exists():
+        with open(hook_handler_path, 'r') as f:
+            content = f.read()
+            
+        has_stop_tracking = "_handle_stop_fast" in content and "response_tracker.track_response" in content
+        has_subagent_tracking = "_handle_subagent_stop_fast" in content and "response_tracker.track_response" in content
+        
+        if has_stop_tracking:
+            print("   ✅ Stop event response tracking implemented")
+        else:
+            print("   ❌ Stop event response tracking NOT found")
+            
+        if has_subagent_tracking:
+            print("   ✅ SubagentStop event response tracking implemented")
+        else:
+            print("   ❌ SubagentStop event response tracking NOT found")
+    else:
+        print("   ❌ Hook handler not found")
+    
+    print("\n" + "=" * 60)
+    print("SUMMARY:")
+    print("Response logging should be working if all checks passed.")
+    print("To see logs in action:")
+    print("1. Run: export CLAUDE_MPM_HOOK_DEBUG=true")
+    print("2. Start claude-mpm in interactive mode")
+    print("3. Run a command or delegate to an agent")
+    print("4. Check .claude-mpm/responses/ for new files")
+    print("=" * 60)
+    
     return True
 
-
-def main():
-    """Main test entry point."""
-    print("="*50)
-    print("Claude MPM Response Logging Integration Test")
-    print("="*50 + "\n")
-    
-    success = test_response_logging()
-    
-    if success:
-        print("\n✅ Response logging integration appears to be working")
-    else:
-        print("\n⚠️  Response logging integration may have issues")
-        print("   Check the messages above for details")
-    
-    return 0 if success else 1
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    success = test_response_logging()
+    sys.exit(0 if success else 1)

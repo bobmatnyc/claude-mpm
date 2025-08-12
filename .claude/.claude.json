@@ -20,13 +20,13 @@
       "hasClaudeMdExternalIncludesWarningShown": false,
       "lastTotalWebSearchRequests": 0,
       "exampleFiles": [
-        "dashboard.js",
         "hook_handler.py",
-        "cli.py",
         "parser.py",
-        "socketio_server.py"
+        "dashboard.js",
+        "socketio_server.py",
+        "claude_runner.py"
       ],
-      "exampleFilesGeneratedAt": 1754364832434
+      "exampleFilesGeneratedAt": 1755029183702
     }
   },
   "userID": "383a95b8b162203b90ea3857e612516301e775203cbfc294a8d762290e958697",
