@@ -7,13 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.6.1] - 2025-08-12
 
+### Documentation Update
 
-### Documentation
+This patch release updates the documentation to properly acknowledge contributors and highlight the new Code Analyzer agent.
 
+#### Changes
+- Updated acknowledgments for WhatsApp support group members
+- Added comprehensive documentation for the Code Analyzer agent in release notes
+- Improved roadmap section to encourage community feedback
+- Enhanced CHANGELOG with Code Analyzer details and contributor acknowledgments
+
+#### Previous Commits
 - update CHANGELOG with 3.6.0 release notes ([e17f8fc])
-
-### Chores
-
 - sync package.json version to 3.6.0 ([478b801])
 - prepare for 3.6.0 release - add new features and test files ([b8a2fde])
 ## [3.6.0] - 2025-08-12
