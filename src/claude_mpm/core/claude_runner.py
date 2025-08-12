@@ -110,6 +110,22 @@ class ClaudeRunner:
             self.logger.error(f"Failed to load configuration: {e}")
             raise RuntimeError(f"Configuration initialization failed: {e}") from e
         
+        # Initialize response logging if enabled
+        self.response_logger = None
+        response_config = self.config.get('response_logging', {})
+        if response_config.get('enabled', False):
+            try:
+                from claude_mpm.services.claude_session_logger import get_session_logger
+                self.response_logger = get_session_logger(self.config)
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "Response logging initialized",
+                        level="INFO",
+                        component="logging"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize response logger: {e}")
+        
         # Initialize hook service
         try:
             self.hook_service = HookService(self.config)
@@ -199,7 +215,7 @@ class ClaudeRunner:
             return False
         
         except FileNotFoundError as e:
-            error_msg = f"Agent templates not found: {e}"
+            error_msg = f"Agent files not found: {e}"
             self.logger.error(error_msg)
             print(f"❌ {error_msg}")
             print("💡 Ensure claude-mpm is properly installed")
@@ -228,9 +244,10 @@ class ClaudeRunner:
     def ensure_project_agents(self) -> bool:
         """Ensure system agents are available in the project directory.
         
-        Deploys system agents to project's .claude-mpm/agents/ directory
-        if they don't exist or are outdated. This enables project-level
-        agent customization and ensures all agents are available locally.
+        Deploys system agents to project's .claude/agents/ directory
+        if they don't exist or are outdated. This ensures agents are
+        available for Claude Code to use. Project-specific JSON templates
+        should be placed in .claude-mpm/agents/.
         
         Returns:
             bool: True if agents are available, False on error
@@ -250,10 +267,12 @@ class ClaudeRunner:
                     component="deployment"
                 )
             
-            # Deploy agents to project directory with project deployment mode
+            # Deploy agents to project's .claude/agents directory (not .claude-mpm)
             # This ensures all system agents are deployed regardless of version
+            # .claude-mpm/agents/ should only contain JSON source templates
+            # .claude/agents/ should contain the built MD files for Claude Code
             results = self.deployment_service.deploy_agents(
-                target_dir=project_dir / ".claude-mpm",
+                target_dir=project_dir / ".claude",
                 force_rebuild=False,
                 deployment_mode="project"
             )
@@ -286,8 +305,146 @@ class ClaudeRunner:
                 )
             return False
     
+    def deploy_project_agents_to_claude(self) -> bool:
+        """Deploy project agents from .claude-mpm/agents/ to .claude/agents/.
+        
+        This method handles the deployment of project-specific agents (JSON format)
+        from the project's agents directory to Claude's agent directory.
+        Project agents take precedence over system agents.
+        
+        WHY: Project agents allow teams to define custom, project-specific agents
+        that override system agents. These are stored in JSON format in 
+        .claude-mpm/agents/ and need to be deployed to .claude/agents/
+        as MD files for Claude to use them.
+        
+        Returns:
+            bool: True if deployment successful or no agents to deploy, False on error
+        """
+        try:
+            project_dir = Path.cwd()
+            project_agents_dir = project_dir / ".claude-mpm" / "agents"
+            claude_agents_dir = project_dir / ".claude" / "agents"
+            
+            # Check if project agents directory exists
+            if not project_agents_dir.exists():
+                self.logger.debug("No project agents directory found")
+                return True  # Not an error - just no project agents
+            
+            # Get JSON agent files from agents directory
+            json_files = list(project_agents_dir.glob("*.json"))
+            if not json_files:
+                self.logger.debug("No JSON agents in project")
+                return True
+            
+            # Create .claude/agents directory if needed
+            claude_agents_dir.mkdir(parents=True, exist_ok=True)
+            
+            self.logger.info(f"Deploying {len(json_files)} project agents to .claude/agents/")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Deploying project agents from {project_agents_dir} to {claude_agents_dir}",
+                    level="INFO",
+                    component="deployment"
+                )
+            
+            deployed_count = 0
+            updated_count = 0
+            errors = []
+            
+            # Deploy each JSON agent
+            for json_file in json_files:
+                try:
+                    agent_name = json_file.stem
+                    target_file = claude_agents_dir / f"{agent_name}.md"
+                    
+                    # Check if agent needs update
+                    needs_update = True
+                    if target_file.exists():
+                        # Check if it's a project agent (has project marker)
+                        existing_content = target_file.read_text()
+                        if "author: claude-mpm-project" in existing_content or "source: project" in existing_content:
+                            # Compare modification times
+                            if target_file.stat().st_mtime >= json_file.stat().st_mtime:
+                                needs_update = False
+                                self.logger.debug(f"Project agent {agent_name} is up to date")
+                    
+                    if needs_update:
+                        # Use deployment service to build the agent
+                        from claude_mpm.services.agents.deployment.agent_deployment import AgentDeploymentService
+                        
+                        # Create a temporary deployment service for this specific task
+                        project_deployment = AgentDeploymentService(
+                            templates_dir=project_agents_dir,
+                            base_agent_path=project_dir / ".claude-mpm" / "agents" / "base_agent.json"
+                        )
+                        
+                        # Load base agent data if available
+                        base_agent_data = {}
+                        base_agent_path = project_dir / ".claude-mpm" / "agents" / "base_agent.json"
+                        if base_agent_path.exists():
+                            import json
+                            try:
+                                base_agent_data = json.loads(base_agent_path.read_text())
+                            except Exception as e:
+                                self.logger.warning(f"Could not load project base agent: {e}")
+                        
+                        # Build the agent markdown
+                        agent_content = project_deployment._build_agent_markdown(
+                            agent_name, json_file, base_agent_data
+                        )
+                        
+                        # Mark as project agent
+                        agent_content = agent_content.replace(
+                            "author: claude-mpm",
+                            "author: claude-mpm-project"
+                        )
+                        
+                        # Write the agent file
+                        is_update = target_file.exists()
+                        target_file.write_text(agent_content)
+                        
+                        if is_update:
+                            updated_count += 1
+                            self.logger.info(f"Updated project agent: {agent_name}")
+                        else:
+                            deployed_count += 1
+                            self.logger.info(f"Deployed project agent: {agent_name}")
+                            
+                except Exception as e:
+                    error_msg = f"Failed to deploy project agent {json_file.name}: {e}"
+                    self.logger.error(error_msg)
+                    errors.append(error_msg)
+            
+            # Report results
+            if deployed_count > 0 or updated_count > 0:
+                print(f"✓ Deployed {deployed_count} project agents, updated {updated_count}")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        f"Project agent deployment: {deployed_count} deployed, {updated_count} updated",
+                        level="INFO",
+                        component="deployment"
+                    )
+            
+            if errors:
+                for error in errors:
+                    print(f"⚠️  {error}")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            error_msg = f"Failed to deploy project agents: {e}"
+            self.logger.error(error_msg)
+            print(f"⚠️  {error_msg}")
+            if self.project_logger:
+                self.project_logger.log_system(error_msg, level="ERROR", component="deployment")
+            return False
+    
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode."""
+        # TODO: Add response logging for interactive mode
+        # This requires capturing stdout from the exec'd process or using subprocess with PTY
+        
         # Connect to Socket.IO server if enabled
         if self.enable_websocket:
             try:
@@ -336,9 +493,12 @@ class ClaudeRunner:
                 component="session"
             )
         
-        # Setup agents
+        # Setup agents - first deploy system agents, then project agents
         if not self.setup_agents():
             print("Continuing without native agents...")
+        
+        # Deploy project-specific agents if they exist
+        self.deploy_project_agents_to_claude()
         
         # Build command with system instructions
         cmd = [
@@ -587,9 +747,12 @@ class ClaudeRunner:
                 component="session"
             )
         
-        # Setup agents
+        # Setup agents - first deploy system agents, then project agents
         if not self.setup_agents():
             print("Continuing without native agents...")
+        
+        # Deploy project-specific agents if they exist
+        self.deploy_project_agents_to_claude()
         
         # Combine context and prompt
         full_prompt = prompt
@@ -670,6 +833,22 @@ class ClaudeRunner:
             if result.returncode == 0:
                 response = result.stdout.strip()
                 print(response)
+                
+                # Log response if logging enabled
+                if self.response_logger and response:
+                    execution_time = time.time() - start_time
+                    response_summary = prompt[:200] + "..." if len(prompt) > 200 else prompt
+                    self.response_logger.log_response(
+                        request_summary=response_summary,
+                        response_content=response,
+                        metadata={
+                            "mode": "oneshot",
+                            "model": "opus",
+                            "exit_code": result.returncode,
+                            "execution_time": execution_time
+                        },
+                        agent="claude-direct"
+                    )
                 
                 # Broadcast output to WebSocket clients
                 if self.websocket_server and response:
@@ -1185,6 +1364,10 @@ class ClaudeRunner:
         import tty
         import signal
         
+        # Collect output for response logging if enabled
+        collected_output = [] if self.response_logger else None
+        collected_input = [] if self.response_logger else None
+        
         # Save original terminal settings
         original_tty = None
         if sys.stdin.isatty():
@@ -1247,6 +1430,13 @@ class ClaudeRunner:
                         data = os.read(master_fd, 4096)
                         if data:
                             os.write(sys.stdout.fileno(), data)
+                            # Collect output for response logging
+                            if collected_output is not None:
+                                try:
+                                    output_text = data.decode('utf-8', errors='replace')
+                                    collected_output.append(output_text)
+                                except Exception:
+                                    pass
                             # Broadcast output to WebSocket clients
                             if self.websocket_server:
                                 try:
@@ -1265,11 +1455,37 @@ class ClaudeRunner:
                         data = os.read(sys.stdin.fileno(), 4096)
                         if data:
                             os.write(master_fd, data)
+                            # Collect input for response logging
+                            if collected_input is not None:
+                                try:
+                                    input_text = data.decode('utf-8', errors='replace')
+                                    collected_input.append(input_text)
+                                except Exception:
+                                    pass
                     except OSError:
                         break
             
             # Wait for process to complete
             process.wait()
+            
+            # Log the interactive session if response logging is enabled
+            if self.response_logger and collected_output is not None and collected_output:
+                try:
+                    full_output = ''.join(collected_output)
+                    full_input = ''.join(collected_input) if collected_input else "Interactive session"
+                    self.response_logger.log_response(
+                        request_summary=f"Interactive session: {full_input[:200]}..." if len(full_input) > 200 else f"Interactive session: {full_input}",
+                        response_content=full_output,
+                        metadata={
+                            "mode": "interactive-subprocess",
+                            "model": "opus",
+                            "exit_code": process.returncode,
+                            "session_type": "subprocess"
+                        },
+                        agent="claude-interactive"
+                    )
+                except Exception as e:
+                    self.logger.debug(f"Failed to log interactive session: {e}")
             
             if self.project_logger:
                 self.project_logger.log_system(
