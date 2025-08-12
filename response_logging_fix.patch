@@ -1,0 +1,67 @@
+--- a/src/claude_mpm/core/claude_runner.py
++++ b/src/claude_mpm/core/claude_runner.py
+@@ -472,9 +472,26 @@ class ClaudeRunner:
+     
+     def run_interactive(self, initial_context: Optional[str] = None):
+         """Run Claude in interactive mode."""
+-        # TODO: Add response logging for interactive mode
+-        # This requires capturing stdout from the exec'd process or using subprocess with PTY
++        # Automatically use subprocess mode when response logging is enabled
++        # This allows capturing output for logging while maintaining interactive functionality
++        effective_launch_method = self.launch_method
++        
++        # Check if response logging is enabled and auto-switch to subprocess mode
++        if self.response_logger is not None:
++            response_config = self.config.get('response_logging', {})
++            if response_config.get('enabled', False) and effective_launch_method == "exec":
++                effective_launch_method = "subprocess"
++                if self.project_logger:
++                    self.project_logger.log_system(
++                        "Auto-switching to subprocess mode for response logging",
++                        level="INFO",
++                        component="session"
++                    )
++                print("ℹ️  Using subprocess mode for response logging (you can disable with --launch-method exec)")
+         
++        # Store the effective method for use in logging and notifications
++        original_method = self.launch_method
++        self.launch_method = effective_launch_method
+         # Connect to Socket.IO server if enabled
+         if self.enable_websocket:
+             try:
+@@ -581,7 +598,7 @@ class ClaudeRunner:
+             if self.project_logger:
+                 self.project_logger.log_system(
+-                    f"Launching Claude interactive mode with {self.launch_method}",
++                    f"Launching Claude interactive mode with {effective_launch_method}",
+                     level="INFO",
+                     component="session"
+                 )
+@@ -589,7 +606,7 @@ class ClaudeRunner:
+                     "event": "launching_claude_interactive",
+                     "command": " ".join(cmd),
+-                    "method": self.launch_method
++                    "method": effective_launch_method
+                 })
+             
+             # Notify WebSocket clients
+@@ -599,7 +616,7 @@ class ClaudeRunner:
+                 )
+             
+             # Launch using selected method
+-            if self.launch_method == "subprocess":
++            if effective_launch_method == "subprocess":
+                 self._launch_subprocess_interactive(cmd, clean_env)
+             else:
+                 # Default to exec for backward compatibility
+@@ -732,6 +749,9 @@ class ClaudeRunner:
+                         level="ERROR",
+                         component="session"
+                     )
++        finally:
++            # Restore original launch method
++            self.launch_method = original_method
+     
+     def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
+         """Run Claude with a single prompt and return success status."""
+EOF < /dev/null
