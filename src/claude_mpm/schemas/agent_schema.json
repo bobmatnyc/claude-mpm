@@ -96,6 +96,11 @@
           "type": "string",
           "format": "date-time",
           "description": "Last update timestamp"
+        },
+        "color": {
+          "type": "string",
+          "enum": ["red", "blue", "green", "yellow", "purple", "orange", "pink", "cyan"],
+          "description": "Agent color for visual identification in Claude Code interface. Helps distinguish agents at a glance."
         }
       }
     },
@@ -110,18 +115,11 @@
         "model": {
           "type": "string",
           "enum": [
-            "claude-3-haiku-20240307",
-            "claude-3-5-haiku-20241022",
-            "claude-3-sonnet-20240229",
-            "claude-3-5-sonnet-20241022",
-            "claude-3-5-sonnet-20240620",
-            "claude-sonnet-4-20250514",
-            "claude-4-sonnet-20250514",
-            "claude-3-opus-20240229",
-            "claude-opus-4-20250514",
-            "claude-4-opus-20250514"
+            "opus",
+            "sonnet",
+            "haiku"
           ],
-          "description": "Claude model to use for this agent. Choose based on task complexity and performance requirements."
+          "description": "Claude model tier to use for this agent. Choose based on task complexity and performance requirements: opus (most capable), sonnet (balanced), haiku (fastest)."
         },
         "tools": {
           "type": "array",
@@ -374,6 +372,21 @@
   },
   "additionalProperties": false,
   "definitions": {
+    "model_mappings": {
+      "description": "Mappings for model normalization from full names to tiers",
+      "mappings": {
+        "claude-3-5-sonnet-20241022": "sonnet",
+        "claude-3-5-sonnet-20240620": "sonnet",
+        "claude-sonnet-4-20250514": "sonnet",
+        "claude-4-sonnet-20250514": "sonnet",
+        "claude-3-sonnet-20240229": "sonnet",
+        "claude-3-opus-20240229": "opus",
+        "claude-opus-4-20250514": "opus",
+        "claude-4-opus-20250514": "opus",
+        "claude-3-haiku-20240307": "haiku",
+        "claude-3-5-haiku-20241022": "haiku"
+      }
+    },
     "resource_tier_limits": {
       "intensive": {
         "memory_limit": {"min": 4096, "max": 8192},

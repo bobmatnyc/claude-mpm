@@ -75,7 +75,7 @@ class AgentDeploymentService:
         Initialize agent deployment service.
         
         Args:
-            templates_dir: Directory containing agent template files
+            templates_dir: Directory containing agent JSON files
             base_agent_path: Path to base_agent.md file
             
         METRICS OPPORTUNITY: Track initialization performance:
@@ -105,6 +105,8 @@ class AgentDeploymentService:
             self.templates_dir = Path(templates_dir)
         else:
             # Use centralized paths instead of fragile parent calculations
+            # For system agents, still use templates subdirectory
+            # For project/user agents, this should be overridden with actual agents dir
             self.templates_dir = paths.agents_dir / "templates"
         
         # Find base agent file
@@ -224,13 +226,20 @@ class AgentDeploymentService:
         try:
             # Create agents directory if needed
             agents_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.info(f"Building and deploying agents to: {agents_dir}")
+            # Determine source tier for logging
+            source_tier = "SYSTEM"
+            if ".claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
+                source_tier = "PROJECT" 
+            elif "/.claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
+                source_tier = "USER"
+            
+            self.logger.info(f"Building and deploying {source_tier} agents to: {agents_dir}")
             
             # Note: System instructions are now loaded directly by SimpleClaudeRunner
             
             # Check if templates directory exists
             if not self.templates_dir.exists():
-                error_msg = f"Templates directory not found: {self.templates_dir}"
+                error_msg = f"Agents directory not found: {self.templates_dir}"
                 self.logger.error(error_msg)
                 results["errors"].append(error_msg)
                 return results
@@ -568,20 +577,36 @@ class AgentDeploymentService:
         # Simplify model name for Claude Code
         model_map = {
             'claude-4-sonnet-20250514': 'sonnet',
-            'claude-sonnet-4-20250514': 'sonnet', 
+            'claude-sonnet-4-20250514': 'sonnet',
+            'claude-opus-4-20250514': 'opus',
             'claude-3-opus-20240229': 'opus',
             'claude-3-haiku-20240307': 'haiku',
             'claude-3.5-sonnet': 'sonnet',
             'claude-3-sonnet': 'sonnet'
         }
-        model = model_map.get(model, model.split('-')[-1] if '-' in model else model)
+        # Better fallback: extract the model type (opus/sonnet/haiku) from the string
+        if model not in model_map:
+            if 'opus' in model.lower():
+                model = 'opus'
+            elif 'sonnet' in model.lower():
+                model = 'sonnet'
+            elif 'haiku' in model.lower():
+                model = 'haiku'
+            else:
+                # Last resort: try to extract from hyphenated format
+                model = model_map.get(model, model.split('-')[-1] if '-' in model else model)
+        else:
+            model = model_map[model]
         
         # Get response format from template or use base agent default
         response_format = template_data.get('response', {}).get('format', 'structured')
         
         # Convert lists to space-separated strings for Claude Code compatibility
         tags_str = ' '.join(tags) if isinstance(tags, list) else tags
-        tools_str = ', '.join(tools) if isinstance(tools, list) else tools
+        
+        # Convert tools list to comma-separated string for Claude Code compatibility
+        # IMPORTANT: No spaces after commas - Claude Code requires exact format
+        tools_str = ','.join(tools) if isinstance(tools, list) else tools
         
         # Build frontmatter with only the fields Claude Code uses
         frontmatter_lines = [
@@ -596,8 +621,13 @@ class AgentDeploymentService:
         ]
         
         # Add optional fields if present
-        if template_data.get('color'):
-            frontmatter_lines.append(f"color: {template_data['color']}")
+        # Check for color in metadata section (new format) or root (old format)
+        color = (
+            template_data.get('metadata', {}).get('color') or
+            template_data.get('color')
+        )
+        if color:
+            frontmatter_lines.append(f"color: {color}")
         
         frontmatter_lines.append("---")
         frontmatter_lines.append("")
@@ -1059,7 +1089,7 @@ temperature: {temperature}"""
         agents = []
         
         if not self.templates_dir.exists():
-            self.logger.warning(f"Templates directory not found: {self.templates_dir}")
+            self.logger.warning(f"Agents directory not found: {self.templates_dir}")
             return agents
         
         template_files = sorted(self.templates_dir.glob("*.json"))
