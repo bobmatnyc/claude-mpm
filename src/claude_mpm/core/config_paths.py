@@ -35,7 +35,6 @@ class ConfigPaths:
     RESPONSES_DIR = "responses"
     
     # Agent subdirectories
-    AGENT_PROJECT_SPECIFIC = "project-specific"
     AGENT_USER_AGENTS = "user-agents"
     AGENT_USER_DEFINED = "user-defined"
     AGENT_SYSTEM = "templates"

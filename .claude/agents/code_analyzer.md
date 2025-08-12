@@ -2,7 +2,7 @@
 name: code_analyzer
 description: Advanced code analysis using tree-sitter for AST parsing, pattern detection, and improvement recommendations
 version: 1.0.0
-base_version: 0.3.0
+base_version: 0.0.0
 author: claude-mpm-project
 tools: Read,Grep,Glob,LS,Bash,TodoWrite,WebSearch,WebFetch
 model: sonnet

@@ -68,8 +68,7 @@ class ProjectInitializer:
         
         Creates:
         - .claude-mpm/
-          - agents/
-            - project-specific/
+          - agents/     (for project agent JSON files)
           - config/
           - responses/
           - logs/
@@ -80,20 +79,33 @@ class ProjectInitializer:
                 project_root = project_path
                 self.project_dir = project_path / ".claude-mpm"
             else:
-                # Always use current working directory for project directories
-                # This ensures .claude-mpm is created where the user launches the tool
-                project_root = Path.cwd()
+                # Check for the user's original working directory from launch script
+                # The launch script sets CLAUDE_MPM_USER_PWD before changing to framework directory
+                user_pwd = os.environ.get('CLAUDE_MPM_USER_PWD')
+                
+                if user_pwd:
+                    # Use the original user working directory
+                    project_root = Path(user_pwd)
+                    self.logger.debug(f"Using user working directory from CLAUDE_MPM_USER_PWD: {project_root}")
+                else:
+                    # Fallback to current working directory (backward compatibility)
+                    project_root = Path.cwd()
+                    self.logger.debug(f"CLAUDE_MPM_USER_PWD not set, using cwd: {project_root}")
+                
                 self.project_dir = project_root / ".claude-mpm"
             
             # Check if directory already exists
             directory_existed = self.project_dir.exists()
+            
+            # Migrate existing agents from project-specific subdirectory if needed
+            self._migrate_project_agents()
             
             # Create project directory
             self.project_dir.mkdir(exist_ok=True)
             
             # Create subdirectories
             directories = [
-                self.project_dir / "agents" / "project-specific",
+                self.project_dir / "agents",  # Direct agents directory for project agents
                 self.project_dir / "config",
                 self.project_dir / "responses",
                 self.project_dir / "logs",
@@ -122,12 +134,66 @@ class ProjectInitializer:
             else:
                 print(f"✓ Initialized .claude-mpm/ in {project_root}")
             
+            # Check if migration happened
+            agents_dir = self.project_dir / "agents"
+            if agents_dir.exists() and any(agents_dir.glob("*.json")):
+                agent_count = len(list(agents_dir.glob("*.json")))
+                print(f"✓ Found {agent_count} project agent(s) in .claude-mpm/agents/")
+            
             return True
             
         except Exception as e:
             self.logger.error(f"Failed to initialize project directory: {e}")
             print(f"✗ Failed to create .claude-mpm/ directory: {e}")
             return False
+    
+    def _migrate_project_agents(self):
+        """Migrate agents from old subdirectory structure to direct agents directory.
+        
+        WHY: We're simplifying the directory structure to match the deployment expectations.
+        The old structure had a subdirectory but the deployment now looks for agents 
+        directly in .claude-mpm/agents/.
+        """
+        if not self.project_dir:
+            return
+        
+        old_agents_dir = self.project_dir / "agents" / "project-specific"
+        new_agents_dir = self.project_dir / "agents"
+        
+        # Check if old directory exists with JSON files
+        if old_agents_dir.exists() and old_agents_dir.is_dir():
+            json_files = list(old_agents_dir.glob("*.json"))
+            if json_files:
+                self.logger.info(f"Migrating {len(json_files)} agents from old subdirectory")
+                
+                # Ensure new agents directory exists
+                new_agents_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Move each JSON file
+                migrated_count = 0
+                for json_file in json_files:
+                    try:
+                        target_file = new_agents_dir / json_file.name
+                        if not target_file.exists():
+                            # Move the file
+                            shutil.move(str(json_file), str(target_file))
+                            migrated_count += 1
+                            self.logger.debug(f"Migrated {json_file.name} to agents directory")
+                        else:
+                            self.logger.debug(f"Skipping {json_file.name} - already exists in target")
+                    except Exception as e:
+                        self.logger.error(f"Failed to migrate {json_file.name}: {e}")
+                
+                if migrated_count > 0:
+                    print(f"✓ Migrated {migrated_count} agent(s) from old location to agents/")
+                
+                # Remove old directory if empty
+                try:
+                    if not any(old_agents_dir.iterdir()):
+                        old_agents_dir.rmdir()
+                        self.logger.debug("Removed empty old subdirectory")
+                except Exception as e:
+                    self.logger.debug(f"Could not remove old directory: {e}")
     
     def _find_project_root(self) -> Optional[Path]:
         """Find project root by looking for .git or other project markers."""
@@ -237,19 +303,23 @@ class ProjectInitializer:
         
         Shows clear information about where directories are being created.
         """
-        # Show working directory info at startup
-        cwd = Path.cwd()
-        framework_path = Path(__file__).parent.parent.parent
+        # Determine actual working directory
+        user_pwd = os.environ.get('CLAUDE_MPM_USER_PWD')
+        if user_pwd:
+            actual_wd = Path(user_pwd)
+            self.logger.info(f"User working directory (from CLAUDE_MPM_USER_PWD): {actual_wd}")
+        else:
+            actual_wd = Path.cwd()
+            self.logger.info(f"Working directory: {actual_wd}")
         
-        # Log startup context
-        self.logger.info(f"Working directory: {cwd}")
+        framework_path = Path(__file__).parent.parent.parent
         self.logger.info(f"Framework path: {framework_path}")
         
         # Initialize user directory (in home)
         user_ok = self.initialize_user_directory()
         
-        # Initialize project directory (in current working directory)
-        self.logger.info(f"Checking for .claude-mpm/ in {cwd}")
+        # Initialize project directory (in user's actual working directory)
+        self.logger.info(f"Checking for .claude-mpm/ in {actual_wd}")
         project_ok = self.initialize_project_directory()
         
         return user_ok and project_ok
