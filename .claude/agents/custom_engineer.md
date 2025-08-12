@@ -2,7 +2,7 @@
 name: custom_engineer
 description: Custom engineer agent specifically tailored for this project's development needs and architecture
 version: 2.0.0
-base_version: 0.0.0
+base_version: 0.3.0
 author: claude-mpm-project
 tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob,LS,TodoWrite
 model: sonnet

@@ -1,12 +1,7 @@
 ---
 name: research
-description: Prescriptive codebase analysis with confidence validation and PM escalation for reliable implementation guidance
-version: 2.4.0
-base_version: 0.3.0
+version: 1.0.0
 author: claude-mpm
-tools: Read,Grep,Glob,LS,WebSearch,WebFetch,Bash,TodoWrite
-model: sonnet
-color: purple
 ---
 
 # Research Agent - PRESCRIPTIVE ANALYSIS WITH CONFIDENCE VALIDATION
