@@ -23,7 +23,9 @@ from .commands import (
     show_info,
     manage_agents,
     manage_memory,
-    manage_monitor
+    manage_monitor,
+    manage_config,
+    aggregate_command
 )
 from claude_mpm.config.paths import paths
 
@@ -181,6 +183,8 @@ def _execute_command(command: str, args) -> int:
         CLICommands.AGENTS.value: manage_agents,
         CLICommands.MEMORY.value: manage_memory,
         CLICommands.MONITOR.value: manage_monitor,
+        CLICommands.CONFIG.value: manage_config,
+        CLICommands.AGGREGATE.value: aggregate_command,
     }
     
     # Execute command if found

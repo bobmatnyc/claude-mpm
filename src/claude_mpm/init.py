@@ -8,6 +8,7 @@ import shutil
 from pathlib import Path
 from typing import Optional, Dict, Any
 import json
+import yaml
 
 from claude_mpm.core.logger import get_logger
 
@@ -48,9 +49,15 @@ class ProjectInitializer:
             for directory in directories:
                 directory.mkdir(parents=True, exist_ok=True)
             
-            # Create default configuration if it doesn't exist
-            config_file = self.user_dir / "config" / "settings.json"
-            if not config_file.exists():
+            # Check for migration from old settings.json to new configuration.yaml
+            old_config_file = self.user_dir / "config" / "settings.json"
+            config_file = self.user_dir / "config" / "configuration.yaml"
+            
+            # Migrate if old file exists but new doesn't
+            if old_config_file.exists() and not config_file.exists():
+                self._migrate_json_to_yaml(old_config_file, config_file)
+            elif not config_file.exists():
+                # Create default configuration if it doesn't exist
                 self._create_default_config(config_file)
             
             # Copy agent templates if they don't exist
@@ -208,8 +215,36 @@ class ProjectInitializer:
             current = current.parent
         return None
     
+    def _migrate_json_to_yaml(self, old_file: Path, new_file: Path):
+        """Migrate configuration from JSON to YAML format.
+        
+        Args:
+            old_file: Path to existing settings.json
+            new_file: Path to new configuration.yaml
+        """
+        try:
+            # Read existing JSON configuration
+            with open(old_file, 'r') as f:
+                config = json.load(f)
+            
+            # Write as YAML
+            with open(new_file, 'w') as f:
+                yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+            
+            self.logger.info(f"Migrated configuration from {old_file.name} to {new_file.name}")
+            
+            # Optionally rename old file to .backup
+            backup_file = old_file.with_suffix('.json.backup')
+            old_file.rename(backup_file)
+            self.logger.info(f"Renamed old configuration to {backup_file.name}")
+            
+        except Exception as e:
+            self.logger.error(f"Failed to migrate configuration: {e}")
+            # Fall back to creating default config
+            self._create_default_config(new_file)
+    
     def _create_default_config(self, config_file: Path):
-        """Create default user configuration."""
+        """Create default user configuration in YAML format."""
         default_config = {
             "version": "1.0",
             "hooks": {
@@ -232,7 +267,7 @@ class ProjectInitializer:
         }
         
         with open(config_file, 'w') as f:
-            json.dump(default_config, f, indent=2)
+            yaml.dump(default_config, f, default_flow_style=False, sort_keys=False)
     
     def _create_project_config(self, config_file: Path):
         """Create default project configuration."""
