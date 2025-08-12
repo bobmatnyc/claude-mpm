@@ -2,7 +2,7 @@
 name: project_qa
 description: Quality assurance and testing validation agent with project-specific testing protocols and standards
 version: 2.5.0
-base_version: 0.0.0
+base_version: 0.3.0
 author: claude-mpm-project
 tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite
 model: sonnet

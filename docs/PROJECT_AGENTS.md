@@ -4,7 +4,7 @@
 
 Claude MPM now supports project-level agents with the highest precedence in the agent hierarchy. This allows projects to customize or override system and user agents with project-specific implementations.
 
-**Important**: Project agents in `.claude-mpm/agents/` must be in **JSON format only** (Claude MPM native format). During deployment, these JSON agents are automatically converted to Markdown format and placed in `.claude/agents/` for Claude Code compatibility.
+**Important**: Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
 
 ## Agent Hierarchy
 
@@ -25,9 +25,9 @@ To create a project-specific agent:
    mkdir -p .claude-mpm/agents
    ```
 
-2. Add your agent definition file (JSON format only):
+2. Add your agent definition file (supports JSON, YAML, or Markdown formats):
    ```bash
-   # Example: Custom engineer agent
+   # Example: Custom engineer agent (JSON format)
    cat > .claude-mpm/agents/engineer.json << 'EOF'
    {
      "agent_id": "engineer",
@@ -43,6 +43,23 @@ To create a project-specific agent:
      },
      "instructions": "# Engineer Agent (Project-Specific)\n\nCustom engineer agent with project-specific knowledge."
    }
+   EOF
+   
+   # Alternative: YAML format for better readability
+   cat > .claude-mpm/agents/engineer.yaml << 'EOF'
+   agent_id: engineer
+   version: "2.0.0"
+   metadata:
+     name: "Project Engineer Agent"
+     description: "Project-specific engineer agent"
+   capabilities:
+     model: "claude-sonnet-4-20250514"
+     tools: ["custom_tool", "project_debugger"]
+     resource_tier: "standard"
+   instructions: |
+     # Engineer Agent (Project-Specific)
+     
+     Custom engineer agent with project-specific knowledge.
    EOF
    ```
 
@@ -112,25 +129,26 @@ EOF
 - Force refresh available via `discover_agents(force_refresh=True)`
 
 ### File Format Requirements
-- **JSON only** (`.json`) - Claude MPM structured agent definitions
-- **Note**: During deployment, JSON agents are automatically converted to Markdown with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility
+- **Multiple formats supported**: `.json`, `.yaml`, `.yml`, and `.md` files
+- **Consistent schema**: All formats must follow the same agent schema structure
+- **Note**: During deployment, all agent formats are automatically converted to Markdown with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility
 
 ## Example Project Structure
 
 ```
 my-project/
 ├── .claude-mpm/
-│   └── agents/                  # JSON format only (Claude MPM)
-│       ├── engineer.json        # Override system engineer
-│       ├── architect.json       # Override system architect
-│       ├── payment_processor.json # Project-specific agent
-│       └── api_integrator.json  # Project-specific agent
+│   └── agents/                  # Multiple formats supported
+│       ├── engineer.json        # Override system engineer (JSON)
+│       ├── architect.yaml       # Override system architect (YAML)
+│       ├── payment_processor.json # Project-specific agent (JSON)
+│       └── api_integrator.md    # Project-specific agent (Markdown)
 ├── .claude/
 │   └── agents/                  # Generated Markdown (Claude Code)
 │       ├── engineer.md          # Auto-generated from JSON
-│       ├── architect.md         # Auto-generated from JSON
+│       ├── architect.md         # Auto-generated from YAML
 │       ├── payment_processor.md # Auto-generated from JSON
-│       └── api_integrator.md    # Auto-generated from JSON
+│       └── api_integrator.md    # Auto-generated from Markdown
 ├── src/
 └── README.md
 ```
@@ -157,13 +175,13 @@ project_agents = registry.list_agents(tier=AgentTier.PROJECT)
 
 ## Best Practices
 
-1. **Version Control**: Include `.claude-mpm/agents/` (JSON source) in version control to share project agents with team
-2. **Format Consistency**: Always use JSON format in `.claude-mpm/agents/` - the system handles conversion to Markdown
+1. **Version Control**: Include `.claude-mpm/agents/` (source files) in version control to share project agents with team
+2. **Format Choice**: Choose the format that works best for your team - JSON for structure, YAML for readability, or Markdown for documentation-heavy agents
 3. **Documentation**: Document why project-specific agents are needed
 4. **Naming**: Use descriptive names that indicate project customization
 5. **Testing**: Test project agents thoroughly before deployment
-6. **Deployment**: Let the system auto-convert JSON to Markdown - don't manually edit `.claude/agents/*.md` files
-7. **Maintenance**: Keep JSON source agents updated with framework changes
+6. **Deployment**: Let the system auto-convert all formats to Markdown - don't manually edit `.claude/agents/*.md` files
+7. **Maintenance**: Keep source agents updated with framework changes
 
 ## Migration Path
 
@@ -174,18 +192,80 @@ To migrate existing customizations to project agents:
 3. Update any project-specific instructions
 4. Test the migration with `test_project_agent_precedence.py`
 
+## Agent Exclusion Configuration
+
+Project agents can be excluded from deployment just like system agents. This is useful when you want to:
+- Deploy only a subset of available project agents
+- Test specific agent combinations
+- Optimize deployment performance
+
+### Configuration
+
+Add exclusion configuration to `.claude-mpm/configuration.yaml`:
+
+```yaml
+agent_deployment:
+  excluded_agents:
+    - custom_agent_name      # Exclude specific project agent
+    - another_project_agent  # Multiple exclusions
+  case_sensitive: false      # Case-insensitive matching (default)
+```
+
+### Examples
+
+**Exclude experimental project agents**:
+```yaml
+agent_deployment:
+  excluded_agents:
+    - experimental_feature_agent
+    - beta_integration_agent
+```
+
+**Deploy only core project agents**:
+```yaml
+agent_deployment:
+  excluded_agents:
+    - payment_processor     # Skip payment agent for testing
+    - notification_service  # Skip notifications for dev
+    - analytics_tracker    # Skip analytics for privacy
+```
+
+### CLI Usage
+
+```bash
+# Deploy with exclusions (skips excluded project agents)
+./claude-mpm agents deploy
+
+# Deploy all agents including excluded ones
+./claude-mpm agents deploy --include-all
+
+# Check which project agents are deployed
+./claude-mpm agents list --by-tier
+```
+
+**Note**: Exclusions apply to both system and project agents. The same exclusion configuration affects all agent tiers.
+
+See [Agent Exclusion Guide](AGENT_EXCLUSION.md) for comprehensive exclusion documentation.
+
 ## Troubleshooting
 
 ### Agent Not Found
 - Verify file is in `.claude-mpm/agents/` directory
-- Check file extension is `.json` (only JSON format supported in this directory)
+- Check file extension is supported (`.json`, `.yaml`, `.yml`, or `.md`)
 - Ensure file name follows naming conventions
 - Run deployment if needed to generate `.claude/agents/*.md` files
+- **Check exclusions**: Verify agent isn't excluded in `agent_deployment.excluded_agents`
 
 ### Wrong Agent Version Loaded
 - Check tier precedence with `registry.get_agent(name).tier`
 - Use `force_refresh=True` to bypass cache
 - Verify no naming conflicts
+- **Check exclusions**: Ensure desired agent isn't excluded from deployment
+
+### Agent Seems Missing After Deployment
+- **Check exclusion configuration**: Agent may be excluded via `agent_deployment.excluded_agents`
+- **Use `--include-all`**: Try deploying with `./claude-mpm agents deploy --include-all`
+- **Case sensitivity**: Check if agent name case matches configuration (when `case_sensitive: true`)
 
 ### Cache Issues
 - Force refresh: `registry.discover_agents(force_refresh=True)`

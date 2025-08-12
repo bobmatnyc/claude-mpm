@@ -2,7 +2,7 @@
 name: deploy_manager
 description: Operations, deployment, and infrastructure management specialist for reliable and scalable deployments
 version: 2.0.0
-base_version: 0.0.0
+base_version: 0.3.0
 author: claude-mpm-project
 tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite,docker,kubectl,git
 model: opus
