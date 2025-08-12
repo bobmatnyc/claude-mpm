@@ -545,6 +545,31 @@ claude-mpm agents list
 
 When using the unified release script (`./scripts/release.py`), all items are handled automatically:
 
+### Pre-Deployment Documentation Cleanup
+
+**IMPORTANT: Complete documentation cleanup BEFORE starting the deployment process to ensure clean documentation is included in the release.**
+
+- [ ] **Documentation Organization Audit**
+  - [ ] Consolidate duplicate agent documentation (AGENTS.md and PROJECT_AGENTS.md should be merged)
+  - [ ] Verify all files follow STRUCTURE.md naming conventions (no spaces, consistent casing)
+  - [ ] Archive outdated content to `docs/archive/` directory
+  - [ ] Remove deprecated "legacy format" references from all documentation
+  - [ ] Ensure all numbered directories (`01-`, `02-`, etc.) have README.md index files
+  
+- [ ] **Documentation Content Validation**
+  - [ ] Validate all internal documentation links work (no broken references)
+  - [ ] Verify files are in correct directories per STRUCTURE.md guidelines
+  - [ ] Update cross-references between documentation files
+  - [ ] Check for redundant documentation (e.g., multiple deployment guides, duplicate QA reports)
+  - [ ] Ensure consistency in terminology and formatting across all docs
+  
+- [ ] **Documentation Cleanup Script** (if available)
+  - [ ] Run documentation audit script: `./scripts/audit_documentation.py` (create if doesn't exist)
+  - [ ] Review audit report for any remaining issues
+  - [ ] Address all critical documentation issues before proceeding
+
+### Release Process
+
 - [ ] All tests passing (`./scripts/run_all_tests.sh`)
 - [ ] Version bumped (`./scripts/manage_version.py auto`)
 - [ ] package.json version synchronized
