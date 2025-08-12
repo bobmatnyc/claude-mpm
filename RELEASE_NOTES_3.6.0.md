@@ -18,6 +18,54 @@ These improvements make Claude MPM more efficient, maintainable, and suitable fo
 
 ---
 
+## 🤖 New Agents
+
+### Code Analyzer Agent
+
+**New specialized agent for advanced code analysis and quality assessment.**
+
+The Code Analyzer agent brings sophisticated static code analysis capabilities to Claude MPM using AST (Abstract Syntax Tree) parsing for deep structural insights.
+
+#### Key Features
+- **AST-Powered Analysis**: Uses tree-sitter for multi-language support and Python's native `ast` module for Python-specific analysis
+- **Pattern Detection**: Identifies code quality issues, security vulnerabilities, and performance bottlenecks
+- **Structural Analysis**: Detects god objects/functions, circular dependencies, code duplication, and architectural issues
+- **Security Scanning**: Finds hardcoded secrets, SQL injection risks, command injection, unsafe deserialization
+- **Performance Analysis**: Identifies synchronous I/O in async contexts, nested loops, memory leaks
+- **Quality Metrics**: Measures complexity, coupling, cohesion, and generates actionable recommendations
+
+#### Advanced Capabilities
+- **Multi-language Support**: Works with Python, JavaScript, TypeScript, Java, C/C++, Go, Rust, and more via tree-sitter
+- **Comprehensive Thresholds**: Configurable complexity (>10 high, >20 critical), function length (>50 long, >100 critical), class size limits
+- **Dependency Analysis**: Requires tree-sitter>=0.21.0 and tree-sitter-language-pack>=0.8.0 for full functionality
+- **Dynamic Script Generation**: Creates analysis scripts on-the-fly for specific codebase needs
+- **Prioritized Reporting**: Focuses on actionable issues with specific file:line references and remediation examples
+
+#### Example Use Cases
+```bash
+# Analyze codebase for quality issues
+claude-mpm run -a code_analyzer -i "Analyze the codebase for security vulnerabilities and performance bottlenecks"
+
+# Generate comprehensive code quality report
+claude-mpm run -a code_analyzer -i "Create a detailed code analysis report with complexity metrics and improvement recommendations"
+```
+
+#### Dependencies
+The Code Analyzer agent automatically manages its dependencies through the dynamic dependency system:
+- **Python packages**: tree-sitter, tree-sitter-language-pack
+- **System requirements**: python3, git
+- **Installation**: Dependencies are automatically installed when the agent is first used
+
+This agent is particularly valuable for:
+- Code review automation
+- Technical debt assessment
+- Security vulnerability scanning
+- Performance optimization identification
+- Architectural quality evaluation
+- Refactoring planning and prioritization
+
+---
+
 ## 🔧 Major Features
 
 ### 1. Dynamic Agent Dependencies System
@@ -412,7 +460,17 @@ Template Vars ────┘    {{current-date}}
 
 ## 🎉 Acknowledgments
 
-Special thanks to the contributors who made this release possible:
+We extend our heartfelt gratitude to the members of our WhatsApp support group whose invaluable feedback, thorough testing, and continuous support made Claude MPM 3.6.0 possible:
+
+- **Chris Bunk**
+- **Daniel Seltzer**
+- **Dirk Liebich**
+- **Eddie Hudson**
+- **Oliver Anson**
+
+Their dedication to quality assurance, willingness to test beta features, and constructive feedback have been instrumental in shaping this release. The robust architecture and enhanced developer experience in version 3.6.0 are a direct result of their collaborative efforts and commitment to excellence.
+
+Special thanks also to the technical contributors who made this release possible:
 
 - **Agent Dependency System**: Smart caching and environment detection
 - **PM Architecture**: Separation of concerns and structured responses  
@@ -431,7 +489,7 @@ Special thanks to the contributors who made this release possible:
 
 ---
 
-## 🚀 What's Next (Version 3.7.0)
+## 🚀 Roadmap (tell me what you want to see!)
 
 Coming in the next release:
 - **Virtual Environment Integration**: Auto-create isolated environments per project
