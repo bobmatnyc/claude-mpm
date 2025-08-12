@@ -564,7 +564,7 @@ CUSTOM_SECTIONS = {
 
 ## Related Documentation
 
-- [Response System](../responses/README.md) - Response handling and logging
+- [Response System](../12-responses/README.md) - Response handling and logging
 - [Response Logging](./response-logging.md) - Technical logging implementation
 - [Memory Router](./router.md) - Content routing to appropriate agents
 - [Memory Builder](./builder.md) - Building memories from documentation
@@ -573,5 +573,5 @@ CUSTOM_SECTIONS = {
 ## See Also
 
 - [Main Memory Guide](../../MEMORY.md) - User-focused memory documentation
-- [Agent Development](../agents/AGENT_DEVELOPMENT.md) - Creating memory-aware agents
-- [Security Guide](../security/SECURITY.md) - Memory security considerations
+- [Agent Development](../07-agent-system/AGENT_DEVELOPMENT.md) - Creating memory-aware agents
+- [Security Guide](../09-security/SECURITY.md) - Memory security considerations

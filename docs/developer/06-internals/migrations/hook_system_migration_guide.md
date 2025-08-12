@@ -138,4 +138,4 @@ logging.getLogger("claude_mpm.hooks").setLevel(logging.DEBUG)
 
 For questions or issues with the migration, please refer to:
 - GitHub Issues: [claude-mpm repository]
-- Documentation: `/docs/developer/json_rpc_hooks.md`
+- Documentation: `/docs/developer/02-core-components/hook-system.md`

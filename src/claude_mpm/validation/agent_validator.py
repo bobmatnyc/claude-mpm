@@ -53,6 +53,23 @@ class AgentValidator:
     - Privilege escalation (via tool combinations)
     """
     
+    # Model name mappings for normalization to tier names
+    MODEL_MAPPINGS = {
+        # Sonnet variations
+        "claude-3-5-sonnet-20241022": "sonnet",
+        "claude-3-5-sonnet-20240620": "sonnet",
+        "claude-sonnet-4-20250514": "sonnet",
+        "claude-4-sonnet-20250514": "sonnet",
+        "claude-3-sonnet-20240229": "sonnet",
+        # Opus variations
+        "claude-3-opus-20240229": "opus",
+        "claude-opus-4-20250514": "opus",
+        "claude-4-opus-20250514": "opus",
+        # Haiku variations
+        "claude-3-haiku-20240307": "haiku",
+        "claude-3-5-haiku-20241022": "haiku",
+    }
+    
     def __init__(self, schema_path: Optional[Path] = None):
         """Initialize the validator with the agent schema."""
         if schema_path is None:
@@ -83,6 +100,33 @@ class AgentValidator:
             logger.error(f"Failed to load schema from {self.schema_path}: {e}")
             raise
     
+    def _normalize_model(self, model: str) -> str:
+        """Normalize model name to standard tier (opus, sonnet, haiku).
+        
+        Args:
+            model: Original model name
+            
+        Returns:
+            Normalized model tier name
+        """
+        # Direct mapping check
+        if model in self.MODEL_MAPPINGS:
+            return self.MODEL_MAPPINGS[model]
+        
+        # Already normalized
+        if model in {"opus", "sonnet", "haiku"}:
+            return model
+        
+        # Check if model contains tier name
+        model_lower = model.lower()
+        for tier in {"opus", "sonnet", "haiku"}:
+            if tier in model_lower:
+                return tier
+        
+        # Default to sonnet if unrecognized
+        logger.warning(f"Unrecognized model '{model}', defaulting to 'sonnet'")
+        return "sonnet"
+    
     def validate_agent(self, agent_data: Dict[str, Any]) -> ValidationResult:
         """
         Validate a single agent configuration against the schema.
@@ -100,6 +144,14 @@ class AgentValidator:
             ValidationResult with validation status and any errors/warnings
         """
         result = ValidationResult(is_valid=True)
+        
+        # Normalize model name before validation
+        if "capabilities" in agent_data and "model" in agent_data["capabilities"]:
+            original_model = agent_data["capabilities"]["model"]
+            normalized_model = self._normalize_model(original_model)
+            if original_model != normalized_model:
+                agent_data["capabilities"]["model"] = normalized_model
+                result.warnings.append(f"Normalized model from '{original_model}' to '{normalized_model}'")
         
         # Perform JSON schema validation
         try:
@@ -242,8 +294,11 @@ class AgentValidator:
         model = agent_data.get("capabilities", {}).get("model", "")
         tools = agent_data.get("capabilities", {}).get("tools", [])
         
+        # Normalize model name for comparison
+        normalized_model = self._normalize_model(model)
+        
         # Haiku models shouldn't use resource-intensive tools
-        if "haiku" in model.lower():
+        if normalized_model == "haiku":
             intensive_tools = {"docker", "kubectl", "terraform", "aws", "gcloud", "azure"}
             used_intensive = set(tools) & intensive_tools
             if used_intensive:

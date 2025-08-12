@@ -306,6 +306,42 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         action="store_true", 
         help="List deployed agents"
     )
+    list_agents_parser.add_argument(
+        "--by-tier",
+        action="store_true",
+        help="List agents grouped by precedence tier (PROJECT > USER > SYSTEM)"
+    )
+    
+    # View agent details
+    view_agent_parser = agents_subparsers.add_parser(
+        AgentCommands.VIEW.value,
+        help="View detailed information about a specific agent"
+    )
+    view_agent_parser.add_argument(
+        "agent_name",
+        help="Name of the agent to view"
+    )
+    
+    # Fix agent frontmatter
+    fix_agents_parser = agents_subparsers.add_parser(
+        AgentCommands.FIX.value,
+        help="Fix agent frontmatter issues"
+    )
+    fix_agents_parser.add_argument(
+        "agent_name",
+        nargs="?",
+        help="Name of specific agent to fix (fix all if not specified with --all)"
+    )
+    fix_agents_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without applying them"
+    )
+    fix_agents_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Fix all agents"
+    )
     
     # Deploy agents
     deploy_agents_parser = agents_subparsers.add_parser(

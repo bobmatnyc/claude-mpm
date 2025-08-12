@@ -125,6 +125,124 @@ claude-mpm info --verbose
 claude-mpm info --json
 ```
 
+### `claude-mpm agents`
+
+Manage Claude MPM agents across the three-tier system (PROJECT > USER > SYSTEM).
+
+```bash
+claude-mpm agents <subcommand> [options]
+```
+
+#### `claude-mpm agents list`
+
+List agents with different filtering options.
+
+**Options:**
+- `--by-tier` - Group agents by precedence tier (most important)
+- `--system` - List available system agent templates
+- `--deployed` - List deployed agents for Claude Code
+
+**Examples:**
+```bash
+# Most useful: show agent hierarchy and precedence
+claude-mpm agents list --by-tier
+
+# Show system templates
+claude-mpm agents list --system
+
+# Show deployed agents
+claude-mpm agents list --deployed
+```
+
+#### `claude-mpm agents view`
+
+View detailed information about a specific agent.
+
+```bash
+claude-mpm agents view <agent_name>
+```
+
+**Examples:**
+```bash
+# View engineer agent details
+claude-mpm agents view engineer
+
+# View custom domain agent
+claude-mpm agents view payment_processor
+```
+
+**Output includes:**
+- Basic agent information (name, type, tier, path)
+- Parsed frontmatter configuration
+- Instructions preview (first 500 characters)
+- File statistics and metadata
+
+#### `claude-mpm agents fix`
+
+Automatically fix common frontmatter issues in agent files.
+
+```bash
+claude-mpm agents fix [agent_name] [options]
+```
+
+**Options:**
+- `--dry-run` - Preview changes without applying them
+- `--all` - Fix all agents (when no agent_name specified)
+
+**Examples:**
+```bash
+# Preview fixes for specific agent
+claude-mpm agents fix engineer --dry-run
+
+# Fix specific agent
+claude-mpm agents fix engineer
+
+# Preview fixes for all agents
+claude-mpm agents fix --all --dry-run
+
+# Fix all agents
+claude-mpm agents fix --all
+```
+
+**Common fixes applied:**
+- Add missing required fields (version, description)
+- Convert field formats (string to array where needed)
+- Standardize field names (desc → description)
+- Remove invalid fields
+- Fix YAML syntax issues
+
+#### Agent Deployment Commands
+
+**Deploy agents:**
+```bash
+claude-mpm agents deploy [--target path]
+claude-mpm agents force-deploy [--target path]
+```
+
+**Clean deployed agents:**
+```bash
+claude-mpm agents clean [--target path]
+```
+
+### Agent Management Workflow
+
+**Common usage patterns:**
+
+```bash
+# Daily workflow: Check agent hierarchy
+claude-mpm agents list --by-tier
+
+# Troubleshooting: Inspect specific agent
+claude-mpm agents view problematic_agent
+
+# Maintenance: Fix configuration issues
+claude-mpm agents fix --all --dry-run
+claude-mpm agents fix --all
+
+# Development: Verify project agents
+claude-mpm agents list --by-tier | grep PROJECT
+```
+
 ## Environment Variables
 
 Override default behavior with environment variables:

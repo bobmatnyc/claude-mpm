@@ -15,7 +15,7 @@ standardized schema before being registered for use.
 
 Key Features:
 -------------
-- Automatic agent discovery from src/claude_mpm/agents/templates/*.json files
+- Automatic agent discovery from JSON files in configured agent directories
 - Schema validation ensures all agents conform to the expected structure
 - Intelligent caching using SharedPromptCache for performance optimization
 - Dynamic model selection based on task complexity analysis
@@ -70,6 +70,7 @@ from ..validation.agent_validator import AgentValidator, ValidationResult
 from ..utils.paths import PathResolver
 from ..core.agent_name_normalizer import AgentNameNormalizer
 from ..core.config_paths import ConfigPaths
+from .frontmatter_validator import FrontmatterValidator
 
 # Temporary placeholders for missing module
 # WHY: These classes would normally come from a task_complexity module, but
@@ -101,12 +102,12 @@ class AgentTier(Enum):
 
 def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     """
-    Get directories containing agent template JSON files across all tiers.
+    Get directories containing agent JSON files across all tiers.
     
-    Returns a dictionary mapping tiers to their template directories:
-    - PROJECT: .claude-mpm/agents/templates in the current working directory
-    - USER: ~/.claude-mpm/agents/templates 
-    - SYSTEM: Built-in templates relative to this module
+    Returns a dictionary mapping tiers to their agent directories:
+    - PROJECT: .claude-mpm/agents in the current working directory
+    - USER: ~/.claude-mpm/agents 
+    - SYSTEM: Built-in agents relative to this module
     
     WHY: We support multiple tiers to allow project-specific customization
     while maintaining backward compatibility with system agents.
@@ -118,7 +119,7 @@ def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     
     # PROJECT tier - ALWAYS check current working directory dynamically
     # This ensures we pick up project agents even if CWD changes
-    project_dir = Path.cwd() / ConfigPaths.CONFIG_DIR / "agents" / "templates"
+    project_dir = Path.cwd() / ConfigPaths.CONFIG_DIR / "agents"
     if project_dir.exists():
         dirs[AgentTier.PROJECT] = project_dir
         logger.debug(f"Found PROJECT agents at: {project_dir}")
@@ -126,12 +127,12 @@ def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
     # USER tier - check user home directory
     user_config_dir = ConfigPaths.get_user_config_dir()
     if user_config_dir:
-        user_agents_dir = user_config_dir / "agents" / "templates"
+        user_agents_dir = user_config_dir / "agents"
         if user_agents_dir.exists():
             dirs[AgentTier.USER] = user_agents_dir
             logger.debug(f"Found USER agents at: {user_agents_dir}")
     
-    # SYSTEM tier - built-in templates
+    # SYSTEM tier - built-in agents
     system_dir = Path(__file__).parent / "templates"
     if system_dir.exists():
         dirs[AgentTier.SYSTEM] = system_dir
@@ -142,18 +143,18 @@ def _get_agent_templates_dirs() -> Dict[AgentTier, Optional[Path]]:
 
 def _get_agent_templates_dir() -> Path:
     """
-    Get the primary directory containing agent template JSON files.
+    Get the primary directory containing agent JSON files.
     
     DEPRECATED: Use _get_agent_templates_dirs() for tier-aware loading.
     This function is kept for backward compatibility.
     
     Returns:
-        Path: Absolute path to the system templates directory
+        Path: Absolute path to the system agents directory
     """
     return Path(__file__).parent / "templates"
 
 
-# Agent templates directory - where all agent JSON files are stored
+# Agent directory - where all agent JSON files are stored
 AGENT_TEMPLATES_DIR = _get_agent_templates_dir()
 
 # Cache prefix for agent prompts - versioned to allow cache invalidation on schema changes
@@ -186,7 +187,7 @@ class AgentLoader:
     Central registry for loading and managing agent configurations.
     
     This class implements the core agent discovery and management system. It:
-    1. Discovers agent JSON files from the templates directory
+    1. Discovers agent JSON files from the agents directory
     2. Validates each agent against the standardized schema
     3. Maintains an in-memory registry of valid agents
     4. Provides caching for performance optimization
@@ -198,7 +199,7 @@ class AgentLoader:
     - Agent usage frequency and patterns
     - Model selection distribution
     - Task complexity analysis results
-    - Memory usage for agent templates
+    - Memory usage for agent definitions
     - Error rates during loading/validation
     - Agent prompt size distributions
     
@@ -243,6 +244,9 @@ class AgentLoader:
         # Track which tier each agent came from for debugging
         self._agent_tiers: Dict[str, AgentTier] = {}
         
+        # Initialize frontmatter validator for .md agent files
+        self.frontmatter_validator = FrontmatterValidator()
+        
         # METRICS: Initialize performance tracking
         # This structure collects valuable telemetry for AI agent performance
         self._metrics = {
@@ -285,10 +289,13 @@ class AgentLoader:
         - Schema validation failures are logged with details
         - The system continues to function with whatever valid agents it finds
         """
-        # Dynamically discover template directories at load time
+        # Dynamically discover agent directories at load time
         self._template_dirs = _get_agent_templates_dirs()
         
         logger.info(f"Loading agents from {len(self._template_dirs)} tier(s)")
+        
+        # Perform startup validation check for .md agent files
+        self._validate_markdown_agents()
         
         # Process tiers in REVERSE precedence order (SYSTEM first, PROJECT last)
         # This ensures PROJECT agents override USER/SYSTEM agents
@@ -352,6 +359,93 @@ class AgentLoader:
                 except Exception as e:
                     # Log loading errors but don't crash - system should be resilient
                     logger.error(f"Failed to load {json_file.name}: {e}")
+    
+    def _validate_markdown_agents(self) -> None:
+        """
+        Validate frontmatter in all .md agent files at startup.
+        
+        This method performs validation and reports issues found in agent files.
+        It checks all tiers and provides a summary of validation results.
+        Auto-correction is applied in memory but not written to files.
+        """
+        validation_summary = {
+            'total_checked': 0,
+            'valid': 0,
+            'corrected': 0,
+            'errors': 0,
+            'by_tier': {}
+        }
+        
+        # Check the .claude/agents directory for .md files
+        claude_agents_dir = Path.cwd() / ".claude" / "agents"
+        if claude_agents_dir.exists():
+            logger.info("Validating agent files in .claude/agents directory...")
+            
+            for md_file in claude_agents_dir.glob("*.md"):
+                validation_summary['total_checked'] += 1
+                
+                # Validate the file
+                result = self.frontmatter_validator.validate_file(md_file)
+                
+                if result.is_valid and not result.corrections:
+                    validation_summary['valid'] += 1
+                elif result.corrections:
+                    validation_summary['corrected'] += 1
+                    logger.info(f"Auto-corrected frontmatter in {md_file.name}:")
+                    for correction in result.corrections:
+                        logger.info(f"  - {correction}")
+                
+                if result.errors:
+                    validation_summary['errors'] += 1
+                    logger.warning(f"Validation errors in {md_file.name}:")
+                    for error in result.errors:
+                        logger.warning(f"  - {error}")
+                
+                if result.warnings:
+                    for warning in result.warnings:
+                        logger.debug(f"  Warning in {md_file.name}: {warning}")
+        
+        # Check template directories for .md files
+        for tier, templates_dir in self._template_dirs.items():
+            if not templates_dir:
+                continue
+                
+            tier_stats = {'checked': 0, 'valid': 0, 'corrected': 0, 'errors': 0}
+            
+            for md_file in templates_dir.glob("*.md"):
+                validation_summary['total_checked'] += 1
+                tier_stats['checked'] += 1
+                
+                # Validate the file
+                result = self.frontmatter_validator.validate_file(md_file)
+                
+                if result.is_valid and not result.corrections:
+                    validation_summary['valid'] += 1
+                    tier_stats['valid'] += 1
+                elif result.corrections:
+                    validation_summary['corrected'] += 1
+                    tier_stats['corrected'] += 1
+                    logger.debug(f"Auto-corrected {tier.value} agent {md_file.name}")
+                
+                if result.errors:
+                    validation_summary['errors'] += 1
+                    tier_stats['errors'] += 1
+            
+            if tier_stats['checked'] > 0:
+                validation_summary['by_tier'][tier.value] = tier_stats
+        
+        # Log validation summary
+        if validation_summary['total_checked'] > 0:
+            logger.info(
+                f"Agent validation summary: "
+                f"{validation_summary['total_checked']} files checked, "
+                f"{validation_summary['valid']} valid, "
+                f"{validation_summary['corrected']} auto-corrected, "
+                f"{validation_summary['errors']} with errors"
+            )
+            
+            # Store in metrics for reporting
+            self._metrics['validation_summary'] = validation_summary
     
     def get_agent(self, agent_id: str) -> Optional[Dict[str, Any]]:
         """

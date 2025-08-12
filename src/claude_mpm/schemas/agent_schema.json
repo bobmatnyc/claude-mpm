@@ -104,6 +104,33 @@
         }
       }
     },
+    "dependencies": {
+      "type": "object",
+      "description": "External dependencies required for this agent to function properly",
+      "properties": {
+        "python": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Python packages required (pip installable) with optional version specifiers",
+          "examples": [["tree-sitter>=0.21.0", "pandas>=2.0.0"]]
+        },
+        "system": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "System-level dependencies (e.g., commands that should be available in PATH)",
+          "examples": [["ripgrep", "git", "docker"]]
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether these dependencies are optional (agent can function without them)"
+        }
+      }
+    },
     "capabilities": {
       "type": "object",
       "required": [

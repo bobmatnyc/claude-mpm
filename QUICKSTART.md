@@ -125,7 +125,7 @@ See [docs/MEMORY.md](docs/MEMORY.md) for comprehensive memory documentation.
 
 - Read the full [README](README.md) for detailed documentation
 - Explore [Agent Memory System](docs/MEMORY.md) for persistent learning
-- Check out [monitoring guide](docs/developer/monitoring.md) for dashboard features
+- Check out [monitoring guide](docs/developer/11-dashboard/README.md) for dashboard features
 - See [architecture docs](docs/STRUCTURE.md) for project structure
 - Review [deployment guide](docs/DEPLOY.md) for publishing
 

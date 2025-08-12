@@ -51,6 +51,8 @@ class CLICommands(str, Enum):
 class AgentCommands(str, Enum):
     """Agent subcommand constants."""
     LIST = "list"
+    VIEW = "view"
+    FIX = "fix"
     DEPLOY = "deploy"
     FORCE_DEPLOY = "force-deploy"
     CLEAN = "clean"
