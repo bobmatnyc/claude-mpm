@@ -28,6 +28,8 @@ class CLICommands(str, Enum):
     AGENTS = "agents"
     MEMORY = "memory"
     MONITOR = "monitor"
+    CONFIG = "config"
+    AGGREGATE = "aggregate"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -78,6 +80,23 @@ class MonitorCommands(str, Enum):
     STOP = "stop"
     RESTART = "restart"
     PORT = "port"
+
+
+class ConfigCommands(str, Enum):
+    """Config subcommand constants."""
+    VALIDATE = "validate"
+    VIEW = "view"
+    STATUS = "status"
+
+
+class AggregateCommands(str, Enum):
+    """Event aggregator subcommand constants."""
+    START = "start"
+    STOP = "stop"
+    STATUS = "status"
+    SESSIONS = "sessions"
+    VIEW = "view"
+    EXPORT = "export"
 
 
 class CLIFlags(str, Enum):

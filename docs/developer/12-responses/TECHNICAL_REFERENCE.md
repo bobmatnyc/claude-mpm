@@ -4,14 +4,160 @@ Comprehensive technical documentation for the Claude MPM response tracking syste
 
 ## Table of Contents
 
-1. [System Components](#system-components)
-2. [Data Flow Architecture](#data-flow-architecture)
-3. [File Structure and Organization](#file-structure-and-organization)
-4. [JSON Schema Specification](#json-schema-specification)
-5. [API Reference](#api-reference)
-6. [Integration Points](#integration-points)
-7. [Performance Considerations](#performance-considerations)
-8. [Error Handling](#error-handling)
+1. [Agent Response Format](#agent-response-format)
+2. [System Components](#system-components)
+3. [Data Flow Architecture](#data-flow-architecture)
+4. [File Structure and Organization](#file-structure-and-organization)
+5. [JSON Schema Specification](#json-schema-specification)
+6. [API Reference](#api-reference)
+7. [Integration Points](#integration-points)
+8. [Performance Considerations](#performance-considerations)
+9. [Error Handling](#error-handling)
+
+## Agent Response Format
+
+### Overview
+
+Claude MPM agents must return responses in a **structured format** to enable proper hook processing, response logging, and memory integration. The hook handler specifically looks for JSON blocks within agent responses to extract metadata and structured information.
+
+### Required Response Structure
+
+All agents should include a JSON block at the end of their response with this structure:
+
+```json
+{
+  "task_completed": true,
+  "instructions": "Brief summary of what was accomplished",
+  "results": "Specific results, findings, or deliverables", 
+  "files_modified": [
+    "path/to/file1.py",
+    "path/to/file2.md"
+  ],
+  "tools_used": [
+    "Write", 
+    "Edit",
+    "Grep"
+  ],
+  "remember": [
+    "Important project information to store in memory",
+    "Patterns or lessons learned for future reference"
+  ]
+}
+```
+
+### Field Specifications
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `task_completed` | boolean | Yes | Whether the assigned task was successfully completed |
+| `instructions` | string | Yes | Summary of work completed or current status |
+| `results` | string | No | Specific results, findings, code snippets, or deliverables |
+| `files_modified` | array[string] | No | List of files created, modified, or deleted (use absolute paths) |
+| `tools_used` | array[string] | No | List of Claude Code tools used during task execution |
+| `remember` | array[string] | No | Information to store in agent memory for future tasks |
+
+### Hook Processing
+
+The hook handler processes structured responses as follows:
+
+1. **JSON Extraction**: Searches for JSON blocks in agent responses using regex
+2. **Parsing**: Attempts to parse JSON with error handling for malformed data
+3. **Validation**: Validates required fields and data types
+4. **Logging**: Stores structured data in response logs for tracking
+5. **Memory Integration**: Processes `remember` field for agent memory updates
+
+### Example Agent Response
+
+```markdown
+I've successfully implemented the user authentication system for your project.
+
+## Implementation Summary
+
+Created a JWT-based authentication service with the following features:
+- User registration and login endpoints
+- Password hashing with bcrypt
+- JWT token generation and validation
+- Protected route middleware
+- Session management
+
+## Files Created
+
+- `src/auth/auth_service.py` - Main authentication service
+- `src/auth/jwt_utils.py` - JWT token utilities  
+- `src/middleware/auth_middleware.py` - Route protection middleware
+- `tests/test_auth.py` - Comprehensive authentication tests
+
+## Security Considerations
+
+The implementation follows security best practices:
+- Password hashing using bcrypt with salt rounds
+- JWT tokens with expiration times
+- Secure session management
+- Input validation and sanitization
+
+## Next Steps
+
+1. Configure OAuth providers for social login
+2. Implement password reset functionality
+3. Add two-factor authentication support
+4. Deploy authentication service to staging
+
+```json
+{
+  "task_completed": true,
+  "instructions": "Implemented JWT-based authentication system with user registration, login, and protected routes",
+  "results": "Complete authentication service with 4 new files, comprehensive tests, and security best practices",
+  "files_modified": [
+    "/Users/user/project/src/auth/auth_service.py",
+    "/Users/user/project/src/auth/jwt_utils.py", 
+    "/Users/user/project/src/middleware/auth_middleware.py",
+    "/Users/user/project/tests/test_auth.py"
+  ],
+  "tools_used": [
+    "Write",
+    "Edit", 
+    "Read",
+    "Grep"
+  ],
+  "remember": [
+    "Project uses JWT authentication with 24-hour token expiration",
+    "bcrypt with 12 salt rounds for password hashing",
+    "All API endpoints except /health require authentication"
+  ]
+}
+```
+
+### Hook Handler Code Integration
+
+The hook handler specifically looks for this JSON structure in `SubagentStop` events:
+
+```python
+# From hook_handler.py _handle_subagent_stop_fast()
+json_match = re.search(r'```json\s*(\{.*?\})\s*```', response, re.DOTALL)
+if json_match:
+    try:
+        structured_response = json.loads(json_match.group(1))
+        # Process structured response fields...
+    except (json.JSONDecodeError, AttributeError):
+        # Graceful fallback for malformed JSON
+        pass
+```
+
+### Best Practices
+
+1. **Always Include JSON Block**: Even simple tasks should include basic structured response
+2. **Use Absolute Paths**: File paths should be absolute for accurate tracking
+3. **Be Specific**: Include detailed information in `results` and `instructions` fields  
+4. **Memory Efficiency**: Only include truly important information in `remember` field
+5. **Tool Accuracy**: List all tools actually used during task execution
+6. **JSON Validation**: Ensure JSON is valid before including in response
+
+### Error Handling
+
+- **Malformed JSON**: Hook handler gracefully handles parsing errors
+- **Missing Fields**: Only `task_completed` and `instructions` are required
+- **Invalid Types**: Type mismatches are logged but don't block processing
+- **Empty Responses**: Responses without JSON blocks are still processed for basic tracking
 
 ## System Components
 
