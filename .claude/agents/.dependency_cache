@@ -1,0 +1,1576 @@
+{
+  "149c16f7a6652a03d652d95a872f1965": {
+    "timestamp": 1755011499.051936,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0"
+            ],
+            "missing": [
+              "tree-sitter-languages>=1.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0",
+              "tree-sitter-languages>=1.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "tree-sitter-languages>=1.8.0",
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "10bfb8a61dacf157a775c7c7a0d74aeeb1de83a4987fdf64a0b570c6d65770d7",
+    "context": {}
+  },
+  "a3f80b9ba43fe5c5aa383f0df43d8175": {
+    "timestamp": 1755011883.730326,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0"
+            ],
+            "missing": [
+              "tree-sitter-languages>=1.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0",
+              "tree-sitter-languages>=1.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "tree-sitter-languages>=1.8.0",
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "442c00fbabd0ebd839cbdeb7d2fdb1b4fbe6a1a4e3d02c32417a55e10363a713",
+    "context": {}
+  },
+  "7e5d848981d1dfc63058fc225ec27652": {
+    "timestamp": 1755012002.63617,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "tree-sitter-language-pack>=0.8.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "120f9da53b15313930141f1ff073840b83b66f724385dd1b64ef6451ca2695a9",
+    "context": {}
+  },
+  "b9e0b163c1290f609c203f1617cbe9b6": {
+    "timestamp": 1755012013.009546,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "tree-sitter-language-pack>=0.8.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "71fefd6eecbfafda7548a36dc3b48a3f13d3173705404b2a2dac62a87a4dad65",
+    "context": {}
+  },
+  "f4464fc05fe83f7ba3f66b5b6a6f3c0e": {
+    "timestamp": 1755017798.1441789,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "tree-sitter-language-pack>=0.8.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "2ac8140c1de59ae8b371aa9816911698cada2feadda7b314f4ff9aa1d559c4b3",
+    "context": {}
+  },
+  "f129e18055784ffc2fb32d6ef0472851": {
+    "timestamp": 1755029179.735946,
+    "results": {
+      "agents": {
+        "code_analyzer": {
+          "python": {
+            "satisfied": [
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "ops": {
+          "python": {
+            "satisfied": [
+              "kubernetes>=28.0.0"
+            ],
+            "missing": [
+              "ansible>=9.0.0",
+              "terraform-compliance>=1.3.0",
+              "docker>=7.0.0",
+              "prometheus-client>=0.19.0",
+              "checkov>=3.1.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "data_engineer": {
+          "python": {
+            "satisfied": [
+              "pandas>=2.1.0",
+              "sqlalchemy>=2.0.0"
+            ],
+            "missing": [
+              "great-expectations>=0.18.0",
+              "ydata-profiling>=4.6.0",
+              "dask>=2023.12.0",
+              "apache-airflow>=2.8.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "version_control": {
+          "python": {
+            "satisfied": [
+              "gitpython>=3.1.40"
+            ],
+            "missing": [
+              "pre-commit>=3.5.0",
+              "commitizen>=3.13.0",
+              "gitlint>=0.19.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "qa": {
+          "python": {
+            "satisfied": [
+              "pytest>=7.4.0",
+              "pytest-cov>=4.1.0",
+              "hypothesis>=6.92.0",
+              "pytest-benchmark>=4.0.0",
+              "faker>=20.0.0"
+            ],
+            "missing": [
+              "mutmut>=2.4.0",
+              "allure-pytest>=2.13.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "research": {
+          "python": {
+            "satisfied": [
+              "pygments>=2.17.0",
+              "radon>=6.0.0",
+              "tree-sitter>=0.21.0",
+              "tree-sitter-language-pack>=0.8.0"
+            ],
+            "missing": [
+              "semgrep>=1.45.0",
+              "lizard>=1.17.0",
+              "pydriller>=2.5.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "engineer": {
+          "python": {
+            "satisfied": [
+              "black>=23.0.0",
+              "isort>=5.12.0",
+              "mypy>=1.8.0",
+              "safety>=3.0.0",
+              "bandit>=1.7.5"
+            ],
+            "missing": [
+              "rope>=1.11.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "documentation": {
+          "python": {
+            "satisfied": [
+              "docstring-parser>=0.15.0"
+            ],
+            "missing": [
+              "sphinx>=7.2.0",
+              "mkdocs>=1.5.0",
+              "pydoc-markdown>=4.8.0",
+              "diagrams>=0.23.0",
+              "mermaid-py>=0.2.0"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        },
+        "security": {
+          "python": {
+            "satisfied": [
+              "bandit>=1.7.5",
+              "pyjwt>=2.8.0",
+              "cryptography>=41.0.0"
+            ],
+            "missing": [
+              "detect-secrets>=1.4.0",
+              "pip-audit>=2.6.0",
+              "sqlparse>=0.4.4"
+            ],
+            "outdated": []
+          },
+          "system": {
+            "satisfied": [
+              "python3",
+              "git"
+            ],
+            "missing": []
+          }
+        }
+      },
+      "summary": {
+        "total_agents": 15,
+        "agents_with_deps": 9,
+        "missing_python": [
+          "ansible>=9.0.0",
+          "terraform-compliance>=1.3.0",
+          "docker>=7.0.0",
+          "prometheus-client>=0.19.0",
+          "checkov>=3.1.0",
+          "great-expectations>=0.18.0",
+          "ydata-profiling>=4.6.0",
+          "dask>=2023.12.0",
+          "apache-airflow>=2.8.0",
+          "pre-commit>=3.5.0",
+          "commitizen>=3.13.0",
+          "gitlint>=0.19.0",
+          "mutmut>=2.4.0",
+          "allure-pytest>=2.13.0",
+          "semgrep>=1.45.0",
+          "lizard>=1.17.0",
+          "pydriller>=2.5.0",
+          "rope>=1.11.0",
+          "sphinx>=7.2.0",
+          "mkdocs>=1.5.0",
+          "pydoc-markdown>=4.8.0",
+          "diagrams>=0.23.0",
+          "mermaid-py>=0.2.0",
+          "detect-secrets>=1.4.0",
+          "pip-audit>=2.6.0",
+          "sqlparse>=0.4.4"
+        ],
+        "missing_system": [],
+        "satisfied_python": [
+          "tree-sitter>=0.21.0",
+          "tree-sitter-language-pack>=0.8.0",
+          "kubernetes>=28.0.0",
+          "pandas>=2.1.0",
+          "sqlalchemy>=2.0.0",
+          "gitpython>=3.1.40",
+          "pytest>=7.4.0",
+          "pytest-cov>=4.1.0",
+          "hypothesis>=6.92.0",
+          "pytest-benchmark>=4.0.0",
+          "faker>=20.0.0",
+          "pygments>=2.17.0",
+          "radon>=6.0.0",
+          "black>=23.0.0",
+          "isort>=5.12.0",
+          "mypy>=1.8.0",
+          "safety>=3.0.0",
+          "bandit>=1.7.5",
+          "docstring-parser>=0.15.0",
+          "pyjwt>=2.8.0",
+          "cryptography>=41.0.0"
+        ],
+        "satisfied_system": [
+          "python3",
+          "git"
+        ]
+      }
+    },
+    "deployment_hash": "c409c790f6c206796fce1ef0d6d1e47fdc1d5f69e96dd1e957417671e05ff9a5",
+    "context": {}
+  }
+}
