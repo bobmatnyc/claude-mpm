@@ -3,10 +3,11 @@
 Test project agent deployment functionality.
 
 This test verifies that:
-1. Project agents in .claude-mpm/agents/templates/ are discovered
+1. Project agents in .claude-mpm/agents/ are discovered (no subdirectory)
 2. They are properly deployed to .claude/agents/
 3. Project agents override system agents with the same name
-4. Deployment happens automatically on startup
+4. PM agent is excluded from deployment
+5. Migration from old structure works
 """
 
 import json
@@ -30,9 +31,9 @@ def test_project_agent_deployment():
     with tempfile.TemporaryDirectory() as tmpdir:
         project_dir = Path(tmpdir)
         
-        # Create project agent templates directory
-        project_templates_dir = project_dir / ".claude-mpm" / "agents" / "templates"
-        project_templates_dir.mkdir(parents=True, exist_ok=True)
+        # Create project agent directory (no subdirectory - agents go directly here)
+        project_agents_dir = project_dir / ".claude-mpm" / "agents"
+        project_agents_dir.mkdir(parents=True, exist_ok=True)
         
         # Create a test project agent JSON file
         test_agent = {
@@ -49,7 +50,7 @@ def test_project_agent_deployment():
             "instructions": "You are a test project agent. This is a project-specific agent that should override system agents."
         }
         
-        test_agent_path = project_templates_dir / "test_project_agent.json"
+        test_agent_path = project_agents_dir / "test_project_agent.json"
         test_agent_path.write_text(json.dumps(test_agent, indent=2))
         
         # Create another agent that might override a system agent
@@ -67,7 +68,7 @@ def test_project_agent_deployment():
             "instructions": "You are a PROJECT-SPECIFIC engineer agent with custom rules for this project."
         }
         
-        override_agent_path = project_templates_dir / "engineer.json"
+        override_agent_path = project_agents_dir / "engineer.json"
         override_agent_path.write_text(json.dumps(override_agent, indent=2))
         
         # Change to the project directory
@@ -136,6 +137,30 @@ def test_project_agent_deployment():
             
             print("✅ Agent update detection test passed!")
             
+            # Verify PM agent was NOT deployed if we add one
+            pm_agent = {
+                "agent_id": "pm",
+                "version": "1.0.0",
+                "metadata": {
+                    "name": "Project Manager",
+                    "description": "This should not be deployed"
+                },
+                "instructions": "PM agent - should be excluded"
+            }
+            
+            pm_agent_path = project_agents_dir / "pm.json"
+            pm_agent_path.write_text(json.dumps(pm_agent, indent=2))
+            
+            # Deploy again
+            result4 = runner.deploy_project_agents_to_claude()
+            assert result4, "Deployment with PM agent should succeed"
+            
+            # Verify PM was NOT deployed
+            pm_agent_md = claude_agents_dir / "pm.md"
+            assert not pm_agent_md.exists(), "PM agent should NOT be deployed"
+            
+            print("✅ PM agent exclusion test passed!")
+            
         finally:
             # Restore original working directory
             os.chdir(original_cwd)
@@ -149,8 +174,8 @@ def test_deployment_service_with_project_templates():
     with tempfile.TemporaryDirectory() as tmpdir:
         project_dir = Path(tmpdir)
         
-        # Create project templates directory
-        templates_dir = project_dir / ".claude-mpm" / "agents" / "templates"
+        # Create project agents directory (no subdirectory)
+        templates_dir = project_dir / ".claude-mpm" / "agents"
         templates_dir.mkdir(parents=True, exist_ok=True)
         
         # Create a simple agent template
@@ -200,13 +225,13 @@ def test_deployment_service_with_project_templates():
         assert "custom project agent" in content.lower(), "Should have description"
         assert "You are a custom agent" in content, "Should have instructions"
         
-        print("✅ Deployment service with project templates test passed!")
+        print("✅ Deployment service with project agents test passed!")
 
 
 if __name__ == "__main__":
     print("Testing project agent deployment functionality...\n")
     
-    # Run tests
+    # Run tests  
     test_project_agent_deployment()
     test_deployment_service_with_project_templates()
     

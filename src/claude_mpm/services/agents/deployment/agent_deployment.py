@@ -70,13 +70,14 @@ class AgentDeploymentService:
     - YAML generation capabilities
     """
     
-    def __init__(self, templates_dir: Optional[Path] = None, base_agent_path: Optional[Path] = None):
+    def __init__(self, templates_dir: Optional[Path] = None, base_agent_path: Optional[Path] = None, working_directory: Optional[Path] = None):
         """
         Initialize agent deployment service.
         
         Args:
             templates_dir: Directory containing agent JSON files
             base_agent_path: Path to base_agent.md file
+            working_directory: User's working directory (for project agents)
             
         METRICS OPPORTUNITY: Track initialization performance:
         - Template directory scan time
@@ -99,6 +100,17 @@ class AgentDeploymentService:
             'template_validation_times': {},  # Track validation performance
             'deployment_errors': {}  # Track error types and frequencies
         }
+        
+        # Determine the actual working directory
+        # Priority: working_directory param > CLAUDE_MPM_USER_PWD env var > current directory
+        if working_directory:
+            self.working_directory = Path(working_directory)
+        elif 'CLAUDE_MPM_USER_PWD' in os.environ:
+            self.working_directory = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+        else:
+            self.working_directory = Path.cwd()
+        
+        self.logger.info(f"Working directory for deployment: {self.working_directory}")
         
         # Find templates directory using centralized path management
         if templates_dir:
@@ -137,6 +149,7 @@ class AgentDeploymentService:
         - Error type frequencies
         
         OPERATIONAL FLOW:
+        0. Validates and repairs broken frontmatter in existing agents (Step 0)
         1. Validates target directory (creates if needed)
         2. Loads base agent configuration
         3. Discovers all agent templates
@@ -178,13 +191,15 @@ class AgentDeploymentService:
             - skipped: List of unchanged agents
             - errors: List of deployment errors
             - total: Total number of agents processed
+            - repaired: List of agents with repaired frontmatter
         """
         # METRICS: Record deployment start time for performance tracking
         deployment_start_time = time.time()
         
         if not target_dir:
-            # Default to user's home .claude/agents directory
-            agents_dir = Path(Paths.CLAUDE_AGENTS_DIR.value).expanduser()
+            # Default to working directory's .claude/agents directory (not home)
+            # This ensures we deploy to the user's project directory, not the framework directory
+            agents_dir = self.working_directory / ".claude" / "agents"
         else:
             # If target_dir provided, use it directly (caller decides structure)
             # This allows for both passing a project dir or the full agents path
@@ -211,6 +226,7 @@ class AgentDeploymentService:
             "updated": [],
             "migrated": [],  # Track agents migrated from old format
             "converted": [],  # Track YAML to MD conversions
+            "repaired": [],  # Track agents with repaired frontmatter
             "total": 0,
             # METRICS: Add detailed timing and performance data to results
             "metrics": {
@@ -226,6 +242,16 @@ class AgentDeploymentService:
         try:
             # Create agents directory if needed
             agents_dir.mkdir(parents=True, exist_ok=True)
+            
+            # STEP 0: Validate and repair broken frontmatter in existing agents
+            # This ensures all existing agents have valid YAML frontmatter before deploying new ones
+            repair_results = self._validate_and_repair_existing_agents(agents_dir)
+            if repair_results["repaired"]:
+                results["repaired"] = repair_results["repaired"]
+                self.logger.info(f"Repaired frontmatter in {len(repair_results['repaired'])} existing agents")
+                for agent_name in repair_results["repaired"]:
+                    self.logger.debug(f"  - Repaired: {agent_name}")
+            
             # Determine source tier for logging
             source_tier = "SYSTEM"
             if ".claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
@@ -374,6 +400,7 @@ class AgentDeploymentService:
                 f"updated {len(results['updated'])}, "
                 f"migrated {len(results['migrated'])}, "
                 f"converted {len(results['converted'])} YAML files, "
+                f"repaired {len(results['repaired'])} frontmatter, "
                 f"skipped {len(results['skipped'])}, "
                 f"errors: {len(results['errors'])}"
             )
@@ -865,7 +892,8 @@ temperature: {temperature}"""
             Dictionary of environment variables set for verification
         """
         if not config_dir:
-            config_dir = Path.cwd() / Paths.CLAUDE_CONFIG_DIR.value
+            # Use the working directory determined during initialization
+            config_dir = self.working_directory / Paths.CLAUDE_CONFIG_DIR.value
         
         env_vars = {}
         
@@ -931,7 +959,8 @@ temperature: {temperature}"""
             - warnings: List of potential issues
         """
         if not config_dir:
-            config_dir = Path.cwd() / ".claude"
+            # Use the working directory determined during initialization
+            config_dir = self.working_directory / ".claude"
         
         results = {
             "config_dir": str(config_dir),
@@ -1285,7 +1314,8 @@ temperature: {temperature}"""
             Cleanup results
         """
         if not config_dir:
-            config_dir = Path.cwd() / ".claude"
+            # Use the working directory determined during initialization
+            config_dir = self.working_directory / ".claude"
         
         results = {
             "removed": [],
@@ -1937,3 +1967,127 @@ metadata:
             self.logger.warning(f"Error extracting YAML field '{field_name}': {e}")
         
         return None
+    
+    def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
+        """
+        Validate and repair broken frontmatter in existing agent files.
+        
+        This method scans existing .claude/agents/*.md files and validates their
+        frontmatter. If the frontmatter is broken or missing, it attempts to repair
+        it or marks the agent for replacement during deployment.
+        
+        WHY: Ensures all existing agents have valid YAML frontmatter before deployment,
+        preventing runtime errors in Claude Code when loading agents.
+        
+        Args:
+            agents_dir: Directory containing agent .md files
+            
+        Returns:
+            Dictionary with validation results:
+            - repaired: List of agent names that were repaired
+            - replaced: List of agent names marked for replacement
+            - errors: List of validation errors
+        """
+        results = {
+            "repaired": [],
+            "replaced": [],
+            "errors": []
+        }
+        
+        try:
+            # Import frontmatter validator
+            from claude_mpm.agents.frontmatter_validator import FrontmatterValidator
+            validator = FrontmatterValidator()
+            
+            # Find existing agent files
+            agent_files = list(agents_dir.glob("*.md"))
+            
+            if not agent_files:
+                self.logger.debug("No existing agent files to validate")
+                return results
+            
+            self.logger.debug(f"Validating frontmatter in {len(agent_files)} existing agents")
+            
+            for agent_file in agent_files:
+                try:
+                    agent_name = agent_file.stem
+                    
+                    # Read agent file content
+                    content = agent_file.read_text()
+                    
+                    # Check if this is a system agent (authored by claude-mpm)
+                    # Only repair system agents, leave user agents alone
+                    if "author: claude-mpm" not in content and "author: 'claude-mpm'" not in content:
+                        self.logger.debug(f"Skipping validation for user agent: {agent_name}")
+                        continue
+                    
+                    # Extract and validate frontmatter
+                    if not content.startswith("---"):
+                        # No frontmatter at all - mark for replacement
+                        self.logger.warning(f"Agent {agent_name} has no frontmatter, marking for replacement")
+                        results["replaced"].append(agent_name)
+                        # Delete the file so it will be recreated
+                        agent_file.unlink()
+                        continue
+                    
+                    # Try to extract frontmatter
+                    try:
+                        end_marker = content.find("\n---\n", 4)
+                        if end_marker == -1:
+                            end_marker = content.find("\n---\r\n", 4)
+                        
+                        if end_marker == -1:
+                            # Broken frontmatter - mark for replacement
+                            self.logger.warning(f"Agent {agent_name} has broken frontmatter, marking for replacement")
+                            results["replaced"].append(agent_name)
+                            # Delete the file so it will be recreated
+                            agent_file.unlink()
+                            continue
+                        
+                        # Validate frontmatter with the validator
+                        validation_result = validator.validate_file(agent_file)
+                        
+                        if not validation_result.is_valid:
+                            # Check if it can be corrected
+                            if validation_result.corrected_frontmatter:
+                                # Apply corrections
+                                correction_result = validator.correct_file(agent_file, dry_run=False)
+                                if correction_result.corrections:
+                                    results["repaired"].append(agent_name)
+                                    self.logger.info(f"Repaired frontmatter for agent {agent_name}")
+                                    for correction in correction_result.corrections:
+                                        self.logger.debug(f"  - {correction}")
+                            else:
+                                # Cannot be corrected - mark for replacement
+                                self.logger.warning(f"Agent {agent_name} has invalid frontmatter that cannot be repaired, marking for replacement")
+                                results["replaced"].append(agent_name)
+                                # Delete the file so it will be recreated
+                                agent_file.unlink()
+                        elif validation_result.warnings:
+                            # Has warnings but is valid
+                            for warning in validation_result.warnings:
+                                self.logger.debug(f"Agent {agent_name} warning: {warning}")
+                        
+                    except Exception as e:
+                        # Any error in parsing - mark for replacement
+                        self.logger.warning(f"Failed to parse frontmatter for {agent_name}: {e}, marking for replacement")
+                        results["replaced"].append(agent_name)
+                        # Delete the file so it will be recreated
+                        try:
+                            agent_file.unlink()
+                        except Exception:
+                            pass
+                    
+                except Exception as e:
+                    error_msg = f"Failed to validate agent {agent_file.name}: {e}"
+                    self.logger.error(error_msg)
+                    results["errors"].append(error_msg)
+            
+        except ImportError:
+            self.logger.warning("FrontmatterValidator not available, skipping validation")
+        except Exception as e:
+            error_msg = f"Agent validation failed: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)
+        
+        return results

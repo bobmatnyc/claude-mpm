@@ -57,7 +57,8 @@ class AgentManager:
             
         if project_dir is None:
             project_root = PathResolver.get_project_root()
-            self.project_dir = project_root / ConfigPaths.CONFIG_DIR / "agents" / "project-specific"
+            # Use direct agents directory without subdirectory to match deployment expectations
+            self.project_dir = project_root / ConfigPaths.CONFIG_DIR / "agents"
         else:
             self.project_dir = project_dir
         self.version_manager = AgentVersionManager()

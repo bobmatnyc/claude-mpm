@@ -57,14 +57,20 @@ class AgentServiceFactory(ServiceFactory):
         config = container.resolve(Config)
         
         # Get directories from config if not provided
+        import os
+        
         if framework_dir is None:
             framework_dir = Path(config.get('framework.dir', 'framework'))
             
         if project_dir is None:
-            project_dir = Path(config.get('project.dir', '.'))
+            # Check for user working directory from environment
+            if 'CLAUDE_MPM_USER_PWD' in os.environ:
+                project_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+            else:
+                project_dir = Path(config.get('project.dir', '.'))
             
-        # Create service with dependencies
-        service = AgentDeploymentService()
+        # Create service with proper working directory
+        service = AgentDeploymentService(working_directory=project_dir)
         
         # Inject any required dependencies
         if hasattr(service, 'set_directories'):

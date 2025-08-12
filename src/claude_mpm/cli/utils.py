@@ -61,7 +61,15 @@ def get_agent_versions_display() -> Optional[str]:
     """
     try:
         from ..services import AgentDeploymentService
-        deployment_service = AgentDeploymentService()
+        import os
+        from pathlib import Path
+        
+        # Determine the user's working directory from environment
+        user_working_dir = None
+        if 'CLAUDE_MPM_USER_PWD' in os.environ:
+            user_working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+        
+        deployment_service = AgentDeploymentService(working_directory=user_working_dir)
         
         # Get deployed agents
         verification = deployment_service.verify_deployment()
