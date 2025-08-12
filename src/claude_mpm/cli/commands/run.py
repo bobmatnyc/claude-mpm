@@ -281,17 +281,10 @@ def run_session(args):
         websocket_port=websocket_port
     )
     
-    # Ensure project agents are available if we're in a project directory
-    # This deploys system agents to .claude-mpm/agents/ for local customization
-    if not hasattr(args, 'no_native_agents') or not args.no_native_agents:
-        # Check if we're in a project directory (has .git or other markers)
-        project_markers = ['.git', 'pyproject.toml', 'package.json', 'requirements.txt']
-        cwd = Path.cwd()
-        is_project = any((cwd / marker).exists() for marker in project_markers)
-        
-        if is_project:
-            logger.debug("Detected project directory, ensuring agents are available locally")
-            runner.ensure_project_agents()
+    # Agent deployment is handled by ClaudeRunner.setup_agents() and 
+    # ClaudeRunner.deploy_project_agents_to_claude() which are called
+    # in both run_interactive() and run_oneshot() methods.
+    # No need for redundant deployment here.
     
     # Set browser opening flag for monitor mode
     if monitor_mode:

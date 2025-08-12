@@ -18,6 +18,15 @@ Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables 
 
 ## Development Guidelines
 
+### Critical Principles
+
+**🔴 NEVER ASSUME - ALWAYS VERIFY**
+- **NEVER assume** file locations, configurations, or implementations
+- **ALWAYS verify** by reading actual files and checking current state
+- **ALWAYS check** existing code patterns before implementing
+- **NEVER guess** at directory structures or file contents
+- **ALWAYS confirm** dependencies and imports exist before using them
+
 ### Before Making Changes
 
 1. **Understand the structure**: Always refer to `docs/STRUCTURE.md` when creating new files
@@ -26,6 +35,7 @@ Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables 
    - **Python modules**: Always under `/src/claude_mpm/`
 2. **Run tests**: Execute E2E tests after significant changes using `./scripts/run_e2e_tests.sh`
 3. **Check imports**: Ensure all imports use the full package name: `from claude_mpm.module import ...`
+4. **Verify assumptions**: NEVER assume - always check actual files, read configs, verify dependencies
 
 ### Testing Requirements
 

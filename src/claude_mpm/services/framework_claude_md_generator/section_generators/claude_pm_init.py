@@ -79,9 +79,9 @@ claude-pm init --verify
    - Working directory context
 
 3. **Project Directory** (`$PROJECT_ROOT/.claude-mpm/`)
-   - Project-specific agents in `agents/project-specific/`
+   - Project agents in `agents/`
    - User agents in `agents/user-agents/` with directory precedence
-   - Project-specific configuration
+   - Project configuration
 
 ### Health Validation and Deployment Procedures
 

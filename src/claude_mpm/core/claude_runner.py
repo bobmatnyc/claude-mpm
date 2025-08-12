@@ -74,8 +74,16 @@ class ClaudeRunner:
                 self.logger.warning(f"Failed to initialize project logger: {e}")
         
         # Initialize services with proper error handling
+        # Determine the user's working directory from environment
+        user_working_dir = None
+        if 'CLAUDE_MPM_USER_PWD' in os.environ:
+            user_working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+            self.logger.info(f"Using user working directory from CLAUDE_MPM_USER_PWD: {user_working_dir}")
+        
         try:
-            self.deployment_service = AgentDeploymentService()
+            # Pass the user working directory to the deployment service
+            # This ensures agents are deployed to the correct user directory, not the framework directory
+            self.deployment_service = AgentDeploymentService(working_directory=user_working_dir)
         except ImportError as e:
             self.logger.error(f"Failed to import AgentDeploymentService: {e}")
             raise RuntimeError("Required module AgentDeploymentService not available. Please reinstall claude-mpm.") from e
@@ -253,8 +261,12 @@ class ClaudeRunner:
             bool: True if agents are available, False on error
         """
         try:
-            # Check if we're in a project directory
-            project_dir = Path.cwd()
+            # Use the correct user directory, not the framework directory
+            if 'CLAUDE_MPM_USER_PWD' in os.environ:
+                project_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+            else:
+                project_dir = Path.cwd()
+            
             project_agents_dir = project_dir / ".claude-mpm" / "agents"
             
             # Create directory if it doesn't exist
@@ -321,7 +333,12 @@ class ClaudeRunner:
             bool: True if deployment successful or no agents to deploy, False on error
         """
         try:
-            project_dir = Path.cwd()
+            # Use the correct user directory, not the framework directory
+            if 'CLAUDE_MPM_USER_PWD' in os.environ:
+                project_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+            else:
+                project_dir = Path.cwd()
+            
             project_agents_dir = project_dir / ".claude-mpm" / "agents"
             claude_agents_dir = project_dir / ".claude" / "agents"
             
@@ -355,6 +372,29 @@ class ClaudeRunner:
             # CRITICAL: PM (Project Manager) must NEVER be deployed as it's the main Claude instance
             EXCLUDED_AGENTS = {'pm', 'project_manager'}
             
+            # Initialize deployment service with proper base agent path
+            # Use the existing deployment service's base agent path if available
+            base_agent_path = project_agents_dir / "base_agent.json"
+            if not base_agent_path.exists():
+                # Fall back to system base agent
+                base_agent_path = self.deployment_service.base_agent_path
+            
+            # Create a single deployment service instance for all agents
+            project_deployment = AgentDeploymentService(
+                templates_dir=project_agents_dir,
+                base_agent_path=base_agent_path,
+                working_directory=project_dir  # Pass the project directory
+            )
+            
+            # Load base agent data once
+            base_agent_data = {}
+            if base_agent_path and base_agent_path.exists():
+                try:
+                    import json
+                    base_agent_data = json.loads(base_agent_path.read_text())
+                except Exception as e:
+                    self.logger.warning(f"Could not load base agent: {e}")
+            
             for json_file in json_files:
                 try:
                     agent_name = json_file.stem
@@ -378,26 +418,7 @@ class ClaudeRunner:
                                 self.logger.debug(f"Project agent {agent_name} is up to date")
                     
                     if needs_update:
-                        # Use deployment service to build the agent
-                        from claude_mpm.services.agents.deployment.agent_deployment import AgentDeploymentService
-                        
-                        # Create a temporary deployment service for this specific task
-                        project_deployment = AgentDeploymentService(
-                            templates_dir=project_agents_dir,
-                            base_agent_path=project_dir / ".claude-mpm" / "agents" / "base_agent.json"
-                        )
-                        
-                        # Load base agent data if available
-                        base_agent_data = {}
-                        base_agent_path = project_dir / ".claude-mpm" / "agents" / "base_agent.json"
-                        if base_agent_path.exists():
-                            import json
-                            try:
-                                base_agent_data = json.loads(base_agent_path.read_text())
-                            except Exception as e:
-                                self.logger.warning(f"Could not load project base agent: {e}")
-                        
-                        # Build the agent markdown
+                        # Build the agent markdown using the pre-initialized service and base agent data
                         agent_content = project_deployment._build_agent_markdown(
                             agent_name, json_file, base_agent_data
                         )
@@ -1072,17 +1093,46 @@ class ClaudeRunner:
     def _load_system_instructions(self) -> Optional[str]:
         """Load and process system instructions from agents/INSTRUCTIONS.md.
         
-        WHY: Process template variables like {{capabilities-list}} to include
-        dynamic agent capabilities in the PM's system instructions.
+        Implements project > framework precedence:
+        1. First check for project-specific instructions in .claude-mpm/agents/INSTRUCTIONS.md
+        2. If not found, fall back to framework instructions in src/claude_mpm/agents/INSTRUCTIONS.md
+        
+        WHY: Allows projects to override the default PM instructions with project-specific
+        guidance, while maintaining backward compatibility with the framework defaults.
+        
+        DESIGN DECISION: Using CLAUDE_MPM_USER_PWD environment variable to locate the
+        correct project directory, ensuring we check the right location even when
+        claude-mpm is invoked from a different directory.
         """
         try:
-            # Find the INSTRUCTIONS.md file
-            module_path = Path(__file__).parent.parent
-            instructions_path = module_path / "agents" / "INSTRUCTIONS.md"
+            # Determine the user's project directory
+            if 'CLAUDE_MPM_USER_PWD' in os.environ:
+                project_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+            else:
+                project_dir = Path.cwd()
             
-            if not instructions_path.exists():
-                self.logger.warning(f"System instructions not found: {instructions_path}")
-                return None
+            # Check for project-specific INSTRUCTIONS.md first
+            project_instructions_path = project_dir / ".claude-mpm" / "agents" / "INSTRUCTIONS.md"
+            
+            instructions_path = None
+            instructions_source = None
+            
+            if project_instructions_path.exists():
+                instructions_path = project_instructions_path
+                instructions_source = "PROJECT"
+                self.logger.info(f"Found project-specific INSTRUCTIONS.md: {instructions_path}")
+            else:
+                # Fall back to framework instructions
+                module_path = Path(__file__).parent.parent
+                framework_instructions_path = module_path / "agents" / "INSTRUCTIONS.md"
+                
+                if framework_instructions_path.exists():
+                    instructions_path = framework_instructions_path
+                    instructions_source = "FRAMEWORK"
+                    self.logger.info(f"Using framework INSTRUCTIONS.md: {instructions_path}")
+                else:
+                    self.logger.warning(f"No INSTRUCTIONS.md found in project or framework")
+                    return None
             
             # Read raw instructions
             raw_instructions = instructions_path.read_text()
@@ -1092,13 +1142,15 @@ class ClaudeRunner:
                 from claude_mpm.services.framework_claude_md_generator.content_assembler import ContentAssembler
                 assembler = ContentAssembler()
                 processed_instructions = assembler.apply_template_variables(raw_instructions)
-                self.logger.info("Loaded and processed PM framework system instructions with dynamic capabilities")
+                self.logger.info(f"Loaded and processed {instructions_source} PM instructions with dynamic capabilities")
                 return processed_instructions
             except ImportError:
                 self.logger.warning("ContentAssembler not available, using raw instructions")
+                self.logger.info(f"Loaded {instructions_source} PM instructions (raw)")
                 return raw_instructions
             except Exception as e:
                 self.logger.warning(f"Failed to process template variables: {e}, using raw instructions")
+                self.logger.info(f"Loaded {instructions_source} PM instructions (raw, processing failed)")
                 return raw_instructions
             
         except Exception as e:

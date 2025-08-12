@@ -75,8 +75,8 @@ class AgentsGenerator(BaseSectionGenerator):
 **ALL AGENT OPERATIONS FOLLOW HIERARCHICAL PRECEDENCE**
 
 #### Agent Hierarchy (Highest to Lowest Priority)
-1. **Project Agents**: `$PROJECT/.claude-mpm/agents/project-specific/`
-   - Project-specific implementations and overrides
+1. **Project Agents**: `$PROJECT/.claude-mpm/agents/`
+   - Project implementations and overrides
    - Highest precedence for project context
    - Custom agents tailored to project requirements
 
@@ -376,7 +376,7 @@ for agent_id, metadata in agents.items():
 #### Directory Precedence Rules and Agent Discovery
 
 **Enhanced Agent Discovery Pattern (Highest to Lowest Priority):**
-1. **Project Agents**: `$PROJECT/.claude-mpm/agents/project-specific/`
+1. **Project Agents**: `$PROJECT/.claude-mpm/agents/`
 2. **Current Directory User Agents**: `$PWD/.claude-mpm/agents/user-agents/`
 3. **Parent Directory User Agents**: Walk up tree checking `../user-agents/`, `../../user-agents/`, etc.
 4. **User Home Agents**: `~/.claude-mpm/agents/user-defined/`

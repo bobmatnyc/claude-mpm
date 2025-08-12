@@ -34,7 +34,16 @@ def manage_agents(args):
     
     try:
         from ...services import AgentDeploymentService
-        deployment_service = AgentDeploymentService()
+        import os
+        from pathlib import Path
+        
+        # Determine the user's working directory from environment
+        # This ensures agents are deployed to the correct directory
+        user_working_dir = None
+        if 'CLAUDE_MPM_USER_PWD' in os.environ:
+            user_working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+        
+        deployment_service = AgentDeploymentService(working_directory=user_working_dir)
         
         if not args.agents_command:
             # No subcommand - show agent versions
@@ -153,7 +162,15 @@ def _deploy_agents(args, deployment_service, force=False):
     
     # Also deploy project agents if they exist
     from pathlib import Path
-    project_agents_dir = Path.cwd() / '.claude-mpm' / 'agents'
+    import os
+    
+    # Use the user's working directory if available
+    if 'CLAUDE_MPM_USER_PWD' in os.environ:
+        project_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+    else:
+        project_dir = Path.cwd()
+    
+    project_agents_dir = project_dir / '.claude-mpm' / 'agents'
     if project_agents_dir.exists():
         json_files = list(project_agents_dir.glob('*.json'))
         if json_files:
@@ -161,7 +178,8 @@ def _deploy_agents(args, deployment_service, force=False):
             from claude_mpm.services.agents.deployment.agent_deployment import AgentDeploymentService
             project_service = AgentDeploymentService(
                 templates_dir=project_agents_dir,
-                base_agent_path=project_agents_dir / 'base_agent.json' if (project_agents_dir / 'base_agent.json').exists() else None
+                base_agent_path=project_agents_dir / 'base_agent.json' if (project_agents_dir / 'base_agent.json').exists() else None,
+                working_directory=project_dir  # Pass the project directory
             )
             project_results = project_service.deploy_agents(
                 target_dir=args.target if args.target else Path.cwd() / '.claude' / 'agents',
