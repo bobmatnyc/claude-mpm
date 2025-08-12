@@ -471,9 +471,25 @@ class ClaudeRunner:
             return False
     
     def run_interactive(self, initial_context: Optional[str] = None):
-        """Run Claude in interactive mode."""
-        # TODO: Add response logging for interactive mode
-        # This requires capturing stdout from the exec'd process or using subprocess with PTY
+        """Run Claude in interactive mode.
+        
+        WHY: This method manages the interactive Claude session with optional response
+        logging through the hook system. Response logging works seamlessly with both 
+        exec and subprocess launch methods via Claude Code's built-in hook infrastructure.
+        
+        DESIGN DECISION: The hook system captures Claude events (UserPromptSubmit,
+        PreToolUse, PostToolUse, Task delegations) directly from Claude Code, enabling 
+        response logging without process control overhead. This architecture provides:
+        - Better performance (no I/O stream interception needed)
+        - Full compatibility with exec mode (preserves default behavior)
+        - Clean separation of concerns (hooks handle logging independently)
+        - Comprehensive event capture (including agent delegations)
+        
+        Args:
+            initial_context: Optional initial context to pass to Claude
+        """
+        # Use the launch method as specified
+        effective_launch_method = self.launch_method
         
         # Connect to Socket.IO server if enabled
         if self.enable_websocket:
@@ -491,7 +507,7 @@ class ClaudeRunner:
                 # Notify session start
                 self.websocket_server.session_started(
                     session_id=session_id,
-                    launch_method=self.launch_method,
+                    launch_method=effective_launch_method,
                     working_dir=working_dir
                 )
             except ImportError as e:
@@ -580,14 +596,14 @@ class ClaudeRunner:
             
             if self.project_logger:
                 self.project_logger.log_system(
-                    f"Launching Claude interactive mode with {self.launch_method}",
+                    f"Launching Claude interactive mode with {effective_launch_method}",
                     level="INFO",
                     component="session"
                 )
                 self._log_session_event({
                     "event": "launching_claude_interactive",
                     "command": " ".join(cmd),
-                    "method": self.launch_method
+                    "method": effective_launch_method
                 })
             
             # Notify WebSocket clients
@@ -598,7 +614,7 @@ class ClaudeRunner:
                 )
             
             # Launch using selected method
-            if self.launch_method == "subprocess":
+            if effective_launch_method == "subprocess":
                 self._launch_subprocess_interactive(cmd, clean_env)
             else:
                 # Default to exec for backward compatibility
@@ -1142,7 +1158,19 @@ class ClaudeRunner:
                 from claude_mpm.services.framework_claude_md_generator.content_assembler import ContentAssembler
                 assembler = ContentAssembler()
                 processed_instructions = assembler.apply_template_variables(raw_instructions)
-                self.logger.info(f"Loaded and processed {instructions_source} PM instructions with dynamic capabilities")
+                
+                # Append BASE_PM.md framework requirements with dynamic content
+                base_pm_path = Path(__file__).parent.parent / "agents" / "BASE_PM.md"
+                if base_pm_path.exists():
+                    base_pm_content = base_pm_path.read_text()
+                    
+                    # Process BASE_PM.md with dynamic content injection
+                    base_pm_content = self._process_base_pm_content(base_pm_content)
+                    
+                    processed_instructions += f"\n\n{base_pm_content}"
+                    self.logger.info(f"Appended BASE_PM.md with dynamic capabilities from deployed agents")
+                
+                self.logger.info(f"Loaded and processed {instructions_source} PM instructions")
                 return processed_instructions
             except ImportError:
                 self.logger.warning("ContentAssembler not available, using raw instructions")
@@ -1157,6 +1185,274 @@ class ClaudeRunner:
             self.logger.error(f"Failed to load system instructions: {e}")
             return None
 
+    def _process_base_pm_content(self, base_pm_content: str) -> str:
+        """Process BASE_PM.md content with dynamic injections.
+        
+        This method replaces template variables in BASE_PM.md with:
+        - {{agent-capabilities}}: List of deployed agents from .claude/agents/
+        - {{current-date}}: Today's date for temporal context
+        """
+        from datetime import datetime
+        
+        # Replace {{current-date}} with actual date
+        current_date = datetime.now().strftime('%Y-%m-%d')
+        base_pm_content = base_pm_content.replace('{{current-date}}', current_date)
+        
+        # Replace {{agent-capabilities}} with deployed agents
+        if '{{agent-capabilities}}' in base_pm_content:
+            capabilities_section = self._generate_deployed_agent_capabilities()
+            base_pm_content = base_pm_content.replace('{{agent-capabilities}}', capabilities_section)
+        
+        return base_pm_content
+    
+    def _generate_deployed_agent_capabilities(self) -> str:
+        """Generate agent capabilities from deployed agents following Claude Code's hierarchy.
+        
+        Follows the agent precedence order:
+        1. Project agents (.claude/agents/) - highest priority
+        2. User agents (~/.config/claude/agents/) - middle priority  
+        3. System agents (claude-desktop installation) - lowest priority
+        
+        Project agents override user/system agents with the same ID.
+        """
+        try:
+            # Track discovered agents by ID to handle overrides
+            discovered_agents = {}
+            
+            # 1. First read system agents (lowest priority)
+            system_agents_dirs = [
+                Path.home() / "Library" / "Application Support" / "Claude" / "agents",  # macOS
+                Path.home() / ".config" / "claude" / "agents",  # Linux
+                Path.home() / "AppData" / "Roaming" / "Claude" / "agents",  # Windows
+            ]
+            
+            for system_dir in system_agents_dirs:
+                if system_dir.exists():
+                    self._discover_agents_from_dir(system_dir, discovered_agents, "system")
+                    break
+            
+            # 2. Then read user agents (middle priority, overrides system)
+            user_agents_dir = Path.home() / ".config" / "claude" / "agents"
+            if user_agents_dir.exists():
+                self._discover_agents_from_dir(user_agents_dir, discovered_agents, "user")
+            
+            # 3. Finally read project agents (highest priority, overrides all)
+            project_agents_dir = Path.cwd() / ".claude" / "agents"
+            if project_agents_dir.exists():
+                self._discover_agents_from_dir(project_agents_dir, discovered_agents, "project")
+            
+            if not discovered_agents:
+                self.logger.warning("No agents found in any tier")
+                return self._get_fallback_capabilities()
+            
+            # Build capabilities section from discovered agents
+            section = "\n## Available Agent Capabilities\n\n"
+            section += "You have the following specialized agents available for delegation:\n\n"
+            
+            # Group agents by category
+            agents_by_category = {}
+            for agent_id, agent_info in discovered_agents.items():
+                category = agent_info['category']
+                if category not in agents_by_category:
+                    agents_by_category[category] = []
+                agents_by_category[category].append(agent_info)
+            
+            # Output agents by category
+            for category in sorted(agents_by_category.keys()):
+                section += f"\n### {category} Agents\n"
+                for agent in sorted(agents_by_category[category], key=lambda x: x['name']):
+                    tier_indicator = f" [{agent['tier']}]" if agent['tier'] != 'project' else ""
+                    section += f"- **{agent['name']}** (`{agent['id']}`{tier_indicator}): {agent['description']}\n"
+            
+            # Add summary
+            section += f"\n**Total Available Agents**: {len(discovered_agents)}\n"
+            
+            # Show tier distribution
+            tier_counts = {}
+            for agent in discovered_agents.values():
+                tier = agent['tier']
+                tier_counts[tier] = tier_counts.get(tier, 0) + 1
+            
+            if len(tier_counts) > 1:
+                section += f"**Agent Sources**: "
+                tier_summary = []
+                for tier in ['project', 'user', 'system']:
+                    if tier in tier_counts:
+                        tier_summary.append(f"{tier_counts[tier]} {tier}")
+                section += ", ".join(tier_summary) + "\n"
+            
+            section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
+            
+            self.logger.info(f"Generated capabilities for {len(discovered_agents)} agents " +
+                           f"(project: {tier_counts.get('project', 0)}, " +
+                           f"user: {tier_counts.get('user', 0)}, " +
+                           f"system: {tier_counts.get('system', 0)})")
+            return section
+            
+        except Exception as e:
+            self.logger.error(f"Failed to generate deployed agent capabilities: {e}")
+            return self._get_fallback_capabilities()
+    
+    def _discover_agents_from_dir(self, agents_dir: Path, discovered_agents: dict, tier: str):
+        """Discover agents from a specific directory and add/override in discovered_agents.
+        
+        Args:
+            agents_dir: Directory to search for agent .md files
+            discovered_agents: Dictionary to update with discovered agents
+            tier: The tier this directory represents (system/user/project)
+        """
+        if not agents_dir.exists():
+            return
+        
+        agent_files = list(agents_dir.glob("*.md"))
+        for agent_file in sorted(agent_files):
+            agent_id = agent_file.stem
+            
+            # Skip pm.md if it exists (PM is not a deployable agent)
+            if agent_id.lower() == 'pm':
+                continue
+            
+            # Read agent content and extract metadata
+            try:
+                content = agent_file.read_text()
+                import re
+                
+                # Check for YAML frontmatter
+                name = agent_id.replace('_', ' ').title()
+                desc = "Specialized agent for delegation"
+                
+                if content.startswith('---'):
+                    # Parse YAML frontmatter
+                    frontmatter_match = re.match(r'^---\n(.*?)\n---', content, re.DOTALL)
+                    if frontmatter_match:
+                        frontmatter = frontmatter_match.group(1)
+                        # Extract name from frontmatter
+                        name_fm_match = re.search(r'^name:\s*(.+)$', frontmatter, re.MULTILINE)
+                        if name_fm_match:
+                            name_value = name_fm_match.group(1).strip()
+                            # Format the name nicely
+                            name = name_value.replace('_', ' ').title()
+                        
+                        # Extract description from frontmatter
+                        desc_fm_match = re.search(r'^description:\s*(.+)$', frontmatter, re.MULTILINE)
+                        if desc_fm_match:
+                            desc = desc_fm_match.group(1).strip()
+                else:
+                    # No frontmatter, extract from content
+                    name_match = re.search(r'^#\s+(.+?)(?:\s+Agent)?$', content, re.MULTILINE)
+                    if name_match:
+                        name = name_match.group(1)
+                    
+                    # Get first non-heading line after the title
+                    lines = content.split('\n')
+                    for i, line in enumerate(lines):
+                        if line.startswith('#'):
+                            # Found title, look for description after it
+                            for desc_line in lines[i+1:]:
+                                desc_line = desc_line.strip()
+                                if desc_line and not desc_line.startswith('#'):
+                                    desc = desc_line
+                                    break
+                            break
+                
+                # Categorize based on agent name/type
+                category = self._categorize_agent(agent_id, content)
+                
+                # Add or override agent in discovered_agents
+                discovered_agents[agent_id] = {
+                    'id': agent_id,
+                    'name': name,
+                    'description': desc[:150] + '...' if len(desc) > 150 else desc,
+                    'category': category,
+                    'tier': tier,
+                    'path': str(agent_file)
+                }
+                
+                self.logger.debug(f"Discovered {tier} agent: {agent_id} from {agent_file}")
+                
+            except Exception as e:
+                self.logger.debug(f"Could not parse agent {agent_file}: {e}")
+                continue
+    def _categorize_agent(self, agent_id: str, content: str) -> str:
+        """Categorize an agent based on its ID and content."""
+        agent_id_lower = agent_id.lower()
+        content_lower = content.lower()
+        
+        if 'engineer' in agent_id_lower or 'engineering' in content_lower:
+            return "Engineering"
+        elif 'research' in agent_id_lower or 'analysis' in content_lower or 'analyzer' in agent_id_lower:
+            return "Research"
+        elif 'qa' in agent_id_lower or 'quality' in content_lower or 'test' in agent_id_lower:
+            return "Quality"
+        elif 'security' in agent_id_lower or 'security' in content_lower:
+            return "Security"
+        elif 'doc' in agent_id_lower or 'documentation' in content_lower:
+            return "Documentation"
+        elif 'data' in agent_id_lower:
+            return "Data"
+        elif 'ops' in agent_id_lower or 'deploy' in agent_id_lower or 'operations' in content_lower:
+            return "Operations"
+        elif 'version' in agent_id_lower or 'git' in content_lower:
+            return "Version Control"
+        else:
+            return "General"
+    
+    def _get_fallback_capabilities(self) -> str:
+        """Return fallback agent capabilities when deployed agents can't be read."""
+        return """
+## Available Agent Capabilities
+
+You have the following specialized agents available for delegation:
+
+- **Engineer Agent**: Code implementation and development
+- **Research Agent**: Investigation and analysis
+- **QA Agent**: Testing and quality assurance
+- **Documentation Agent**: Documentation creation and maintenance
+- **Security Agent**: Security analysis and protection
+- **Data Engineer Agent**: Data management and pipelines
+- **Ops Agent**: Deployment and operations
+- **Version Control Agent**: Git operations and version management
+
+Use these agents to delegate specialized work via the Task tool.
+"""
+    
+    def _generate_agent_capabilities_section(self, agents: dict) -> str:
+        """Generate dynamic agent capabilities section from available agents."""
+        if not agents:
+            return ""
+        
+        # Build capabilities section
+        section = "\n\n## Available Agent Capabilities\n\n"
+        section += "You have the following specialized agents available for delegation:\n\n"
+        
+        # Group agents by category
+        categories = {}
+        for agent_id, info in agents.items():
+            category = info.get('category', 'general')
+            if category not in categories:
+                categories[category] = []
+            categories[category].append((agent_id, info))
+        
+        # List agents by category
+        for category in sorted(categories.keys()):
+            section += f"\n### {category.title()} Agents\n"
+            for agent_id, info in sorted(categories[category]):
+                name = info.get('name', agent_id)
+                desc = info.get('description', 'Specialized agent')
+                tools = info.get('tools', [])
+                section += f"- **{name}** (`{agent_id}`): {desc}\n"
+                if tools:
+                    section += f"  - Tools: {', '.join(tools[:5])}"
+                    if len(tools) > 5:
+                        section += f" (+{len(tools)-5} more)"
+                    section += "\n"
+        
+        # Add summary
+        section += f"\n**Total Available Agents**: {len(agents)}\n"
+        section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
+        
+        return section
+    
     def _create_system_prompt(self) -> str:
         """Create the complete system prompt including instructions."""
         if self.system_instructions:
@@ -1418,16 +1714,27 @@ class ClaudeRunner:
             # Don't fail the entire initialization - memory system is optional
     
     def _launch_subprocess_interactive(self, cmd: list, env: dict):
-        """Launch Claude as a subprocess with PTY for interactive mode."""
+        """Launch Claude as a subprocess with PTY for interactive mode.
+        
+        WHY: This method launches Claude as a subprocess when explicitly requested
+        (via --launch-method subprocess). Subprocess mode maintains the parent process,
+        which can be useful for:
+        1. Maintaining WebSocket connections and monitoring
+        2. Providing proper cleanup and error handling
+        3. Debugging and development scenarios
+        
+        DESIGN DECISION: We use PTY (pseudo-terminal) to maintain full interactive
+        capabilities. Response logging is handled through the hook system, not I/O
+        interception, for better performance and compatibility.
+        """
         import pty
         import select
         import termios
         import tty
         import signal
         
-        # Collect output for response logging if enabled
-        collected_output = [] if self.response_logger else None
-        collected_input = [] if self.response_logger else None
+        # Note: Response logging is handled through the hook system,
+        # not through I/O interception (better performance)
         
         # Save original terminal settings
         original_tty = None
@@ -1491,13 +1798,6 @@ class ClaudeRunner:
                         data = os.read(master_fd, 4096)
                         if data:
                             os.write(sys.stdout.fileno(), data)
-                            # Collect output for response logging
-                            if collected_output is not None:
-                                try:
-                                    output_text = data.decode('utf-8', errors='replace')
-                                    collected_output.append(output_text)
-                                except Exception:
-                                    pass
                             # Broadcast output to WebSocket clients
                             if self.websocket_server:
                                 try:
@@ -1516,37 +1816,13 @@ class ClaudeRunner:
                         data = os.read(sys.stdin.fileno(), 4096)
                         if data:
                             os.write(master_fd, data)
-                            # Collect input for response logging
-                            if collected_input is not None:
-                                try:
-                                    input_text = data.decode('utf-8', errors='replace')
-                                    collected_input.append(input_text)
-                                except Exception:
-                                    pass
                     except OSError:
                         break
             
             # Wait for process to complete
             process.wait()
             
-            # Log the interactive session if response logging is enabled
-            if self.response_logger and collected_output is not None and collected_output:
-                try:
-                    full_output = ''.join(collected_output)
-                    full_input = ''.join(collected_input) if collected_input else "Interactive session"
-                    self.response_logger.log_response(
-                        request_summary=f"Interactive session: {full_input[:200]}..." if len(full_input) > 200 else f"Interactive session: {full_input}",
-                        response_content=full_output,
-                        metadata={
-                            "mode": "interactive-subprocess",
-                            "model": "opus",
-                            "exit_code": process.returncode,
-                            "session_type": "subprocess"
-                        },
-                        agent="claude-interactive"
-                    )
-                except Exception as e:
-                    self.logger.debug(f"Failed to log interactive session: {e}")
+            # Note: Response logging is handled through the hook system
             
             if self.project_logger:
                 self.project_logger.log_system(

@@ -274,6 +274,13 @@ class FrameworkLoader:
                 if self.framework_last_modified:
                     content["instructions_last_modified"] = self.framework_last_modified
         
+        # Load BASE_PM.md for core framework requirements
+        base_pm_path = self.framework_path / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
+        if base_pm_path.exists():
+            base_pm_content = self._try_load_file(base_pm_path, "BASE_PM framework requirements")
+            if base_pm_content:
+                content["base_pm_instructions"] = base_pm_content
+        
         # Discover agent directories
         agents_dir, templates_dir, main_dir = self._discover_framework_paths()
         
@@ -307,6 +314,17 @@ class FrameworkLoader:
             # Add working directory instructions if they exist
             if self.framework_content["working_claude_md"]:
                 instructions += f"\n\n## Working Directory Instructions\n{self.framework_content['working_claude_md']}\n"
+            
+            # Add dynamic agent capabilities section
+            instructions += self._generate_agent_capabilities_section()
+            
+            # Add current date for temporal awareness
+            instructions += f"\n\n## Temporal Context\n**Today's Date**: {datetime.now().strftime('%Y-%m-%d')}\n"
+            instructions += "Apply date awareness to all time-sensitive tasks and decisions.\n"
+            
+            # Add BASE_PM.md framework requirements AFTER INSTRUCTIONS.md
+            if self.framework_content.get("base_pm_instructions"):
+                instructions += f"\n\n{self.framework_content['base_pm_instructions']}\n"
             
             return instructions
         
@@ -412,6 +430,69 @@ Extract tickets from these patterns:
 """
         
         return instructions
+    
+    def _generate_agent_capabilities_section(self) -> str:
+        """Generate dynamic agent capabilities section from deployed agents."""
+        try:
+            # Try to get agents from agent_loader
+            from claude_mpm.agents.agent_loader import list_available_agents
+            agents = list_available_agents()
+            
+            if not agents:
+                return ""
+            
+            # Build capabilities section
+            section = "\n\n## Available Agent Capabilities\n\n"
+            section += "You have the following specialized agents available for delegation:\n\n"
+            
+            # Group agents by category
+            categories = {}
+            for agent_id, info in agents.items():
+                category = info.get('category', 'general')
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append((agent_id, info))
+            
+            # List agents by category
+            for category in sorted(categories.keys()):
+                section += f"\n### {category.title()} Agents\n"
+                for agent_id, info in sorted(categories[category]):
+                    name = info.get('name', agent_id)
+                    desc = info.get('description', 'Specialized agent')
+                    tools = info.get('tools', [])
+                    section += f"- **{name}** (`{agent_id}`): {desc}\n"
+                    if tools:
+                        section += f"  - Tools: {', '.join(tools[:5])}"
+                        if len(tools) > 5:
+                            section += f" (+{len(tools)-5} more)"
+                        section += "\n"
+            
+            # Add summary
+            section += f"\n**Total Available Agents**: {len(agents)}\n"
+            section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
+            
+            return section
+            
+        except Exception as e:
+            self.logger.warning(f"Could not generate dynamic agent capabilities: {e}")
+            # Return static fallback
+            return """
+
+## Available Agent Capabilities
+
+You have the following specialized agents available for delegation:
+
+- **Engineer Agent**: Code implementation and development
+- **Research Agent**: Investigation and analysis
+- **QA Agent**: Testing and quality assurance
+- **Documentation Agent**: Documentation creation and maintenance
+- **Security Agent**: Security analysis and protection
+- **Data Engineer Agent**: Data management and pipelines
+- **Ops Agent**: Deployment and operations
+- **Version Control Agent**: Git operations and version management
+
+Use these agents to delegate specialized work via the Task tool.
+"""
     
     def _format_minimal_framework(self) -> str:
         """Format minimal framework instructions when full framework not available."""

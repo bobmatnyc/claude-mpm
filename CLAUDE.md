@@ -15,6 +15,8 @@ Claude MPM (Multi-Agent Project Manager) is a framework for Claude that enables 
 - 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
 - 🧠 **Memory System**: See [docs/MEMORY.md](docs/MEMORY.md) for agent memory management
 - 🤖 **Local Agents**: See [docs/PROJECT_AGENTS.md](docs/PROJECT_AGENTS.md) for local agent deployment
+- 🔧 **PM Architecture**: See [docs/developer/02-core-components/pm-architecture.md](docs/developer/02-core-components/pm-architecture.md) for PM instruction system
+- 📝 **Agent Response Format**: See [docs/developer/12-responses/TECHNICAL_REFERENCE.md](docs/developer/12-responses/TECHNICAL_REFERENCE.md) for structured response requirements
 
 ## Development Guidelines
 
@@ -66,7 +68,8 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
 
 3. **Hook System** (`src/claude_mpm/hooks/`)
    - Extensibility through pre/post hooks
-   - Managed by hook service
+   - **Response Logging**: Hook-based capture of `SubagentStop` and `Stop` events
+   - **Structured Agent Responses**: JSON format for proper logging and memory integration
 
 4. **Services** (`src/claude_mpm/services/`)
    - Business logic layer
@@ -86,7 +89,7 @@ See [docs/QA.md](docs/QA.md) for detailed testing procedures.
 # Non-interactive mode
 ./claude-mpm run -i "Your prompt here" --non-interactive
 
-# Create a local project agent (JSON format for .claude-mpm/agents/)
+# Create a local project agent (supports JSON, YAML, or MD formats)
 mkdir -p .claude-mpm/agents
 cat > .claude-mpm/agents/custom_engineer.json << 'EOF'
 {
@@ -106,6 +109,22 @@ EOF
 
 # List agents by tier to see which version is being used
 ./claude-mpm agents list --by-tier
+
+# Deploy specific agents (exclude others for performance)
+cat > .claude-mpm/configuration.yaml << 'EOF'
+agent_deployment:
+  excluded_agents:
+    - research
+    - data_engineer
+    - ops
+  case_sensitive: false
+EOF
+
+# Deploy agents with exclusions (automatically skips excluded agents)
+./claude-mpm agents deploy
+
+# Or deploy all agents, ignoring exclusions
+./claude-mpm agents deploy --include-all
 ```
 
 ## Local Agent Deployment
