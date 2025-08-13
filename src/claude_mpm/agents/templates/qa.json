@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "qa_agent",
-  "agent_version": "3.0.0",
+  "agent_id": "qa-agent",
+  "agent_version": "3.0.1",
   "agent_type": "qa",
   "metadata": {
     "name": "Qa Agent",
@@ -116,7 +116,6 @@
       "hypothesis>=6.92.0",
       "mutmut>=2.4.0",
       "pytest-benchmark>=4.0.0",
-      "allure-pytest>=2.13.0",
       "faker>=20.0.0"
     ],
     "system": [

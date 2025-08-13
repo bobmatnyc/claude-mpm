@@ -13,10 +13,10 @@
   "properties": {
     "name": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*$",
+      "pattern": "^[a-z][a-z0-9_-]*$",
       "minLength": 1,
       "maxLength": 50,
-      "description": "Agent identifier (snake_case)"
+      "description": "Agent identifier (kebab-case or snake_case)"
     },
     "description": {
       "type": "string",

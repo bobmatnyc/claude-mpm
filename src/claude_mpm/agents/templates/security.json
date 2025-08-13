@@ -1,6 +1,6 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "security_agent",
+  "agent_id": "security-agent",
   "agent_version": "2.0.1",
   "agent_type": "security",
   "metadata": {
@@ -115,10 +115,7 @@
     "python": [
       "bandit>=1.7.5",
       "detect-secrets>=1.4.0",
-      "pip-audit>=2.6.0",
-      "sqlparse>=0.4.4",
-      "pyjwt>=2.8.0",
-      "pycryptodome>=3.19.0"
+      "sqlparse>=0.4.4"
     ],
     "system": [
       "python3",

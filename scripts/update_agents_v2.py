@@ -46,10 +46,7 @@ AGENT_UPDATES = {
             "python": [
                 "bandit>=1.7.5",
                 "detect-secrets>=1.4.0",
-                "pip-audit>=2.6.0",
-                "sqlparse>=0.4.4",
-                "pyjwt>=2.8.0",
-                "cryptography>=41.0.0"
+                "sqlparse>=0.4.4"
             ]
         }
     },
@@ -59,11 +56,8 @@ AGENT_UPDATES = {
         "dependencies": {
             "python": [
                 "pandas>=2.1.0",
-                "great-expectations>=0.18.0",
-                "ydata-profiling>=4.6.0",
                 "dask>=2023.12.0",
-                "sqlalchemy>=2.0.0",
-                "apache-airflow>=2.8.0"
+                "sqlalchemy>=2.0.0"
             ]
         }
     },
@@ -86,12 +80,7 @@ AGENT_UPDATES = {
         "description": "Infrastructure automation with IaC validation and container security",
         "dependencies": {
             "python": [
-                "ansible>=9.0.0",
-                "terraform-compliance>=1.3.0",
-                "docker>=7.0.0",
-                "kubernetes>=28.0.0",
-                "prometheus-client>=0.19.0",
-                "checkov>=3.1.0"
+                "prometheus-client>=0.19.0"
             ]
         }
     },

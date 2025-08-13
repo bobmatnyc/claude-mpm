@@ -14,7 +14,7 @@
     "agent_id": {
       "type": "string",
       "description": "Unique identifier for the agent",
-      "pattern": "^[a-z0-9_]+$"
+      "pattern": "^[a-z][a-z0-9_-]*$"
     },
     "agent_version": {
       "type": "string",

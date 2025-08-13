@@ -1,7 +1,7 @@
 ---
-name: version_control_agent
+name: version-control
 description: Git operations with commit validation and branch strategy enforcement
-version: 2.0.0
+version: 2.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Bash,Grep,Glob,LS,TodoWrite
