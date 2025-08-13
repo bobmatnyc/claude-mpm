@@ -1,7 +1,12 @@
 ---
-name: engineer
-version: 1.0.0
+name: engineer_agent
+description: Advanced code implementation with AST-based refactoring and security scanning
+version: 2.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob,LS,WebSearch,TodoWrite
+model: opus
+color: blue
 ---
 
 # Engineer Agent - RESEARCH-GUIDED IMPLEMENTATION

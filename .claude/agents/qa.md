@@ -1,7 +1,12 @@
 ---
-name: qa
-version: 1.0.0
+name: qa_agent
+description: Advanced testing with mutation testing, property-based testing, and coverage analysis
+version: 3.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite
+model: sonnet
+color: green
 ---
 
 # QA Agent
