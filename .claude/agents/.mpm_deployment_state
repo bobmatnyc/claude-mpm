@@ -1,19 +1,30 @@
 {
-  "deployment_hash": "8cf06deb21676375add437a98d67ed591ea936d9a33e1a0066e6380e67b217ae",
-  "last_check_time": 1755119463.111446,
+  "deployment_hash": "3b30d1ec61cb55ed9926d556eea53964a538d7d97e3464e0d75d5873462ddbac",
+  "last_check_time": 1755123025.0611148,
   "last_check_results": {
     "agents": {
       "code_analyzer": {
         "python": {
           "satisfied": [
             "tree-sitter>=0.21.0",
+            "tree-sitter-python>=0.21.0",
+            "tree-sitter-javascript>=0.21.0",
+            "tree-sitter-typescript>=0.21.0",
+            "tree-sitter-go>=0.21.0",
+            "tree-sitter-rust>=0.21.0",
+            "tree-sitter-java>=0.21.0",
+            "tree-sitter-cpp>=0.21.0",
+            "tree-sitter-c>=0.21.0",
             "astroid>=3.0.0",
             "rope>=1.11.0",
             "libcst>=1.1.0",
             "radon>=6.0.0",
             "pygments>=2.17.0"
           ],
-          "missing": [],
+          "missing": [
+            "tree-sitter-ruby>=0.21.0",
+            "tree-sitter-php>=0.21.0"
+          ],
           "outdated": []
         },
         "system": {
@@ -254,7 +265,10 @@
     "summary": {
       "total_agents": 12,
       "agents_with_deps": 12,
-      "missing_python": [],
+      "missing_python": [
+        "tree-sitter-ruby>=0.21.0",
+        "tree-sitter-php>=0.21.0"
+      ],
       "missing_system": [
         "node>=18.0.0",
         "python3>=3.8",
@@ -264,6 +278,14 @@
       ],
       "satisfied_python": [
         "tree-sitter>=0.21.0",
+        "tree-sitter-python>=0.21.0",
+        "tree-sitter-javascript>=0.21.0",
+        "tree-sitter-typescript>=0.21.0",
+        "tree-sitter-go>=0.21.0",
+        "tree-sitter-rust>=0.21.0",
+        "tree-sitter-java>=0.21.0",
+        "tree-sitter-cpp>=0.21.0",
+        "tree-sitter-c>=0.21.0",
         "astroid>=3.0.0",
         "rope>=1.11.0",
         "libcst>=1.1.0",
