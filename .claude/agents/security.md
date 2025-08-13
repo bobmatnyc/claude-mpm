@@ -1,7 +1,7 @@
 ---
 name: security_agent
 description: Advanced security scanning with SAST, dependency auditing, and secret detection
-version: 2.0.0
+version: 2.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Grep,Glob,LS,WebSearch,TodoWrite
