@@ -744,10 +744,14 @@ class AgentDeploymentService:
         agent_id = template_data.get('agent_id', agent_name)
         display_name = template_data.get('metadata', {}).get('name', agent_id)
         
+        # Convert agent_id to Claude Code compatible name (replace underscores with hyphens)
+        # Claude Code requires name to match pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+        claude_code_name = agent_id.replace('_', '-').lower()
+        
         # Build frontmatter with only the fields Claude Code uses
         frontmatter_lines = [
             "---",
-            f"name: {agent_id}",
+            f"name: {claude_code_name}",
             f"description: {description}",
             f"version: {version_string}",
             f"base_version: {self._format_version_display(base_version)}",

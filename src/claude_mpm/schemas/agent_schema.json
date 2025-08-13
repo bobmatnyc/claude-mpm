@@ -22,9 +22,9 @@
     },
     "agent_id": {
       "type": "string",
-      "pattern": "^[a-z][a-z0-9_]*$",
-      "description": "Unique agent identifier used for agent discovery and loading. This ID must be unique across all agents in the system and follows snake_case naming convention.",
-      "examples": ["research_agent", "engineer_agent", "qa_agent", "security_agent"]
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "description": "Unique agent identifier used for agent discovery and loading. This ID must be unique across all agents in the system and follows kebab-case or snake_case naming convention.",
+      "examples": ["research-agent", "engineer-agent", "qa-agent", "security-agent", "research_agent", "engineer_agent"]
     },
     "agent_version": {
       "type": "string",

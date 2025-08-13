@@ -247,6 +247,30 @@ agent_deployment:
 
 See [Agent Exclusion Guide](AGENT_EXCLUSION.md) for comprehensive exclusion documentation.
 
+## Available System Agents
+
+Claude MPM includes several specialized system agents that can be customized at the project level:
+
+### Core Agents
+- **Engineer Agent**: Software development and implementation
+- **QA Agent**: Testing, quality assurance, and validation  
+- **Documentation Agent**: Technical writing and documentation management
+- **Security Agent**: Security analysis and vulnerability management
+- **Ops Agent**: Operations, deployment, and infrastructure management
+
+### Specialized Agents
+- **Data Engineer Agent**: Data pipeline and analytics work
+- **Research Agent**: Investigation and analysis tasks
+- **Version Control Agent**: Git and version management operations
+- **Code Analyzer Agent**: Static code analysis and quality metrics
+- **Deploy Manager Agent**: Release and deployment coordination
+- **Ticketing Agent**: Project management and issue tracking
+
+### Project Management
+- **Ticketing Agent**: Intelligent ticket management for epics, issues, and tasks with workflow automation. See [Ticketing Agent Documentation](TICKETING_AGENT.md) for comprehensive usage guide.
+
+Each system agent can be customized or overridden at the project level by creating agent definitions in `.claude-mpm/agents/` with the same agent ID.
+
 ## Troubleshooting
 
 ### Agent Not Found

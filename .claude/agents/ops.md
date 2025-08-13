@@ -1,7 +1,7 @@
 ---
-name: ops_agent
+name: ops-agent
 description: Infrastructure automation with IaC validation and container security
-version: 2.0.0
+version: 2.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite

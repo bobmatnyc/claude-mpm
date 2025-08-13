@@ -1,7 +1,7 @@
 ---
-name: web_qa_agent
+name: web-qa-agent
 description: Specialized browser automation testing for deployed web applications with comprehensive E2E, performance, and accessibility testing
-version: 1.0.0
+version: 1.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: WebFetch,WebSearch,Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite

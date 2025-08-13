@@ -1,5 +1,5 @@
 ---
-name: engineer_agent
+name: engineer
 description: Advanced code implementation with AST-based refactoring and security scanning
 version: 2.0.1
 base_version: 0.1.0

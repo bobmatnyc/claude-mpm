@@ -1,5 +1,5 @@
 ---
-name: data_engineer_agent
+name: data-engineer
 description: Data engineering with quality validation, ETL patterns, and profiling
 version: 2.0.1
 base_version: 0.1.0

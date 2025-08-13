@@ -1,5 +1,5 @@
 ---
-name: research_agent
+name: research-agent
 description: Advanced codebase analysis with tree-sitter multi-language AST support (41+ languages), Python AST tools, semantic search, complexity metrics, and architecture visualization
 version: 3.0.1
 base_version: 0.1.0

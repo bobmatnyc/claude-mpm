@@ -1,7 +1,7 @@
 ---
-name: qa_agent
+name: qa-agent
 description: Advanced testing with mutation testing, property-based testing, and coverage analysis
-version: 3.0.0
+version: 3.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Write,Edit,Bash,Grep,Glob,LS,TodoWrite
