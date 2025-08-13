@@ -1,25 +1,8 @@
 {
-  "deployment_hash": "1da57fa52c53d2fc8df16ceae89bc91ddd6c50b5d27c89582751a1f6a9135154",
-  "last_check_time": 1755113658.679614,
+  "deployment_hash": "df4b3c2044a52e84d1e3d2fe72e8fdf82f568f74b8226f9a1e98a4247a7c6713",
+  "last_check_time": 1755115989.6895208,
   "last_check_results": {
     "agents": {
-      "code_analyzer": {
-        "python": {
-          "satisfied": [
-            "tree-sitter>=0.21.0",
-            "tree-sitter-language-pack>=0.8.0"
-          ],
-          "missing": [],
-          "outdated": []
-        },
-        "system": {
-          "satisfied": [
-            "python3",
-            "git"
-          ],
-          "missing": []
-        }
-      },
       "ops": {
         "python": {
           "satisfied": [
@@ -50,9 +33,9 @@
           ],
           "missing": [
             "great-expectations>=0.18.0",
-            "ydata-profiling>=4.6.0",
+            "sweetviz>=2.3.0",
             "dask>=2023.12.0",
-            "apache-airflow>=2.8.0"
+            "prefect>=2.14.0"
           ],
           "outdated": []
         },
@@ -246,14 +229,14 @@
           "satisfied": [
             "ai-trackdown-pytools>=1.0.0",
             "jira>=3.5.0",
+            "PyGithub>=2.0.0",
+            "python-gitlab>=3.15.0",
             "click>=8.1.0",
             "rich>=13.0.0",
             "pyyaml>=6.0.0"
           ],
           "missing": [
-            "github>=2.0.0",
-            "gitlab-python>=3.15.0",
-            "azure-devops>=7.1.0"
+            "azure-devops==7.1.0b4"
           ],
           "outdated": []
         },
@@ -268,7 +251,7 @@
     },
     "summary": {
       "total_agents": 18,
-      "agents_with_deps": 12,
+      "agents_with_deps": 11,
       "missing_python": [
         "ansible>=9.0.0",
         "terraform-compliance>=1.3.0",
@@ -276,9 +259,9 @@
         "prometheus-client>=0.19.0",
         "checkov>=3.1.0",
         "great-expectations>=0.18.0",
-        "ydata-profiling>=4.6.0",
+        "sweetviz>=2.3.0",
         "dask>=2023.12.0",
-        "apache-airflow>=2.8.0",
+        "prefect>=2.14.0",
         "pre-commit>=3.5.0",
         "commitizen>=3.13.0",
         "gitlint>=0.19.0",
@@ -298,9 +281,7 @@
         "detect-secrets>=1.4.0",
         "pip-audit>=2.6.0",
         "sqlparse>=0.4.4",
-        "github>=2.0.0",
-        "gitlab-python>=3.15.0",
-        "azure-devops>=7.1.0"
+        "azure-devops==7.1.0b4"
       ],
       "missing_system": [
         "node>=18.0.0",
@@ -310,8 +291,6 @@
         "webkit"
       ],
       "satisfied_python": [
-        "tree-sitter>=0.21.0",
-        "tree-sitter-language-pack>=0.8.0",
         "kubernetes>=28.0.0",
         "pandas>=2.1.0",
         "sqlalchemy>=2.0.0",
@@ -323,6 +302,8 @@
         "faker>=20.0.0",
         "pygments>=2.17.0",
         "radon>=6.0.0",
+        "tree-sitter>=0.21.0",
+        "tree-sitter-language-pack>=0.8.0",
         "black>=23.0.0",
         "isort>=5.12.0",
         "mypy>=1.8.0",
@@ -338,6 +319,8 @@
         "cryptography>=41.0.0",
         "ai-trackdown-pytools>=1.0.0",
         "jira>=3.5.0",
+        "PyGithub>=2.0.0",
+        "python-gitlab>=3.15.0",
         "click>=8.1.0",
         "rich>=13.0.0",
         "pyyaml>=6.0.0"

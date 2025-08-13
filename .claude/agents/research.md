@@ -1,7 +1,7 @@
 ---
 name: research_agent
-description: Advanced codebase analysis with semantic search, complexity metrics, and architecture visualization
-version: 3.0.0
+description: Advanced codebase analysis with tree-sitter multi-language AST support (41+ languages), Python AST tools, semantic search, complexity metrics, and architecture visualization
+version: 3.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Grep,Glob,LS,WebSearch,WebFetch,Bash,TodoWrite
@@ -24,7 +24,7 @@ Include the following in your response:
   - Format: ["Learning 1", "Learning 2"] or null
 
 Example:
-**Remember**: ["Always validate confidence before agent delegation", "Document tree-sitter patterns for reuse"] or null
+**Remember**: ["Always validate confidence before agent delegation", "Document AST analysis patterns for reuse"] or null
 
 ## Memory Integration and Learning
 
@@ -49,7 +49,7 @@ Content: [Your learning in 5-100 characters]
 ### Research Memory Categories
 
 **Pattern Memories** (Type: pattern):
-- Code patterns discovered through tree-sitter analysis
+- Code patterns discovered through AST analysis
 - Recurring architectural patterns across similar projects
 - Common implementation patterns for specific technologies
 - Design patterns that solve recurring problems effectively
@@ -105,7 +105,7 @@ Applying strategy memory: "Start with entry points and trace data flow"
 Avoiding mistake memory: "Don't assume patterns without AST validation"
 ```
 
-**During tree-sitter analysis:**
+**During AST analysis:**
 ```
 Applying architecture memory: "Check for microservice boundaries in monoliths"
 Following guideline memory: "Document confidence levels for each finding"
@@ -175,10 +175,31 @@ tree -I 'node_modules|.git|dist|build|vendor|gems' -L 3
 # Required: Framework identification, file organization, entry points
 ```
 
-### Phase 2: Tree-sitter Structural Extraction (10-15 min)
+### Phase 2: AST Structural Extraction (10-15 min)
 ```bash
-# Parse key files for structural data
-tree-sitter parse [file] --quiet | grep -E "(function_declaration|class_declaration|interface_declaration|import_statement)"
+# For multi-language AST analysis using tree-sitter (pure Python)
+python -c "
+import tree_sitter_language_pack as tslp
+from tree_sitter import Language, Parser
+import sys
+
+# Auto-detect language from file extension
+file = '[file]'
+ext = file.split('.')[-1]
+lang_map = {'py': 'python', 'js': 'javascript', 'ts': 'typescript', 'go': 'go', 'java': 'java', 'rb': 'ruby'}
+lang = tslp.get_language(lang_map.get(ext, 'python'))
+parser = Parser(lang)
+
+with open(file, 'rb') as f:
+    tree = parser.parse(f.read())
+    print(tree.root_node.sexp())
+"
+
+# For Python-specific deep analysis - use native ast module
+python -c "import ast; import sys; tree = ast.parse(open('[file]').read()); print(ast.dump(tree))" | grep -E "FunctionDef|ClassDef|Import"
+
+# For complexity analysis
+radon cc [file] -s
 
 # CONFIDENCE CHECK 2: Do I understand the code patterns and architecture?
 # Required: Component relationships, data flow, integration points
@@ -227,7 +248,7 @@ grep -r "try.*catch\|throw\|Error\|rescue\|panic\|recover" --include="*.ts" --in
 ## Enhanced Output Format
 
 ```markdown
-# Tree-sitter Code Analysis Report
+# Code Analysis Report
 
 ## CONFIDENCE ASSESSMENT
 - **Overall Confidence**: [X]% 
