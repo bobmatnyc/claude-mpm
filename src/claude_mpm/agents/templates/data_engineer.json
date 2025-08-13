@@ -112,10 +112,10 @@
     "python": [
       "pandas>=2.1.0",
       "great-expectations>=0.18.0",
-      "ydata-profiling>=4.6.0",
+      "sweetviz>=2.3.0",
       "dask>=2023.12.0",
       "sqlalchemy>=2.0.0",
-      "apache-airflow>=2.8.0"
+      "prefect>=2.14.0"
     ],
     "system": [
       "python3",
