@@ -604,6 +604,17 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         help='Output format for dependency list'
     )
     
+    deps_fix_parser = agents_subparsers.add_parser(
+        'deps-fix',
+        help='Fix missing agent dependencies with robust retry logic'
+    )
+    deps_fix_parser.add_argument(
+        '--max-retries',
+        type=int,
+        default=3,
+        help='Maximum retry attempts per package (default: 3)'
+    )
+    
     # Config command with subcommands
     config_parser = subparsers.add_parser(
         CLICommands.CONFIG.value,

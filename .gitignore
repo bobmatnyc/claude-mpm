@@ -20,8 +20,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
-.claude/projects/
-.claude/statsig/
+.claude/
 .env
 
 # Test logs
