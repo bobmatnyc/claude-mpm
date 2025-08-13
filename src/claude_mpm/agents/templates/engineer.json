@@ -1,6 +1,6 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "engineer_agent",
+  "agent_id": "engineer",
   "agent_version": "2.0.1",
   "agent_type": "engineer",
   "metadata": {

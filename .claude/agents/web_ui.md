@@ -1,7 +1,7 @@
 ---
-name: web_ui_agent
+name: web-ui-engineer
 description: Front-end web specialist with expertise in HTML5, CSS3, JavaScript, responsive design, accessibility, and user interface implementation
-version: 1.0.0
+version: 1.0.1
 base_version: 0.1.0
 author: claude-mpm
 tools: Read,Write,Edit,MultiEdit,Bash,Grep,Glob,LS,WebSearch,TodoWrite

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "documentation_agent",
-  "agent_version": "2.0.0",
+  "agent_id": "documentation-agent",
+  "agent_version": "2.0.1",
   "agent_type": "documentation",
   "metadata": {
     "name": "Documentation Agent",

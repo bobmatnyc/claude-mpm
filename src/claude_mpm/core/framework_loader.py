@@ -504,21 +504,22 @@ Extract tickets from these patterns:
             
             # Display core agents first
             if core_agents:
-                section += "### Core Agents\n"
+                section += "### Engineering Agents\n"
                 for agent_id, name, desc in core_agents:
-                    section += f"- **{name}** (`{agent_id}`): {desc}\n"
+                    # Format: Name (agent_id) - use Name for TodoWrite, agent_id for Task tool
+                    clean_name = name.replace(' Agent', '').replace('-', ' ')
+                    section += f"- **{clean_name}** (`{agent_id}`): {desc}\n"
             
             # Display other/custom agents
             if other_agents:
-                section += "\n### Custom/Project Agents\n"
+                section += "\n### Research Agents\n"
                 for agent_id, name, desc in other_agents:
-                    section += f"- **{name}** (`{agent_id}`): {desc}\n"
+                    clean_name = name.replace(' Agent', '').replace('-', ' ')
+                    section += f"- **{clean_name}** (`{agent_id}`): {desc}\n"
             
             # Add summary and usage instructions
             section += f"\n**Total Available Agents**: {len(deployed_agents)}\n"
-            section += "\n**IMPORTANT**: Use the exact agent ID shown in parentheses when delegating tasks.\n"
-            section += "For example: `**research**: Analyze the codebase architecture`\n"
-            section += "NOT: `**research_agent**: ...` or `**Research Agent**: ...`\n"
+            section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
             
             return section
             

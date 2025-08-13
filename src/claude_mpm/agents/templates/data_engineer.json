@@ -1,8 +1,8 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "data_engineer_agent",
+  "agent_id": "data-engineer",
   "agent_version": "2.0.1",
-  "agent_type": "data_engineer",
+  "agent_type": "engineer",
   "metadata": {
     "name": "Data Engineer Agent",
     "description": "Data engineering with quality validation, ETL patterns, and profiling",
@@ -111,11 +111,8 @@
   "dependencies": {
     "python": [
       "pandas>=2.1.0",
-      "great-expectations>=0.18.0",
-      "sweetviz>=2.3.0",
       "dask>=2023.12.0",
-      "sqlalchemy>=2.0.0",
-      "prefect>=2.14.0"
+      "sqlalchemy>=2.0.0"
     ],
     "system": [
       "python3",

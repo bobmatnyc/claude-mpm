@@ -17,18 +17,20 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 ## Installation
 
 ```bash
-# Install from PyPI
+# Basic installation - pure Python, no compilation required
 pip install claude-mpm
 
 # Install with development dependencies
 pip install "claude-mpm[dev]"
 
-# Install with agent dependencies (recommended for full functionality)
+# Install with agent dependencies - pure Python tools
 pip install "claude-mpm[agents]"
 
 # Install with all optional dependencies
 pip install "claude-mpm[agents,dev]"
 ```
+
+All dependencies are pure Python - no Rust or compilation required. The `agents` dependency group includes tools for testing, code analysis, documentation, and development workflows.
 
 ## Basic Usage
 
@@ -63,10 +65,10 @@ For detailed usage, see [QUICKSTART.md](QUICKSTART.md)
 
 ### Agent Dependencies
 
-Claude MPM automatically manages Python dependencies required by agents. Agents can declare their dependencies in their configuration files, and the system aggregates them for easy installation.
+Claude MPM automatically manages Python dependencies required by agents. All dependencies are pure Python packages that don't require compilation. Agents can declare their dependencies in their configuration files, and the system aggregates them for easy installation.
 
 ```bash
-# Install all agent dependencies
+# Install all agent dependencies (pure Python)
 pip install "claude-mpm[agents]"
 
 # View current agent dependencies

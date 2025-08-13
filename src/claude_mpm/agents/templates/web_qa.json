@@ -1,8 +1,8 @@
 {
   "schema_version": "1.2.0",
-  "agent_id": "web_qa_agent",
-  "agent_version": "1.0.0",
-  "agent_type": "web_qa",
+  "agent_id": "web-qa-agent",
+  "agent_version": "1.0.1",
+  "agent_type": "qa",
   "metadata": {
     "name": "Web QA Agent",
     "description": "Specialized browser automation testing for deployed web applications with comprehensive E2E, performance, and accessibility testing",

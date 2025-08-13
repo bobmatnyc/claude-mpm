@@ -116,9 +116,12 @@ class AgentCapabilitiesGenerator:
             if len(capability_text) > 100:
                 capability_text = capability_text[:97] + '...'
             
+            # Clean up the agent name for TodoWrite usage
+            clean_name = agent['name'].replace(' Agent', '').replace('-', ' ')
+            
             capabilities.append({
-                'name': agent['name'],
-                'id': agent['id'],
+                'name': clean_name,  # Clean name for TodoWrite
+                'id': agent['id'],    # Agent ID for Task tool
                 'capability_text': capability_text,
                 'tools': ', '.join(agent.get('tools', [])[:5])  # First 5 tools
             })
@@ -132,26 +135,33 @@ class AgentCapabilitiesGenerator:
             Configured Jinja2 template
         """
         template_content = """
-## Agent Names & Capabilities
-**Core Agents**: {{ core_agents }}
+## Available Agent Capabilities
+
+You have the following specialized agents available for delegation:
 
 {% if agents_by_tier.project %}
 ### Project-Specific Agents
 {% for agent in agents_by_tier.project %}
-- **{{ agent.name }}** ({{ agent.id }}): {{ agent.description }}
+- **{{ agent.name|replace(' Agent', '')|replace('-', ' ') }}** (`{{ agent.id }}`): {{ agent.description }}
 {% endfor %}
 
 {% endif %}
-**Agent Capabilities**:
+### Engineering Agents
 {% for cap in detailed_capabilities %}
-- **{{ cap.name }}**: {{ cap.capability_text }}
+{% if cap.id in ['engineer', 'data_engineer', 'documentation', 'ops', 'security', 'ticketing', 'version_control', 'web_ui'] %}
+- **{{ cap.name }}** (`{{ cap.id }}`): {{ cap.capability_text }}
+{% endif %}
 {% endfor %}
 
-**Agent Name Formats** (both valid):
-- Capitalized: {{ detailed_capabilities | map(attribute='name') | join('", "') }}
-- Lowercase-hyphenated: {{ detailed_capabilities | map(attribute='id') | join('", "') }}
+### Research Agents
+{% for cap in detailed_capabilities %}
+{% if cap.id in ['code_analyzer', 'qa', 'research', 'web_qa'] %}
+- **{{ cap.name }}** (`{{ cap.id }}`): {{ cap.capability_text }}
+{% endif %}
+{% endfor %}
 
-*Generated from {{ total_agents }} deployed agents*
+**Total Available Agents**: {{ total_agents }}
+Use the agent ID in parentheses when delegating tasks via the Task tool.
 """.strip()
         
         return Template(template_content)

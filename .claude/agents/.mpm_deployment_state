@@ -1,20 +1,35 @@
 {
-  "deployment_hash": "df4b3c2044a52e84d1e3d2fe72e8fdf82f568f74b8226f9a1e98a4247a7c6713",
-  "last_check_time": 1755115989.6895208,
+  "deployment_hash": "8cf06deb21676375add437a98d67ed591ea936d9a33e1a0066e6380e67b217ae",
+  "last_check_time": 1755119463.111446,
   "last_check_results": {
     "agents": {
+      "code_analyzer": {
+        "python": {
+          "satisfied": [
+            "tree-sitter>=0.21.0",
+            "astroid>=3.0.0",
+            "rope>=1.11.0",
+            "libcst>=1.1.0",
+            "radon>=6.0.0",
+            "pygments>=2.17.0"
+          ],
+          "missing": [],
+          "outdated": []
+        },
+        "system": {
+          "satisfied": [
+            "python3",
+            "git"
+          ],
+          "missing": []
+        }
+      },
       "ops": {
         "python": {
           "satisfied": [
-            "kubernetes>=28.0.0"
+            "prometheus-client>=0.19.0"
           ],
-          "missing": [
-            "ansible>=9.0.0",
-            "terraform-compliance>=1.3.0",
-            "docker>=7.0.0",
-            "prometheus-client>=0.19.0",
-            "checkov>=3.1.0"
-          ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -29,14 +44,10 @@
         "python": {
           "satisfied": [
             "pandas>=2.1.0",
+            "dask>=2023.12.0",
             "sqlalchemy>=2.0.0"
           ],
-          "missing": [
-            "great-expectations>=0.18.0",
-            "sweetviz>=2.3.0",
-            "dask>=2023.12.0",
-            "prefect>=2.14.0"
-          ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -50,13 +61,12 @@
       "version_control": {
         "python": {
           "satisfied": [
-            "gitpython>=3.1.40"
-          ],
-          "missing": [
+            "gitpython>=3.1.40",
             "pre-commit>=3.5.0",
             "commitizen>=3.13.0",
             "gitlint>=0.19.0"
           ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -73,13 +83,11 @@
             "pytest>=7.4.0",
             "pytest-cov>=4.1.0",
             "hypothesis>=6.92.0",
+            "mutmut>=2.4.0",
             "pytest-benchmark>=4.0.0",
             "faker>=20.0.0"
           ],
-          "missing": [
-            "mutmut>=2.4.0",
-            "allure-pytest>=2.13.0"
-          ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -107,16 +115,17 @@
       "research": {
         "python": {
           "satisfied": [
+            "tree-sitter>=0.21.0",
             "pygments>=2.17.0",
             "radon>=6.0.0",
-            "tree-sitter>=0.21.0",
-            "tree-sitter-language-pack>=0.8.0"
-          ],
-          "missing": [
             "semgrep>=1.45.0",
             "lizard>=1.17.0",
-            "pydriller>=2.5.0"
+            "pydriller>=2.5.0",
+            "astroid>=3.0.0",
+            "rope>=1.11.0",
+            "libcst>=1.1.0"
           ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -130,15 +139,14 @@
       "engineer": {
         "python": {
           "satisfied": [
+            "rope>=1.11.0",
             "black>=23.0.0",
             "isort>=5.12.0",
             "mypy>=1.8.0",
             "safety>=3.0.0",
             "bandit>=1.7.5"
           ],
-          "missing": [
-            "rope>=1.11.0"
-          ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -152,16 +160,16 @@
       "documentation": {
         "python": {
           "satisfied": [
-            "docstring-parser>=0.15.0"
-          ],
-          "missing": [
             "sphinx>=7.2.0",
             "mkdocs>=1.5.0",
             "pydoc-markdown>=4.8.0",
             "diagrams>=0.23.0",
             "mermaid-py>=0.2.0"
           ],
-          "outdated": []
+          "missing": [],
+          "outdated": [
+            "docstring-parser>=0.15.0 (have 0.11)"
+          ]
         },
         "system": {
           "satisfied": [
@@ -177,15 +185,14 @@
             "playwright>=1.40.0",
             "selenium>=4.15.0",
             "pytest>=7.4.0",
+            "pytest-playwright>=0.4.0",
             "requests>=2.25.0",
             "beautifulsoup4>=4.12.0",
-            "pytest-html>=3.2.0"
-          ],
-          "missing": [
-            "pytest-playwright>=0.4.0",
             "axe-selenium-python>=2.1.0",
+            "pytest-html>=3.2.0",
             "allure-pytest>=2.13.0"
           ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -206,14 +213,10 @@
         "python": {
           "satisfied": [
             "bandit>=1.7.5",
-            "pyjwt>=2.8.0",
-            "cryptography>=41.0.0"
-          ],
-          "missing": [
             "detect-secrets>=1.4.0",
-            "pip-audit>=2.6.0",
             "sqlparse>=0.4.4"
           ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -231,13 +234,12 @@
             "jira>=3.5.0",
             "PyGithub>=2.0.0",
             "python-gitlab>=3.15.0",
+            "azure-devops==7.1.0b4",
             "click>=8.1.0",
             "rich>=13.0.0",
             "pyyaml>=6.0.0"
           ],
-          "missing": [
-            "azure-devops==7.1.0b4"
-          ],
+          "missing": [],
           "outdated": []
         },
         "system": {
@@ -250,39 +252,9 @@
       }
     },
     "summary": {
-      "total_agents": 18,
-      "agents_with_deps": 11,
-      "missing_python": [
-        "ansible>=9.0.0",
-        "terraform-compliance>=1.3.0",
-        "docker>=7.0.0",
-        "prometheus-client>=0.19.0",
-        "checkov>=3.1.0",
-        "great-expectations>=0.18.0",
-        "sweetviz>=2.3.0",
-        "dask>=2023.12.0",
-        "prefect>=2.14.0",
-        "pre-commit>=3.5.0",
-        "commitizen>=3.13.0",
-        "gitlint>=0.19.0",
-        "mutmut>=2.4.0",
-        "allure-pytest>=2.13.0",
-        "semgrep>=1.45.0",
-        "lizard>=1.17.0",
-        "pydriller>=2.5.0",
-        "rope>=1.11.0",
-        "sphinx>=7.2.0",
-        "mkdocs>=1.5.0",
-        "pydoc-markdown>=4.8.0",
-        "diagrams>=0.23.0",
-        "mermaid-py>=0.2.0",
-        "pytest-playwright>=0.4.0",
-        "axe-selenium-python>=2.1.0",
-        "detect-secrets>=1.4.0",
-        "pip-audit>=2.6.0",
-        "sqlparse>=0.4.4",
-        "azure-devops==7.1.0b4"
-      ],
+      "total_agents": 12,
+      "agents_with_deps": 12,
+      "missing_python": [],
       "missing_system": [
         "node>=18.0.0",
         "python3>=3.8",
@@ -291,36 +263,54 @@
         "webkit"
       ],
       "satisfied_python": [
-        "kubernetes>=28.0.0",
+        "tree-sitter>=0.21.0",
+        "astroid>=3.0.0",
+        "rope>=1.11.0",
+        "libcst>=1.1.0",
+        "radon>=6.0.0",
+        "pygments>=2.17.0",
+        "prometheus-client>=0.19.0",
         "pandas>=2.1.0",
+        "dask>=2023.12.0",
         "sqlalchemy>=2.0.0",
         "gitpython>=3.1.40",
+        "pre-commit>=3.5.0",
+        "commitizen>=3.13.0",
+        "gitlint>=0.19.0",
         "pytest>=7.4.0",
         "pytest-cov>=4.1.0",
         "hypothesis>=6.92.0",
+        "mutmut>=2.4.0",
         "pytest-benchmark>=4.0.0",
         "faker>=20.0.0",
-        "pygments>=2.17.0",
-        "radon>=6.0.0",
-        "tree-sitter>=0.21.0",
-        "tree-sitter-language-pack>=0.8.0",
+        "semgrep>=1.45.0",
+        "lizard>=1.17.0",
+        "pydriller>=2.5.0",
         "black>=23.0.0",
         "isort>=5.12.0",
         "mypy>=1.8.0",
         "safety>=3.0.0",
         "bandit>=1.7.5",
-        "docstring-parser>=0.15.0",
+        "sphinx>=7.2.0",
+        "mkdocs>=1.5.0",
+        "pydoc-markdown>=4.8.0",
+        "diagrams>=0.23.0",
+        "mermaid-py>=0.2.0",
         "playwright>=1.40.0",
         "selenium>=4.15.0",
+        "pytest-playwright>=0.4.0",
         "requests>=2.25.0",
         "beautifulsoup4>=4.12.0",
+        "axe-selenium-python>=2.1.0",
         "pytest-html>=3.2.0",
-        "pyjwt>=2.8.0",
-        "cryptography>=41.0.0",
+        "allure-pytest>=2.13.0",
+        "detect-secrets>=1.4.0",
+        "sqlparse>=0.4.4",
         "ai-trackdown-pytools>=1.0.0",
         "jira>=3.5.0",
         "PyGithub>=2.0.0",
         "python-gitlab>=3.15.0",
+        "azure-devops==7.1.0b4",
         "click>=8.1.0",
         "rich>=13.0.0",
         "pyyaml>=6.0.0"
@@ -334,5 +324,5 @@
       ]
     }
   },
-  "agent_count": 18
+  "agent_count": 12
 }
