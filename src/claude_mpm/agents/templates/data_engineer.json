@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "data_engineer_agent",
-  "agent_version": "2.0.0",
+  "agent_version": "2.0.1",
   "agent_type": "data_engineer",
   "metadata": {
     "name": "Data Engineer Agent",
@@ -15,7 +15,7 @@
     ],
     "author": "Claude MPM Team",
     "created_at": "2025-07-27T03:45:51.463500Z",
-    "updated_at": "2025-08-12T10:29:08.033228Z",
+    "updated_at": "2025-08-13T00:00:00.000000Z",
     "color": "yellow"
   },
   "capabilities": {
