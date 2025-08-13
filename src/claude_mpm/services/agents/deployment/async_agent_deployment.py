@@ -387,20 +387,177 @@ class AsyncAgentDeploymentService:
         return filtered
     
     def _build_agent_markdown_sync(self, agent_data: Dict[str, Any]) -> str:
-        """Build agent markdown content (sync version for compatibility)."""
-        # Simplified version - extend as needed
-        agent_name = agent_data.get('_agent_name', 'unknown')
-        version = agent_data.get('version', '1.0.0')
-        instructions = agent_data.get('instructions', '')
+        """Build agent markdown content matching the synchronous deployment format."""
+        from datetime import datetime
         
-        return f"""---
-name: {agent_name}
-version: {version}
-author: claude-mpm
----
-
-{instructions}
-"""
+        # Extract agent info from the loaded JSON data
+        agent_name = agent_data.get('_agent_name', 'unknown')
+        
+        # Extract proper agent_id from template data (not filename)
+        agent_id = agent_data.get('agent_id', agent_name)
+        
+        # Handle both 'agent_version' (new format) and 'version' (old format)
+        agent_version = self._parse_version(agent_data.get('agent_version') or agent_data.get('version', '1.0.0'))
+        base_version = (0, 1, 0)  # Default base version for async deployment
+        
+        # Format version string as semantic version
+        version_string = self._format_version_display(agent_version)
+        
+        # Extract metadata using the same logic as synchronous deployment
+        # Check new format first (metadata.description), then old format
+        description = (
+            agent_data.get('metadata', {}).get('description') or
+            agent_data.get('configuration_fields', {}).get('description') or
+            agent_data.get('description') or
+            'Agent for specialized tasks'
+        )
+        
+        # Get tags from new format (metadata.tags) or old format
+        tags = (
+            agent_data.get('metadata', {}).get('tags') or
+            agent_data.get('configuration_fields', {}).get('tags') or
+            agent_data.get('tags') or
+            [agent_id, 'mpm-framework']
+        )
+        
+        # Get tools from capabilities.tools in new format
+        tools = (
+            agent_data.get('capabilities', {}).get('tools') or
+            agent_data.get('configuration_fields', {}).get('tools') or
+            ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
+        )
+        
+        # Get model from capabilities.model in new format
+        model = (
+            agent_data.get('capabilities', {}).get('model') or
+            agent_data.get('configuration_fields', {}).get('model') or
+            "sonnet"  # Default fallback
+        )
+        
+        # Simplify model name for Claude Code
+        model_map = {
+            'claude-4-sonnet-20250514': 'sonnet',
+            'claude-sonnet-4-20250514': 'sonnet',
+            'claude-opus-4-20250514': 'opus',
+            'claude-3-opus-20240229': 'opus',
+            'claude-3-haiku-20240307': 'haiku',
+            'claude-3.5-sonnet': 'sonnet',
+            'claude-3-sonnet': 'sonnet'
+        }
+        # Better fallback: extract the model type (opus/sonnet/haiku) from the string
+        if model not in model_map:
+            if 'opus' in model.lower():
+                model = 'opus'
+            elif 'sonnet' in model.lower():
+                model = 'sonnet'
+            elif 'haiku' in model.lower():
+                model = 'haiku'
+            else:
+                # Last resort: try to extract from hyphenated format
+                model = model_map.get(model, model.split('-')[-1] if '-' in model else model)
+        else:
+            model = model_map[model]
+        
+        # Convert tools list to comma-separated string for Claude Code compatibility
+        # IMPORTANT: No spaces after commas - Claude Code requires exact format
+        tools_str = ','.join(tools) if isinstance(tools, list) else str(tools)
+        
+        # Build frontmatter with only the fields Claude Code uses
+        frontmatter_lines = [
+            "---",
+            f"name: {agent_id}",
+            f"description: {description}",
+            f"version: {version_string}",
+            f"base_version: {self._format_version_display(base_version)}",
+            f"author: claude-mpm",  # Identify as system agent for deployment
+            f"tools: {tools_str}",
+            f"model: {model}"
+        ]
+        
+        # Add optional fields if present
+        # Check for color in metadata section (new format) or root (old format)
+        color = (
+            agent_data.get('metadata', {}).get('color') or
+            agent_data.get('color')
+        )
+        if color:
+            frontmatter_lines.append(f"color: {color}")
+        
+        frontmatter_lines.append("---")
+        frontmatter_lines.append("")
+        frontmatter_lines.append("")
+        
+        frontmatter = '\n'.join(frontmatter_lines)
+        
+        # Get the main content (instructions)
+        # Check multiple possible locations for instructions
+        content = (
+            agent_data.get('instructions') or
+            agent_data.get('narrative_fields', {}).get('instructions') or
+            agent_data.get('content') or
+            f"You are the {agent_id} agent. Perform tasks related to {agent_data.get('description', 'your specialization')}."
+        )
+        
+        return frontmatter + content
+    
+    def _parse_version(self, version_value: Any) -> tuple:
+        """
+        Parse version from various formats to semantic version tuple.
+        
+        Handles:
+        - Integer values: 5 -> (0, 5, 0)
+        - String integers: "5" -> (0, 5, 0)
+        - Semantic versions: "2.1.0" -> (2, 1, 0)
+        - Invalid formats: returns (0, 0, 0)
+        
+        Args:
+            version_value: Version in various formats
+            
+        Returns:
+            Tuple of (major, minor, patch) for comparison
+        """
+        if isinstance(version_value, int):
+            # Legacy integer version - treat as minor version
+            return (0, version_value, 0)
+            
+        if isinstance(version_value, str):
+            # Try to parse as simple integer
+            if version_value.isdigit():
+                return (0, int(version_value), 0)
+            
+            # Try to parse semantic version (e.g., "2.1.0" or "v2.1.0")
+            import re
+            sem_ver_match = re.match(r'^v?(\d+)\.(\d+)\.(\d+)', version_value)
+            if sem_ver_match:
+                major = int(sem_ver_match.group(1))
+                minor = int(sem_ver_match.group(2))
+                patch = int(sem_ver_match.group(3))
+                return (major, minor, patch)
+            
+            # Try to extract first number from string as minor version
+            num_match = re.search(r'(\d+)', version_value)
+            if num_match:
+                return (0, int(num_match.group(1)), 0)
+        
+        # Default to 0.0.0 for invalid formats
+        return (0, 0, 0)
+    
+    def _format_version_display(self, version_tuple: tuple) -> str:
+        """
+        Format version tuple for display.
+        
+        Args:
+            version_tuple: Tuple of (major, minor, patch)
+            
+        Returns:
+            Formatted version string
+        """
+        if isinstance(version_tuple, tuple) and len(version_tuple) == 3:
+            major, minor, patch = version_tuple
+            return f"{major}.{minor}.{patch}"
+        else:
+            # Fallback for legacy format
+            return str(version_tuple)
     
     async def cleanup(self):
         """Clean up resources."""
