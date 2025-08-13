@@ -328,8 +328,20 @@ class FileToolTracker {
      */
     isFileOperation(event) {
         // File operations are tool events with tools that operate on files
-        const fileTools = ['Read', 'Write', 'Edit', 'Grep', 'MultiEdit'];
-        return event.tool_name && fileTools.includes(event.tool_name);
+        // Check case-insensitively since tool names can come in different cases
+        const fileTools = ['read', 'write', 'edit', 'grep', 'multiedit', 'glob', 'ls', 'bash', 'notebookedit'];
+        const toolName = event.tool_name ? event.tool_name.toLowerCase() : '';
+        
+        // Also check if Bash commands involve file operations
+        if (toolName === 'bash' && event.tool_parameters) {
+            const command = event.tool_parameters.command || '';
+            // Check for common file operations in bash commands
+            if (command.match(/\b(cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find)\b/)) {
+                return true;
+            }
+        }
+        
+        return toolName && fileTools.includes(toolName);
     }
 
     /**
@@ -341,10 +353,27 @@ class FileToolTracker {
         // Try various locations where file path might be stored
         if (event.tool_parameters?.file_path) return event.tool_parameters.file_path;
         if (event.tool_parameters?.path) return event.tool_parameters.path;
+        if (event.tool_parameters?.notebook_path) return event.tool_parameters.notebook_path;
         if (event.data?.tool_parameters?.file_path) return event.data.tool_parameters.file_path;
         if (event.data?.tool_parameters?.path) return event.data.tool_parameters.path;
+        if (event.data?.tool_parameters?.notebook_path) return event.data.tool_parameters.notebook_path;
         if (event.file_path) return event.file_path;
         if (event.path) return event.path;
+        
+        // For Glob tool, use the pattern as a pseudo-path
+        if (event.tool_name?.toLowerCase() === 'glob' && event.tool_parameters?.pattern) {
+            return `[glob] ${event.tool_parameters.pattern}`;
+        }
+        
+        // For Bash commands, try to extract file paths from the command
+        if (event.tool_name?.toLowerCase() === 'bash' && event.tool_parameters?.command) {
+            const command = event.tool_parameters.command;
+            // Try to extract file paths from common patterns
+            const fileMatch = command.match(/(?:cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find|echo.*>|sed|awk|grep)\s+([^\s;|&]+)/);
+            if (fileMatch && fileMatch[1]) {
+                return fileMatch[1];
+            }
+        }
         
         return null;
     }
@@ -383,7 +412,22 @@ class FileToolTracker {
             case 'write': return 'write';
             case 'edit': return 'edit';
             case 'multiedit': return 'edit';
+            case 'notebookedit': return 'edit';
             case 'grep': return 'search';
+            case 'glob': return 'search';
+            case 'ls': return 'list';
+            case 'bash': 
+                // Check bash command for file operation type
+                const command = event.tool_parameters?.command || '';
+                if (command.match(/\b(cat|less|more|head|tail)\b/)) return 'read';
+                if (command.match(/\b(touch|echo.*>|tee)\b/)) return 'write';
+                if (command.match(/\b(sed|awk)\b/)) return 'edit';
+                if (command.match(/\b(grep|find)\b/)) return 'search';
+                if (command.match(/\b(ls|dir)\b/)) return 'list';
+                if (command.match(/\b(mv|cp)\b/)) return 'copy/move';
+                if (command.match(/\b(rm|rmdir)\b/)) return 'delete';
+                if (command.match(/\b(mkdir)\b/)) return 'create';
+                return 'bash';
             default: return toolName;
         }
     }
