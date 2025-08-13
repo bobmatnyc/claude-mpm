@@ -233,18 +233,29 @@ Hooks are automatically configured when using the `--monitor` flag. Manual confi
    - Verify port 8765 is available
    - Restart with `--monitor` flag if dashboard doesn't open
 
-## Next Steps
+## Technical Documentation
 
-- **User Guide**: See [USER_GUIDE.md](./USER_GUIDE.md) for detailed usage instructions
-- **Architecture**: See [ARCHITECTURE.md](./ARCHITECTURE.md) for technical details
-- **Development**: See [DEVELOPER_GUIDE.md](./DEVELOPER_GUIDE.md) for customization
-- **Troubleshooting**: See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues
-- **Event Reference**: See [EVENT_REFERENCE.md](./EVENT_REFERENCE.md) for all event types
+For comprehensive technical details and implementation guidance:
+
+### Core Documentation
+- **[Socket.IO Architecture](./SOCKETIO_ARCHITECTURE.md)**: Complete technical architecture of the Socket.IO dashboard system
+- **[File Viewer Implementation](./FILE_VIEWER_IMPLEMENTATION.md)**: Detailed file operation tracking and file-tool-tracker.js component
+- **[Troubleshooting Guide](./TROUBLESHOOTING.md)**: Common issues, solutions, and debugging procedures
+- **[Testing & Debugging](./TESTING_DEBUGGING.md)**: Comprehensive testing procedures and debugging techniques
+- **[Important Notes](./IMPORTANT_NOTES.md)**: Critical information to prevent implementation confusion
+
+### Quick Reference
+- **Architecture**: Socket.IO-based real-time dashboard (NOT a prototype)
+- **File Operations**: Case-insensitive tool tracking (Read/read, Write/write, etc.)
+- **Event Flow**: Claude Code hooks → Socket.IO server → Dashboard display
+- **Supported Tools**: Read, Write, Edit, MultiEdit, Grep, Glob, LS, NotebookEdit, Bash
+- **Testing**: Use `scripts/test_dashboard_file_viewer.py` for verification
 
 ## Support
 
 For issues or questions:
-1. Check [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) first
-2. Enable debug mode: `export CLAUDE_MPM_HOOK_DEBUG=true`
-3. Check server logs for detailed error information
-4. Verify network connectivity and port availability
+1. **Check [Troubleshooting Guide](./TROUBLESHOOTING.md)** for common solutions
+2. **Run test script**: `python scripts/test_dashboard_file_viewer.py`
+3. **Enable debug mode**: `export CLAUDE_MPM_HOOK_DEBUG=true`
+4. **Verify Socket.IO server**: Should be running on port 8765
+5. **Check browser console**: Look for JavaScript errors or connection issues

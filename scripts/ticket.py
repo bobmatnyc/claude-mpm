@@ -18,7 +18,7 @@ Examples:
     ticket create "Add dark mode feature" -t feature -d "Users want dark mode support"
     ticket list --limit 10
     ticket view TSK-0001
-    ticket update TSK-0001 -s in_progress
+    ticket update TSK-0001 -s in-progress
     ticket close TSK-0001
 """
 
@@ -125,18 +125,31 @@ class TicketCLI:
                 print(f"  {key}: {value}")
     
     def update(self, args):
-        """Update a ticket (using ai-trackdown directly)."""
-        # For update operations, delegate to ai-trackdown CLI
-        cmd = ["ai-trackdown", "update", args.id]
-        
+        """Update a ticket (using aitrackdown directly)."""
+        # For update operations, delegate to aitrackdown CLI  
+        # aitrackdown uses 'transition' command for state changes
         if args.status:
-            cmd.extend(["--status", args.status])
+            # Use transition command for status changes
+            cmd = ["aitrackdown", "transition", args.id, args.status]
+        else:
+            # For other updates, we need to handle them differently
+            # since aitrackdown doesn't have a generic update command
+            print(f"❌ Non-status updates not yet supported via CLI")
+            print(f"   To change status, use: ticket update {args.id} -s <state>")
+            return
+        
+        # Add comment if provided for other options
+        comment_parts = []
         if args.priority:
-            cmd.extend(["--priority", args.priority])
+            comment_parts.append(f"Priority: {args.priority}")
         if args.assign:
-            cmd.extend(["--assign", args.assign])
+            comment_parts.append(f"Assigned to: {args.assign}")
         if args.tags:
-            cmd.extend(["--tags", args.tags])
+            comment_parts.append(f"Tags: {args.tags}")
+        
+        if comment_parts and args.status:
+            comment = " | ".join(comment_parts)
+            cmd.extend(["--comment", comment])
         
         try:
             subprocess.run(cmd, check=True)
@@ -147,8 +160,8 @@ class TicketCLI:
     
     def close(self, args):
         """Close a ticket."""
-        # Use update with status=closed
-        cmd = ["ai-trackdown", "update", args.id, "--status", "closed"]
+        # Use aitrackdown close command directly
+        cmd = ["aitrackdown", "close", args.id]
         
         try:
             subprocess.run(cmd, check=True)
@@ -170,7 +183,7 @@ Examples:
   ticket list
   ticket list -v --limit 20
   ticket view TSK-0001
-  ticket update TSK-0001 -s in_progress
+  ticket update TSK-0001 -s in-progress
   ticket close TSK-0001
 
 Ticket Types:
@@ -218,8 +231,8 @@ Priority Levels:
     update_parser = subparsers.add_parser('update', help='Update a ticket')
     update_parser.add_argument('id', help='Ticket ID')
     update_parser.add_argument('-s', '--status',
-                              choices=['open', 'in_progress', 'closed', 'on_hold'],
-                              help='Update status')
+                              choices=['waiting', 'in-progress', 'ready', 'tested'],
+                              help='Update workflow state')
     update_parser.add_argument('-p', '--priority',
                               choices=['low', 'medium', 'high', 'critical'],
                               help='Update priority')
