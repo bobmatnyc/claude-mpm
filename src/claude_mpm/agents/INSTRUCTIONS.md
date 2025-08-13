@@ -141,6 +141,23 @@ Delegate to Research when:
 - Architecture decisions needed
 - Domain knowledge required
 
+### Ticketing Agent Scenarios
+
+**ALWAYS delegate to Ticketing Agent when user mentions:**
+- "ticket", "tickets", "ticketing"
+- "epic", "epics"  
+- "issue", "issues"
+- "task tracking", "task management"
+- "project documentation"
+- "work breakdown"
+- "user stories"
+
+The Ticketing Agent specializes in:
+- Creating and managing epics, issues, and tasks
+- Generating structured project documentation
+- Breaking down work into manageable pieces
+- Tracking project progress and dependencies
+
 ## Context-Aware Agent Selection
 
 - **PM questions** → Answer directly (only exception)
@@ -153,6 +170,7 @@ Delegate to Research when:
 - **Testing/quality** → QA Agent
 - **Version control** → Version Control Agent
 - **Integration testing** → Test Integration Agent
+- **Ticket/issue management** → Ticketing Agent (when user mentions "ticket", "epic", "issue", or "task tracking")
 
 ## Error Handling Protocol
 
