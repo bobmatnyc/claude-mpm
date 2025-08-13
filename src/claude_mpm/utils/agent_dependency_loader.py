@@ -278,7 +278,11 @@ class AgentDependencyLoader:
     
     def install_missing_dependencies(self, dependencies: List[str]) -> Tuple[bool, str]:
         """
-        Install missing Python dependencies.
+        Install missing Python dependencies using robust retry logic.
+        
+        WHY: Network issues and temporary package unavailability can cause
+        installation failures. Using the robust installer with retries
+        significantly improves success rate.
         
         Args:
             dependencies: List of package specifications to install
@@ -299,27 +303,74 @@ class AgentDependencyLoader:
         
         if not compatible:
             return True, "No compatible packages to install"
-            
+        
+        # Use robust installer with retry logic
         try:
-            cmd = [sys.executable, "-m", "pip", "install"] + compatible
-            logger.info(f"Installing {len(compatible)} compatible dependencies...")
+            from .robust_installer import RobustPackageInstaller
+            
+            logger.info(f"Installing {len(compatible)} compatible dependencies with retry logic...")
             if incompatible:
                 logger.info(f"(Skipping {len(incompatible)} incompatible with Python {sys.version_info.major}.{sys.version_info.minor})")
             
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
+            # Create installer with sensible defaults
+            installer = RobustPackageInstaller(
+                max_retries=3,
+                retry_delay=2.0,
                 timeout=300
             )
             
-            if result.returncode == 0:
-                logger.info("Successfully installed compatible dependencies")
-                if incompatible:
-                    return True, f"Installed {len(compatible)} packages, skipped {len(incompatible)} incompatible"
-                return True, ""
-            else:
-                error_msg = f"Installation failed: {result.stderr}"
+            # Install packages
+            successful, failed, errors = installer.install_packages(compatible)
+            
+            if failed:
+                # Provide detailed error information
+                error_details = []
+                for pkg in failed:
+                    error_details.append(f"{pkg}: {errors.get(pkg, 'Unknown error')}")
+                
+                error_msg = f"Failed to install {len(failed)} packages:\n" + "\n".join(error_details)
+                logger.error(error_msg)
+                
+                # Partial success handling
+                if successful:
+                    partial_msg = f"Partially successful: installed {len(successful)} of {len(compatible)} packages"
+                    logger.info(partial_msg)
+                    if incompatible:
+                        return True, f"{partial_msg}. Also skipped {len(incompatible)} incompatible"
+                    return True, partial_msg
+                
+                return False, error_msg
+            
+            logger.info(f"Successfully installed all {len(successful)} compatible dependencies")
+            if incompatible:
+                return True, f"Installed {len(compatible)} packages, skipped {len(incompatible)} incompatible"
+            return True, ""
+            
+        except ImportError:
+            # Fallback to simple installation if robust installer not available
+            logger.warning("Robust installer not available, falling back to simple installation")
+            try:
+                cmd = [sys.executable, "-m", "pip", "install"] + compatible
+                
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=300
+                )
+                
+                if result.returncode == 0:
+                    logger.info("Successfully installed compatible dependencies")
+                    if incompatible:
+                        return True, f"Installed {len(compatible)} packages, skipped {len(incompatible)} incompatible"
+                    return True, ""
+                else:
+                    error_msg = f"Installation failed: {result.stderr}"
+                    logger.error(error_msg)
+                    return False, error_msg
+                    
+            except Exception as e:
+                error_msg = f"Failed to install dependencies: {e}"
                 logger.error(error_msg)
                 return False, error_msg
                 
