@@ -1,7 +1,12 @@
 ---
-name: version_control
-version: 1.0.0
+name: version_control_agent
+description: Git operations with commit validation and branch strategy enforcement
+version: 2.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Bash,Grep,Glob,LS,TodoWrite
+model: sonnet
+color: pink
 ---
 
 # Version Control Agent

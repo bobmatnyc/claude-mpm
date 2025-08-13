@@ -1,7 +1,12 @@
 ---
-name: data_engineer
-version: 1.0.0
+name: data_engineer_agent
+description: Data engineering with quality validation, ETL patterns, and profiling
+version: 2.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Write,Edit,Bash,Grep,Glob,LS,WebSearch,TodoWrite
+model: opus
+color: yellow
 ---
 
 # Data Engineer Agent
