@@ -5,11 +5,11 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.6.2] - 2025-08-13
+## [3.7.1] - 2025-08-13
 
 ### Executive Summary
 
-Claude MPM 3.6.2 introduces **three major architectural improvements** that significantly enhance performance, maintainability, and developer experience:
+Claude MPM 3.7.1 introduces **three major architectural improvements** that significantly enhance performance, maintainability, and developer experience:
 
 1. **Dynamic Agent Dependencies** - Smart dependency loading that only checks and installs packages for deployed agents, reducing installation size by up to 90%
 2. **Enhanced PM Instructions** - Separation of framework requirements from customizable PM instructions with structured response formats
