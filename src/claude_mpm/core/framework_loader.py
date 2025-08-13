@@ -361,28 +361,30 @@ You are a multi-agent orchestrator. Your primary responsibilities are:
             instructions += "## Available Agents\n\n"
             instructions += "You have the following specialized agents available for delegation:\n\n"
             
-            # List agents with brief descriptions
+            # List agents with brief descriptions and correct IDs
             agent_list = []
             for agent_name in sorted(self.framework_content["agents"].keys()):
+                # Use the actual agent_name as the ID (it's the filename stem)
+                agent_id = agent_name
                 clean_name = agent_name.replace('-', ' ').replace('_', ' ').title()
-                if 'engineer' in agent_name.lower():
-                    agent_list.append(f"- **Engineer Agent**: Code implementation and development")
+                if 'engineer' in agent_name.lower() and 'data' not in agent_name.lower():
+                    agent_list.append(f"- **Engineer Agent** (`{agent_id}`): Code implementation and development")
                 elif 'qa' in agent_name.lower():
-                    agent_list.append(f"- **QA Agent**: Testing and quality assurance")
+                    agent_list.append(f"- **QA Agent** (`{agent_id}`): Testing and quality assurance")
                 elif 'documentation' in agent_name.lower():
-                    agent_list.append(f"- **Documentation Agent**: Documentation creation and maintenance")
+                    agent_list.append(f"- **Documentation Agent** (`{agent_id}`): Documentation creation and maintenance")
                 elif 'research' in agent_name.lower():
-                    agent_list.append(f"- **Research Agent**: Investigation and analysis")
+                    agent_list.append(f"- **Research Agent** (`{agent_id}`): Investigation and analysis")
                 elif 'security' in agent_name.lower():
-                    agent_list.append(f"- **Security Agent**: Security analysis and protection")
+                    agent_list.append(f"- **Security Agent** (`{agent_id}`): Security analysis and protection")
                 elif 'version' in agent_name.lower():
-                    agent_list.append(f"- **Version Control Agent**: Git operations and version management")
+                    agent_list.append(f"- **Version Control Agent** (`{agent_id}`): Git operations and version management")
                 elif 'ops' in agent_name.lower():
-                    agent_list.append(f"- **Ops Agent**: Deployment and operations")
+                    agent_list.append(f"- **Ops Agent** (`{agent_id}`): Deployment and operations")
                 elif 'data' in agent_name.lower():
-                    agent_list.append(f"- **Data Engineer Agent**: Data management and AI API integration")
+                    agent_list.append(f"- **Data Engineer Agent** (`{agent_id}`): Data management and AI API integration")
                 else:
-                    agent_list.append(f"- **{clean_name}**: Available for specialized tasks")
+                    agent_list.append(f"- **{clean_name}** (`{agent_id}`): Available for specialized tasks")
             
             instructions += "\n".join(agent_list) + "\n\n"
             
@@ -434,64 +436,114 @@ Extract tickets from these patterns:
     def _generate_agent_capabilities_section(self) -> str:
         """Generate dynamic agent capabilities section from deployed agents."""
         try:
-            # Try to get agents from agent_loader
-            from claude_mpm.agents.agent_loader import list_available_agents
-            agents = list_available_agents()
+            from pathlib import Path
+            import yaml
             
-            if not agents:
-                return ""
+            # Read directly from deployed agents in .claude/agents/
+            # This ensures we show the exact agent IDs that work with the Task tool
+            agents_dir = Path.cwd() / ".claude" / "agents"
+            
+            if not agents_dir.exists():
+                self.logger.warning("No .claude/agents directory found")
+                return self._get_fallback_capabilities()
             
             # Build capabilities section
             section = "\n\n## Available Agent Capabilities\n\n"
             section += "You have the following specialized agents available for delegation:\n\n"
             
-            # Group agents by category
-            categories = {}
-            for agent_id, info in agents.items():
-                category = info.get('category', 'general')
-                if category not in categories:
-                    categories[category] = []
-                categories[category].append((agent_id, info))
+            # Collect deployed agents
+            deployed_agents = []
+            for agent_file in agents_dir.glob("*.md"):
+                # Skip hidden files and system files
+                if agent_file.name.startswith('.'):
+                    continue
+                    
+                # The agent ID is the filename without extension
+                # This is what the Task tool expects
+                agent_id = agent_file.stem
+                
+                # Try to read agent metadata from frontmatter
+                agent_name = agent_id.replace('_', ' ').title()
+                agent_desc = "Specialized agent"
+                
+                try:
+                    with open(agent_file, 'r') as f:
+                        content = f.read()
+                        # Extract YAML frontmatter if present
+                        if content.startswith('---'):
+                            end_marker = content.find('---', 3)
+                            if end_marker > 0:
+                                frontmatter = content[3:end_marker]
+                                metadata = yaml.safe_load(frontmatter)
+                                if metadata:
+                                    agent_name = metadata.get('name', agent_name)
+                                    agent_desc = metadata.get('description', agent_desc)
+                except Exception as e:
+                    self.logger.debug(f"Could not read metadata from {agent_file}: {e}")
+                
+                deployed_agents.append((agent_id, agent_name, agent_desc))
             
-            # List agents by category
-            for category in sorted(categories.keys()):
-                section += f"\n### {category.title()} Agents\n"
-                for agent_id, info in sorted(categories[category]):
-                    name = info.get('name', agent_id)
-                    desc = info.get('description', 'Specialized agent')
-                    tools = info.get('tools', [])
+            if not deployed_agents:
+                return self._get_fallback_capabilities()
+            
+            # Sort agents and display them
+            deployed_agents.sort(key=lambda x: x[0])
+            
+            # Group common agent types
+            core_agents = []
+            other_agents = []
+            
+            core_types = ['engineer', 'research', 'qa', 'documentation', 'security', 
+                         'data_engineer', 'ops', 'version_control']
+            
+            for agent_id, name, desc in deployed_agents:
+                if agent_id in core_types:
+                    core_agents.append((agent_id, name, desc))
+                else:
+                    other_agents.append((agent_id, name, desc))
+            
+            # Display core agents first
+            if core_agents:
+                section += "### Core Agents\n"
+                for agent_id, name, desc in core_agents:
                     section += f"- **{name}** (`{agent_id}`): {desc}\n"
-                    if tools:
-                        section += f"  - Tools: {', '.join(tools[:5])}"
-                        if len(tools) > 5:
-                            section += f" (+{len(tools)-5} more)"
-                        section += "\n"
             
-            # Add summary
-            section += f"\n**Total Available Agents**: {len(agents)}\n"
-            section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
+            # Display other/custom agents
+            if other_agents:
+                section += "\n### Custom/Project Agents\n"
+                for agent_id, name, desc in other_agents:
+                    section += f"- **{name}** (`{agent_id}`): {desc}\n"
+            
+            # Add summary and usage instructions
+            section += f"\n**Total Available Agents**: {len(deployed_agents)}\n"
+            section += "\n**IMPORTANT**: Use the exact agent ID shown in parentheses when delegating tasks.\n"
+            section += "For example: `**research**: Analyze the codebase architecture`\n"
+            section += "NOT: `**research_agent**: ...` or `**Research Agent**: ...`\n"
             
             return section
             
         except Exception as e:
             self.logger.warning(f"Could not generate dynamic agent capabilities: {e}")
-            # Return static fallback
-            return """
+            return self._get_fallback_capabilities()
+    
+    def _get_fallback_capabilities(self) -> str:
+        """Return fallback capabilities when dynamic discovery fails."""
+        return """
 
 ## Available Agent Capabilities
 
 You have the following specialized agents available for delegation:
 
-- **Engineer Agent**: Code implementation and development
-- **Research Agent**: Investigation and analysis
-- **QA Agent**: Testing and quality assurance
-- **Documentation Agent**: Documentation creation and maintenance
-- **Security Agent**: Security analysis and protection
-- **Data Engineer Agent**: Data management and pipelines
-- **Ops Agent**: Deployment and operations
-- **Version Control Agent**: Git operations and version management
+- **Engineer** (`engineer`): Code implementation and development
+- **Research** (`research`): Investigation and analysis  
+- **QA** (`qa`): Testing and quality assurance
+- **Documentation** (`documentation`): Documentation creation and maintenance
+- **Security** (`security`): Security analysis and protection
+- **Data Engineer** (`data_engineer`): Data management and pipelines
+- **Ops** (`ops`): Deployment and operations
+- **Version Control** (`version_control`): Git operations and version management
 
-Use these agents to delegate specialized work via the Task tool.
+**IMPORTANT**: Use the exact agent ID in parentheses when delegating tasks.
 """
     
     def _format_minimal_framework(self) -> str:

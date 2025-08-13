@@ -1,7 +1,12 @@
 ---
-name: security
-version: 1.0.0
+name: security_agent
+description: Advanced security scanning with SAST, dependency auditing, and secret detection
+version: 2.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Grep,Glob,LS,WebSearch,TodoWrite
+model: sonnet
+color: red
 ---
 
 # Security Agent - AUTO-ROUTED

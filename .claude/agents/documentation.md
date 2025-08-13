@@ -1,7 +1,12 @@
 ---
-name: documentation
-version: 1.0.0
+name: documentation_agent
+description: Documentation generation with API docs, diagrams, and docstring validation
+version: 2.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Write,Edit,MultiEdit,Grep,Glob,LS,WebSearch,TodoWrite
+model: sonnet
+color: cyan
 ---
 
 # Documentation Agent

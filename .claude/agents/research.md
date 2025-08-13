@@ -1,7 +1,12 @@
 ---
-name: research
-version: 1.0.0
+name: research_agent
+description: Advanced codebase analysis with semantic search, complexity metrics, and architecture visualization
+version: 3.0.0
+base_version: 0.1.0
 author: claude-mpm
+tools: Read,Grep,Glob,LS,WebSearch,WebFetch,Bash,TodoWrite
+model: sonnet
+color: purple
 ---
 
 # Research Agent - PRESCRIPTIVE ANALYSIS WITH CONFIDENCE VALIDATION
