@@ -1,6 +1,6 @@
 {
-  "deployment_hash": "d8c1dc331a49492309e0921b347d49d18a04a5668bb564d3654caf94f3dcba18",
-  "last_check_time": 1755108885.506537,
+  "deployment_hash": "1da57fa52c53d2fc8df16ceae89bc91ddd6c50b5d27c89582751a1f6a9135154",
+  "last_check_time": 1755113658.679614,
   "last_check_results": {
     "agents": {
       "code_analyzer": {
@@ -107,6 +107,20 @@
           "missing": []
         }
       },
+      "web_ui": {
+        "python": {
+          "satisfied": [],
+          "missing": [],
+          "outdated": []
+        },
+        "system": {
+          "satisfied": [
+            "node",
+            "npm"
+          ],
+          "missing": []
+        }
+      },
       "research": {
         "python": {
           "satisfied": [
@@ -174,6 +188,37 @@
           "missing": []
         }
       },
+      "web_qa": {
+        "python": {
+          "satisfied": [
+            "playwright>=1.40.0",
+            "selenium>=4.15.0",
+            "pytest>=7.4.0",
+            "requests>=2.25.0",
+            "beautifulsoup4>=4.12.0",
+            "pytest-html>=3.2.0"
+          ],
+          "missing": [
+            "pytest-playwright>=0.4.0",
+            "axe-selenium-python>=2.1.0",
+            "allure-pytest>=2.13.0"
+          ],
+          "outdated": []
+        },
+        "system": {
+          "satisfied": [
+            "npx",
+            "git"
+          ],
+          "missing": [
+            "node>=18.0.0",
+            "python3>=3.8",
+            "chromium",
+            "firefox",
+            "webkit"
+          ]
+        }
+      },
       "security": {
         "python": {
           "satisfied": [
@@ -195,11 +240,35 @@
           ],
           "missing": []
         }
+      },
+      "ticketing": {
+        "python": {
+          "satisfied": [
+            "ai-trackdown-pytools>=1.0.0",
+            "jira>=3.5.0",
+            "click>=8.1.0",
+            "rich>=13.0.0",
+            "pyyaml>=6.0.0"
+          ],
+          "missing": [
+            "github>=2.0.0",
+            "gitlab-python>=3.15.0",
+            "azure-devops>=7.1.0"
+          ],
+          "outdated": []
+        },
+        "system": {
+          "satisfied": [
+            "python3",
+            "git"
+          ],
+          "missing": []
+        }
       }
     },
     "summary": {
-      "total_agents": 15,
-      "agents_with_deps": 9,
+      "total_agents": 18,
+      "agents_with_deps": 12,
       "missing_python": [
         "ansible>=9.0.0",
         "terraform-compliance>=1.3.0",
@@ -224,11 +293,22 @@
         "pydoc-markdown>=4.8.0",
         "diagrams>=0.23.0",
         "mermaid-py>=0.2.0",
+        "pytest-playwright>=0.4.0",
+        "axe-selenium-python>=2.1.0",
         "detect-secrets>=1.4.0",
         "pip-audit>=2.6.0",
-        "sqlparse>=0.4.4"
+        "sqlparse>=0.4.4",
+        "github>=2.0.0",
+        "gitlab-python>=3.15.0",
+        "azure-devops>=7.1.0"
       ],
-      "missing_system": [],
+      "missing_system": [
+        "node>=18.0.0",
+        "python3>=3.8",
+        "chromium",
+        "firefox",
+        "webkit"
+      ],
       "satisfied_python": [
         "tree-sitter>=0.21.0",
         "tree-sitter-language-pack>=0.8.0",
@@ -249,14 +329,27 @@
         "safety>=3.0.0",
         "bandit>=1.7.5",
         "docstring-parser>=0.15.0",
+        "playwright>=1.40.0",
+        "selenium>=4.15.0",
+        "requests>=2.25.0",
+        "beautifulsoup4>=4.12.0",
+        "pytest-html>=3.2.0",
         "pyjwt>=2.8.0",
-        "cryptography>=41.0.0"
+        "cryptography>=41.0.0",
+        "ai-trackdown-pytools>=1.0.0",
+        "jira>=3.5.0",
+        "click>=8.1.0",
+        "rich>=13.0.0",
+        "pyyaml>=6.0.0"
       ],
       "satisfied_system": [
         "python3",
-        "git"
+        "git",
+        "node",
+        "npm",
+        "npx"
       ]
     }
   },
-  "agent_count": 15
+  "agent_count": 18
 }
