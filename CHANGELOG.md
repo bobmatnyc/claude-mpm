@@ -5,23 +5,11 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.6.2] - 2025-08-12
-
-### Documentation Update
-
-This patch release updates the documentation to properly acknowledge contributors and highlight the new Code Analyzer agent.
-
-#### Changes
-- Updated acknowledgments for WhatsApp support group members
-- Added comprehensive documentation for the Code Analyzer agent in release notes
-- Improved roadmap section to encourage community feedback
-- Enhanced CHANGELOG with Code Analyzer details and contributor acknowledgments
-
-## [3.6.0] - 2025-08-12
+## [3.6.2] - 2025-08-13
 
 ### Executive Summary
 
-Claude MPM 3.6.0 introduces **three major architectural improvements** that significantly enhance performance, maintainability, and developer experience:
+Claude MPM 3.6.2 introduces **three major architectural improvements** that significantly enhance performance, maintainability, and developer experience:
 
 1. **Dynamic Agent Dependencies** - Smart dependency loading that only checks and installs packages for deployed agents, reducing installation size by up to 90%
 2. **Enhanced PM Instructions** - Separation of framework requirements from customizable PM instructions with structured response formats
@@ -72,12 +60,21 @@ Claude MPM 3.6.0 introduces **three major architectural improvements** that sign
 ### Bug Fixes
 - Fixed duplication issues in agent deployment process
 - Resolved path resolution problems in `.claude/agents/` directory
+- Prevented PM agent from being deployed as subagent
 - Fixed configuration file validation edge cases
 - Enhanced agent memory routing with clearer error messages
 - Resolved hook integration issues causing missed responses
+- Resolved version numbering discrepancy (corrected from 3.7.1 to 3.6.2)
+
+### Documentation Updates
+- Enhanced PM architecture documentation
+- Updated response logging configuration
+- Improved technical references for agent responses
+- Clarified TodoWrite format requirements across all agents
+- Updated acknowledgments and roadmap sections
 
 ### Migration Guide
-- Version 3.6.0 is fully backward compatible
+- Version 3.6.2 is fully backward compatible
 - After upgrade, run `claude-mpm agents deps-check` to verify dependencies
 - Run `claude-mpm agents deps-install` to install only required dependencies
 - Optionally update configuration for enhanced logging (debug mode now default)
@@ -96,7 +93,7 @@ Special thanks to our WhatsApp support group members for their invaluable contri
 - **Eddie Hudson**
 - **Oliver Anson**
 
-Their dedication to quality assurance and constructive feedback were instrumental in shaping version 3.6.0.
+Their dedication to quality assurance and constructive feedback were instrumental in shaping version 3.6.2.
 
 ## [3.5.6] - 2025-08-11
 
