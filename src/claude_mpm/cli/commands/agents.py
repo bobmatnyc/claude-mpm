@@ -85,6 +85,9 @@ def manage_agents(args):
         elif args.agents_command == 'deps-list':
             _list_agent_dependencies(args)
         
+        elif args.agents_command == 'deps-fix':
+            _fix_agent_dependencies(args)
+        
     except ImportError:
         logger.error("Agent deployment service not available")
         print("Error: Agent deployment service not available")
@@ -764,3 +767,117 @@ def _list_agent_dependencies(args):
             system_count = len(deps.get('system', []))
             if python_count or system_count:
                 print(f"  {agent_id}: {python_count} Python, {system_count} System")
+
+
+def _fix_agent_dependencies(args):
+    """
+    Fix missing agent dependencies with robust retry logic.
+    
+    WHY: Network issues and temporary package unavailability can cause
+    dependency installation to fail. This command uses robust retry logic
+    to maximize success rate.
+    
+    Args:
+        args: Parsed command line arguments
+    """
+    from ...utils.agent_dependency_loader import AgentDependencyLoader
+    from ...utils.robust_installer import RobustPackageInstaller
+    
+    max_retries = getattr(args, 'max_retries', 3)
+    
+    print("=" * 70)
+    print("FIXING AGENT DEPENDENCIES WITH RETRY LOGIC")
+    print("=" * 70)
+    print()
+    
+    loader = AgentDependencyLoader(auto_install=False)
+    
+    # Discover and analyze
+    print("Discovering deployed agents...")
+    loader.discover_deployed_agents()
+    
+    if not loader.deployed_agents:
+        print("No deployed agents found")
+        return
+    
+    print(f"Found {len(loader.deployed_agents)} deployed agents")
+    print("Analyzing dependencies...")
+    
+    loader.load_agent_dependencies()
+    results = loader.analyze_dependencies()
+    
+    missing_python = results['summary']['missing_python']
+    missing_system = results['summary']['missing_system']
+    
+    if not missing_python and not missing_system:
+        print("\n✅ All dependencies are already satisfied!")
+        return
+    
+    # Show what's missing
+    if missing_python:
+        print(f"\n❌ Missing Python packages: {len(missing_python)}")
+        for pkg in missing_python[:10]:
+            print(f"   - {pkg}")
+        if len(missing_python) > 10:
+            print(f"   ... and {len(missing_python) - 10} more")
+    
+    if missing_system:
+        print(f"\n❌ Missing system commands: {len(missing_system)}")
+        for cmd in missing_system:
+            print(f"   - {cmd}")
+        print("\n⚠️  System dependencies must be installed manually:")
+        print(f"  macOS:  brew install {' '.join(missing_system)}")
+        print(f"  Ubuntu: apt-get install {' '.join(missing_system)}")
+    
+    # Fix Python dependencies with robust installer
+    if missing_python:
+        print(f"\n🔧 Fixing Python dependencies with {max_retries} retries per package...")
+        
+        # Check compatibility
+        compatible, incompatible = loader.check_python_compatibility(missing_python)
+        
+        if incompatible:
+            print(f"\n⚠️  Skipping {len(incompatible)} incompatible packages:")
+            for pkg in incompatible[:5]:
+                print(f"   - {pkg}")
+            if len(incompatible) > 5:
+                print(f"   ... and {len(incompatible) - 5} more")
+        
+        if compatible:
+            installer = RobustPackageInstaller(
+                max_retries=max_retries,
+                retry_delay=2.0,
+                timeout=300
+            )
+            
+            print(f"\nInstalling {len(compatible)} compatible packages...")
+            successful, failed, errors = installer.install_packages(compatible)
+            
+            print("\n" + "=" * 70)
+            print("INSTALLATION RESULTS:")
+            print("=" * 70)
+            
+            if successful:
+                print(f"✅ Successfully installed: {len(successful)} packages")
+            
+            if failed:
+                print(f"❌ Failed to install: {len(failed)} packages")
+                for pkg in failed:
+                    print(f"   - {pkg}: {errors.get(pkg, 'Unknown error')}")
+            
+            # Re-check
+            print("\nVerifying installation...")
+            loader.checked_packages.clear()
+            final_results = loader.analyze_dependencies()
+            
+            final_missing = final_results['summary']['missing_python']
+            if not final_missing:
+                print("✅ All Python dependencies are now satisfied!")
+            else:
+                print(f"⚠️  Still missing {len(final_missing)} packages")
+                print("\nTry running again or install manually:")
+                print(f"  pip install {' '.join(final_missing[:3])}")
+    
+    print("\n" + "=" * 70)
+    print("DONE")
+    print("=" * 70)
