@@ -740,10 +740,14 @@ class AgentDeploymentService:
         # IMPORTANT: No spaces after commas - Claude Code requires exact format
         tools_str = ','.join(tools) if isinstance(tools, list) else tools
         
+        # Extract proper agent_id and name from template
+        agent_id = template_data.get('agent_id', agent_name)
+        display_name = template_data.get('metadata', {}).get('name', agent_id)
+        
         # Build frontmatter with only the fields Claude Code uses
         frontmatter_lines = [
             "---",
-            f"name: {agent_name}",
+            f"name: {agent_id}",
             f"description: {description}",
             f"version: {version_string}",
             f"base_version: {self._format_version_display(base_version)}",

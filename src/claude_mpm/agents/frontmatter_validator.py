@@ -34,6 +34,7 @@ class ValidationResult:
     warnings: List[str]
     corrections: List[str]
     corrected_frontmatter: Optional[Dict[str, Any]] = None
+    field_corrections: Optional[Dict[str, Any]] = None  # Specific field-level corrections
 
 
 class FrontmatterValidator:
@@ -109,6 +110,7 @@ class FrontmatterValidator:
     def __init__(self):
         """Initialize the validator with schema if available."""
         self.schema = self._load_schema()
+        self.all_valid_fields = self._extract_valid_fields()
         
     def _load_schema(self) -> Optional[Dict[str, Any]]:
         """Load the frontmatter schema from JSON file."""
@@ -120,6 +122,17 @@ class FrontmatterValidator:
             except Exception as e:
                 logger.warning(f"Failed to load frontmatter schema: {e}")
         return None
+    
+    def _extract_valid_fields(self) -> set:
+        """Extract all valid field names from the schema."""
+        if self.schema and 'properties' in self.schema:
+            return set(self.schema['properties'].keys())
+        # Fallback to known fields if schema not available
+        return {
+            "name", "description", "version", "base_version", "author", 
+            "tools", "model", "tags", "category", "max_tokens", "temperature", 
+            "resource_tier", "dependencies", "capabilities", "color"
+        }
     
     def validate_and_correct(self, frontmatter: Dict[str, Any]) -> ValidationResult:
         """
@@ -135,9 +148,10 @@ class FrontmatterValidator:
         warnings = []
         corrections = []
         corrected = frontmatter.copy()
+        field_corrections = {}  # Track only the fields that actually need correction
         
-        # Required fields check
-        required_fields = ["name", "description", "version", "model"]
+        # Required fields check (from schema)
+        required_fields = self.schema.get('required', ["name", "description", "version", "model"]) if self.schema else ["name", "description", "version", "model"]
         for field in required_fields:
             if field not in corrected:
                 errors.append(f"Missing required field: {field}")
@@ -153,6 +167,7 @@ class FrontmatterValidator:
                 fixed_name = re.sub(r"[^a-z0-9_]", "", fixed_name)
                 if fixed_name and fixed_name[0].isalpha():
                     corrected["name"] = fixed_name
+                    field_corrections["name"] = fixed_name
                     corrections.append(f"Corrected name from '{name}' to '{fixed_name}'")
                 else:
                     errors.append(f"Invalid name format: {name}")
@@ -165,6 +180,7 @@ class FrontmatterValidator:
             if isinstance(model, (int, float)):
                 model = str(model)
                 corrected["model"] = model
+                field_corrections["model"] = model
                 corrections.append(f"Converted model from number to string: {model}")
             
             if not isinstance(model, str):
@@ -173,6 +189,7 @@ class FrontmatterValidator:
                 normalized_model = self._normalize_model(model)
                 if normalized_model != model:
                     corrected["model"] = normalized_model
+                    field_corrections["model"] = normalized_model
                     corrections.append(f"Normalized model from '{model}' to '{normalized_model}'")
                 
                 if normalized_model not in self.VALID_MODELS:
@@ -184,6 +201,7 @@ class FrontmatterValidator:
             corrected_tools, tool_corrections = self._correct_tools(tools)
             if tool_corrections:
                 corrected["tools"] = corrected_tools
+                field_corrections["tools"] = corrected_tools
                 corrections.extend(tool_corrections)
             
             # Validate tool names
@@ -195,6 +213,8 @@ class FrontmatterValidator:
                     if corrected_tool:
                         idx = corrected_tools.index(tool)
                         corrected_tools[idx] = corrected_tool
+                        corrected["tools"] = corrected_tools
+                        field_corrections["tools"] = corrected_tools
                         corrections.append(f"Corrected tool '{tool}' to '{corrected_tool}'")
                     else:
                         invalid_tools.append(tool)
@@ -214,10 +234,12 @@ class FrontmatterValidator:
                     if re.match(r"^\d+\.\d+$", version):
                         fixed_version = f"{version}.0"
                         corrected[field] = fixed_version
+                        field_corrections[field] = fixed_version
                         corrections.append(f"Fixed {field} from '{version}' to '{fixed_version}'")
                     elif re.match(r"^v?\d+\.\d+\.\d+$", version):
                         fixed_version = version.lstrip("v")
                         corrected[field] = fixed_version
+                        field_corrections[field] = fixed_version
                         corrections.append(f"Fixed {field} from '{version}' to '{fixed_version}'")
                     else:
                         errors.append(f"Invalid {field} format: {version}")
@@ -243,6 +265,44 @@ class FrontmatterValidator:
             if corrected["resource_tier"] not in valid_tiers:
                 warnings.append(f"Invalid resource_tier: {corrected['resource_tier']}")
         
+        # Validate color field
+        if "color" in corrected:
+            color = corrected["color"]
+            if not isinstance(color, str):
+                errors.append(f"Field 'color' must be a string, got {type(color).__name__}")
+            # Color validation could be expanded to check for valid color names/hex codes
+        
+        # Validate author field
+        if "author" in corrected:
+            author = corrected["author"]
+            if not isinstance(author, str):
+                errors.append(f"Field 'author' must be a string, got {type(author).__name__}")
+            elif len(author) > 100:
+                warnings.append(f"Author field too long ({len(author)} chars, maximum 100)")
+        
+        # Validate tags field
+        if "tags" in corrected:
+            tags = corrected["tags"]
+            if not isinstance(tags, list):
+                errors.append(f"Field 'tags' must be a list, got {type(tags).__name__}")
+            else:
+                for tag in tags:
+                    if not isinstance(tag, str):
+                        errors.append(f"All tags must be strings, found {type(tag).__name__}")
+                    elif not re.match(r"^[a-z][a-z0-9-]*$", tag):
+                        warnings.append(f"Tag '{tag}' doesn't match recommended pattern (lowercase, alphanumeric with hyphens)")
+        
+        # Validate numeric fields
+        for field_name, (min_val, max_val) in [("max_tokens", (1000, 200000)), ("temperature", (0, 1))]:
+            if field_name in corrected:
+                value = corrected[field_name]
+                if field_name == "temperature" and not isinstance(value, (int, float)):
+                    errors.append(f"Field '{field_name}' must be a number, got {type(value).__name__}")
+                elif field_name == "max_tokens" and not isinstance(value, int):
+                    errors.append(f"Field '{field_name}' must be an integer, got {type(value).__name__}")
+                elif isinstance(value, (int, float)) and not (min_val <= value <= max_val):
+                    warnings.append(f"Field '{field_name}' value {value} outside recommended range [{min_val}, {max_val}]")
+        
         # Determine if valid
         is_valid = len(errors) == 0
         
@@ -251,7 +311,8 @@ class FrontmatterValidator:
             errors=errors,
             warnings=warnings,
             corrections=corrections,
-            corrected_frontmatter=corrected if corrections else None
+            corrected_frontmatter=corrected if corrections else None,
+            field_corrections=field_corrections if field_corrections else None
         )
     
     def _normalize_model(self, model: str) -> str:
@@ -416,7 +477,7 @@ class FrontmatterValidator:
         """
         result = self.validate_file(file_path)
         
-        if result.corrected_frontmatter and not dry_run:
+        if result.field_corrections and not dry_run:
             try:
                 with open(file_path, 'r') as f:
                     content = f.read()
@@ -428,21 +489,59 @@ class FrontmatterValidator:
                         end_marker = content.find("\n---\r\n", 4)
                     
                     if end_marker != -1:
-                        # Reconstruct file with corrected frontmatter
-                        new_frontmatter = yaml.dump(
-                            result.corrected_frontmatter,
-                            default_flow_style=False,
-                            sort_keys=False
+                        # Apply field-level corrections to preserve structure
+                        frontmatter_content = content[4:end_marker]
+                        corrected_content = self._apply_field_corrections(
+                            frontmatter_content, result.field_corrections
                         )
-                        new_content = f"---\n{new_frontmatter}---\n{content[end_marker + 5:]}"
                         
-                        with open(file_path, 'w') as f:
-                            f.write(new_content)
-                        
-                        logger.info(f"Corrected frontmatter in {file_path}")
-                        for correction in result.corrections:
-                            logger.info(f"  - {correction}")
+                        if corrected_content != frontmatter_content:
+                            new_content = f"---\n{corrected_content}\n---\n{content[end_marker + 5:]}"
+                            
+                            with open(file_path, 'w') as f:
+                                f.write(new_content)
+                            
+                            logger.info(f"Corrected frontmatter in {file_path}")
+                            for correction in result.corrections:
+                                logger.info(f"  - {correction}")
             except Exception as e:
                 logger.error(f"Failed to write corrections to {file_path}: {e}")
         
         return result
+    
+    def _apply_field_corrections(self, frontmatter_content: str, field_corrections: Dict[str, Any]) -> str:
+        """
+        Apply field-level corrections while preserving structure and other fields.
+        
+        Args:
+            frontmatter_content: Original YAML frontmatter content
+            field_corrections: Dict of field corrections to apply
+            
+        Returns:
+            Corrected frontmatter content
+        """
+        lines = frontmatter_content.strip().split('\n')
+        corrected_lines = []
+        
+        for line in lines:
+            # Check if this line contains a field we need to correct
+            if ':' in line:
+                field_name = line.split(':')[0].strip()
+                if field_name in field_corrections:
+                    # Replace the field value while preserving structure
+                    corrected_value = field_corrections[field_name]
+                    if isinstance(corrected_value, list):
+                        # Handle list fields like tools
+                        if field_name == "tools" and isinstance(corrected_value, list):
+                            # Format as comma-separated string to preserve existing format
+                            corrected_lines.append(f"{field_name}: {','.join(corrected_value)}")
+                        else:
+                            corrected_lines.append(f"{field_name}: {corrected_value}")
+                    else:
+                        corrected_lines.append(f"{field_name}: {corrected_value}")
+                    continue
+            
+            # Keep the original line if no correction needed
+            corrected_lines.append(line)
+        
+        return '\n'.join(corrected_lines)
