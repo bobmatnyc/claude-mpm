@@ -1,0 +1,788 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.cli.commands.tickets &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cli.html">claude_mpm.cli</a></li>
+      <li class="breadcrumb-item active">claude_mpm.cli.commands.tickets</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.cli.commands.tickets</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Tickets command implementation for claude-mpm.</span>
+
+<span class="sd">WHY: This module provides comprehensive ticket management functionality, allowing users</span>
+<span class="sd">to create, view, update, and manage tickets through the CLI. It integrates with</span>
+<span class="sd">ai-trackdown-pytools for persistent ticket storage.</span>
+
+<span class="sd">DESIGN DECISION: We implement full CRUD operations plus search and workflow management</span>
+<span class="sd">to provide a complete ticket management system within the claude-mpm CLI. The commands</span>
+<span class="sd">mirror the scripts/ticket.py interface for consistency.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketCommands</span>
+
+
+<div class="viewcode-block" id="manage_tickets">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.manage_tickets">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">manage_tickets</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main ticket command dispatcher.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: This function routes ticket subcommands to their appropriate handlers,</span>
+<span class="sd">    providing a single entry point for all ticket-related operations.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We use a subcommand pattern similar to git, allowing for</span>
+<span class="sd">    intuitive command structure like &#39;claude-mpm tickets create &quot;title&quot;&#39;.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Parsed command line arguments with &#39;tickets_command&#39; attribute</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Handle case where no subcommand is provided - default to list</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;tickets_command&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">tickets_command</span><span class="p">:</span>
+        <span class="c1"># Default to list command for backward compatibility</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">tickets_command</span> <span class="o">=</span> <span class="n">TicketCommands</span><span class="o">.</span><span class="n">LIST</span><span class="o">.</span><span class="n">value</span>
+        <span class="c1"># Set default limit if not present</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;limit&#39;</span><span class="p">):</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">):</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="c1"># Map subcommands to handler functions</span>
+    <span class="n">handlers</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">CREATE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">create_ticket</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">LIST</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">list_tickets</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">VIEW</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">view_ticket</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">UPDATE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">update_ticket</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">CLOSE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">close_ticket</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">DELETE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">delete_ticket</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">SEARCH</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">search_tickets</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">COMMENT</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">add_comment</span><span class="p">,</span>
+        <span class="n">TicketCommands</span><span class="o">.</span><span class="n">WORKFLOW</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">update_workflow</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Execute the appropriate handler</span>
+    <span class="n">handler</span> <span class="o">=</span> <span class="n">handlers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">tickets_command</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">handler</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">handler</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Operation cancelled by user&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error executing </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">tickets_command</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+                <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+            <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown ticket command: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">tickets_command</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="create_ticket">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.create_ticket">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_ticket</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a new ticket.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need to create tickets to track work items, bugs, and features.</span>
+<span class="sd">    This command provides a streamlined interface for ticket creation.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We parse description from remaining args to allow natural</span>
+<span class="sd">    command line usage like: tickets create &quot;title&quot; -d This is a description</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with title, type, priority, description, tags, etc.</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    
+    <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+    
+    <span class="c1"># Parse description from remaining args or use default</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">description</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">description</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+    
+    <span class="c1"># Parse tags</span>
+    <span class="n">tags</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tags</span> <span class="k">else</span> <span class="p">[]</span>
+    
+    <span class="c1"># Create ticket with all provided parameters</span>
+    <span class="n">ticket_id</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">create_ticket</span><span class="p">(</span>
+        <span class="n">title</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">title</span><span class="p">,</span>
+        <span class="n">ticket_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">description</span><span class="p">,</span>
+        <span class="n">priority</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">priority</span><span class="p">,</span>
+        <span class="n">tags</span><span class="o">=</span><span class="n">tags</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;claude-mpm-cli&quot;</span><span class="p">,</span>
+        <span class="n">parent_epic</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;parent_epic&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">parent_issue</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;parent_issue&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">ticket_id</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Created ticket: </span><span class="si">{</span><span class="n">ticket_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Type: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Priority: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">priority</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;parent_epic&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Parent Epic: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">parent_epic</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;parent_issue&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Parent Issue: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">parent_issue</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;❌ Failed to create ticket&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="list_tickets">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.list_tickets">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_tickets</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    List recent tickets with optional filtering.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need to review tickets created during Claude sessions. This command</span>
+<span class="sd">    provides a quick way to see recent tickets with their status and metadata.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We show tickets in a compact format with emoji status indicators</span>
+<span class="sd">    for better visual scanning. Filters allow focusing on specific ticket types/statuses.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with limit, type filter, status filter, verbose flag</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+        
+        <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+        
+        <span class="c1"># Get tickets with limit</span>
+        <span class="n">limit</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;limit&#39;</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+        <span class="n">tickets</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">list_recent_tickets</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">limit</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Get extra for filtering</span>
+        
+        <span class="c1"># Apply filters if specified</span>
+        <span class="n">filtered_tickets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">ticket</span> <span class="ow">in</span> <span class="n">tickets</span><span class="p">:</span>
+            <span class="c1"># Type filter</span>
+            <span class="n">type_filter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">type_filter</span> <span class="o">!=</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="n">ticket_type</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ticket_type&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ticket_type</span> <span class="o">!=</span> <span class="n">type_filter</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            
+            <span class="c1"># Status filter</span>
+            <span class="n">status_filter</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">status_filter</span> <span class="o">!=</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">status_filter</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            
+            <span class="n">filtered_tickets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ticket</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filtered_tickets</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">limit</span><span class="p">:</span>
+                <span class="k">break</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">filtered_tickets</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No tickets found matching criteria&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Recent tickets (showing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_tickets</span><span class="p">)</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">ticket</span> <span class="ow">in</span> <span class="n">filtered_tickets</span><span class="p">:</span>
+            <span class="c1"># Use emoji to indicate status visually</span>
+            <span class="n">status_emoji</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;open&quot;</span><span class="p">:</span> <span class="s2">&quot;🔵&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;in_progress&quot;</span><span class="p">:</span> <span class="s2">&quot;🟡&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;done&quot;</span><span class="p">:</span> <span class="s2">&quot;🟢&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;closed&quot;</span><span class="p">:</span> <span class="s2">&quot;⚫&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;blocked&quot;</span><span class="p">:</span> <span class="s2">&quot;🔴&quot;</span>
+            <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span> <span class="s2">&quot;⚪&quot;</span><span class="p">)</span>
+            
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">status_emoji</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;verbose&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">ticket_type</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ticket_type&#39;</span><span class="p">,</span> <span class="s1">&#39;task&#39;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Type: </span><span class="si">{</span><span class="n">ticket_type</span><span class="si">}</span><span class="s2"> | Status: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> | Priority: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;priority&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Created: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;created_at&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="mi">0</span>
+            
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;ai-trackdown-pytools not installed&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error: ai-trackdown-pytools not installed&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Install with: pip install ai-trackdown-pytools&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error listing tickets: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="view_ticket">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.view_ticket">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">view_ticket</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    View a specific ticket in detail.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need to see full ticket details including description, metadata,</span>
+<span class="sd">    and all associated information for understanding context and status.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id and verbose flag</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    
+    <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+    <span class="n">ticket</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">get_ticket</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ticket</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Ticket </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> not found&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Ticket: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Title: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type: </span><span class="si">{</span><span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span><span class="w"> </span><span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ticket_type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Status: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Priority: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;priority&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tags: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;assignees&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Assignees: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;assignees&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Show parent references if they exist</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="p">{})</span>
+    <span class="k">if</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parent_epic&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parent Epic: </span><span class="si">{</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;parent_epic&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">metadata</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;parent_issue&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parent Issue: </span><span class="si">{</span><span class="n">metadata</span><span class="p">[</span><span class="s1">&#39;parent_issue&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Description:&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">40</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;No description&#39;</span><span class="p">))</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Created: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;created_at&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated: </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;updated_at&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span> <span class="ow">and</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Metadata:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">40</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;parent_epic&#39;</span><span class="p">,</span> <span class="s1">&#39;parent_issue&#39;</span><span class="p">,</span> <span class="s1">&#39;ticket_type&#39;</span><span class="p">]:</span>  <span class="c1"># Already shown above</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="update_ticket">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.update_ticket">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_ticket</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update a ticket&#39;s properties.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Tickets need to be updated as work progresses, priorities change,</span>
+<span class="sd">    or additional information becomes available.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: For complex updates, we delegate to aitrackdown CLI</span>
+<span class="sd">    for operations not directly supported by our TicketManager interface.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id and update fields</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    
+    <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+    
+    <span class="c1"># Build update dictionary</span>
+    <span class="n">updates</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">:</span>
+        <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">priority</span><span class="p">:</span>
+        <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;priority&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">priority</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+        <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
+        <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">tags</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">assign</span><span class="p">:</span>
+        <span class="n">updates</span><span class="p">[</span><span class="s1">&#39;assignees&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">assign</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">updates</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;❌ No updates specified&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+    
+    <span class="c1"># Try to update using TicketManager</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">update_task</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="o">**</span><span class="n">updates</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Updated ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Fallback to aitrackdown CLI for status transitions</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Attempting update via aitrackdown CLI&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aitrackdown&quot;</span><span class="p">,</span> <span class="s2">&quot;transition&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">]</span>
+            
+            <span class="c1"># Add comment with other updates</span>
+            <span class="n">comment_parts</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">priority</span><span class="p">:</span>
+                <span class="n">comment_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Priority: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">priority</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">assign</span><span class="p">:</span>
+                <span class="n">comment_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Assigned to: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">assign</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
+                <span class="n">comment_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tags: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">tags</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">comment_parts</span><span class="p">:</span>
+                <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; | &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">comment_parts</span><span class="p">)</span>
+                <span class="n">cmd</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--comment&quot;</span><span class="p">,</span> <span class="n">comment</span><span class="p">])</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Updated ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to update via CLI: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to update ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to update ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="close_ticket">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.close_ticket">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">close_ticket</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Close a ticket.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Tickets need to be closed when work is completed or no longer relevant.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id and optional resolution</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    
+    <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+    
+    <span class="c1"># Try to close using TicketManager</span>
+    <span class="n">resolution</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;resolution&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">close_task</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">resolution</span><span class="o">=</span><span class="n">resolution</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">success</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Closed ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Fallback to aitrackdown CLI</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Attempting close via aitrackdown CLI&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aitrackdown&quot;</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="n">resolution</span><span class="p">:</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--comment&quot;</span><span class="p">,</span> <span class="n">resolution</span><span class="p">])</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Closed ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to close ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="delete_ticket">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.delete_ticket">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_ticket</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Delete a ticket.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Sometimes tickets are created in error or are no longer needed</span>
+<span class="sd">    and should be removed from the system.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We delegate to aitrackdown CLI as deletion is a</span>
+<span class="sd">    destructive operation that should use the official tool.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id and force flag</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Confirm deletion unless forced</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">force</span><span class="p">:</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Are you sure you want to delete ticket </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">? (y/N): &quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Deletion cancelled&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+    
+    <span class="c1"># Use aitrackdown CLI for deletion</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aitrackdown&quot;</span><span class="p">,</span> <span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">force</span><span class="p">:</span>
+        <span class="n">cmd</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;--force&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Deleted ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to delete ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="search_tickets">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.search_tickets">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_tickets</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Search tickets by query string.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need to find specific tickets based on content, tags, or other criteria.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We perform simple text matching on ticket data. For more advanced</span>
+<span class="sd">    search, users should use the aitrackdown CLI directly.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with search query and filters</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">...services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    
+    <span class="n">ticket_manager</span> <span class="o">=</span> <span class="n">TicketManager</span><span class="p">()</span>
+    
+    <span class="c1"># Get all available tickets for searching</span>
+    <span class="n">all_tickets</span> <span class="o">=</span> <span class="n">ticket_manager</span><span class="o">.</span><span class="n">list_recent_tickets</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+    
+    <span class="c1"># Search tickets</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="n">matched_tickets</span> <span class="o">=</span> <span class="p">[]</span>
+    
+    <span class="k">for</span> <span class="n">ticket</span> <span class="ow">in</span> <span class="n">all_tickets</span><span class="p">:</span>
+        <span class="c1"># Check if query matches title, description, or tags</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">query</span> <span class="ow">in</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span>
+            <span class="n">query</span> <span class="ow">in</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span>
+            <span class="nb">any</span><span class="p">(</span><span class="n">query</span> <span class="ow">in</span> <span class="n">tag</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">[]))):</span>
+            
+            <span class="c1"># Apply type filter</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="n">ticket_type</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ticket_type&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">ticket_type</span> <span class="o">!=</span> <span class="n">args</span><span class="o">.</span><span class="n">type</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            
+            <span class="c1"># Apply status filter</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span> <span class="o">!=</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">args</span><span class="o">.</span><span class="n">status</span><span class="p">:</span>
+                    <span class="k">continue</span>
+            
+            <span class="n">matched_tickets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ticket</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_tickets</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">args</span><span class="o">.</span><span class="n">limit</span><span class="p">:</span>
+                <span class="k">break</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">matched_tickets</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No tickets found matching &#39;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search results for &#39;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">query</span><span class="si">}</span><span class="s2">&#39; (showing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">matched_tickets</span><span class="p">)</span><span class="si">}</span><span class="s2">):&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;-&quot;</span> <span class="o">*</span> <span class="mi">80</span><span class="p">)</span>
+    
+    <span class="k">for</span> <span class="n">ticket</span> <span class="ow">in</span> <span class="n">matched_tickets</span><span class="p">:</span>
+        <span class="n">status_emoji</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;open&quot;</span><span class="p">:</span> <span class="s2">&quot;🔵&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;in_progress&quot;</span><span class="p">:</span> <span class="s2">&quot;🟡&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;done&quot;</span><span class="p">:</span> <span class="s2">&quot;🟢&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;closed&quot;</span><span class="p">:</span> <span class="s2">&quot;⚫&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;blocked&quot;</span><span class="p">:</span> <span class="s2">&quot;🔴&quot;</span>
+        <span class="p">}</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span> <span class="s2">&quot;⚪&quot;</span><span class="p">)</span>
+        
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">status_emoji</span><span class="si">}</span><span class="s2"> [</span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">ticket</span><span class="p">[</span><span class="s1">&#39;title&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Show snippet of description if it contains the query</span>
+        <span class="n">desc</span> <span class="o">=</span> <span class="n">ticket</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">query</span> <span class="ow">in</span> <span class="n">desc</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="c1"># Find and show context around the match</span>
+            <span class="n">idx</span> <span class="o">=</span> <span class="n">desc</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">idx</span> <span class="o">-</span> <span class="mi">30</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">),</span> <span class="n">idx</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">query</span><span class="p">)</span> <span class="o">+</span> <span class="mi">30</span><span class="p">)</span>
+            <span class="n">snippet</span> <span class="o">=</span> <span class="n">desc</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">snippet</span> <span class="o">=</span> <span class="s2">&quot;...&quot;</span> <span class="o">+</span> <span class="n">snippet</span>
+            <span class="k">if</span> <span class="n">end</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">):</span>
+                <span class="n">snippet</span> <span class="o">=</span> <span class="n">snippet</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   </span><span class="si">{</span><span class="n">snippet</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="mi">0</span></div>
+
+
+
+<div class="viewcode-block" id="add_comment">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.add_comment">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_comment</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add a comment to a ticket.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Comments allow tracking progress, decisions, and additional context</span>
+<span class="sd">    on tickets over time.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We delegate to aitrackdown CLI as it has proper comment</span>
+<span class="sd">    tracking infrastructure.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id and comment text</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Join comment parts into single string</span>
+    <span class="n">comment</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">comment</span><span class="p">)</span>
+    
+    <span class="c1"># Use aitrackdown CLI for comments</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aitrackdown&quot;</span><span class="p">,</span> <span class="s2">&quot;comment&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">comment</span><span class="p">]</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Added comment to ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to add comment to ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="update_workflow">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.update_workflow">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_workflow</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update ticket workflow state.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Workflow states track the progress of tickets through defined stages</span>
+<span class="sd">    like todo, in_progress, ready, tested, done.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We use aitrackdown&#39;s transition command for workflow updates</span>
+<span class="sd">    as it maintains proper state machine transitions.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Arguments with ticket id, new state, and optional comment</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli.tickets&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Map workflow states to status if needed</span>
+    <span class="n">state_mapping</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;todo&#39;</span><span class="p">:</span> <span class="s1">&#39;open&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;in_progress&#39;</span><span class="p">:</span> <span class="s1">&#39;in_progress&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;ready&#39;</span><span class="p">:</span> <span class="s1">&#39;ready&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;tested&#39;</span><span class="p">:</span> <span class="s1">&#39;tested&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;done&#39;</span><span class="p">:</span> <span class="s1">&#39;done&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;blocked&#39;</span><span class="p">:</span> <span class="s1">&#39;blocked&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Use aitrackdown transition command</span>
+    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;aitrackdown&quot;</span><span class="p">,</span> <span class="s2">&quot;transition&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">state</span><span class="p">]</span>
+    
+    <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;comment&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">cmd</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;--comment&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">comment</span><span class="p">])</span>
+    
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;✅ Updated workflow state for </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> to: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">state</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Failed to update workflow state for ticket: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<span class="c1"># Maintain backward compatibility with the old list_tickets function signature</span>
+<div class="viewcode-block" id="list_tickets_legacy">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.list_tickets_legacy">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_tickets_legacy</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Legacy list_tickets function for backward compatibility.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: The old CLI interface expected a simple list_tickets function.</span>
+<span class="sd">    This wrapper maintains that interface while using the new implementation.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Parsed command line arguments with &#39;limit&#39; attribute</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Call the new list_tickets function</span>
+    <span class="k">return</span> <span class="n">list_tickets</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

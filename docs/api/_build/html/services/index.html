@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Services API &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Agent Services" href="agent_services.html" />
+    <link rel="prev" title="Core Types" href="../core/types.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core API</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Services API</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html">Agent Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communication.html">Communication Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="infrastructure.html">Infrastructure Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_services.html">Project Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html">Core Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#service-domains">Service Domains</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#agent-services">Agent Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#communication-services">Communication Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#infrastructure-services">Infrastructure Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#project-services">Project Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#core-services">Core Services</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#architecture-benefits">Architecture Benefits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Services API</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/services/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="services-api">
+<h1>Services API<a class="headerlink" href="#services-api" title="Link to this heading"></a></h1>
+<p>The services API provides the service-oriented architecture layer of Claude MPM,
+organized into five specialized service domains:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="agent_services.html">Agent Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-management">Agent Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-deployment">Agent Deployment</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-lifecycle-management">Agent Lifecycle Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-versioning">Agent Versioning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-registry">Agent Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#agent-capabilities">Agent Capabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#module-claude_mpm.agents.agent_loader">Agent Loaders</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#module-claude_mpm.agents.frontmatter_validator">Agent Validation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html#module-claude_mpm.agents.agents_metadata">Agent Metadata</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="communication.html">Communication Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="communication.html#module-claude_mpm.services.standalone_socketio_server">SocketIO Server</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communication.html#socketio-client-management">SocketIO Client Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communication.html#module-claude_mpm.services.event_aggregator">Event Aggregation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communication.html#module-claude_mpm.services.claude_session_logger">Session Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="communication.html#module-claude_mpm.services.response_tracker">Response Tracking</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="infrastructure.html">Infrastructure Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="infrastructure.html#module-claude_mpm.services.health_monitor">Health Monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="infrastructure.html#module-claude_mpm.services.recovery_manager">Recovery Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="infrastructure.html#module-claude_mpm.services.exceptions">Exception Handling</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="project_services.html">Project Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="project_services.html#module-claude_mpm.services.project_analyzer">Project Analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_services.html#module-claude_mpm.services.project_registry">Project Registry</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_services.html#module-claude_mpm.services.framework_claude_md_generator">Framework Claude MD Generator</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="core_services.html">Core Services</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html#service-container">Service Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html#configuration-management">Configuration Management</a></li>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html#caching-services">Caching Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html#module-claude_mpm.services.ticket_manager">Ticket Management</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>The Claude MPM framework is built around a service-oriented architecture with clear
+separation of concerns:</p>
+</section>
+<section id="service-domains">
+<h2>Service Domains<a class="headerlink" href="#service-domains" title="Link to this heading"></a></h2>
+<section id="agent-services">
+<h3>Agent Services<a class="headerlink" href="#agent-services" title="Link to this heading"></a></h3>
+<p>Handle agent lifecycle, deployment, and management operations including:</p>
+<ul class="simple">
+<li><p>Agent deployment and validation</p></li>
+<li><p>Agent lifecycle management</p></li>
+<li><p>Agent versioning and updates</p></li>
+<li><p>Agent registry and discovery</p></li>
+</ul>
+</section>
+<section id="communication-services">
+<h3>Communication Services<a class="headerlink" href="#communication-services" title="Link to this heading"></a></h3>
+<p>Provide real-time communication capabilities including:</p>
+<ul class="simple">
+<li><p>WebSocket and SocketIO servers</p></li>
+<li><p>Real-time event broadcasting</p></li>
+<li><p>Client connection management</p></li>
+<li><p>Dashboard communication</p></li>
+</ul>
+</section>
+<section id="infrastructure-services">
+<h3>Infrastructure Services<a class="headerlink" href="#infrastructure-services" title="Link to this heading"></a></h3>
+<p>Support framework operations with:</p>
+<ul class="simple">
+<li><p>Structured logging and monitoring</p></li>
+<li><p>Health monitoring and diagnostics</p></li>
+<li><p>Error handling and recovery</p></li>
+<li><p>Performance metrics collection</p></li>
+</ul>
+</section>
+<section id="project-services">
+<h3>Project Services<a class="headerlink" href="#project-services" title="Link to this heading"></a></h3>
+<p>Analyze and manage project characteristics:</p>
+<ul class="simple">
+<li><p>Project structure analysis</p></li>
+<li><p>Technology stack detection</p></li>
+<li><p>Code pattern analysis</p></li>
+<li><p>Workspace management</p></li>
+</ul>
+</section>
+<section id="core-services">
+<h3>Core Services<a class="headerlink" href="#core-services" title="Link to this heading"></a></h3>
+<p>Provide foundational framework capabilities:</p>
+<ul class="simple">
+<li><p>Service container and dependency injection</p></li>
+<li><p>Configuration management</p></li>
+<li><p>Caching and performance optimization</p></li>
+<li><p>Template processing</p></li>
+</ul>
+</section>
+</section>
+<section id="architecture-benefits">
+<h2>Architecture Benefits<a class="headerlink" href="#architecture-benefits" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Service Isolation</strong>: Each domain has clear boundaries and responsibilities</p></li>
+<li><p><strong>Interface Contracts</strong>: All services implement well-defined interfaces</p></li>
+<li><p><strong>Dependency Injection</strong>: Automatic service resolution and lifecycle management</p></li>
+<li><p><strong>Performance Optimization</strong>: Lazy loading, caching, and connection pooling</p></li>
+<li><p><strong>Extensibility</strong>: Plugin architecture through interfaces and hooks</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../core/types.html" class="btn btn-neutral float-left" title="Core Types" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="agent_services.html" class="btn btn-neutral float-right" title="Agent Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

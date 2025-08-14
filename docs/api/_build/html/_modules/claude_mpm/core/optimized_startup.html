@@ -1,0 +1,640 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.optimized_startup &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.optimized_startup</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.optimized_startup</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Optimized startup performance with deferred initialization.</span>
+
+<span class="sd">This module provides startup optimization techniques:</span>
+<span class="sd">- Deferred service initialization</span>
+<span class="sd">- Async configuration loading</span>
+<span class="sd">- Minimal import strategy</span>
+<span class="sd">- Progressive enhancement</span>
+
+<span class="sd">WHY optimized startup:</span>
+<span class="sd">- Reduces startup time from 3-5 seconds to &lt;2 seconds</span>
+<span class="sd">- Defers non-critical initialization</span>
+<span class="sd">- Loads only required components</span>
+<span class="sd">- Provides instant CLI responsiveness</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">importlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">concurrent.futures</span><span class="w"> </span><span class="kn">import</span> <span class="n">ThreadPoolExecutor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.lazy</span><span class="w"> </span><span class="kn">import</span> <span class="n">LazyService</span><span class="p">,</span> <span class="n">lazy_load</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_file_cache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+
+<div class="viewcode-block" id="StartupMetrics">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.StartupMetrics">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">StartupMetrics</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Metrics for startup performance.&quot;&quot;&quot;</span>
+    <span class="n">total_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">import_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">config_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">service_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">agent_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">phases</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">deferred_services</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="OptimizedStartup">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OptimizedStartup</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manager for optimized application startup.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY this design:</span>
+<span class="sd">    - Phase-based initialization for progressive loading</span>
+<span class="sd">    - Critical-path optimization</span>
+<span class="sd">    - Deferred loading for optional features</span>
+<span class="sd">    - Parallel initialization where possible</span>
+<span class="sd">    </span>
+<span class="sd">    Example:</span>
+<span class="sd">        startup = OptimizedStartup()</span>
+<span class="sd">        </span>
+<span class="sd">        # Fast minimal startup</span>
+<span class="sd">        startup.initialize_minimal()</span>
+<span class="sd">        </span>
+<span class="sd">        # Progressive enhancement</span>
+<span class="sd">        startup.initialize_services()</span>
+<span class="sd">        startup.initialize_agents()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Critical services needed immediately</span>
+    <span class="n">CRITICAL_SERVICES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;logger&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">,</span> <span class="s1">&#39;paths&#39;</span><span class="p">,</span> <span class="s1">&#39;cli_parser&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Services that can be deferred</span>
+    <span class="n">DEFERRED_SERVICES</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;socketio&#39;</span><span class="p">,</span> <span class="s1">&#39;dashboard&#39;</span><span class="p">,</span> <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="s1">&#39;hooks&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;project_analyzer&#39;</span><span class="p">,</span> <span class="s1">&#39;tree_sitter&#39;</span><span class="p">,</span> <span class="s1">&#39;monitoring&#39;</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Heavy imports to defer</span>
+    <span class="n">HEAVY_IMPORTS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;numpy&#39;</span><span class="p">,</span> <span class="s1">&#39;pandas&#39;</span><span class="p">,</span> <span class="s1">&#39;matplotlib&#39;</span><span class="p">,</span> <span class="s1">&#39;scipy&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;tensorflow&#39;</span><span class="p">,</span> <span class="s1">&#39;torch&#39;</span><span class="p">,</span> <span class="s1">&#39;transformers&#39;</span>
+    <span class="p">}</span>
+    
+<div class="viewcode-block" id="OptimizedStartup.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="n">StartupMetrics</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;startup&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LazyService</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">executor</span> <span class="o">=</span> <span class="n">ThreadPoolExecutor</span><span class="p">(</span><span class="n">max_workers</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+        
+        <span class="c1"># Start timer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.initialize_minimal">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.initialize_minimal">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_minimal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize only critical components for fast startup.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Time taken for minimal initialization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">phase_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># 1. Setup basic logging (synchronous, required immediately)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_logging</span><span class="p">()</span>
+        
+        <span class="c1"># 2. Load minimal config (only required settings)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_minimal_config</span><span class="p">()</span>
+        
+        <span class="c1"># 3. Setup CLI parser (needed for argument processing)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_setup_cli_parser</span><span class="p">()</span>
+        
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">phase_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="s1">&#39;minimal&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elapsed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Minimal initialization completed in </span><span class="si">{</span><span class="n">elapsed</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">elapsed</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.initialize_services">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.initialize_services">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_services</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lazy</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize service layer with optional lazy loading.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            lazy: Whether to use lazy loading for services</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Time taken for service initialization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">phase_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">lazy</span><span class="p">:</span>
+            <span class="c1"># Create lazy wrappers for deferred services</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_lazy_services</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">)</span><span class="si">}</span><span class="s2"> lazy services&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Initialize all services immediately</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_all_services</span><span class="p">()</span>
+        
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">phase_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="s1">&#39;services&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elapsed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">service_time</span> <span class="o">=</span> <span class="n">elapsed</span>
+        
+        <span class="k">return</span> <span class="n">elapsed</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.initialize_agents">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.initialize_agents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize agent system with optional preloading.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            preload: Whether to preload all agents</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Time taken for agent initialization</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">phase_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">preload</span><span class="p">:</span>
+            <span class="c1"># Load all agents immediately</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">.optimized_agent_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">preload_system_agents</span>
+            <span class="n">preload_system_agents</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Just setup agent registry, load on demand</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_setup_agent_registry</span><span class="p">()</span>
+        
+        <span class="n">elapsed</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">phase_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">phases</span><span class="p">[</span><span class="s1">&#39;agents&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">elapsed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">agent_time</span> <span class="o">=</span> <span class="n">elapsed</span>
+        
+        <span class="k">return</span> <span class="n">elapsed</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.initialize_async">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.initialize_async">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">initialize_async</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StartupMetrics</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fully async initialization for maximum performance.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Complete startup metrics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Run initialization phases concurrently where possible</span>
+        <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_async_load_config</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_async_setup_services</span><span class="p">(),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_async_load_agents</span><span class="p">()</span>
+        <span class="p">]</span>
+        
+        <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="o">*</span><span class="n">tasks</span><span class="p">,</span> <span class="n">return_exceptions</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Handle any errors</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">results</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Async initialization error in task </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">result</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Async startup completed in </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_logging</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup basic logging (critical path).&quot;&quot;&quot;</span>
+        <span class="c1"># Minimal logging setup - already handled by logger module</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;logger&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_minimal_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load only essential configuration.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Use cache for config if available</span>
+            <span class="n">cache</span> <span class="o">=</span> <span class="n">get_file_cache</span><span class="p">()</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;config.yaml&quot;</span>
+            
+            <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">get_or_compute</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;config:</span><span class="si">{</span><span class="n">config_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">),</span>
+                    <span class="n">ttl</span><span class="o">=</span><span class="mi">60</span>
+                <span class="p">)</span>
+                <span class="c1"># Store in a lightweight way</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_store_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;config&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load config: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse configuration file.&quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_store_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store configuration for later use.&quot;&quot;&quot;</span>
+        <span class="c1"># Simple storage without heavy Config class</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s1">&#39;__claude_mpm_config__&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s1">&#39;Config&#39;</span><span class="p">,</span> <span class="p">(),</span> <span class="n">config</span><span class="p">)()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_cli_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup CLI argument parser.&quot;&quot;&quot;</span>
+        <span class="c1"># Defer actual parser creation until needed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;cli_parser&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">LazyService</span><span class="p">(</span>
+            <span class="n">service_class</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_cli_parser</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;cli_parser&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;cli_parser&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_cli_parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Actually create the CLI parser when needed.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..cli.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_parser</span>
+        <span class="k">return</span> <span class="n">create_parser</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_lazy_services</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create lazy wrappers for deferred services.&quot;&quot;&quot;</span>
+        <span class="c1"># SocketIO service (heavy, often not needed)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;socketio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_socketio_service</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;socketio&#39;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Dashboard service</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;dashboard&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_dashboard_service</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dashboard&#39;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Memory service</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;memory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_memory_service</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;memory&#39;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Hook service</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;hooks&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_hook_service</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;hooks&#39;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Project analyzer (very heavy)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;project_analyzer&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_project_analyzer</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;project_analyzer&#39;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Track deferred services</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">deferred_services</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_socketio_service</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create SocketIO service when needed.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..core.socketio_pool</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_connection_pool</span>
+        <span class="k">return</span> <span class="n">get_connection_pool</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_dashboard_service</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create dashboard service when needed.&quot;&quot;&quot;</span>
+        <span class="c1"># Import only when needed</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..services.dashboard</span><span class="w"> </span><span class="kn">import</span> <span class="n">DashboardService</span>
+        <span class="k">return</span> <span class="n">DashboardService</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_memory_service</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create memory service when needed.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..services.memory.indexed_memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_indexed_memory</span>
+        <span class="k">return</span> <span class="n">get_indexed_memory</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_hook_service</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create hook service when needed.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..services.hook_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">HookService</span>
+        <span class="k">return</span> <span class="n">HookService</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_project_analyzer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create project analyzer when needed.&quot;&quot;&quot;</span>
+        <span class="c1"># This is typically very heavy</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..services.agent_modification_tracker.analyzer</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectAnalyzer</span>
+        <span class="k">return</span> <span class="n">ProjectAnalyzer</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_all_services</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize all services immediately (non-lazy mode).&quot;&quot;&quot;</span>
+        <span class="n">services</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;socketio&#39;</span><span class="p">,</span> <span class="s1">&#39;dashboard&#39;</span><span class="p">,</span> <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="s1">&#39;hooks&#39;</span><span class="p">,</span> <span class="s1">&#39;project_analyzer&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">service_name</span> <span class="ow">in</span> <span class="n">services</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">creator</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;_create_</span><span class="si">{</span><span class="n">service_name</span><span class="si">}</span><span class="s1">_service&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">creator</span><span class="p">:</span>
+                    <span class="n">creator</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">service_name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize </span><span class="si">{</span><span class="n">service_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_agent_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup agent registry for on-demand loading.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="s1">&#39;agent_registry&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">lazy_load</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_create_agent_registry</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;agent_registry&#39;</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="s1">&#39;agent_registry&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_agent_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create agent registry when needed.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..core.agent_registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleAgentRegistry</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+        <span class="k">return</span> <span class="n">SimpleAgentRegistry</span><span class="p">(</span><span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">())</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_async_load_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load configuration asynchronously.&quot;&quot;&quot;</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;config.yaml&quot;</span>
+        
+        <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_parse_config</span><span class="p">,</span>
+                <span class="n">config_path</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_store_config</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_async_setup_services</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Setup services asynchronously.&quot;&quot;&quot;</span>
+        <span class="c1"># Create all lazy services concurrently</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_lazy_services</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_async_load_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load agents asynchronously.&quot;&quot;&quot;</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">.optimized_agent_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_optimized_loader</span>
+        
+        <span class="n">loader</span> <span class="o">=</span> <span class="n">get_optimized_loader</span><span class="p">()</span>
+        <span class="n">agent_paths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_discover_agent_paths</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">agent_paths</span><span class="p">:</span>
+            <span class="k">await</span> <span class="n">loader</span><span class="o">.</span><span class="n">load_agents_async</span><span class="p">(</span><span class="n">agent_paths</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_discover_agent_paths</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discover agent file paths.&quot;&quot;&quot;</span>
+        <span class="n">paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">agent_dirs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude&quot;</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span><span class="p">,</span>
+            <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">dir_path</span> <span class="ow">in</span> <span class="n">agent_dirs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">dir_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">paths</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dir_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;*.json&#39;</span><span class="p">))</span>
+                <span class="n">paths</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">dir_path</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;*.md&#39;</span><span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">paths</span>
+    
+<div class="viewcode-block" id="OptimizedStartup.defer_import">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.defer_import">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">defer_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Defer heavy imports until actually needed.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            module_name: Name of module to import</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Imported module or None if not needed yet</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">module_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">HEAVY_IMPORTS</span><span class="p">:</span>
+            <span class="c1"># Don&#39;t import heavy modules during startup</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deferring import of </span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># Check cache</span>
+        <span class="k">if</span> <span class="n">module_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_cache</span><span class="p">[</span><span class="n">module_name</span><span class="p">]</span>
+        
+        <span class="c1"># Import and cache</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">module</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">module_name</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">import_cache</span><span class="p">[</span><span class="n">module_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span>
+            <span class="k">return</span> <span class="n">module</span>
+        <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to import </span><span class="si">{</span><span class="n">module_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.get_service">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.get_service">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a service, initializing if needed.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            name: Service name</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Service instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">:</span>
+            <span class="c1"># Lazy service will initialize on first access</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+        
+        <span class="c1"># Try to create service</span>
+        <span class="n">creator</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;_create_</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">_service&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">creator</span><span class="p">:</span>
+            <span class="n">service</span> <span class="o">=</span> <span class="n">creator</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">service</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="OptimizedStartup.get_metrics">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.OptimizedStartup.get_metrics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get startup performance metrics.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;total_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_time</span><span class="p">,</span>
+            <span class="s1">&#39;phases&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">phases</span><span class="p">,</span>
+            <span class="s1">&#39;service_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">service_time</span><span class="p">,</span>
+            <span class="s1">&#39;agent_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">agent_time</span><span class="p">,</span>
+            <span class="s1">&#39;initialized_services&#39;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialized_services</span><span class="p">),</span>
+            <span class="s1">&#39;deferred_services&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">deferred_services</span><span class="p">,</span>
+            <span class="s1">&#39;lazy_services_initialized&#39;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="mi">1</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_services</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">is_initialized</span>
+            <span class="p">)</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="optimize_startup">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.optimize_startup">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">optimize_startup</span><span class="p">(</span><span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;lazy&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OptimizedStartup</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Optimize application startup.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        mode: Startup mode (&#39;lazy&#39;, &#39;eager&#39;, &#39;async&#39;)</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Configured startup manager</span>
+<span class="sd">    </span>
+<span class="sd">    Example:</span>
+<span class="sd">        # Fast lazy startup</span>
+<span class="sd">        startup = optimize_startup(&#39;lazy&#39;)</span>
+<span class="sd">        startup.initialize_minimal()</span>
+<span class="sd">        startup.initialize_services(lazy=True)</span>
+<span class="sd">        </span>
+<span class="sd">        # Access services as needed (they initialize on first use)</span>
+<span class="sd">        memory = startup.get_service(&#39;memory&#39;)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">startup</span> <span class="o">=</span> <span class="n">OptimizedStartup</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;lazy&#39;</span><span class="p">:</span>
+        <span class="c1"># Minimal startup with lazy loading</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_minimal</span><span class="p">()</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_services</span><span class="p">(</span><span class="n">lazy</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_agents</span><span class="p">(</span><span class="n">preload</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;eager&#39;</span><span class="p">:</span>
+        <span class="c1"># Full initialization upfront</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_minimal</span><span class="p">()</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_services</span><span class="p">(</span><span class="n">lazy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">startup</span><span class="o">.</span><span class="n">initialize_agents</span><span class="p">(</span><span class="n">preload</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;async&#39;</span><span class="p">:</span>
+        <span class="c1"># Async initialization</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">startup</span><span class="o">.</span><span class="n">initialize_async</span><span class="p">())</span>
+    
+    <span class="k">return</span> <span class="n">startup</span></div>
+
+
+
+<span class="c1"># Global startup manager</span>
+<span class="n">_startup_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">OptimizedStartup</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="get_startup_manager">
+<a class="viewcode-back" href="../../../claude_mpm.core.optimized_startup.html#claude_mpm.core.optimized_startup.get_startup_manager">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_startup_manager</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">OptimizedStartup</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get or create global startup manager.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_startup_manager</span>
+    <span class="k">if</span> <span class="n">_startup_manager</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_startup_manager</span> <span class="o">=</span> <span class="n">OptimizedStartup</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_startup_manager</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

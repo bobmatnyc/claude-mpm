@@ -1,0 +1,834 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.exceptions &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.exceptions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Enhanced error classes for daemon conflict and process management in claude-mpm Socket.IO server.</span>
+
+<span class="sd">These error classes provide detailed context and actionable guidance for users to resolve</span>
+<span class="sd">common issues like daemon conflicts, port conflicts, stale processes, and recovery failures.</span>
+
+<span class="sd">Design Principles:</span>
+<span class="sd">1. Clear, actionable error messages with exact commands</span>
+<span class="sd">2. Process details (PID, port, start time) for debugging</span>
+<span class="sd">3. Resolution steps with specific troubleshooting guidance</span>
+<span class="sd">4. Health status information when available</span>
+<span class="sd">5. Structured error data for programmatic handling</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">platform</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="SocketIOServerError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.SocketIOServerError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SocketIOServerError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception for Socket.IO server errors.</span>
+<span class="sd">    </span>
+<span class="sd">    Provides common functionality for all server-related errors including</span>
+<span class="sd">    structured error data and detailed context information.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SocketIOServerError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.SocketIOServerError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">error_code</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize base server error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Human-readable error message</span>
+<span class="sd">            error_code: Machine-readable error code for programmatic handling</span>
+<span class="sd">            context: Additional context data for debugging and resolution</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_code</span> <span class="o">=</span> <span class="n">error_code</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="o">+</span> <span class="s2">&quot;Z&quot;</span></div>
+
+        
+<div class="viewcode-block" id="SocketIOServerError.to_dict">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.SocketIOServerError.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert error to dictionary format for structured logging/handling.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;error_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;error_code&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_code</span><span class="p">,</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
+            <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">,</span>
+            <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DaemonConflictError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.DaemonConflictError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DaemonConflictError</span><span class="p">(</span><span class="n">SocketIOServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error raised when attempting to start server while another instance is already running.</span>
+<span class="sd">    </span>
+<span class="sd">    This error provides detailed information about the conflicting process and</span>
+<span class="sd">    actionable steps to resolve the conflict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="DaemonConflictError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.DaemonConflictError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">existing_pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">existing_server_id</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">process_info</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">pidfile_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize daemon conflict error with detailed context.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            port: Port number where conflict occurred</span>
+<span class="sd">            existing_pid: PID of the existing server process</span>
+<span class="sd">            existing_server_id: Server ID of the existing instance (if available)</span>
+<span class="sd">            process_info: Detailed process information from psutil or similar</span>
+<span class="sd">            pidfile_path: Path to the PID file of the existing server</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">existing_pid</span> <span class="o">=</span> <span class="n">existing_pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">existing_server_id</span> <span class="o">=</span> <span class="n">existing_server_id</span> <span class="ow">or</span> <span class="s2">&quot;unknown&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span> <span class="o">=</span> <span class="n">process_info</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span> <span class="o">=</span> <span class="n">pidfile_path</span>
+        
+        <span class="c1"># Build detailed error message with resolution steps</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_error_message</span><span class="p">()</span>
+        
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;port&quot;</span><span class="p">:</span> <span class="n">port</span><span class="p">,</span>
+            <span class="s2">&quot;existing_pid&quot;</span><span class="p">:</span> <span class="n">existing_pid</span><span class="p">,</span>
+            <span class="s2">&quot;existing_server_id&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">existing_server_id</span><span class="p">,</span>
+            <span class="s2">&quot;process_info&quot;</span><span class="p">:</span> <span class="n">process_info</span><span class="p">,</span>
+            <span class="s2">&quot;pidfile_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">pidfile_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">pidfile_path</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;daemon_conflict&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build comprehensive error message with process details.&quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;🚫 Socket.IO server conflict detected on port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CONFLICT DETAILS:&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Existing PID: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">existing_pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Server ID: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">existing_server_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add process information if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span><span class="p">:</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+            <span class="n">create_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;create_time&#39;</span><span class="p">)</span>
+            <span class="n">memory_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;memory_info&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;  • Process Status: </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;  • Process Name: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">])</span>
+            
+            <span class="k">if</span> <span class="n">create_time</span><span class="p">:</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">create_time</span><span class="p">)</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+                <span class="n">uptime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">create_time</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • Started: </span><span class="si">{</span><span class="n">start_time</span><span class="si">}</span><span class="s2"> (uptime: </span><span class="si">{</span><span class="n">uptime</span><span class="si">:</span><span class="s2">.0f</span><span class="si">}</span><span class="s2">s)&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">memory_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;rss&#39;</span><span class="p">):</span>
+                <span class="n">memory_mb</span> <span class="o">=</span> <span class="n">memory_info</span><span class="p">[</span><span class="s1">&#39;rss&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="mi">1024</span> <span class="o">*</span> <span class="mi">1024</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • Memory Usage: </span><span class="si">{</span><span class="n">memory_mb</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2"> MB&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Add PID file information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;  • PID File: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;  • File Exists: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">,</span><span class="w"> </span><span class="n">Path</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;RESOLUTION STEPS:&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        
+        <span class="c1"># Add resolution steps</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_resolution_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get ordered list of resolution steps.&quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;Check if the existing server is still needed: ps -p </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">existing_pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Stop the existing server gracefully: kill -TERM </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">existing_pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;If graceful shutdown fails: kill -KILL </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">existing_pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Remove stale PID file if needed: rm </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;Wait a few seconds for port cleanup&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Try starting the server again on port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Alternative: Use a different port with --port &lt;new_port&gt;&quot;</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="PortConflictError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.PortConflictError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PortConflictError</span><span class="p">(</span><span class="n">SocketIOServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error raised when network port is already in use by another process.</span>
+<span class="sd">    </span>
+<span class="sd">    This error helps identify what process is using the port and provides</span>
+<span class="sd">    steps to resolve the conflict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="PortConflictError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.PortConflictError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> 
+                 <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span>
+                 <span class="n">conflicting_process</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize port conflict error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            port: Port number that&#39;s in use</span>
+<span class="sd">            host: Host address where the conflict occurred  </span>
+<span class="sd">            conflicting_process: Information about the process using the port</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conflicting_process</span> <span class="o">=</span> <span class="n">conflicting_process</span> <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_error_message</span><span class="p">()</span>
+        
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;port&quot;</span><span class="p">:</span> <span class="n">port</span><span class="p">,</span>
+            <span class="s2">&quot;host&quot;</span><span class="p">:</span> <span class="n">host</span><span class="p">,</span>
+            <span class="s2">&quot;conflicting_process&quot;</span><span class="p">:</span> <span class="n">conflicting_process</span><span class="p">,</span>
+            <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;port_conflict&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build error message with port conflict details.&quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;🔌 Network port conflict detected&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;PORT CONFLICT DETAILS:&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Port: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Host: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Address: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add information about conflicting process if available</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">conflicting_process</span><span class="p">:</span>
+            <span class="n">pid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conflicting_process</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pid&#39;</span><span class="p">)</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conflicting_process</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+            <span class="n">cmdline</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conflicting_process</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cmdline&#39;</span><span class="p">,</span> <span class="p">[])</span>
+            
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;CONFLICTING PROCESS:&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;  • PID: </span><span class="si">{</span><span class="n">pid</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;  • Name: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">])</span>
+            
+            <span class="k">if</span> <span class="n">cmdline</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • Command: </span><span class="si">{</span><span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmdline</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;RESOLUTION STEPS:&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_resolution_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get resolution steps for port conflicts.&quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;Check what process is using port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">:&quot;</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add platform-specific commands</span>
+        <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Darwin&quot;</span><span class="p">:</span>  <span class="c1"># macOS</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;   • lsof -i :</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;   • netstat -an | grep </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Linux&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;   • lsof -i :</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;   • netstat -tulpn | grep </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;   • ss -tulpn | grep </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Windows&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;   • netstat -ano | findstr </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;   • tasklist /fi </span><span class="se">\&quot;</span><span class="s2">PID eq &lt;PID_FROM_NETSTAT&gt;</span><span class="se">\&quot;</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;Stop the conflicting process if it&#39;s safe to do so&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Wait for port cleanup (may take 30-60 seconds)&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Try again with the same port&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;Alternative: Use a different port: --port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="StaleProcessError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.StaleProcessError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StaleProcessError</span><span class="p">(</span><span class="n">SocketIOServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error raised when dealing with stale processes or PID files.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs when a PID file exists but the associated process</span>
+<span class="sd">    is no longer running, is a zombie, or has been replaced.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="StaleProcessError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.StaleProcessError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">pidfile_path</span><span class="p">:</span> <span class="n">Path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">process_status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;not_found&quot;</span><span class="p">,</span>
+                 <span class="n">validation_errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize stale process error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            pid: Process ID that&#39;s stale</span>
+<span class="sd">            pidfile_path: Path to the stale PID file</span>
+<span class="sd">            process_status: Status of the process (zombie, not_found, invalid, etc.)</span>
+<span class="sd">            validation_errors: List of validation errors encountered</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pid</span> <span class="o">=</span> <span class="n">pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span> <span class="o">=</span> <span class="n">pidfile_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process_status</span> <span class="o">=</span> <span class="n">process_status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span> <span class="o">=</span> <span class="n">validation_errors</span> <span class="ow">or</span> <span class="p">[]</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_error_message</span><span class="p">()</span>
+        
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;pid&quot;</span><span class="p">:</span> <span class="n">pid</span><span class="p">,</span>
+            <span class="s2">&quot;pidfile_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">pidfile_path</span><span class="p">)</span> <span class="k">if</span> <span class="n">pidfile_path</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;process_status&quot;</span><span class="p">:</span> <span class="n">process_status</span><span class="p">,</span>
+            <span class="s2">&quot;validation_errors&quot;</span><span class="p">:</span> <span class="n">validation_errors</span><span class="p">,</span>
+            <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;stale_process&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build error message for stale process.&quot;&quot;&quot;</span>
+        <span class="n">status_descriptions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;not_found&quot;</span><span class="p">:</span> <span class="s2">&quot;Process no longer exists&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;zombie&quot;</span><span class="p">:</span> <span class="s2">&quot;Process is a zombie (terminated but not reaped)&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;invalid&quot;</span><span class="p">:</span> <span class="s2">&quot;Process exists but is not the expected server&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;access_denied&quot;</span><span class="p">:</span> <span class="s2">&quot;Cannot access process information&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;stale_pidfile&quot;</span><span class="p">:</span> <span class="s2">&quot;PID file is stale or corrupted&quot;</span>
+        <span class="p">}</span>
+        
+        <span class="n">status_desc</span> <span class="o">=</span> <span class="n">status_descriptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process_status</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Process status: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">process_status</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;🧟 Stale process detected&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;PROCESS DETAILS:&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • PID: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Status: </span><span class="si">{</span><span class="n">status_desc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;  • PID File: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;  • File Exists: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">,</span><span class="w"> </span><span class="n">Path</span><span class="p">)</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;VALIDATION ERRORS:&quot;</span><span class="p">,</span>
+            <span class="p">])</span>
+            <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">validation_errors</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;RESOLUTION STEPS:&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_resolution_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get resolution steps for stale processes.&quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_status</span> <span class="o">==</span> <span class="s2">&quot;zombie&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Wait for parent process to reap zombie (usually automatic)&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;If zombie persists, check parent process: ps -o ppid= -p </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Restart parent process if necessary&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_status</span> <span class="o">==</span> <span class="s2">&quot;not_found&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> no longer exists - safe to clean up&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_status</span> <span class="o">==</span> <span class="s2">&quot;invalid&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;Verify process </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> is not a legitimate server:&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;   • ps -p </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> -o pid,ppid,cmd&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;If it&#39;s not your server, it&#39;s safe to clean up the PID file&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="c1"># Common cleanup steps</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Remove stale PID file: rm </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pidfile_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="s2">&quot;Try starting the server again&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;If issues persist, check for permission problems or disk space&quot;</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="RecoveryFailedError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.RecoveryFailedError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RecoveryFailedError</span><span class="p">(</span><span class="n">SocketIOServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error raised when automatic recovery mechanisms fail.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs when the health monitoring and recovery system</span>
+<span class="sd">    cannot automatically resolve server issues.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="RecoveryFailedError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.RecoveryFailedError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">recovery_action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">failure_reason</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">attempt_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+                 <span class="n">health_status</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">last_successful_recovery</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize recovery failure error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            recovery_action: The recovery action that failed (e.g., &#39;restart&#39;, &#39;cleanup&#39;)</span>
+<span class="sd">            failure_reason: Why the recovery failed</span>
+<span class="sd">            attempt_count: Number of recovery attempts made</span>
+<span class="sd">            health_status: Current health status information</span>
+<span class="sd">            last_successful_recovery: Timestamp of last successful recovery</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">recovery_action</span> <span class="o">=</span> <span class="n">recovery_action</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span> <span class="o">=</span> <span class="n">failure_reason</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">attempt_count</span> <span class="o">=</span> <span class="n">attempt_count</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">health_status</span> <span class="o">=</span> <span class="n">health_status</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_successful_recovery</span> <span class="o">=</span> <span class="n">last_successful_recovery</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_error_message</span><span class="p">()</span>
+        
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;recovery_action&quot;</span><span class="p">:</span> <span class="n">recovery_action</span><span class="p">,</span>
+            <span class="s2">&quot;failure_reason&quot;</span><span class="p">:</span> <span class="n">failure_reason</span><span class="p">,</span>
+            <span class="s2">&quot;attempt_count&quot;</span><span class="p">:</span> <span class="n">attempt_count</span><span class="p">,</span>
+            <span class="s2">&quot;health_status&quot;</span><span class="p">:</span> <span class="n">health_status</span><span class="p">,</span>
+            <span class="s2">&quot;last_successful_recovery&quot;</span><span class="p">:</span> <span class="n">last_successful_recovery</span><span class="p">,</span>
+            <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;recovery_failed&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build error message for recovery failure.&quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;🚨 Automatic recovery failed&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;RECOVERY DETAILS:&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Failed Action: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">recovery_action</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Failure Reason: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">failure_reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Attempt Count: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">attempt_count</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_successful_recovery</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • Last Successful Recovery: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">last_successful_recovery</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Add health status information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_status</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;CURRENT HEALTH STATUS:&quot;</span><span class="p">,</span>
+            <span class="p">])</span>
+            
+            <span class="c1"># Common health metrics</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_status</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;uptime&#39;</span><span class="p">,</span> <span class="s1">&#39;clients_connected&#39;</span><span class="p">,</span> <span class="s1">&#39;events_processed&#39;</span><span class="p">,</span> <span class="s1">&#39;errors&#39;</span><span class="p">]:</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;MANUAL RESOLUTION REQUIRED:&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_resolution_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get manual resolution steps for recovery failures.&quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;Check server logs for detailed error information&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Verify system resources (CPU, memory, disk space)&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Check network connectivity and port availability&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">recovery_action</span> <span class="o">==</span> <span class="s2">&quot;restart&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Manually stop the server process&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Wait for complete shutdown (check process list)&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Remove any stale PID files&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Restart the server manually&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">recovery_action</span> <span class="o">==</span> <span class="s2">&quot;cleanup&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Manually identify and clean up stale resources&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Check for zombie processes&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Clear temporary files and logs if needed&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">recovery_action</span> <span class="o">==</span> <span class="s2">&quot;port_reset&quot;</span><span class="p">:</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Check what&#39;s using the required port&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Stop conflicting processes&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Wait for port cleanup&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Consider using a different port temporarily&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="s2">&quot;Review health monitoring configuration&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Consider adjusting recovery thresholds if appropriate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Monitor server stability after manual intervention&quot;</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="HealthCheckError">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.HealthCheckError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthCheckError</span><span class="p">(</span><span class="n">SocketIOServerError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Error raised when health monitoring detects critical issues.</span>
+<span class="sd">    </span>
+<span class="sd">    This error provides detailed health status information and guidance</span>
+<span class="sd">    for addressing system health problems.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="HealthCheckError.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.HealthCheckError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">check_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">check_status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">check_details</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">threshold_exceeded</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize health check error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            check_name: Name of the failed health check</span>
+<span class="sd">            check_status: Status of the health check (critical, warning, failed)</span>
+<span class="sd">            check_details: Detailed results from the health check</span>
+<span class="sd">            threshold_exceeded: Information about exceeded thresholds</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span> <span class="o">=</span> <span class="n">check_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_status</span> <span class="o">=</span> <span class="n">check_status</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_details</span> <span class="o">=</span> <span class="n">check_details</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">threshold_exceeded</span> <span class="o">=</span> <span class="n">threshold_exceeded</span> <span class="ow">or</span> <span class="p">{}</span>
+        
+        <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_error_message</span><span class="p">()</span>
+        
+        <span class="n">context</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;check_name&quot;</span><span class="p">:</span> <span class="n">check_name</span><span class="p">,</span>
+            <span class="s2">&quot;check_status&quot;</span><span class="p">:</span> <span class="n">check_status</span><span class="p">,</span>
+            <span class="s2">&quot;check_details&quot;</span><span class="p">:</span> <span class="n">check_details</span><span class="p">,</span>
+            <span class="s2">&quot;threshold_exceeded&quot;</span><span class="p">:</span> <span class="n">threshold_exceeded</span><span class="p">,</span>
+            <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="s2">&quot;health_check_failed&quot;</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_error_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build error message for health check failure.&quot;&quot;&quot;</span>
+        <span class="n">status_emoji</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;critical&quot;</span><span class="p">:</span> <span class="s2">&quot;🚨&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;warning&quot;</span><span class="p">:</span> <span class="s2">&quot;⚠️&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;failed&quot;</span><span class="p">:</span> <span class="s2">&quot;❌&quot;</span>
+        <span class="p">}</span>
+        
+        <span class="n">emoji</span> <span class="o">=</span> <span class="n">status_emoji</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check_status</span><span class="p">,</span> <span class="s2">&quot;🔍&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">emoji</span><span class="si">}</span><span class="s2"> Health check failed: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;CHECK DETAILS:&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Check: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;  • Status: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">check_status</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add check details</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_details</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_details</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;raw_data&#39;</span><span class="p">,</span> <span class="s1">&#39;internal_state&#39;</span><span class="p">]:</span>  <span class="c1"># Skip internal data</span>
+                    <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Add threshold information</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold_exceeded</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;THRESHOLDS EXCEEDED:&quot;</span><span class="p">,</span>
+            <span class="p">])</span>
+            <span class="k">for</span> <span class="n">metric</span><span class="p">,</span> <span class="n">info</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold_exceeded</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">current</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;current&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+                <span class="n">threshold</span> <span class="o">=</span> <span class="n">info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">metric</span><span class="o">.</span><span class="n">title</span><span class="p">()</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2"> (threshold: </span><span class="si">{</span><span class="n">threshold</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        
+        <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s2">&quot;RECOMMENDED ACTIONS:&quot;</span><span class="p">,</span>
+        <span class="p">])</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_resolution_steps</span><span class="p">(),</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">. </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_resolution_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get resolution steps based on health check type.&quot;&quot;&quot;</span>
+        <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="s2">&quot;cpu&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Check for runaway processes consuming CPU&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Consider adding rate limiting or request throttling&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Monitor CPU usage patterns over time&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="s2">&quot;memory&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Check for memory leaks in the application&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Monitor memory usage trends&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Consider restarting if memory usage is excessive&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Review event history size limits&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="s2">&quot;network&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;connectivity&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Check network connectivity to required services&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Verify firewall settings and port accessibility&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Test network latency and bandwidth&quot;</span>
+            <span class="p">])</span>
+        <span class="k">elif</span> <span class="s2">&quot;disk&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;file&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+            <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+                <span class="s2">&quot;Check available disk space&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Clean up old log files and temporary data&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Verify file permissions and access&quot;</span>
+            <span class="p">])</span>
+        
+        <span class="c1"># General steps for all health check failures</span>
+        <span class="n">steps</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+            <span class="s2">&quot;Review recent system changes or deployments&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Check system logs for related errors&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Consider adjusting health check thresholds if appropriate&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Monitor the issue to identify patterns or trends&quot;</span>
+        <span class="p">])</span>
+        
+        <span class="k">return</span> <span class="n">steps</span></div>
+
+
+
+<div class="viewcode-block" id="format_troubleshooting_guide">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.exceptions.format_troubleshooting_guide">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_troubleshooting_guide</span><span class="p">(</span><span class="n">error</span><span class="p">:</span> <span class="n">SocketIOServerError</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format a comprehensive troubleshooting guide for any Socket.IO server error.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        error: The error instance to create troubleshooting guide for</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Formatted troubleshooting guide as a string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="sa">f</span><span class="s2">&quot;═══════════════════════════════════════════════════════════════&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;🔧 CLAUDE MPM SOCKET.IO SERVER TROUBLESHOOTING GUIDE&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;═══════════════════════════════════════════════════════════════&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;ERROR TYPE: </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;ERROR CODE: </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">error_code</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;TIMESTAMP: </span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">),</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;ADDITIONAL TROUBLESHOOTING:&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;🔍 DIAGNOSTIC COMMANDS:&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check running processes: ps aux | grep socketio&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check port usage: lsof -i :</span><span class="si">{</span><span class="n">error</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;port&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;PORT&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check system resources: top or htop&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check disk space: df -h&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check logs: tail -f /path/to/claude-mpm.log&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;🛠️ COMMON SOLUTIONS:&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  1. Restart the Socket.IO server completely&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  2. Clear any stale PID files&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  3. Check for zombie processes and clean them up&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  4. Verify network port availability&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  5. Check system resource availability (CPU, memory, disk)&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  6. Review server configuration and permissions&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;📞 GETTING HELP:&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Check the claude-mpm documentation&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Review server logs for additional context&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;  • Report persistent issues with this error information&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;🔗 ERROR CONTEXT DATA:&quot;</span><span class="p">,</span>
+    <span class="p">]</span>
+    
+    <span class="c1"># Add structured context data</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">error</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">&quot;resolution_steps&quot;</span><span class="p">:</span>  <span class="c1"># Skip resolution steps as they&#39;re already shown</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  • </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="n">lines</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span>
+        <span class="sa">f</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="sa">f</span><span class="s2">&quot;═══════════════════════════════════════════════════════════════&quot;</span><span class="p">,</span>
+    <span class="p">])</span>
+    
+    <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

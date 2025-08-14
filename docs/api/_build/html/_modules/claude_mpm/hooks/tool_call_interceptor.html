@@ -1,0 +1,351 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.hooks.tool_call_interceptor &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.hooks.tool_call_interceptor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.hooks.tool_call_interceptor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Tool call interceptor for claude-mpm hook system.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.hooks.base_hook</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseHook</span><span class="p">,</span> <span class="n">HookContext</span><span class="p">,</span> <span class="n">HookType</span><span class="p">,</span> <span class="n">HookResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SimpleHookRunner">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SimpleHookRunner</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Simple hook runner for direct hook execution.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SimpleHookRunner.__init__">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the simple hook runner.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">HookType</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">BaseHook</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hook_instances</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseHook</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+    
+<div class="viewcode-block" id="SimpleHookRunner.register_hook">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.register_hook">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hook</span><span class="p">:</span> <span class="n">BaseHook</span><span class="p">,</span> <span class="n">hook_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HookType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a hook instance.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">hook_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">hook_type</span> <span class="o">=</span> <span class="n">HookType</span><span class="o">.</span><span class="n">CUSTOM</span>
+        
+        <span class="k">if</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hook_instances</span><span class="p">:</span>
+            <span class="c1"># Remove old instance</span>
+            <span class="k">for</span> <span class="n">hook_list</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hook_instances</span><span class="p">[</span><span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="ow">in</span> <span class="n">hook_list</span><span class="p">:</span>
+                    <span class="n">hook_list</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_hook_instances</span><span class="p">[</span><span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="p">[</span><span class="n">hook_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hook</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hook_instances</span><span class="p">[</span><span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">hook</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="p">[</span><span class="n">hook_type</span><span class="p">]</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>  <span class="c1"># Sort by priority</span></div>
+
+    
+<div class="viewcode-block" id="SimpleHookRunner.run_hooks">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.run_hooks">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run all hooks for the given context.&quot;&quot;&quot;</span>
+        <span class="n">hooks</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hooks</span><span class="p">[</span><span class="n">context</span><span class="o">.</span><span class="n">hook_type</span><span class="p">]</span> <span class="k">if</span> <span class="n">h</span><span class="o">.</span><span class="n">enabled</span><span class="p">]</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">hook</span> <span class="ow">in</span> <span class="n">hooks</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">hook</span><span class="o">.</span><span class="n">validate</span><span class="p">(</span><span class="n">context</span><span class="p">):</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">hook</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+                    <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                        <span class="s1">&#39;hook_name&#39;</span><span class="p">:</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">,</span>
+                        <span class="s1">&#39;data&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                        <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">error</span><span class="p">,</span>
+                        <span class="s1">&#39;modified&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">modified</span><span class="p">,</span>
+                        <span class="s1">&#39;metadata&#39;</span><span class="p">:</span> <span class="n">result</span><span class="o">.</span><span class="n">metadata</span>
+                    <span class="p">})</span>
+                    
+                    <span class="c1"># Update context if modified</span>
+                    <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">modified</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+                        <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Hook &#39;</span><span class="si">{</span><span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; execution failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;hook_name&#39;</span><span class="p">:</span> <span class="n">hook</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;success&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="n">results</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ToolCallInterceptor">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToolCallInterceptor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Intercepts and processes tool calls through the hook system.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ToolCallInterceptor.__init__">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hook_runner</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SimpleHookRunner</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the tool call interceptor.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            hook_runner: Optional hook runner instance. If not provided, creates a new one.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hook_runner</span> <span class="o">=</span> <span class="n">hook_runner</span> <span class="ow">or</span> <span class="n">SimpleHookRunner</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="ToolCallInterceptor.intercept_tool_call">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.intercept_tool_call">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">intercept_tool_call</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
+                                  <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Intercept a tool call and run it through the hook system.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            tool_name: Name of the tool being called</span>
+<span class="sd">            parameters: Parameters being passed to the tool</span>
+<span class="sd">            metadata: Optional metadata for the tool call</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing:</span>
+<span class="sd">                - allowed: Whether the tool call should proceed</span>
+<span class="sd">                - parameters: Potentially modified parameters</span>
+<span class="sd">                - error: Error message if not allowed</span>
+<span class="sd">                - metadata: Additional metadata from hooks</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Create hook context for tool call interception</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="n">HookContext</span><span class="p">(</span>
+            <span class="n">hook_type</span><span class="o">=</span><span class="n">HookType</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;tool_name&#39;</span><span class="p">:</span> <span class="n">tool_name</span><span class="p">,</span>
+                <span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="n">parameters</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>  <span class="c1"># Copy to avoid modifying original</span>
+            <span class="p">},</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Run hooks</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">hook_runner</span><span class="o">.</span><span class="n">run_hooks</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Process results</span>
+        <span class="n">allowed</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">modified_params</span> <span class="o">=</span> <span class="n">parameters</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">hook_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;success&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+                <span class="n">allowed</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">):</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;hook_name&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;Unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;error&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;modified&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">):</span>
+                <span class="c1"># Update parameters if modified</span>
+                <span class="k">if</span> <span class="s1">&#39;parameters&#39;</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="p">{}):</span>
+                    <span class="n">modified_params</span> <span class="o">=</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;data&#39;</span><span class="p">][</span><span class="s1">&#39;parameters&#39;</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">):</span>
+                <span class="n">hook_metadata</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;metadata&#39;</span><span class="p">])</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;allowed&#39;</span><span class="p">:</span> <span class="n">allowed</span><span class="p">,</span>
+            <span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="n">modified_params</span><span class="p">,</span>
+            <span class="s1">&#39;error&#39;</span><span class="p">:</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span> <span class="k">if</span> <span class="n">errors</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;metadata&#39;</span><span class="p">:</span> <span class="n">hook_metadata</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="ToolCallInterceptor.intercept_tool_call_sync">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.intercept_tool_call_sync">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">intercept_tool_call_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
+                                <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronous version of intercept_tool_call.&quot;&quot;&quot;</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">new_event_loop</span><span class="p">()</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">set_event_loop</span><span class="p">(</span><span class="n">loop</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">intercept_tool_call</span><span class="p">(</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">metadata</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">loop</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ToolCallHookIntegration">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ToolCallHookIntegration</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Integration helper for adding tool call interception to existing systems.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ToolCallHookIntegration.wrap_tool_executor">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration.wrap_tool_executor">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrap_tool_executor</span><span class="p">(</span><span class="n">original_executor</span><span class="p">,</span> <span class="n">interceptor</span><span class="p">:</span> <span class="n">ToolCallInterceptor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrap an existing tool executor with hook interception.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            original_executor: The original tool execution function</span>
+<span class="sd">            interceptor: The tool call interceptor instance</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Wrapped executor function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wrapped_executor</span><span class="p">(</span><span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="c1"># Intercept the tool call</span>
+            <span class="n">interception_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">interceptor</span><span class="o">.</span><span class="n">intercept_tool_call</span><span class="p">(</span>
+                <span class="n">tool_name</span><span class="p">,</span> <span class="n">parameters</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metadata&#39;</span><span class="p">)</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Check if allowed</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">interception_result</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tool call blocked: </span><span class="si">{</span><span class="n">interception_result</span><span class="p">[</span><span class="s1">&#39;error&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Execute with potentially modified parameters</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="n">original_executor</span><span class="p">(</span>
+                <span class="n">tool_name</span><span class="p">,</span> 
+                <span class="n">interception_result</span><span class="p">[</span><span class="s1">&#39;parameters&#39;</span><span class="p">],</span> 
+                <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">wrapped_executor</span></div>
+
+    
+<div class="viewcode-block" id="ToolCallHookIntegration.create_tool_call_validator">
+<a class="viewcode-back" href="../../../hooks/interceptors.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration.create_tool_call_validator">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_tool_call_validator</span><span class="p">(</span><span class="n">valid_tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">interceptor</span><span class="p">:</span> <span class="n">ToolCallInterceptor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a tool call validator that uses the hook system.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            valid_tools: List of valid tool names</span>
+<span class="sd">            interceptor: The tool call interceptor instance</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Validator function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">validator</span><span class="p">(</span><span class="n">tool_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+            <span class="c1"># Basic validation</span>
+            <span class="k">if</span> <span class="n">tool_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_tools</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            
+            <span class="c1"># Hook-based validation</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">interceptor</span><span class="o">.</span><span class="n">intercept_tool_call_sync</span><span class="p">(</span><span class="n">tool_name</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span><span class="p">[</span><span class="s1">&#39;allowed&#39;</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">validator</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

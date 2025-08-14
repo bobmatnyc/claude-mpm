@@ -1,0 +1,321 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.cli &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.cli</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.cli</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Claude MPM Command-Line Interface.</span>
+
+<span class="sd">WHY: This module serves as the main entry point for the CLI, coordinating</span>
+<span class="sd">argument parsing and command execution. It replaces the monolithic cli.py</span>
+<span class="sd">with a more modular structure.</span>
+
+<span class="sd">DESIGN DECISION: We maintain backward compatibility by keeping the same</span>
+<span class="sd">interface while organizing code into logical modules. The main() function</span>
+<span class="sd">remains the primary entry point for both direct execution and package imports.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">CLICommands</span><span class="p">,</span> <span class="n">LogLevel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_parser</span><span class="p">,</span> <span class="n">preprocess_args</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_directories</span><span class="p">,</span> <span class="n">setup_logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.commands</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">run_session</span><span class="p">,</span>
+    <span class="n">manage_tickets</span><span class="p">,</span>
+    <span class="n">show_info</span><span class="p">,</span>
+    <span class="n">manage_agents</span><span class="p">,</span>
+    <span class="n">manage_memory</span><span class="p">,</span>
+    <span class="n">manage_monitor</span><span class="p">,</span>
+    <span class="n">manage_config</span><span class="p">,</span>
+    <span class="n">aggregate_command</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.config.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">paths</span>
+
+<span class="c1"># Get version using centralized path management</span>
+<span class="c1"># Try package VERSION file first (for installed packages)</span>
+<span class="n">package_version_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span>
+<span class="k">if</span> <span class="n">package_version_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+    <span class="n">__version__</span> <span class="o">=</span> <span class="n">package_version_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Use centralized path management for VERSION file</span>
+    <span class="k">if</span> <span class="n">paths</span><span class="o">.</span><span class="n">version_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">__version__</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">version_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Try to import from package as fallback</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">..</span><span class="w"> </span><span class="kn">import</span> <span class="n">__version__</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="c1"># Default version if all else fails</span>
+            <span class="n">__version__</span> <span class="o">=</span> <span class="s2">&quot;0.0.0&quot;</span>
+
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../../claude_mpm.cli.html#claude_mpm.cli.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Main CLI entry point.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: This function orchestrates the entire CLI flow:</span>
+<span class="sd">    1. Ensures directories exist</span>
+<span class="sd">    2. Preprocesses arguments (handling --mpm: prefix)</span>
+<span class="sd">    3. Parses arguments</span>
+<span class="sd">    4. Sets up logging</span>
+<span class="sd">    5. Executes the appropriate command</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We keep error handling at this level to provide consistent</span>
+<span class="sd">    error messages and exit codes across all commands.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        argv: Optional list of command line arguments for testing</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for errors)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Ensure directories are initialized on first run</span>
+    <span class="n">ensure_directories</span><span class="p">()</span>
+    
+    <span class="c1"># Initialize or update project registry</span>
+    <span class="n">_initialize_project_registry</span><span class="p">()</span>
+    
+    <span class="c1"># Create parser with version</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">create_parser</span><span class="p">(</span><span class="n">version</span><span class="o">=</span><span class="n">__version__</span><span class="p">)</span>
+    
+    <span class="c1"># Preprocess and parse arguments</span>
+    <span class="n">processed_argv</span> <span class="o">=</span> <span class="n">preprocess_args</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">processed_argv</span><span class="p">)</span>
+    
+    <span class="c1"># Set up logging</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">setup_logging</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    
+    <span class="c1"># Debug output if requested</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Command: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">command</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Arguments: </span><span class="si">{</span><span class="n">args</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Hook system note: Claude Code hooks are handled externally via the</span>
+    <span class="c1"># hook_handler.py script installed in ~/.claude/settings.json</span>
+    <span class="c1"># The --no-hooks flag is kept for backward compatibility but doesn&#39;t affect</span>
+    <span class="c1"># Claude Code hooks which are configured separately.</span>
+    
+    <span class="c1"># Default to run command if no command specified</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">command</span><span class="p">:</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">command</span> <span class="o">=</span> <span class="n">CLICommands</span><span class="o">.</span><span class="n">RUN</span><span class="o">.</span><span class="n">value</span>
+        <span class="c1"># Ensure run-specific attributes exist when defaulting to run</span>
+        <span class="n">_ensure_run_attributes</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    
+    <span class="c1"># Execute command</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">exit_code</span> <span class="o">=</span> <span class="n">_execute_command</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">command</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">exit_code</span>
+    <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Session interrupted by user&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">debug</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+            <span class="n">traceback</span><span class="o">.</span><span class="n">print_exc</span><span class="p">()</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_initialize_project_registry</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialize or update the project registry for the current session.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: The project registry tracks all claude-mpm projects and their metadata</span>
+<span class="sd">    across sessions. This function ensures the current project is properly</span>
+<span class="sd">    registered and updates session information.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Registry failures are logged but don&#39;t prevent startup</span>
+<span class="sd">    to ensure claude-mpm remains functional even if registry operations fail.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..services.project_registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectRegistry</span>
+        <span class="n">registry</span> <span class="o">=</span> <span class="n">ProjectRegistry</span><span class="p">()</span>
+        <span class="n">registry</span><span class="o">.</span><span class="n">get_or_create_project_entry</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="c1"># Import logger here to avoid circular imports</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">..core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+        <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;cli&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize project registry: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="c1"># Continue execution - registry failure shouldn&#39;t block startup</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_ensure_run_attributes</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Ensure run command attributes exist when defaulting to run.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: When no command is specified, we default to &#39;run&#39; but the args object</span>
+<span class="sd">    won&#39;t have run-specific attributes from the subparser. This function ensures</span>
+<span class="sd">    they exist with sensible defaults.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Parsed arguments object to update</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Set defaults for run command attributes</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">no_tickets</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;no_tickets&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">no_hooks</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;no_hooks&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">intercept_commands</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;intercept_commands&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">non_interactive</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;non_interactive&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">no_native_agents</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;no_native_agents&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">claude_args</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;claude_args&#39;</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">launch_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;launch_method&#39;</span><span class="p">,</span> <span class="s1">&#39;exec&#39;</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">websocket</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;websocket&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">websocket_port</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s1">&#39;websocket_port&#39;</span><span class="p">,</span> <span class="mi">8765</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_execute_command</span><span class="p">(</span><span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Execute the specified command.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: This function maps command names to their implementations, providing</span>
+<span class="sd">    a single place to manage command routing.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        command: The command name to execute</span>
+<span class="sd">        args: Parsed command line arguments</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code from the command</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Map commands to their implementations</span>
+    <span class="n">command_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">RUN</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">run_session</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">TICKETS</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">manage_tickets</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">INFO</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">show_info</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">AGENTS</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">manage_agents</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">MEMORY</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">manage_memory</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">MONITOR</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">manage_monitor</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">CONFIG</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">manage_config</span><span class="p">,</span>
+        <span class="n">CLICommands</span><span class="o">.</span><span class="n">AGGREGATE</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">aggregate_command</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Execute command if found</span>
+    <span class="k">if</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">command_map</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">command_map</span><span class="p">[</span><span class="n">command</span><span class="p">](</span><span class="n">args</span><span class="p">)</span>
+        <span class="c1"># Commands may return None (success) or an exit code</span>
+        <span class="k">return</span> <span class="n">result</span> <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Unknown command - this shouldn&#39;t happen with argparse</span>
+        <span class="c1"># but we handle it for completeness</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown command: </span><span class="si">{</span><span class="n">command</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+
+<span class="c1"># For backward compatibility - export main</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

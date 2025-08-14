@@ -1,0 +1,499 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.config.paths &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.config.paths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.config.paths</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Centralized path management for claude-mpm.</span>
+
+<span class="sd">This module provides a consistent, reliable way to access project paths</span>
+<span class="sd">without fragile parent.parent.parent patterns.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">cached_property</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ClaudeMPMPaths">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ClaudeMPMPaths</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Centralized path management for the claude-mpm project.</span>
+<span class="sd">    </span>
+<span class="sd">    This class provides a singleton instance with properties for all common paths</span>
+<span class="sd">    in the project, eliminating the need for fragile Path(__file__).parent.parent patterns.</span>
+<span class="sd">    </span>
+<span class="sd">    Usage:</span>
+<span class="sd">        from claude_mpm.config.paths import paths</span>
+<span class="sd">        </span>
+<span class="sd">        # Access common paths</span>
+<span class="sd">        project_root = paths.project_root</span>
+<span class="sd">        agents_dir = paths.agents_dir</span>
+<span class="sd">        config_file = paths.config_dir / &quot;some_config.yaml&quot;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">_instance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="s1">&#39;ClaudeMPMPaths&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">_project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.__new__">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.__new__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;ClaudeMPMPaths&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Singleton pattern to ensure single instance.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_instance</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize paths if not already done.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detect_project_root</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_detect_project_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Detect the project root directory.</span>
+<span class="sd">        </span>
+<span class="sd">        Strategy:</span>
+<span class="sd">        1. Look for definitive project markers (pyproject.toml, setup.py)</span>
+<span class="sd">        2. Look for combination of markers to ensure we&#39;re at the right level</span>
+<span class="sd">        3. Walk up from current file location</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Start from this file&#39;s location</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        
+        <span class="c1"># Walk up the directory tree</span>
+        <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">current</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
+            <span class="c1"># Check for definitive project root indicators</span>
+            <span class="c1"># Prioritize pyproject.toml and setup.py as they&#39;re only at root</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;pyproject.toml&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;setup.py&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">parent</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project root detected at: </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2"> (found pyproject.toml or setup.py)&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            
+            <span class="c1"># Secondary check: .git directory + VERSION file together</span>
+            <span class="c1"># This combination is more likely to be the real project root</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;.git&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;VERSION&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">parent</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project root detected at: </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2"> (found .git and VERSION)&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+        
+        <span class="c1"># Fallback: walk up to find claude-mpm directory name</span>
+        <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="n">current</span><span class="o">.</span><span class="n">parents</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">parent</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;claude-mpm&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">parent</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project root detected at: </span><span class="si">{</span><span class="n">parent</span><span class="si">}</span><span class="s2"> (by directory name)&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+        
+        <span class="c1"># Last resort fallback: 3 levels up from this file</span>
+        <span class="c1"># paths.py is in src/claude_mpm/config/</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project root fallback to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">project_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the project root directory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_detect_project_root</span><span class="p">()</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">src_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the src directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;src&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claude_mpm_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the main claude_mpm package directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_dir</span> <span class="o">/</span> <span class="s2">&quot;claude_mpm&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">agents_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the agents directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">services_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the services directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;services&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">hooks_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the hooks directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;hooks&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">config_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the config directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;config&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cli_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the CLI directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;cli&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">core_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the core directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;core&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">schemas_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the schemas directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span> <span class="o">/</span> <span class="s2">&quot;schemas&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scripts_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the scripts directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;scripts&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">tests_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the tests directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;tests&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">docs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the documentation directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;docs&quot;</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">logs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the logs directory (creates if doesn&#39;t exist).&quot;&quot;&quot;</span>
+        <span class="n">logs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;logs&quot;</span>
+        <span class="n">logs</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">logs</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">temp_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the temporary files directory (creates if doesn&#39;t exist).&quot;&quot;&quot;</span>
+        <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;.tmp&quot;</span>
+        <span class="n">temp</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">temp</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claude_mpm_dir_hidden</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the hidden .claude-mpm directory (creates if doesn&#39;t exist).&quot;&quot;&quot;</span>
+        <span class="n">hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span>
+        <span class="n">hidden</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hidden</span>
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.version_file">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.version_file">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">version_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the VERSION file path.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.pyproject_file">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.pyproject_file">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">pyproject_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the pyproject.toml file path.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;pyproject.toml&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.package_json_file">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.package_json_file">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">package_json_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the package.json file path.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;package.json&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.claude_md_file">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.claude_md_file">[docs]</a>
+    <span class="nd">@cached_property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claude_md_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the CLAUDE.md file path.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;CLAUDE.md&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.get_version">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.get_version">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the project version from various sources.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Version string or &#39;unknown&#39; if not found.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Try VERSION file first</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">version_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="c1"># Try package metadata</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">importlib.metadata</span><span class="w"> </span><span class="kn">import</span> <span class="n">version</span>
+            <span class="k">return</span> <span class="n">version</span><span class="p">(</span><span class="s1">&#39;claude-mpm&#39;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;unknown&#39;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.ensure_in_path">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.ensure_in_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ensure_in_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure src directory is in Python path.&quot;&quot;&quot;</span>
+        <span class="n">src_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">src_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">src_str</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">src_str</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.relative_to_project">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.relative_to_project">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">relative_to_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a path relative to the project root.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to make relative</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path relative to project root</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">abs_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">abs_path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">abs_path</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.resolve_config_path">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.resolve_config_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_config_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve a configuration file path.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_name: Name of the config file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Full path to the config file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check in config directory first</span>
+        <span class="n">config_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_dir</span> <span class="o">/</span> <span class="n">config_name</span>
+        <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">config_path</span>
+        
+        <span class="c1"># Check in project root</span>
+        <span class="n">root_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="n">config_name</span>
+        <span class="k">if</span> <span class="n">root_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">root_path</span>
+        
+        <span class="c1"># Return config dir path as default</span>
+        <span class="k">return</span> <span class="n">config_path</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.__str__">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;ClaudeMPMPaths(root=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ClaudeMPMPaths.__repr__">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ClaudeMPMPaths.__repr__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Developer representation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;ClaudeMPMPaths(</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  project_root=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  src_dir=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">src_dir</span><span class="si">}</span><span class="s2">,</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  claude_mpm_dir=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">claude_mpm_dir</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;)&quot;</span>
+        <span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># Singleton instance for import</span>
+<span class="n">paths</span> <span class="o">=</span> <span class="n">ClaudeMPMPaths</span><span class="p">()</span>
+
+
+<span class="c1"># Convenience functions</span>
+<div class="viewcode-block" id="get_project_root">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_project_root">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_project_root</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the project root directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">project_root</span></div>
+
+
+
+<div class="viewcode-block" id="get_src_dir">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_src_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_src_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the src directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">src_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_claude_mpm_dir">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_claude_mpm_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_claude_mpm_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the main claude_mpm package directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">claude_mpm_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_agents_dir">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_agents_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_agents_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the agents directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">agents_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_services_dir">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_services_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_services_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the services directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">services_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_config_dir">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_config_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_config_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the config directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">config_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_version">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.get_version">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_version</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the project version.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">paths</span><span class="o">.</span><span class="n">get_version</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="ensure_src_in_path">
+<a class="viewcode-back" href="../../../claude_mpm.config.paths.html#claude_mpm.config.ensure_src_in_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ensure_src_in_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ensure src directory is in Python path.&quot;&quot;&quot;</span>
+    <span class="n">paths</span><span class="o">.</span><span class="n">ensure_in_path</span><span class="p">()</span></div>
+
+
+
+<span class="c1"># Auto-ensure src is in path when module is imported</span>
+<span class="n">ensure_src_in_path</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

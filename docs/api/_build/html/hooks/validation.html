@@ -1,0 +1,227 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Validation Hooks &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CLI API" href="../cli/index.html" />
+    <link rel="prev" title="Memory Hooks" href="memory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/index.html">Agents API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hooks API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="base.html">Base Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="interceptors.html">Hook Interceptors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Hooks</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Validation Hooks</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Validation Hooks</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.hooks.validation_hooks.ValidationHooks"><code class="docutils literal notranslate"><span class="pre">ValidationHooks</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.hooks.validation_hooks.validate_agent_dependencies"><code class="docutils literal notranslate"><span class="pre">validate_agent_dependencies()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.hooks.validation_hooks.validate_security_constraints"><code class="docutils literal notranslate"><span class="pre">validate_security_constraints()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.hooks.validation_hooks.ValidationError"><code class="docutils literal notranslate"><span class="pre">ValidationError</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hook-types">Hook Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#architecture-benefits">Architecture Benefits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Hooks API</a></li>
+      <li class="breadcrumb-item active">Validation Hooks</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/hooks/validation.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="validation-hooks">
+<h1>Validation Hooks<a class="headerlink" href="#validation-hooks" title="Link to this heading"></a></h1>
+<p>Validation hooks provide custom validation logic integration within the Claude MPM framework.</p>
+<section id="id1">
+<h2>Validation Hooks<a class="headerlink" href="#id1" title="Link to this heading"></a></h2>
+<p id="module-claude_mpm.hooks.validation_hooks">Validation hooks for claude-mpm operations.</p>
+<p>Inspired by awesome-claude-code’s pre-push validation approach.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.validation_hooks.</span></span><span class="sig-name descname"><span class="pre">ValidationHooks</span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages validation hooks for various operations.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize validation hooks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_load_hook">
+<span class="sig-name descname"><span class="pre">register_pre_load_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><span class="pre">Callable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.register_pre_load_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_load_hook" title="Link to this definition"></a></dt>
+<dd><p>Register a hook to run before loading an agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.register_post_load_hook">
+<span class="sig-name descname"><span class="pre">register_post_load_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><span class="pre">Callable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.register_post_load_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.register_post_load_hook" title="Link to this definition"></a></dt>
+<dd><p>Register a hook to run after loading an agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_execute_hook">
+<span class="sig-name descname"><span class="pre">register_pre_execute_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><span class="pre">Callable</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.register_pre_execute_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_execute_hook" title="Link to this definition"></a></dt>
+<dd><p>Register a hook to run before executing an agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_load_validation">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_pre_load_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.run_pre_load_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_load_validation" title="Link to this definition"></a></dt>
+<dd><p>Run validation before loading an agent profile.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.run_post_load_validation">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_post_load_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.run_post_load_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.run_post_load_validation" title="Link to this definition"></a></dt>
+<dd><p>Run validation after loading an agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_execute_validation">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">run_pre_execute_validation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationHooks.run_pre_execute_validation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_execute_validation" title="Link to this definition"></a></dt>
+<dd><p>Run validation before executing an agent task.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.validate_agent_dependencies">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.validation_hooks.</span></span><span class="sig-name descname"><span class="pre">validate_agent_dependencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">profile_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#validate_agent_dependencies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.validate_agent_dependencies" title="Link to this definition"></a></dt>
+<dd><p>Validate that agent dependencies are available.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.validate_security_constraints">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.validation_hooks.</span></span><span class="sig-name descname"><span class="pre">validate_security_constraints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#validate_security_constraints"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.validate_security_constraints" title="Link to this definition"></a></dt>
+<dd><p>Validate security constraints before execution.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.validation_hooks.</span></span><span class="sig-name descname"><span class="pre">ValidationError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Raised when validation fails.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_result</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult" title="claude_mpm.validation.agent_validator.ValidationResult"><span class="pre">ValidationResult</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize validation error.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.validation_hooks.ValidationError.get_detailed_message">
+<span class="sig-name descname"><span class="pre">get_detailed_message</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/hooks/validation_hooks.html#ValidationError.get_detailed_message"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.validation_hooks.ValidationError.get_detailed_message" title="Link to this definition"></a></dt>
+<dd><p>Get detailed error message including validation results.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="memory.html" class="btn btn-neutral float-left" title="Memory Hooks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../cli/index.html" class="btn btn-neutral float-right" title="CLI API" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

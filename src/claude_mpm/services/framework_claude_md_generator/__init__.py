@@ -24,8 +24,14 @@ class FrameworkClaudeMdGenerator:
     This is the main facade class that coordinates all the submodules.
     """
     
-    def __init__(self):
-        """Initialize the generator with current framework version."""
+    def __init__(self, target_filename: str = "INSTRUCTIONS.md"):
+        """
+        Initialize the generator with current framework version.
+        
+        Args:
+            target_filename: Target filename for deployment (default: "INSTRUCTIONS.md")
+                           Can be set to "CLAUDE.md" for legacy compatibility
+        """
         # Initialize managers
         self.version_manager = VersionManager()
         self.validator = ContentValidator()
@@ -35,7 +41,8 @@ class FrameworkClaudeMdGenerator:
         # Initialize deployment manager with dependencies
         self.deployment_manager = DeploymentManager(
             self.version_manager, 
-            self.validator
+            self.validator,
+            target_filename=target_filename
         )
         
         # Get framework version

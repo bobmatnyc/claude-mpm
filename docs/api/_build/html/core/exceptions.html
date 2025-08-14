@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Core Exceptions &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Core Types" href="types.html" />
+    <link rel="prev" title="Framework Loader" href="framework_loader.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Core API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="interfaces.html">Core Interfaces</a></li>
+<li class="toctree-l2"><a class="reference internal" href="container.html">Service Container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="base_services.html">Base Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="framework_loader.html">Framework Loader</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Core Exceptions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError"><code class="docutils literal notranslate"><span class="pre">MPMError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.message"><code class="docutils literal notranslate"><span class="pre">MPMError.message</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.context"><code class="docutils literal notranslate"><span class="pre">MPMError.context</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.error_code"><code class="docutils literal notranslate"><span class="pre">MPMError.error_code</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.__init__"><code class="docutils literal notranslate"><span class="pre">MPMError.__init__()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.to_dict"><code class="docutils literal notranslate"><span class="pre">MPMError.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MPMError.__str__"><code class="docutils literal notranslate"><span class="pre">MPMError.__str__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.AgentDeploymentError"><code class="docutils literal notranslate"><span class="pre">AgentDeploymentError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.AgentDeploymentError.__init__"><code class="docutils literal notranslate"><span class="pre">AgentDeploymentError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.ConfigurationError"><code class="docutils literal notranslate"><span class="pre">ConfigurationError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.ConfigurationError.__init__"><code class="docutils literal notranslate"><span class="pre">ConfigurationError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.ConnectionError"><code class="docutils literal notranslate"><span class="pre">ConnectionError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.ConnectionError.__init__"><code class="docutils literal notranslate"><span class="pre">ConnectionError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.ValidationError"><code class="docutils literal notranslate"><span class="pre">ValidationError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.ValidationError.__init__"><code class="docutils literal notranslate"><span class="pre">ValidationError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.ServiceNotFoundError"><code class="docutils literal notranslate"><span class="pre">ServiceNotFoundError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.ServiceNotFoundError.__init__"><code class="docutils literal notranslate"><span class="pre">ServiceNotFoundError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.MemoryError"><code class="docutils literal notranslate"><span class="pre">MemoryError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.MemoryError.__init__"><code class="docutils literal notranslate"><span class="pre">MemoryError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.HookError"><code class="docutils literal notranslate"><span class="pre">HookError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.HookError.__init__"><code class="docutils literal notranslate"><span class="pre">HookError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.SessionError"><code class="docutils literal notranslate"><span class="pre">SessionError</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.core.exceptions.SessionError.__init__"><code class="docutils literal notranslate"><span class="pre">SessionError.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.create_agent_deployment_error"><code class="docutils literal notranslate"><span class="pre">create_agent_deployment_error()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.create_configuration_error"><code class="docutils literal notranslate"><span class="pre">create_configuration_error()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.create_connection_error"><code class="docutils literal notranslate"><span class="pre">create_connection_error()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#claude_mpm.core.exceptions.create_validation_error"><code class="docutils literal notranslate"><span class="pre">create_validation_error()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="types.html">Core Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#key-components">Key Components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#architecture-benefits">Architecture Benefits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Core API</a></li>
+      <li class="breadcrumb-item active">Core Exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/core/exceptions.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.core.exceptions">
+<span id="core-exceptions"></span><h1>Core Exceptions<a class="headerlink" href="#module-claude_mpm.core.exceptions" title="Link to this heading"></a></h1>
+<p>Centralized exception hierarchy for Claude MPM.</p>
+<p>This module provides a comprehensive exception hierarchy for standardized error
+handling across the codebase. Each exception class supports contextual information
+for better debugging and error resolution.</p>
+<p>Design Principles:
+1. Clear inheritance hierarchy with MPMError as the base
+2. Context support for debugging (optional dict with additional details)
+3. Helpful error messages with actionable guidance
+4. Backward compatibility with existing error handling
+5. Structured error data for programmatic handling</p>
+<dl>
+<dt>Usage:</dt><dd><p>from claude_mpm.core.exceptions import ConfigurationError, AgentDeploymentError</p>
+<p># With context for debugging
+raise ConfigurationError(</p>
+<blockquote>
+<div><p>“Invalid agent configuration”,
+context={“agent_id”: “engineer”, “field”: “version”, “value”: “invalid”}</p>
+</div></blockquote>
+<p>)</p>
+<p># Simple usage
+raise AgentDeploymentError(“Failed to deploy agent to .claude/agents directory”)</p>
+</dd>
+</dl>
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">MPMError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MPMError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Base exception class for all Claude MPM errors.</p>
+<p>This base class provides common functionality for all MPM exceptions including
+context storage for debugging and structured error representation.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.message">
+<span class="sig-name descname"><span class="pre">message</span></span><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.message" title="Link to this definition"></a></dt>
+<dd><p>Human-readable error message</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.context">
+<span class="sig-name descname"><span class="pre">context</span></span><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.context" title="Link to this definition"></a></dt>
+<dd><p>Optional dictionary with additional debugging context</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.error_code">
+<span class="sig-name descname"><span class="pre">error_code</span></span><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.error_code" title="Link to this definition"></a></dt>
+<dd><p>Machine-readable error code (defaults to class name in lowercase)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MPMError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize MPM error with message and optional context.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Human-readable error message</p></li>
+<li><p><strong>context</strong> – Optional dictionary with debugging context</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MPMError.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Convert error to dictionary format for structured logging/handling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary with error type, code, message, and context</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MPMError.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MPMError.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MPMError.__str__" title="Link to this definition"></a></dt>
+<dd><p>String representation with context if available.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.AgentDeploymentError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">AgentDeploymentError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#AgentDeploymentError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.AgentDeploymentError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when agent deployment fails.</p>
+<p>This error occurs during agent deployment to .claude/agents directory,
+including template building, version checking, and file operations.</p>
+<p>Common causes:
+- Template file not found or invalid
+- Permission issues with .claude/agents directory
+- Version conflicts or migration failures
+- YAML generation errors</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.AgentDeploymentError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#AgentDeploymentError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.AgentDeploymentError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize agent deployment error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing deployment failure</p></li>
+<li><p><strong>context</strong> – Optional context with agent_id, template_path, deployment_path, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ConfigurationError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">ConfigurationError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ConfigurationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ConfigurationError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when configuration validation fails.</p>
+<p>This error occurs when configuration files are invalid, missing required
+fields, or contain incompatible values.</p>
+<p>Common causes:
+- Missing required configuration fields
+- Invalid data types or formats
+- Configuration file not found
+- Schema validation failures
+- Incompatible configuration versions</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ConfigurationError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ConfigurationError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ConfigurationError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize configuration error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing configuration issue</p></li>
+<li><p><strong>context</strong> – Optional context with config_file, field, expected_type, actual_value, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ConnectionError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">ConnectionError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ConnectionError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ConnectionError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when network or SocketIO connection fails.</p>
+<p>This error occurs during network operations, including SocketIO server
+connections, port binding, and inter-process communication.</p>
+<p>Common causes:
+- Port already in use
+- Network interface unavailable
+- SocketIO server not responding
+- Connection timeout
+- Authentication failures</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ConnectionError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ConnectionError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ConnectionError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize connection error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing connection failure</p></li>
+<li><p><strong>context</strong> – Optional context with host, port, timeout, retry_count, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ValidationError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">ValidationError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ValidationError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ValidationError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when input validation fails.</p>
+<p>This error occurs when user input, agent definitions, or data structures
+fail validation against expected schemas or constraints.</p>
+<p>Common causes:
+- Invalid agent schema
+- Missing required fields
+- Type mismatches
+- Value out of allowed range
+- Format violations (e.g., invalid JSON/YAML)</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ValidationError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ValidationError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ValidationError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize validation error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing validation failure</p></li>
+<li><p><strong>context</strong> – Optional context with field, value, constraint, schema_path, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ServiceNotFoundError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">ServiceNotFoundError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ServiceNotFoundError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ServiceNotFoundError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when DI container cannot find requested service.</p>
+<p>This error occurs when the dependency injection container cannot locate
+or instantiate a requested service.</p>
+<p>Common causes:
+- Service not registered in container
+- Circular dependencies
+- Missing service dependencies
+- Service initialization failure
+- Incorrect service name or type</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.ServiceNotFoundError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#ServiceNotFoundError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.ServiceNotFoundError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize service not found error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing missing service</p></li>
+<li><p><strong>context</strong> – Optional context with service_name, service_type, available_services, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MemoryError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">MemoryError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MemoryError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MemoryError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when memory service operations fail.</p>
+<p>This error occurs during agent memory operations including storage,
+retrieval, optimization, and routing.</p>
+<p>Common causes:
+- Memory storage failure
+- Corrupted memory data
+- Memory quota exceeded
+- Routing configuration errors
+- Serialization/deserialization failures</p>
+<p>Note: This shadows Python’s built-in MemoryError but is scoped to
+claude_mpm.core.exceptions.MemoryError for clarity.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.MemoryError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#MemoryError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.MemoryError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize memory error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing memory operation failure</p></li>
+<li><p><strong>context</strong> – Optional context with agent_id, memory_type, operation, storage_path, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.HookError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">HookError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#HookError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.HookError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when hook execution fails.</p>
+<p>This error occurs during pre/post hook execution in the hook system,
+including hook registration, invocation, and cleanup.</p>
+<p>Common causes:
+- Hook handler exceptions
+- Hook timeout
+- Missing hook dependencies
+- Hook configuration errors
+- Incompatible hook versions</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.HookError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#HookError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.HookError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize hook error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing hook failure</p></li>
+<li><p><strong>context</strong> – Optional context with hook_name, hook_type, event, error_details, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.SessionError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">SessionError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#SessionError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.SessionError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#claude_mpm.core.exceptions.MPMError" title="claude_mpm.core.exceptions.MPMError"><code class="xref py py-class docutils literal notranslate"><span class="pre">MPMError</span></code></a></p>
+<p>Exception raised when session management fails.</p>
+<p>This error occurs during Claude session lifecycle management including
+session creation, state management, and cleanup.</p>
+<p>Common causes:
+- Session initialization failure
+- Invalid session state
+- Session timeout
+- Resource allocation failure
+- Session persistence errors</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.SessionError.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#SessionError.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.SessionError.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize session error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>message</strong> – Error message describing session failure</p></li>
+<li><p><strong>context</strong> – Optional context with session_id, session_type, state, operation, etc.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.create_agent_deployment_error">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">create_agent_deployment_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.exceptions.AgentDeploymentError" title="claude_mpm.core.exceptions.AgentDeploymentError"><span class="pre">AgentDeploymentError</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#create_agent_deployment_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.create_agent_deployment_error" title="Link to this definition"></a></dt>
+<dd><p>Factory function for creating agent deployment errors with context.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.create_configuration_error">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">create_configuration_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.exceptions.ConfigurationError" title="claude_mpm.core.exceptions.ConfigurationError"><span class="pre">ConfigurationError</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#create_configuration_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.create_configuration_error" title="Link to this definition"></a></dt>
+<dd><p>Factory function for creating configuration errors with context.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.create_connection_error">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">create_connection_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.exceptions.ConnectionError" title="claude_mpm.core.exceptions.ConnectionError"><span class="pre">ConnectionError</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#create_connection_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.create_connection_error" title="Link to this definition"></a></dt>
+<dd><p>Factory function for creating connection errors with context.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.exceptions.create_validation_error">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.exceptions.</span></span><span class="sig-name descname"><span class="pre">create_validation_error</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.exceptions.ValidationError" title="claude_mpm.core.exceptions.ValidationError"><span class="pre">ValidationError</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/core/exceptions.html#create_validation_error"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.exceptions.create_validation_error" title="Link to this definition"></a></dt>
+<dd><p>Factory function for creating validation errors with context.</p>
+</dd></dl>
+
+<p>Core exception classes provide structured error handling throughout the Claude MPM framework.
+These exceptions enable proper error categorization and handling across different service layers.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="framework_loader.html" class="btn btn-neutral float-left" title="Framework Loader" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="types.html" class="btn btn-neutral float-right" title="Core Types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

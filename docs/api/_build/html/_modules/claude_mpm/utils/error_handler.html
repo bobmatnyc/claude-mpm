@@ -1,0 +1,406 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.utils.error_handler &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.utils.error_handler</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.utils.error_handler</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Enhanced error handling utilities for claude-mpm.</span>
+
+<span class="sd">Inspired by awesome-claude-code&#39;s comprehensive error handling approach.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">wraps</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">traceback</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MPMError">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.MPMError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MPMError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception for claude-mpm errors.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MPMError.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.MPMError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">details</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">suggestions</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize MPM error with details and suggestions.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">details</span> <span class="o">=</span> <span class="n">details</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suggestions</span> <span class="o">=</span> <span class="n">suggestions</span> <span class="ow">or</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="MPMError.get_user_friendly_message">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.MPMError.get_user_friendly_message">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_user_friendly_message</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a user-friendly error message.&quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;❌ Error: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">details</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Details:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">details</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">suggestions</span><span class="p">:</span>
+            <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">💡 Suggestions:&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">suggestion</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">suggestions</span><span class="p">:</span>
+                <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">suggestion</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AgentLoadError">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.AgentLoadError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentLoadError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when agent loading fails.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ValidationError">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ValidationError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ValidationError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when validation fails.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ExecutionError">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ExecutionError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ExecutionError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when agent execution fails.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ConfigurationError">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ConfigurationError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigurationError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when configuration is invalid.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="handle_errors">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.handle_errors">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">handle_errors</span><span class="p">(</span><span class="n">error_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="ne">Exception</span><span class="p">]</span> <span class="o">=</span> <span class="ne">Exception</span><span class="p">,</span> 
+                 <span class="n">fallback_value</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">ERROR</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator for handling errors with detailed logging and user feedback.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        error_type: Type of exception to catch</span>
+<span class="sd">        fallback_value: Value to return on error</span>
+<span class="sd">        log_level: Logging level for errors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">error_type</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Log the error with full traceback</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">log_level</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Error in </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                
+                <span class="c1"># Provide user-friendly feedback</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">MPMError</span><span class="p">):</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">get_user_friendly_message</span><span class="p">(),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="n">fallback_value</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Catch unexpected errors</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">critical</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unexpected error in </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ Unexpected error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;💡 This might be a bug. Please report it.&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">fallback_value</span>
+        
+        <span class="k">return</span> <span class="n">wrapper</span>
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+
+<div class="viewcode-block" id="ErrorContext">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ErrorContext">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ErrorContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Context manager for enhanced error reporting.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ErrorContext.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ErrorContext.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">details</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize error context.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation</span> <span class="o">=</span> <span class="n">operation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">details</span> <span class="o">=</span> <span class="n">details</span> <span class="ow">or</span> <span class="p">{}</span></div>
+
+    
+<div class="viewcode-block" id="ErrorContext.__enter__">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ErrorContext.__enter__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enter the context.&quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Starting operation: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+    
+<div class="viewcode-block" id="ErrorContext.__exit__">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.ErrorContext.__exit__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit the context, handling any errors.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">exc_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed operation: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="c1"># Log the error with context</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Error during </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">exc_val</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="n">extra</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;operation&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation</span><span class="p">,</span> <span class="s1">&#39;details&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">details</span><span class="p">},</span>
+            <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Don&#39;t suppress the exception</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="retry_on_error">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.retry_on_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">retry_on_error</span><span class="p">(</span><span class="n">max_attempts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span> 
+                  <span class="n">delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+                  <span class="n">backoff_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+                  <span class="n">exceptions</span><span class="p">:</span> <span class="nb">tuple</span> <span class="o">=</span> <span class="p">(</span><span class="ne">Exception</span><span class="p">,))</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decorator for retrying operations on error.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        max_attempts: Maximum number of attempts</span>
+<span class="sd">        delay: Initial delay between attempts</span>
+<span class="sd">        backoff_factor: Multiplier for delay after each failure</span>
+<span class="sd">        exceptions: Tuple of exceptions to retry on</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="n">func</span><span class="p">:</span> <span class="n">Callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">async_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+            
+            <span class="n">last_exception</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">current_delay</span> <span class="o">=</span> <span class="n">delay</span>
+            
+            <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_attempts</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="k">await</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">exceptions</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">last_exception</span> <span class="o">=</span> <span class="n">e</span>
+                    <span class="k">if</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">max_attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Attempt </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s2"> failed for </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">current_delay</span><span class="p">)</span>
+                        <span class="n">current_delay</span> <span class="o">*=</span> <span class="n">backoff_factor</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s2"> attempts failed for </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+            
+            <span class="k">raise</span> <span class="n">last_exception</span>
+        
+        <span class="nd">@wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">sync_wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+            
+            <span class="n">last_exception</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">current_delay</span> <span class="o">=</span> <span class="n">delay</span>
+            
+            <span class="k">for</span> <span class="n">attempt</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_attempts</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">exceptions</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">last_exception</span> <span class="o">=</span> <span class="n">e</span>
+                    <span class="k">if</span> <span class="n">attempt</span> <span class="o">&lt;</span> <span class="n">max_attempts</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;Attempt </span><span class="si">{</span><span class="n">attempt</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s2"> failed for </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">current_delay</span><span class="p">)</span>
+                        <span class="n">current_delay</span> <span class="o">*=</span> <span class="n">backoff_factor</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;All </span><span class="si">{</span><span class="n">max_attempts</span><span class="si">}</span><span class="s2"> attempts failed for </span><span class="si">{</span><span class="n">func</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+            
+            <span class="k">raise</span> <span class="n">last_exception</span>
+        
+        <span class="c1"># Return appropriate wrapper based on function type</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+        <span class="k">if</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">iscoroutinefunction</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">async_wrapper</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sync_wrapper</span>
+    
+    <span class="k">return</span> <span class="n">decorator</span></div>
+
+
+
+<div class="viewcode-block" id="format_exception_chain">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.format_exception_chain">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_exception_chain</span><span class="p">(</span><span class="n">exc</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format an exception chain for display.&quot;&quot;&quot;</span>
+    <span class="n">lines</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">exc</span>
+    <span class="n">level</span> <span class="o">=</span> <span class="mi">0</span>
+    
+    <span class="k">while</span> <span class="n">current</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">indent</span> <span class="o">=</span> <span class="s2">&quot;  &quot;</span> <span class="o">*</span> <span class="n">level</span>
+        <span class="n">lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">indent</span><span class="si">}{</span><span class="s1">&#39;└─&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">level</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;&#39;</span><span class="si">}{</span><span class="nb">type</span><span class="p">(</span><span class="n">current</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">current</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">current</span><span class="p">,</span> <span class="s1">&#39;__cause__&#39;</span><span class="p">):</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">__cause__</span>
+            <span class="n">level</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">break</span>
+    
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">lines</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Setup patterns from awesome-claude-code</span>
+<div class="viewcode-block" id="suggest_setup_fix">
+<a class="viewcode-back" href="../../../claude_mpm.utils.error_handler.html#claude_mpm.utils.error_handler.suggest_setup_fix">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">suggest_setup_fix</span><span class="p">(</span><span class="n">error</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Suggest fixes for common setup errors.&quot;&quot;&quot;</span>
+    <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">error_msg</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">error</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="s1">&#39;git&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span> <span class="ow">and</span> <span class="s1">&#39;not found&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span><span class="p">:</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Install git from https://git-scm.com/downloads&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="s1">&#39;python&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span> <span class="ow">and</span> <span class="s1">&#39;module&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span><span class="p">:</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Ensure you&#39;re in a virtual environment&quot;</span><span class="p">)</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Run: pip install -e .&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="s1">&#39;permission&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span><span class="p">:</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Check file permissions&quot;</span><span class="p">)</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;You may need to run with appropriate privileges&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="s1">&#39;config&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span> <span class="ow">or</span> <span class="s1">&#39;configuration&#39;</span> <span class="ow">in</span> <span class="n">error_msg</span><span class="p">:</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Check your configuration files&quot;</span><span class="p">)</span>
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Run: mpm validate-config&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">suggestions</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

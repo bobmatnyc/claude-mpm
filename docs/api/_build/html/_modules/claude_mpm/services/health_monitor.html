@@ -1,0 +1,1101 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.health_monitor &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.health_monitor</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.health_monitor</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Advanced health monitoring system for claude-mpm Socket.IO server.</span>
+
+<span class="sd">This module provides comprehensive health checking capabilities including:</span>
+<span class="sd">- Process resource monitoring (CPU, memory, file descriptors)</span>
+<span class="sd">- Service-specific health markers</span>
+<span class="sd">- Configurable thresholds and intervals</span>
+<span class="sd">- Health status aggregation and history</span>
+<span class="sd">- Integration with automatic recovery mechanisms</span>
+
+<span class="sd">Design Principles:</span>
+<span class="sd">- Minimal performance impact through efficient polling</span>
+<span class="sd">- Extensible metric collection system</span>
+<span class="sd">- Circuit breaker integration for failure detection</span>
+<span class="sd">- Comprehensive logging for debugging and diagnostics</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">socket</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResourceLimits</span><span class="p">,</span> <span class="n">TimeoutConfig</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">psutil</span>
+    <span class="n">PSUTIL_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">PSUTIL_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">psutil</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="HealthStatus">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthStatus">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthStatus</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Health status levels for monitoring.&quot;&quot;&quot;</span>
+    <span class="n">HEALTHY</span> <span class="o">=</span> <span class="s2">&quot;healthy&quot;</span>
+    <span class="n">WARNING</span> <span class="o">=</span> <span class="s2">&quot;warning&quot;</span>
+    <span class="n">CRITICAL</span> <span class="o">=</span> <span class="s2">&quot;critical&quot;</span>
+    <span class="n">UNKNOWN</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="HealthMetric">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthMetric">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthMetric</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Individual health metric data structure.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">HealthStatus</span>
+    <span class="n">threshold</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">unit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="HealthMetric.to_dict">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthMetric.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert metric to dictionary format.&quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="n">result</span><span class="p">[</span><span class="s1">&#39;status&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status</span><span class="o">.</span><span class="n">value</span>
+        <span class="n">result</span><span class="p">[</span><span class="s1">&#39;timestamp_iso&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">result</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="HealthCheckResult">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthCheckResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthCheckResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result of a health check operation.&quot;&quot;&quot;</span>
+    <span class="n">overall_status</span><span class="p">:</span> <span class="n">HealthStatus</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">]</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;timestamp&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="HealthCheckResult.to_dict">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthCheckResult.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert health check result to dictionary format.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;overall_status&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">overall_status</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s1">&#39;metrics&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">metric</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">],</span>
+            <span class="s1">&#39;timestamp&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="s1">&#39;timestamp_iso&#39;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s1">&#39;duration_ms&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_ms</span><span class="p">,</span>
+            <span class="s1">&#39;errors&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">errors</span><span class="p">,</span>
+            <span class="s1">&#39;metric_count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="p">),</span>
+            <span class="s1">&#39;healthy_metrics&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">([</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">]),</span>
+            <span class="s1">&#39;warning_metrics&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">([</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">]),</span>
+            <span class="s1">&#39;critical_metrics&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">([</span><span class="n">m</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="k">if</span> <span class="n">m</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">])</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="HealthChecker">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthChecker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthChecker</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class for health checkers.</span>
+<span class="sd">    </span>
+<span class="sd">    Health checkers implement specific monitoring logic for different aspects</span>
+<span class="sd">    of the system (process resources, network connectivity, service health, etc.).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="HealthChecker.get_name">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthChecker.get_name">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the name of this health checker.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="HealthChecker.check_health">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.HealthChecker.check_health">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_health</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform health check and return metrics.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ProcessResourceChecker">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ProcessResourceChecker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProcessResourceChecker</span><span class="p">(</span><span class="n">HealthChecker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Health checker for process resource usage.</span>
+<span class="sd">    </span>
+<span class="sd">    Monitors:</span>
+<span class="sd">    - CPU usage percentage</span>
+<span class="sd">    - Memory usage (RSS, VMS)</span>
+<span class="sd">    - File descriptor count</span>
+<span class="sd">    - Thread count</span>
+<span class="sd">    - Process status</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ProcessResourceChecker.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ProcessResourceChecker.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pid</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cpu_threshold</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">80.0</span><span class="p">,</span> 
+                 <span class="n">memory_threshold_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span> <span class="n">fd_threshold</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize process resource checker.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            pid: Process ID to monitor</span>
+<span class="sd">            cpu_threshold: CPU usage threshold as percentage</span>
+<span class="sd">            memory_threshold_mb: Memory usage threshold in MB</span>
+<span class="sd">            fd_threshold: File descriptor count threshold</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pid</span> <span class="o">=</span> <span class="n">pid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cpu_threshold</span> <span class="o">=</span> <span class="n">cpu_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memory_threshold_mb</span> <span class="o">=</span> <span class="n">memory_threshold_mb</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fd_threshold</span> <span class="o">=</span> <span class="n">fd_threshold</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">process</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.ProcessResourceChecker&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">PSUTIL_AVAILABLE</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">process</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">Process</span><span class="p">(</span><span class="n">pid</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">psutil</span><span class="o">.</span><span class="n">NoSuchProcess</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="n">pid</span><span class="si">}</span><span class="s2"> not found for monitoring&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProcessResourceChecker.get_name">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ProcessResourceChecker.get_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;process_resources_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ProcessResourceChecker.check_health">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ProcessResourceChecker.check_health">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_health</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check process resource usage.&quot;&quot;&quot;</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">PSUTIL_AVAILABLE</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;psutil_availability&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;psutil not available for enhanced monitoring&quot;</span>
+            <span class="p">))</span>
+            <span class="k">return</span> <span class="n">metrics</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_exists&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> not found&quot;</span>
+            <span class="p">))</span>
+            <span class="k">return</span> <span class="n">metrics</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Check if process still exists</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">is_running</span><span class="p">():</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_exists&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> is no longer running&quot;</span>
+                <span class="p">))</span>
+                <span class="k">return</span> <span class="n">metrics</span>
+            
+            <span class="c1"># Process status</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">status</span><span class="p">()</span>
+            <span class="n">process_healthy</span> <span class="o">=</span> <span class="n">status</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_ZOMBIE</span><span class="p">,</span> <span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_DEAD</span><span class="p">,</span> <span class="n">psutil</span><span class="o">.</span><span class="n">STATUS_STOPPED</span><span class="p">]</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_status&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span> <span class="k">if</span> <span class="n">process_healthy</span> <span class="k">else</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Process status: </span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+            
+            <span class="c1"># CPU usage</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">cpu_percent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">cpu_percent</span><span class="p">(</span><span class="n">interval</span><span class="o">=</span><span class="n">TimeoutConfig</span><span class="o">.</span><span class="n">CPU_SAMPLE_INTERVAL</span><span class="p">)</span>
+                <span class="n">cpu_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+                <span class="k">if</span> <span class="n">cpu_percent</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_threshold</span><span class="p">:</span>
+                    <span class="n">cpu_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span> <span class="k">if</span> <span class="n">cpu_percent</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cpu_threshold</span> <span class="o">*</span> <span class="mf">1.2</span> <span class="k">else</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+                
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cpu_usage_percent&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">cpu_percent</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">cpu_status</span><span class="p">,</span>
+                    <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cpu_threshold</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;%&quot;</span>
+                <span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;cpu_usage_percent&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get CPU usage: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+            
+            <span class="c1"># Memory usage</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">memory_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">memory_info</span><span class="p">()</span>
+                <span class="n">memory_mb</span> <span class="o">=</span> <span class="n">memory_info</span><span class="o">.</span><span class="n">rss</span> <span class="o">/</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">BYTES_TO_MB</span>
+                <span class="n">memory_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+                <span class="k">if</span> <span class="n">memory_mb</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_threshold_mb</span><span class="p">:</span>
+                    <span class="n">memory_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span> <span class="k">if</span> <span class="n">memory_mb</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_threshold_mb</span> <span class="o">*</span> <span class="mf">1.2</span> <span class="k">else</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+                
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;memory_usage_mb&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">memory_mb</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">memory_status</span><span class="p">,</span>
+                    <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">memory_threshold_mb</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;MB&quot;</span>
+                <span class="p">))</span>
+                
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;memory_vms_mb&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">memory_info</span><span class="o">.</span><span class="n">vms</span> <span class="o">/</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">BYTES_TO_MB</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;MB&quot;</span>
+                <span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;memory_usage_mb&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get memory usage: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+            
+            <span class="c1"># File descriptors (Unix only)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="p">,</span> <span class="s1">&#39;num_fds&#39;</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">fd_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">num_fds</span><span class="p">()</span>
+                    <span class="n">fd_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+                    <span class="k">if</span> <span class="n">fd_count</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fd_threshold</span><span class="p">:</span>
+                        <span class="n">fd_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span> <span class="k">if</span> <span class="n">fd_count</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">fd_threshold</span> <span class="o">*</span> <span class="mf">1.2</span> <span class="k">else</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+                    
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;file_descriptors&quot;</span><span class="p">,</span>
+                        <span class="n">value</span><span class="o">=</span><span class="n">fd_count</span><span class="p">,</span>
+                        <span class="n">status</span><span class="o">=</span><span class="n">fd_status</span><span class="p">,</span>
+                        <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">fd_threshold</span>
+                    <span class="p">))</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;file_descriptors&quot;</span><span class="p">,</span>
+                        <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                        <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get file descriptor count: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">))</span>
+            
+            <span class="c1"># Thread count</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">thread_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">num_threads</span><span class="p">()</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;thread_count&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">thread_count</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                <span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;thread_count&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get thread count: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+            
+            <span class="c1"># Process create time (for validation)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">create_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process</span><span class="o">.</span><span class="n">create_time</span><span class="p">()</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_start_time&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="n">create_time</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;timestamp&quot;</span>
+                <span class="p">))</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_start_time&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get process start time: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+                
+        <span class="k">except</span> <span class="n">psutil</span><span class="o">.</span><span class="n">NoSuchProcess</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_exists&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Process </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">pid</span><span class="si">}</span><span class="s2"> no longer exists&quot;</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error checking process health: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;process_check_error&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Unexpected error during process health check: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">metrics</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="NetworkConnectivityChecker">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.NetworkConnectivityChecker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">NetworkConnectivityChecker</span><span class="p">(</span><span class="n">HealthChecker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Health checker for network connectivity.</span>
+<span class="sd">    </span>
+<span class="sd">    Monitors:</span>
+<span class="sd">    - Port availability and binding status</span>
+<span class="sd">    - Socket connection health</span>
+<span class="sd">    - Network interface status</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="NetworkConnectivityChecker.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.NetworkConnectivityChecker.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize network connectivity checker.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            host: Host address to check</span>
+<span class="sd">            port: Port number to check</span>
+<span class="sd">            timeout: Connection timeout in seconds</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">timeout</span> <span class="o">=</span> <span class="n">timeout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.NetworkConnectivityChecker&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="NetworkConnectivityChecker.get_name">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.NetworkConnectivityChecker.get_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;network_connectivity_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+    
+<div class="viewcode-block" id="NetworkConnectivityChecker.check_health">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.NetworkConnectivityChecker.check_health">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_health</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check network connectivity.&quot;&quot;&quot;</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Check port binding</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Try to connect to the port</span>
+            <span class="n">sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">timeout</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">sock</span><span class="o">.</span><span class="n">connect_ex</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="p">))</span>
+            <span class="n">sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;port_accessible&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2"> is accessible on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;port_accessible&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Port </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2"> is not accessible on </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;port_accessible&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Error checking port accessibility: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="c1"># Check if we can create a socket (resource availability)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">test_sock</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span>
+            <span class="n">test_sock</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;socket_creation&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Socket creation successful&quot;</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;socket_creation&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to create socket: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="k">return</span> <span class="n">metrics</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ServiceHealthChecker">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ServiceHealthChecker">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceHealthChecker</span><span class="p">(</span><span class="n">HealthChecker</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Health checker for service-specific metrics.</span>
+<span class="sd">    </span>
+<span class="sd">    Monitors:</span>
+<span class="sd">    - Connected clients count</span>
+<span class="sd">    - Event processing rate</span>
+<span class="sd">    - Error rates</span>
+<span class="sd">    - Response times</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ServiceHealthChecker.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ServiceHealthChecker.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
+                 <span class="n">max_clients</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">max_error_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize service health checker.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_stats: Reference to service statistics dictionary</span>
+<span class="sd">            max_clients: Maximum allowed connected clients</span>
+<span class="sd">            max_error_rate: Maximum allowed error rate (0.0-1.0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span> <span class="o">=</span> <span class="n">service_stats</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_clients</span> <span class="o">=</span> <span class="n">max_clients</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_error_rate</span> <span class="o">=</span> <span class="n">max_error_rate</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_check_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_events_processed</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.ServiceHealthChecker&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ServiceHealthChecker.get_name">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ServiceHealthChecker.get_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s2">&quot;service_health&quot;</span></div>
+
+    
+<div class="viewcode-block" id="ServiceHealthChecker.check_health">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.ServiceHealthChecker.check_health">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_health</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check service-specific health metrics.&quot;&quot;&quot;</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Connected clients</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">client_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;clients_connected&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">client_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+            <span class="k">if</span> <span class="n">client_count</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_clients</span> <span class="o">*</span> <span class="mf">0.8</span><span class="p">:</span>
+                <span class="n">client_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+            <span class="k">if</span> <span class="n">client_count</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_clients</span><span class="p">:</span>
+                <span class="n">client_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+            
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;connected_clients&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">client_count</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">client_status</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_clients</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;connected_clients&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to get client count: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="c1"># Event processing rate</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">events_processed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;events_processed&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">time_diff</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_check_time</span>
+            
+            <span class="k">if</span> <span class="n">time_diff</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_events_processed</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">event_rate</span> <span class="o">=</span> <span class="p">(</span><span class="n">events_processed</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_events_processed</span><span class="p">)</span> <span class="o">/</span> <span class="n">time_diff</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;event_processing_rate&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">event_rate</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;events/sec&quot;</span>
+                <span class="p">))</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_events_processed</span> <span class="o">=</span> <span class="n">events_processed</span>
+            
+            <span class="c1"># Total events processed</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;total_events_processed&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">events_processed</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;event_processing_rate&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to calculate event rate: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="c1"># Error rate</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">errors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;errors&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">total_events</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;events_processed&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Avoid division by zero</span>
+            <span class="n">error_rate</span> <span class="o">=</span> <span class="n">errors</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">total_events</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            
+            <span class="n">error_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+            <span class="k">if</span> <span class="n">error_rate</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_error_rate</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">:</span>
+                <span class="n">error_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+            <span class="k">if</span> <span class="n">error_rate</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_error_rate</span><span class="p">:</span>
+                <span class="n">error_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+            
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;error_rate&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">error_rate</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">error_status</span><span class="p">,</span>
+                <span class="n">threshold</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_error_rate</span><span class="p">,</span>
+                <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;ratio&quot;</span>
+            <span class="p">))</span>
+            
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;total_errors&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span> <span class="k">if</span> <span class="n">errors</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+            <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;error_rate&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to calculate error rate: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="c1"># Last activity timestamp</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">last_activity</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;last_activity&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">last_activity</span><span class="p">:</span>
+                <span class="c1"># Parse ISO timestamp or use as-is if numeric</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">last_activity</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="kn">from</span><span class="w"> </span><span class="nn">dateutil.parser</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse</span>
+                        <span class="n">last_activity_dt</span> <span class="o">=</span> <span class="n">parse</span><span class="p">(</span><span class="n">last_activity</span><span class="p">)</span>
+                        <span class="n">last_activity_timestamp</span> <span class="o">=</span> <span class="n">last_activity_dt</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                        <span class="c1"># Fallback: try to parse ISO format manually</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+                            <span class="n">clean_timestamp</span> <span class="o">=</span> <span class="n">last_activity</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;Z&#39;</span><span class="p">)</span>
+                            <span class="n">last_activity_dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">clean_timestamp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">))</span>
+                            <span class="n">last_activity_timestamp</span> <span class="o">=</span> <span class="n">last_activity_dt</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()</span>
+                        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                            <span class="c1"># Final fallback: treat as current time</span>
+                            <span class="n">last_activity_timestamp</span> <span class="o">=</span> <span class="n">current_time</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">last_activity_timestamp</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">last_activity</span><span class="p">)</span>
+                
+                <span class="n">time_since_activity</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">last_activity_timestamp</span>
+                <span class="n">activity_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+                <span class="k">if</span> <span class="n">time_since_activity</span> <span class="o">&gt;</span> <span class="mi">300</span><span class="p">:</span>  <span class="c1"># 5 minutes</span>
+                    <span class="n">activity_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+                <span class="k">if</span> <span class="n">time_since_activity</span> <span class="o">&gt;</span> <span class="mi">1800</span><span class="p">:</span>  <span class="c1"># 30 minutes</span>
+                    <span class="n">activity_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+                
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;time_since_last_activity&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">time_since_activity</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">activity_status</span><span class="p">,</span>
+                    <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;seconds&quot;</span>
+                <span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;time_since_last_activity&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="s2">&quot;No last activity recorded&quot;</span>
+                <span class="p">))</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;time_since_last_activity&quot;</span><span class="p">,</span>
+                <span class="n">value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Failed to parse last activity: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">))</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_check_time</span> <span class="o">=</span> <span class="n">current_time</span>
+        <span class="k">return</span> <span class="n">metrics</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AdvancedHealthMonitor">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AdvancedHealthMonitor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Advanced health monitoring system with configurable checks and thresholds.</span>
+<span class="sd">    </span>
+<span class="sd">    Provides comprehensive health monitoring including:</span>
+<span class="sd">    - Multiple health checker integration</span>
+<span class="sd">    - Configurable check intervals and thresholds</span>
+<span class="sd">    - Health history tracking</span>
+<span class="sd">    - Status aggregation and reporting</span>
+<span class="sd">    - Integration with recovery systems</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.__init__">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize advanced health monitor.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary for health monitoring</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.AdvancedHealthMonitor&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Configuration with defaults</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;check_interval&#39;</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;history_size&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;aggregation_window&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>  <span class="c1"># 5 minutes</span>
+        
+        <span class="c1"># Health checkers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthChecker</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Health history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="p">:</span> <span class="n">deque</span> <span class="o">=</span> <span class="n">deque</span><span class="p">(</span><span class="n">maxlen</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">)</span>
+        
+        <span class="c1"># Monitoring state</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">Task</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_check_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HealthCheckResult</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Health callbacks for recovery integration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">health_callbacks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">HealthCheckResult</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Initialize metrics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;checks_performed&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;checks_failed&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;average_check_duration_ms&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;last_check_timestamp&#39;</span><span class="p">:</span> <span class="kc">None</span>
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Advanced health monitor initialized&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.add_checker">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.add_checker">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_checker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checker</span><span class="p">:</span> <span class="n">HealthChecker</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a health checker to the monitoring system.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">checker</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Added health checker: </span><span class="si">{</span><span class="n">checker</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.add_health_callback">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.add_health_callback">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_health_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">HealthCheckResult</span><span class="p">],</span> <span class="kc">None</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a callback to be called when health checks complete.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            callback: Function to call with HealthCheckResult</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">health_callbacks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Added health callback: </span><span class="si">{</span><span class="n">callback</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.perform_health_check">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.perform_health_check">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">perform_health_check</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HealthCheckResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform comprehensive health check using all registered checkers.&quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">all_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Run all health checkers</span>
+        <span class="k">for</span> <span class="n">checker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkers</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">checker_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">metrics</span> <span class="o">=</span> <span class="k">await</span> <span class="n">checker</span><span class="o">.</span><span class="n">check_health</span><span class="p">()</span>
+                <span class="n">checker_duration</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">checker_start</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+                
+                <span class="n">all_metrics</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Health checker </span><span class="si">{</span><span class="n">checker</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> completed in </span><span class="si">{</span><span class="n">checker_duration</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">ms&quot;</span><span class="p">)</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Health checker </span><span class="si">{</span><span class="n">checker</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+                
+                <span class="c1"># Add error metric</span>
+                <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">HealthMetric</span><span class="p">(</span>
+                    <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">checker</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span><span class="si">}</span><span class="s2">_error&quot;</span><span class="p">,</span>
+                    <span class="n">value</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                    <span class="n">status</span><span class="o">=</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">,</span>
+                    <span class="n">message</span><span class="o">=</span><span class="n">error_msg</span>
+                <span class="p">))</span>
+        
+        <span class="c1"># Determine overall status</span>
+        <span class="n">overall_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_overall_status</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">)</span>
+        
+        <span class="c1"># Create result</span>
+        <span class="n">duration_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">HealthCheckResult</span><span class="p">(</span>
+            <span class="n">overall_status</span><span class="o">=</span><span class="n">overall_status</span><span class="p">,</span>
+            <span class="n">metrics</span><span class="o">=</span><span class="n">all_metrics</span><span class="p">,</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">start_time</span><span class="p">,</span>
+            <span class="n">duration_ms</span><span class="o">=</span><span class="n">duration_ms</span><span class="p">,</span>
+            <span class="n">errors</span><span class="o">=</span><span class="n">errors</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Update statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;checks_performed&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;checks_failed&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Update average duration</span>
+        <span class="n">current_avg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;average_check_duration_ms&#39;</span><span class="p">]</span>
+        <span class="n">checks_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;checks_performed&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;average_check_duration_ms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="n">current_avg</span> <span class="o">*</span> <span class="p">(</span><span class="n">checks_count</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">duration_ms</span><span class="p">)</span> <span class="o">/</span> <span class="n">checks_count</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">[</span><span class="s1">&#39;last_check_timestamp&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Store in history</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_check_result</span> <span class="o">=</span> <span class="n">result</span>
+        
+        <span class="c1"># Notify callbacks</span>
+        <span class="k">for</span> <span class="n">callback</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_callbacks</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">callback</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Health callback </span><span class="si">{</span><span class="n">callback</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Health check completed: </span><span class="si">{</span><span class="n">overall_status</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2"> &quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_metrics</span><span class="p">)</span><span class="si">}</span><span class="s2"> metrics, </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span><span class="si">}</span><span class="s2"> errors, &quot;</span>
+                         <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">duration_ms</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">ms)&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_overall_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthMetric</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">HealthStatus</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine overall health status from individual metrics.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">metrics</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span>
+        
+        <span class="c1"># Count metrics by status</span>
+        <span class="n">status_counts</span> <span class="o">=</span> <span class="p">{</span><span class="n">status</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">HealthStatus</span><span class="p">}</span>
+        <span class="k">for</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
+            <span class="n">status_counts</span><span class="p">[</span><span class="n">metric</span><span class="o">.</span><span class="n">status</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Determine overall status based on counts</span>
+        <span class="n">total_metrics</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+        
+        <span class="c1"># If any critical metrics, overall is critical</span>
+        <span class="k">if</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+        
+        <span class="c1"># If more than 30% warning metrics, overall is warning</span>
+        <span class="n">warning_ratio</span> <span class="o">=</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">]</span> <span class="o">/</span> <span class="n">total_metrics</span>
+        <span class="k">if</span> <span class="n">warning_ratio</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+        
+        <span class="c1"># If any warning metrics but less than 30%, still healthy</span>
+        <span class="k">if</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+        
+        <span class="c1"># If any unknown metrics, overall is unknown</span>
+        <span class="k">if</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span>
+        
+        <span class="c1"># All metrics healthy</span>
+        <span class="k">return</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.start_monitoring">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.start_monitoring">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start_monitoring</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start continuous health monitoring.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Health monitoring is already running&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_monitoring_loop</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Started health monitoring with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span><span class="si">}</span><span class="s2">s interval&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.stop_monitoring">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.stop_monitoring">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop_monitoring</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop continuous health monitoring.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span>
+            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">monitor_task</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopped health monitoring&quot;</span><span class="p">)</span></div>
+
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_monitoring_loop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Continuous health monitoring loop.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">perform_health_check</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error during health check: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+                <span class="c1"># Wait for next check</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Health monitoring loop cancelled&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Health monitoring loop error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.get_current_status">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.get_current_status">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_current_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">HealthCheckResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the most recent health check result.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_check_result</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.get_health_history">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.get_health_history">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_health_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">HealthCheckResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get health check history.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            limit: Maximum number of results to return</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of health check results, newest first</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="p">)</span>
+        <span class="n">history</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>  <span class="c1"># Newest first</span>
+        
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">history</span> <span class="o">=</span> <span class="n">history</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">history</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.get_aggregated_status">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.get_aggregated_status">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_aggregated_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">window_seconds</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get aggregated health status over a time window.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            window_seconds: Time window for aggregation (defaults to configured window)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with aggregated health statistics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">window_seconds</span> <span class="o">=</span> <span class="n">window_seconds</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_window</span>
+        <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">cutoff_time</span> <span class="o">=</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">window_seconds</span>
+        
+        <span class="c1"># Filter history to time window</span>
+        <span class="n">recent_results</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">result</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">timestamp</span> <span class="o">&gt;=</span> <span class="n">cutoff_time</span>
+        <span class="p">]</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">recent_results</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s1">&#39;period&#39;</span><span class="p">:</span> <span class="s1">&#39;no_data&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;window_seconds&#39;</span><span class="p">:</span> <span class="n">window_seconds</span><span class="p">,</span>
+                <span class="s1">&#39;checks_count&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;overall_status&#39;</span><span class="p">:</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="o">.</span><span class="n">value</span>
+            <span class="p">}</span>
+        
+        <span class="c1"># Aggregate statistics</span>
+        <span class="n">status_counts</span> <span class="o">=</span> <span class="p">{</span><span class="n">status</span><span class="p">:</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">status</span> <span class="ow">in</span> <span class="n">HealthStatus</span><span class="p">}</span>
+        <span class="n">total_metrics</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total_errors</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total_duration_ms</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">recent_results</span><span class="p">:</span>
+            <span class="n">status_counts</span><span class="p">[</span><span class="n">result</span><span class="o">.</span><span class="n">overall_status</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">total_metrics</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
+            <span class="n">total_errors</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="p">)</span>
+            <span class="n">total_duration_ms</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span>
+        
+        <span class="n">checks_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">recent_results</span><span class="p">)</span>
+        
+        <span class="c1"># Determine aggregated status</span>
+        <span class="k">if</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">aggregated_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">CRITICAL</span>
+        <span class="k">elif</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">checks_count</span> <span class="o">*</span> <span class="mf">0.3</span><span class="p">:</span>
+            <span class="n">aggregated_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">WARNING</span>
+        <span class="k">elif</span> <span class="n">status_counts</span><span class="p">[</span><span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">checks_count</span> <span class="o">*</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="n">aggregated_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">UNKNOWN</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">aggregated_status</span> <span class="o">=</span> <span class="n">HealthStatus</span><span class="o">.</span><span class="n">HEALTHY</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;period&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;last_</span><span class="si">{</span><span class="n">window_seconds</span><span class="si">}</span><span class="s1">_seconds&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;window_seconds&#39;</span><span class="p">:</span> <span class="n">window_seconds</span><span class="p">,</span>
+            <span class="s1">&#39;checks_count&#39;</span><span class="p">:</span> <span class="n">checks_count</span><span class="p">,</span>
+            <span class="s1">&#39;overall_status&#39;</span><span class="p">:</span> <span class="n">aggregated_status</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s1">&#39;status_distribution&#39;</span><span class="p">:</span> <span class="p">{</span><span class="n">status</span><span class="o">.</span><span class="n">value</span><span class="p">:</span> <span class="n">count</span> <span class="k">for</span> <span class="n">status</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">status_counts</span><span class="o">.</span><span class="n">items</span><span class="p">()},</span>
+            <span class="s1">&#39;average_metrics_per_check&#39;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_metrics</span> <span class="o">/</span> <span class="n">checks_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">checks_count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;total_errors&#39;</span><span class="p">:</span> <span class="n">total_errors</span><span class="p">,</span>
+            <span class="s1">&#39;average_duration_ms&#39;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">total_duration_ms</span> <span class="o">/</span> <span class="n">checks_count</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">checks_count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;monitoring_stats&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">)</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="AdvancedHealthMonitor.export_diagnostics">
+<a class="viewcode-back" href="../../../services/infrastructure.html#claude_mpm.services.health_monitor.AdvancedHealthMonitor.export_diagnostics">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">export_diagnostics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Export comprehensive diagnostics information.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;monitor_info&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;check_interval&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">check_interval</span><span class="p">,</span>
+                <span class="s1">&#39;history_size&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">history_size</span><span class="p">,</span>
+                <span class="s1">&#39;aggregation_window&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation_window</span><span class="p">,</span>
+                <span class="s1">&#39;monitoring_active&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">monitoring</span><span class="p">,</span>
+                <span class="s1">&#39;checkers_count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">checkers</span><span class="p">),</span>
+                <span class="s1">&#39;callbacks_count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">health_callbacks</span><span class="p">)</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;checkers&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">checker</span><span class="o">.</span><span class="n">get_name</span><span class="p">()</span> <span class="k">for</span> <span class="n">checker</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkers</span><span class="p">],</span>
+            <span class="s1">&#39;current_status&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_check_result</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_check_result</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;aggregated_status&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_aggregated_status</span><span class="p">(),</span>
+            <span class="s1">&#39;monitoring_stats&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">monitoring_stats</span><span class="p">),</span>
+            <span class="s1">&#39;history_summary&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;total_checks&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="p">),</span>
+                <span class="s1">&#39;oldest_check&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">timestamp</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s1">&#39;newest_check&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">timestamp</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">health_history</span> <span class="k">else</span> <span class="kc">None</span>
+            <span class="p">}</span>
+        <span class="p">}</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

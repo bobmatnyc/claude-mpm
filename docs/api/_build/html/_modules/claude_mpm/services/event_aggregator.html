@@ -1,0 +1,695 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.event_aggregator &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.event_aggregator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.event_aggregator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Event Aggregator Service for Claude MPM.</span>
+
+<span class="sd">WHY: This service connects to the Socket.IO dashboard server as a client and</span>
+<span class="sd">captures all events emitted during Claude MPM sessions. It builds complete</span>
+<span class="sd">session representations that can be saved as JSON documents for analysis.</span>
+
+<span class="sd">DESIGN DECISION: We run as a Socket.IO client rather than modifying the server</span>
+<span class="sd">to avoid interfering with the existing dashboard functionality. This allows the</span>
+<span class="sd">aggregator to run alongside the dashboard without any conflicts.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">signal</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">socketio</span>
+    <span class="n">SOCKETIO_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">SOCKETIO_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">socketio</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..models.agent_session</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentSession</span><span class="p">,</span> <span class="n">EventCategory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+
+<div class="viewcode-block" id="EventAggregator">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EventAggregator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Aggregates Socket.IO events into complete agent sessions.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: The dashboard emits events in real-time but doesn&#39;t persist complete</span>
+<span class="sd">    sessions. This service captures those events and builds structured session</span>
+<span class="sd">    documents for analysis and debugging.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We maintain active sessions in memory and save them when</span>
+<span class="sd">    they complete or after a timeout. This balances memory usage with the need</span>
+<span class="sd">    to capture all events even if a session doesn&#39;t complete cleanly.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="EventAggregator.__init__">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8765</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the event aggregator.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            host: Socket.IO server host</span>
+<span class="sd">            port: Socket.IO server port</span>
+<span class="sd">            save_dir: Directory to save session files (defaults to .claude-mpm/sessions/)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">host</span> <span class="o">=</span> <span class="n">host</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">port</span> <span class="o">=</span> <span class="n">port</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;event_aggregator&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Load configuration</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span>
+        
+        <span class="c1"># Session storage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AgentSession</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_timeout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;event_aggregator.session_timeout_minutes&#39;</span><span class="p">,</span> <span class="mi">60</span><span class="p">)</span> <span class="o">*</span> <span class="mi">60</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Save directory - use config or provided dir or default to .claude-mpm/activity</span>
+        <span class="k">if</span> <span class="n">save_dir</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">activity_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;event_aggregator.activity_directory&#39;</span><span class="p">,</span> <span class="s1">&#39;.claude-mpm/activity&#39;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="n">activity_dir</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">activity_dir</span><span class="p">)</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">()</span> <span class="k">else</span> <span class="n">Path</span><span class="p">(</span><span class="n">activity_dir</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">save_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Socket.IO client</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Event statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">events_by_type</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sessions_completed</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="c1"># Cleanup task</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_task</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Event Aggregator initialized - will connect to </span><span class="si">{</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sessions will be saved to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="EventAggregator.start">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.start">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the aggregator service.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if started successfully, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">SOCKETIO_AVAILABLE</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Socket.IO client not available. Install python-socketio package.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Aggregator already running&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># Start the Socket.IO client in a background thread</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_client</span><span class="p">,</span> <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        
+        <span class="c1"># Wait a moment for connection</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Event Aggregator started successfully&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Failed to connect to Socket.IO server&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    
+<div class="viewcode-block" id="EventAggregator.stop">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.stop">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop the aggregator service.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Stopping Event Aggregator...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># Save all active sessions</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_all_sessions</span><span class="p">()</span>
+        
+        <span class="c1"># Disconnect Socket.IO client</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">asyncio</span><span class="o">.</span><span class="n">run_coroutine_threadsafe</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">disconnect</span><span class="p">(),</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">result</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="c1"># Stop the client thread</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Event Aggregator stopped - captured </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span><span class="si">}</span><span class="s2"> events&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Completed sessions: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">sessions_completed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_client</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the Socket.IO client in a background thread.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">new_event_loop</span><span class="p">()</span>
+        <span class="n">asyncio</span><span class="o">.</span><span class="n">set_event_loop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span><span class="o">.</span><span class="n">run_until_complete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_connect_and_listen</span><span class="p">())</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Client thread error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">client_loop</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_connect_and_listen</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Connect to Socket.IO server and listen for events.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span> <span class="o">=</span> <span class="n">socketio</span><span class="o">.</span><span class="n">AsyncClient</span><span class="p">(</span>
+                <span class="n">reconnection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">reconnection_attempts</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>  <span class="c1"># Infinite retries</span>
+                <span class="n">reconnection_delay</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                <span class="n">reconnection_delay_max</span><span class="o">=</span><span class="mi">5</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Register event handlers</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_register_handlers</span><span class="p">()</span>
+            
+            <span class="c1"># Connect to server</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;http://</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s1">&#39;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connecting to Socket.IO server at </span><span class="si">{</span><span class="n">url</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+            
+            <span class="c1"># Start cleanup task</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_periodic_cleanup</span><span class="p">())</span>
+            
+            <span class="c1"># Keep running until stopped</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+            
+            <span class="c1"># Cancel cleanup task</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_task</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_task</span>
+                <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Connection error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_handlers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register Socket.IO event handlers.&quot;&quot;&quot;</span>
+        
+        <span class="nd">@self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">event</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">connect</span><span class="p">():</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Handle connection to server.&quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Connected to Socket.IO server&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Request event history to catch up on any missed events</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="s1">&#39;get_history&#39;</span><span class="p">,</span> <span class="p">{</span>
+                <span class="s1">&#39;limit&#39;</span><span class="p">:</span> <span class="mi">100</span>
+            <span class="p">})</span>
+        
+        <span class="nd">@self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">event</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">disconnect</span><span class="p">():</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Handle disconnection from server.&quot;&quot;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Disconnected from Socket.IO server&quot;</span><span class="p">)</span>
+        
+        <span class="nd">@self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">event</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">claude_event</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Handle Claude events from the server.</span>
+<span class="sd">            </span>
+<span class="sd">            WHY: This is the main event handler that captures all events</span>
+<span class="sd">            emitted by the dashboard and processes them into sessions.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_event</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error processing event: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="nd">@self</span><span class="o">.</span><span class="n">sio_client</span><span class="o">.</span><span class="n">event</span>
+        <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">history</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Handle historical events from the server.</span>
+<span class="sd">            </span>
+<span class="sd">            WHY: When we connect, we request recent history to ensure we</span>
+<span class="sd">            don&#39;t miss events from sessions that started before we connected.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">events</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;events&#39;</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span><span class="si">}</span><span class="s2"> historical events&quot;</span><span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_process_event</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+                    
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error processing history: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_process_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process a single event and add it to the appropriate session.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Each event needs to be routed to the correct session and</span>
+<span class="sd">        processed according to its type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Extract event metadata</span>
+            <span class="n">event_type</span> <span class="o">=</span> <span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;timestamp&#39;</span><span class="p">,</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;Z&#39;</span><span class="p">)</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            
+            <span class="c1"># Update statistics</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">events_by_type</span><span class="p">[</span><span class="n">event_type</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="c1"># Determine session ID</span>
+            <span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_session_id</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span><span class="p">:</span>
+                <span class="c1"># Some events don&#39;t belong to a specific session</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Event </span><span class="si">{</span><span class="n">event_type</span><span class="si">}</span><span class="s2"> has no session ID, skipping&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+            
+            <span class="c1"># Get or create session</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_create_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">,</span> <span class="n">event_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+            
+            <span class="c1"># Add event to session</span>
+            <span class="n">session</span><span class="o">.</span><span class="n">add_event</span><span class="p">(</span><span class="n">event_type</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">)</span>
+            
+            <span class="c1"># Update last activity time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="c1"># Check if session ended</span>
+            <span class="k">if</span> <span class="n">event_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;session.end&#39;</span><span class="p">,</span> <span class="s1">&#39;Stop&#39;</span><span class="p">]:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+            
+            <span class="c1"># Log progress periodically</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Processed </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span><span class="si">}</span><span class="s2"> events, &quot;</span>
+                               <span class="sa">f</span><span class="s2">&quot;active sessions: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error processing event </span><span class="si">{</span><span class="n">event_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;type&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;unknown&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_session_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract session ID from event data.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Events use different field names for session ID depending on</span>
+<span class="sd">        their source and type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Try common session ID fields</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_id&#39;</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sessionId&#39;</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session&#39;</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sid&#39;</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># For session.start events, the session_id is the key piece of data</span>
+        <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s1">&#39;session.start&#39;</span> <span class="ow">and</span> <span class="s1">&#39;session_id&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># For hook events, check nested data</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">session_id</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;hook_data&#39;</span><span class="p">,</span> <span class="s1">&#39;event_data&#39;</span><span class="p">,</span> <span class="s1">&#39;context&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">nested_id</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_id&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;sessionId&#39;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">nested_id</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">nested_id</span>
+        
+        <span class="k">return</span> <span class="n">session_id</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_or_create_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                              <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentSession</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get existing session or create a new one.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Sessions are created on demand when we see the first event</span>
+<span class="sd">        for a new session ID.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">session_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">:</span>
+            <span class="c1"># Create new session</span>
+            <span class="n">session</span> <span class="o">=</span> <span class="n">AgentSession</span><span class="p">(</span>
+                <span class="n">session_id</span><span class="o">=</span><span class="n">session_id</span><span class="p">,</span>
+                <span class="n">start_time</span><span class="o">=</span><span class="n">timestamp</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Extract initial metadata if this is a session.start event</span>
+            <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s1">&#39;session.start&#39;</span><span class="p">:</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;working_directory&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">launch_method</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;launch_method&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">claude_pid</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;pid&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># Try to get git branch and project info</span>
+                <span class="n">instance_info</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instance_info&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">git_branch</span> <span class="o">=</span> <span class="n">instance_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;git_branch&#39;</span><span class="p">)</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">project_root</span> <span class="o">=</span> <span class="n">instance_info</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;working_dir&#39;</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">session</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created new session: </span><span class="si">{</span><span class="n">session_id</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_finalize_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Finalize and save a completed session.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: When a session ends, we need to calculate final metrics</span>
+<span class="sd">        and persist it to disk.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">session_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+        
+        <span class="c1"># Finalize the session</span>
+        <span class="n">session</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+        
+        <span class="c1"># Save to file</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">filepath</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">save_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved session </span><span class="si">{</span><span class="n">session_id</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">... to </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Events: </span><span class="si">{</span><span class="n">session</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_events</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Delegations: </span><span class="si">{</span><span class="n">session</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">total_delegations</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Tools used: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">tools_used</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - Files modified: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">files_modified</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">sessions_completed</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Remove from active sessions</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_periodic_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Periodically clean up inactive sessions.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Some sessions may not complete cleanly, so we need to</span>
+<span class="sd">        periodically save and remove inactive sessions to prevent</span>
+<span class="sd">        memory leaks.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>  <span class="c1"># Check every minute</span>
+                
+                <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">sessions_to_finalize</span> <span class="o">=</span> <span class="p">[]</span>
+                
+                <span class="k">for</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">last_time</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_activity</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+                    <span class="k">if</span> <span class="n">current_time</span> <span class="o">-</span> <span class="n">last_time</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_timeout</span><span class="p">:</span>
+                        <span class="n">sessions_to_finalize</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="n">sessions_to_finalize</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Finalizing inactive session: </span><span class="si">{</span><span class="n">session_id</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_finalize_session</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+                    
+            <span class="k">except</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in cleanup task: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_all_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save all active sessions to disk.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Called on shutdown to ensure we don&#39;t lose any data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">session</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+                <span class="n">session</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+                <span class="n">filepath</span> <span class="o">=</span> <span class="n">session</span><span class="o">.</span><span class="n">save_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved active session </span><span class="si">{</span><span class="n">session_id</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span><span class="si">}</span><span class="s2">... to </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="EventAggregator.get_status">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.get_status">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get current status of the aggregator.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Status dictionary with metrics and state</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;running&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">,</span>
+            <span class="s1">&#39;connected&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">,</span>
+            <span class="s1">&#39;server&#39;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">host</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="s1">&#39;save_directory&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="p">),</span>
+            <span class="s1">&#39;active_sessions&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">),</span>
+            <span class="s1">&#39;sessions_completed&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">sessions_completed</span><span class="p">,</span>
+            <span class="s1">&#39;total_events&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_events_captured</span><span class="p">,</span>
+            <span class="s1">&#39;events_by_type&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">events_by_type</span><span class="p">),</span>
+            <span class="s1">&#39;active_session_ids&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">sid</span><span class="p">[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span> <span class="k">for</span> <span class="n">sid</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">keys</span><span class="p">()]</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="EventAggregator.list_sessions">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.list_sessions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List captured sessions.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            limit: Maximum number of sessions to return</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of session summaries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Get saved session files</span>
+        <span class="n">session_files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;session_*.json&#39;</span><span class="p">),</span>
+            <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span>
+            <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="n">session_files</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Load just the metadata, not the full session</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                
+                <span class="n">sessions</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;file&#39;</span><span class="p">:</span> <span class="n">filepath</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                    <span class="s1">&#39;session_id&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_id&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">)[:</span><span class="mi">8</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span><span class="p">,</span>
+                    <span class="s1">&#39;start_time&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;start_time&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span>
+                    <span class="s1">&#39;end_time&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;end_time&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">),</span>
+                    <span class="s1">&#39;events&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_events&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                    <span class="s1">&#39;delegations&#39;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;total_delegations&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                    <span class="s1">&#39;initial_prompt&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;initial_prompt&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)[:</span><span class="mi">50</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span><span class="p">)</span> 
+                                     <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;initial_prompt&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="s1">&#39;N/A&#39;</span>
+                <span class="p">})</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error reading session file </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">sessions</span></div>
+
+    
+<div class="viewcode-block" id="EventAggregator.load_session">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.EventAggregator.load_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentSession</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load a session by ID prefix.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            session_id_prefix: First few characters of session ID</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            AgentSession if found, None otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Search for matching session file</span>
+        <span class="k">for</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">save_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s1">&#39;session_*.json&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">session_id_prefix</span> <span class="ow">in</span> <span class="n">filepath</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">AgentSession</span><span class="o">.</span><span class="n">load_from_file</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">filepath</span><span class="p">))</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading session from </span><span class="si">{</span><span class="n">filepath</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+</div>
+
+
+
+<span class="c1"># Global aggregator instance</span>
+<span class="n">_aggregator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">EventAggregator</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="get_aggregator">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.get_aggregator">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_aggregator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">EventAggregator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get or create the global aggregator instance.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_aggregator</span>
+    <span class="k">if</span> <span class="n">_aggregator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_aggregator</span> <span class="o">=</span> <span class="n">EventAggregator</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_aggregator</span></div>
+
+
+
+<div class="viewcode-block" id="start_aggregator">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.start_aggregator">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">start_aggregator</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Start the global aggregator service.&quot;&quot;&quot;</span>
+    <span class="n">aggregator</span> <span class="o">=</span> <span class="n">get_aggregator</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">aggregator</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="stop_aggregator">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.stop_aggregator">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">stop_aggregator</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Stop the global aggregator service.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_aggregator</span>
+    <span class="k">if</span> <span class="n">_aggregator</span><span class="p">:</span>
+        <span class="n">_aggregator</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+        <span class="n">_aggregator</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="aggregator_status">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.event_aggregator.aggregator_status">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">aggregator_status</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get status of the aggregator service.&quot;&quot;&quot;</span>
+    <span class="n">aggregator</span> <span class="o">=</span> <span class="n">get_aggregator</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">aggregator</span><span class="o">.</span><span class="n">get_status</span><span class="p">()</span></div>
+
+
+
+<span class="c1"># Signal handlers for graceful shutdown</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">_signal_handler</span><span class="p">(</span><span class="n">signum</span><span class="p">,</span> <span class="n">frame</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Handle shutdown signals.&quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;event_aggregator&quot;</span><span class="p">)</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Received signal </span><span class="si">{</span><span class="n">signum</span><span class="si">}</span><span class="s2">, shutting down...&quot;</span><span class="p">)</span>
+    <span class="n">stop_aggregator</span><span class="p">()</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+
+<span class="c1"># Register signal handlers</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGINT</span><span class="p">,</span> <span class="n">_signal_handler</span><span class="p">)</span>
+<span class="n">signal</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">signal</span><span class="o">.</span><span class="n">SIGTERM</span><span class="p">,</span> <span class="n">_signal_handler</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

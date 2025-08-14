@@ -1,0 +1,729 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.typing_utils &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.typing_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.typing_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Type definitions and utilities for Claude MPM.</span>
+
+<span class="sd">This module provides common type aliases, protocols, and TypedDict definitions</span>
+<span class="sd">used throughout the codebase to ensure consistent type safety.</span>
+
+<span class="sd">WHY: Centralizing type definitions reduces duplication, improves IDE support,</span>
+<span class="sd">and makes the codebase more maintainable by providing a single source of truth</span>
+<span class="sd">for complex type definitions.</span>
+
+<span class="sd">DESIGN DECISION: Uses protocols and TypedDict to provide structural typing</span>
+<span class="sd">that allows for more flexible and maintainable type checking while maintaining</span>
+<span class="sd">strict type safety.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span>
+    <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Awaitable</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">AsyncIterator</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing_extensions</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypedDict</span><span class="p">,</span> <span class="n">NotRequired</span><span class="p">,</span> <span class="n">TypeAlias</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.claude_runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClaudeRunner</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.socketio_server</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketIOClientProxy</span>
+
+
+<span class="c1"># Generic type variables</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+<span class="n">TSession</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;TSession&#39;</span><span class="p">)</span>  <span class="c1"># Generic session type</span>
+<span class="n">TAgent</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;TAgent&#39;</span><span class="p">)</span>  <span class="c1"># Generic agent type</span>
+<span class="n">TService</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;TService&#39;</span><span class="p">)</span>  <span class="c1"># Generic service type</span>
+
+<span class="c1"># Basic type aliases</span>
+<span class="n">PathLike</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]</span>
+<span class="n">JSONValue</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span>
+<span class="n">JSONDict</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">JSONValue</span><span class="p">]</span>
+<span class="n">Headers</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="n">ErrorCode</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+<span class="n">LogLevel</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">,</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="s2">&quot;CRITICAL&quot;</span><span class="p">]</span>
+
+<span class="c1"># Session types</span>
+<span class="n">SessionId</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">SessionStatus</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;initializing&quot;</span><span class="p">,</span> <span class="s2">&quot;running&quot;</span><span class="p">,</span> <span class="s2">&quot;stopped&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">,</span> <span class="s2">&quot;completed&quot;</span><span class="p">]</span>
+<span class="n">LaunchMethod</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;exec&quot;</span><span class="p">,</span> <span class="s2">&quot;subprocess&quot;</span><span class="p">,</span> <span class="s2">&quot;oneshot&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="SessionConfig">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for a Claude session.&quot;&quot;&quot;</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">SessionId</span>
+    <span class="n">launch_method</span><span class="p">:</span> <span class="n">LaunchMethod</span>
+    <span class="n">working_dir</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">enable_websocket</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">websocket_port</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">enable_tickets</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">claude_args</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">context</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="SessionResult">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionResult</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result from a session execution.&quot;&quot;&quot;</span>
+    <span class="n">success</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">SessionId</span>
+    <span class="n">response</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">execution_time</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">exit_code</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="SessionEvent">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionEvent">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionEvent</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Event logged during session execution.&quot;&quot;&quot;</span>
+    <span class="n">event</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">SessionId</span><span class="p">]</span>
+    <span class="n">success</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">exception_type</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span></div>
+
+
+
+<span class="c1"># Agent types</span>
+<span class="n">AgentId</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">AgentVersion</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">AgentTier</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;SYSTEM&quot;</span><span class="p">,</span> <span class="s2">&quot;USER&quot;</span><span class="p">,</span> <span class="s2">&quot;PROJECT&quot;</span><span class="p">]</span>
+<span class="n">ModelName</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">ResourceTier</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;premium&quot;</span><span class="p">,</span> <span class="s2">&quot;enterprise&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="AgentCapabilities">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentCapabilities">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentCapabilities</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Capabilities of an agent.&quot;&quot;&quot;</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">ModelName</span>
+    <span class="n">tools</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">resource_tier</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">ResourceTier</span><span class="p">]</span>
+    <span class="n">max_tokens</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">system_prompt</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="AgentMetadata">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentMetadata">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentMetadata</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Metadata for an agent.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+    <span class="n">author</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">updated_at</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="AgentDefinition">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentDefinition">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentDefinition</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Complete agent definition.&quot;&quot;&quot;</span>
+    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span>
+    <span class="n">version</span><span class="p">:</span> <span class="n">AgentVersion</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">AgentMetadata</span>
+    <span class="n">capabilities</span><span class="p">:</span> <span class="n">AgentCapabilities</span>
+    <span class="n">instructions</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tier</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">AgentTier</span><span class="p">]</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">PathLike</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># WebSocket/SocketIO types</span>
+<span class="n">EventName</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">EventData</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<span class="n">SocketId</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="WebSocketMessage">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketMessage">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WebSocketMessage</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;WebSocket message structure.&quot;&quot;&quot;</span>
+    <span class="n">event</span><span class="p">:</span> <span class="n">EventName</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">EventData</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">SessionId</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="ClaudeStatus">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ClaudeStatus">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ClaudeStatus</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Claude process status.&quot;&quot;&quot;</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;starting&quot;</span><span class="p">,</span> <span class="s2">&quot;running&quot;</span><span class="p">,</span> <span class="s2">&quot;stopped&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span>
+    <span class="n">pid</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="DelegationInfo">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.DelegationInfo">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DelegationInfo</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent delegation information.&quot;&quot;&quot;</span>
+    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span>
+    <span class="n">task</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;detected&quot;</span><span class="p">,</span> <span class="s2">&quot;started&quot;</span><span class="p">,</span> <span class="s2">&quot;completed&quot;</span><span class="p">,</span> <span class="s2">&quot;failed&quot;</span><span class="p">]</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span>
+    <span class="n">result</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># Hook types</span>
+<span class="n">HookName</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">HookPriority</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">int</span>
+<span class="n">HookResult</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Any</span>
+
+
+<div class="viewcode-block" id="HookConfig">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.HookConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HookConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hook configuration.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">HookName</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">priority</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">HookPriority</span><span class="p">]</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="HookContext">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.HookContext">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HookContext</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Context passed to hook handlers.&quot;&quot;&quot;</span>
+    <span class="n">hook_name</span><span class="p">:</span> <span class="n">HookName</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">SessionId</span><span class="p">]</span>
+    <span class="n">agent_id</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span></div>
+
+
+
+<span class="c1"># Service types</span>
+<span class="n">ServiceName</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">ServiceStatus</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;idle&quot;</span><span class="p">,</span> <span class="s2">&quot;running&quot;</span><span class="p">,</span> <span class="s2">&quot;stopped&quot;</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="ServiceConfig">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Service configuration.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">ServiceName</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">port</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">host</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceInfo">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceInfo">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceInfo</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Service information.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">ServiceName</span>
+    <span class="n">status</span><span class="p">:</span> <span class="n">ServiceStatus</span>
+    <span class="n">uptime</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">requests_handled</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">last_error</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># Memory types</span>
+<span class="n">MemoryType</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Literal</span><span class="p">[</span>
+    <span class="s2">&quot;pattern&quot;</span><span class="p">,</span> <span class="s2">&quot;architecture&quot;</span><span class="p">,</span> <span class="s2">&quot;guideline&quot;</span><span class="p">,</span> <span class="s2">&quot;mistake&quot;</span><span class="p">,</span> 
+    <span class="s2">&quot;strategy&quot;</span><span class="p">,</span> <span class="s2">&quot;integration&quot;</span><span class="p">,</span> <span class="s2">&quot;performance&quot;</span><span class="p">,</span> <span class="s2">&quot;context&quot;</span>
+<span class="p">]</span>
+<span class="n">MemoryId</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+
+
+<div class="viewcode-block" id="Memory">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.Memory">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Memory</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent memory entry.&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="n">MemoryId</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">MemoryType</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">relevance_score</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span>
+    <span class="n">usage_count</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span></div>
+
+
+
+<div class="viewcode-block" id="MemorySearchResult">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.MemorySearchResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemorySearchResult</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result from memory search.&quot;&quot;&quot;</span>
+    <span class="n">memory</span><span class="p">:</span> <span class="n">Memory</span>
+    <span class="n">score</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">matches</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span></div>
+
+
+
+<span class="c1"># Project and deployment types</span>
+<div class="viewcode-block" id="ProjectConfig">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ProjectConfig">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProjectConfig</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Project-specific configuration.&quot;&quot;&quot;</span>
+    <span class="n">project_name</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">agent_deployment</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+    <span class="n">excluded_agents</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]]</span>
+    <span class="n">included_agents</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]]</span>
+    <span class="n">custom_agents_path</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">PathLike</span><span class="p">]</span>
+    <span class="n">memory_enabled</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span>
+    <span class="n">websocket_enabled</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="DeploymentResult">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.DeploymentResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DeploymentResult</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result from agent deployment.&quot;&quot;&quot;</span>
+    <span class="n">deployed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]</span>
+    <span class="n">failed</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">AgentId</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span>
+    <span class="n">skipped</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]</span>
+    <span class="n">total_time</span><span class="p">:</span> <span class="nb">float</span></div>
+
+
+
+<span class="c1"># Response logging types</span>
+<div class="viewcode-block" id="ResponseLogEntry">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ResponseLogEntry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ResponseLogEntry</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Entry in response log.&quot;&quot;&quot;</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">request_summary</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">response_content</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">SessionId</span><span class="p">]</span>
+    <span class="n">execution_time</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span></div>
+
+
+
+<span class="c1"># Command/CLI types</span>
+<span class="n">CommandName</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="nb">str</span>
+<span class="n">CommandArgs</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="CommandResult">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.CommandResult">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CommandResult</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result from command execution.&quot;&quot;&quot;</span>
+    <span class="n">success</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">output</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">error</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">exit_code</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+
+<span class="c1"># Protocols for structural typing</span>
+
+<div class="viewcode-block" id="SessionProtocol">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionProtocol">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for session handlers.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SessionProtocol.initialize_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionProtocol.initialize_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the session.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="SessionProtocol.execute_command">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionProtocol.execute_command">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
+                        <span class="n">infrastructure</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute a command.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="SessionProtocol.cleanup_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.SessionProtocol.cleanup_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up the session.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LoggerProtocol">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.LoggerProtocol">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LoggerProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for loggers.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="LoggerProtocol.log_system">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.LoggerProtocol.log_system">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_system</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">level</span><span class="p">:</span> <span class="n">LogLevel</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span> 
+                   <span class="n">component</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log a system message.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="LoggerProtocol.log_agent">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.LoggerProtocol.log_agent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                  <span class="n">level</span><span class="p">:</span> <span class="n">LogLevel</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log an agent message.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="LoggerProtocol.get_session_summary">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.LoggerProtocol.get_session_summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_session_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get session summary.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="WebSocketServerProtocol">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">WebSocketServerProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for WebSocket server.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.start">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.start">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the server.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.session_started">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.session_started">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">session_started</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="n">SessionId</span><span class="p">,</span> <span class="n">launch_method</span><span class="p">:</span> <span class="n">LaunchMethod</span><span class="p">,</span>
+                       <span class="n">working_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Notify session start.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.session_ended">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.session_ended">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">session_ended</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Notify session end.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.claude_status_changed">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.claude_status_changed">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claude_status_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update Claude status.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.claude_output">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.claude_output">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">claude_output</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">stream</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s2">&quot;stdout&quot;</span><span class="p">,</span> <span class="s2">&quot;stderr&quot;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Send Claude output.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="WebSocketServerProtocol.agent_delegated">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.WebSocketServerProtocol.agent_delegated">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">agent_delegated</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Notify agent delegation.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AgentServiceProtocol">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentServiceProtocol">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentServiceProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for agent service.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AgentServiceProtocol.deploy_agents">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentServiceProtocol.deploy_agents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deploy_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentDefinition</span><span class="p">],</span> 
+                     <span class="n">target_dir</span><span class="p">:</span> <span class="n">PathLike</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DeploymentResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deploy agents to target directory.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="AgentServiceProtocol.discover_agents">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentServiceProtocol.discover_agents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">discover_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">AgentTier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentDefinition</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discover agents at specified tier.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="AgentServiceProtocol.get_agent">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.AgentServiceProtocol.get_agent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentTier</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentDefinition</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get specific agent.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MemoryServiceProtocol">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.MemoryServiceProtocol">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryServiceProtocol</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for memory service.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MemoryServiceProtocol.add_memory">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.MemoryServiceProtocol.add_memory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memory</span><span class="p">:</span> <span class="n">Memory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a memory entry.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceProtocol.search_memories">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.MemoryServiceProtocol.search_memories">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search_memories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentId</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">memory_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">MemoryType</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">MemorySearchResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search memories.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceProtocol.get_relevant_memories">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.MemoryServiceProtocol.get_relevant_memories">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_relevant_memories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">AgentId</span><span class="p">,</span>
+                             <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Memory</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get relevant memories for context.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<span class="c1"># Factory function types</span>
+<span class="n">SessionFactory</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="n">SessionProtocol</span><span class="p">]</span>
+<span class="n">ServiceFactory</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ServiceConfig</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
+<span class="n">LoggerFactory</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">]</span>
+
+
+<span class="c1"># Validation function types</span>
+<span class="n">Validator</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Any</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span>
+<span class="n">Transformer</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">],</span> <span class="n">T</span><span class="p">]</span>
+<span class="n">ErrorHandler</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="ne">Exception</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+
+
+<span class="c1"># Async types for future use</span>
+<span class="n">AsyncSessionResult</span> <span class="o">=</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">SessionResult</span><span class="p">]</span>
+<span class="n">AsyncCommandResult</span> <span class="o">=</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">CommandResult</span><span class="p">]</span>
+<span class="n">AsyncDeploymentResult</span> <span class="o">=</span> <span class="n">Awaitable</span><span class="p">[</span><span class="n">DeploymentResult</span><span class="p">]</span>
+
+
+<span class="c1"># Container/Dependency injection types</span>
+<div class="viewcode-block" id="ServiceContainer">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceContainer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceContainer</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Protocol for service container.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ServiceContainer.register">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceContainer.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">factory</span><span class="p">:</span> <span class="n">ServiceFactory</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a service.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="ServiceContainer.get">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceContainer.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a service instance.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+
+    
+<div class="viewcode-block" id="ServiceContainer.has">
+<a class="viewcode-back" href="../../../claude_mpm.core.typing_utils.html#claude_mpm.core.typing_utils.ServiceContainer.has">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">has</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if service is registered.&quot;&quot;&quot;</span>
+        <span class="o">...</span></div>
+</div>
+
+
+
+<span class="c1"># Event system types</span>
+<span class="n">EventHandler</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">EventData</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span>
+<span class="n">EventFilter</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">EventData</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">EventSubscription</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Event subscription details.&quot;&quot;&quot;</span>
+    <span class="n">event</span><span class="p">:</span> <span class="n">EventName</span>
+    <span class="n">handler</span><span class="p">:</span> <span class="n">EventHandler</span>
+    <span class="nb">filter</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">EventFilter</span><span class="p">]</span>
+    <span class="n">priority</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span>
+
+
+<span class="c1"># Testing types (for test files)</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TestFixture</span><span class="p">(</span><span class="n">TypedDict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Test fixture data.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">setup</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span>
+    <span class="n">teardown</span><span class="p">:</span> <span class="n">NotRequired</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[],</span> <span class="kc">None</span><span class="p">]]</span>
+
+
+<span class="c1"># Export commonly used type combinations</span>
+<span class="n">CommonTypes</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+<span class="n">ConfigDict</span> <span class="o">=</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">CommonTypes</span><span class="p">]</span>
+<span class="n">ErrorResult</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span>
+<span class="n">SuccessResult</span> <span class="o">=</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+
+
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="c1"># Basic type aliases</span>
+    <span class="s1">&#39;PathLike&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONValue&#39;</span><span class="p">,</span> <span class="s1">&#39;JSONDict&#39;</span><span class="p">,</span> <span class="s1">&#39;Headers&#39;</span><span class="p">,</span> <span class="s1">&#39;ErrorCode&#39;</span><span class="p">,</span> <span class="s1">&#39;LogLevel&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Session types</span>
+    <span class="s1">&#39;SessionId&#39;</span><span class="p">,</span> <span class="s1">&#39;SessionStatus&#39;</span><span class="p">,</span> <span class="s1">&#39;LaunchMethod&#39;</span><span class="p">,</span> <span class="s1">&#39;SessionConfig&#39;</span><span class="p">,</span> 
+    <span class="s1">&#39;SessionResult&#39;</span><span class="p">,</span> <span class="s1">&#39;SessionEvent&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Agent types</span>
+    <span class="s1">&#39;AgentId&#39;</span><span class="p">,</span> <span class="s1">&#39;AgentVersion&#39;</span><span class="p">,</span> <span class="s1">&#39;AgentTier&#39;</span><span class="p">,</span> <span class="s1">&#39;ModelName&#39;</span><span class="p">,</span> <span class="s1">&#39;ResourceTier&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;AgentCapabilities&#39;</span><span class="p">,</span> <span class="s1">&#39;AgentMetadata&#39;</span><span class="p">,</span> <span class="s1">&#39;AgentDefinition&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># WebSocket types</span>
+    <span class="s1">&#39;EventName&#39;</span><span class="p">,</span> <span class="s1">&#39;EventData&#39;</span><span class="p">,</span> <span class="s1">&#39;SocketId&#39;</span><span class="p">,</span> <span class="s1">&#39;WebSocketMessage&#39;</span><span class="p">,</span> 
+    <span class="s1">&#39;ClaudeStatus&#39;</span><span class="p">,</span> <span class="s1">&#39;DelegationInfo&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Hook types</span>
+    <span class="s1">&#39;HookName&#39;</span><span class="p">,</span> <span class="s1">&#39;HookPriority&#39;</span><span class="p">,</span> <span class="s1">&#39;HookResult&#39;</span><span class="p">,</span> <span class="s1">&#39;HookConfig&#39;</span><span class="p">,</span> <span class="s1">&#39;HookContext&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Service types</span>
+    <span class="s1">&#39;ServiceName&#39;</span><span class="p">,</span> <span class="s1">&#39;ServiceStatus&#39;</span><span class="p">,</span> <span class="s1">&#39;ServiceConfig&#39;</span><span class="p">,</span> <span class="s1">&#39;ServiceInfo&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Memory types</span>
+    <span class="s1">&#39;MemoryType&#39;</span><span class="p">,</span> <span class="s1">&#39;MemoryId&#39;</span><span class="p">,</span> <span class="s1">&#39;Memory&#39;</span><span class="p">,</span> <span class="s1">&#39;MemorySearchResult&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Other types</span>
+    <span class="s1">&#39;ProjectConfig&#39;</span><span class="p">,</span> <span class="s1">&#39;DeploymentResult&#39;</span><span class="p">,</span> <span class="s1">&#39;ResponseLogEntry&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;CommandName&#39;</span><span class="p">,</span> <span class="s1">&#39;CommandArgs&#39;</span><span class="p">,</span> <span class="s1">&#39;CommandResult&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Protocols</span>
+    <span class="s1">&#39;SessionProtocol&#39;</span><span class="p">,</span> <span class="s1">&#39;LoggerProtocol&#39;</span><span class="p">,</span> <span class="s1">&#39;WebSocketServerProtocol&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;AgentServiceProtocol&#39;</span><span class="p">,</span> <span class="s1">&#39;MemoryServiceProtocol&#39;</span><span class="p">,</span> <span class="s1">&#39;ServiceContainer&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Generic type variables</span>
+    <span class="s1">&#39;T&#39;</span><span class="p">,</span> <span class="s1">&#39;TSession&#39;</span><span class="p">,</span> <span class="s1">&#39;TAgent&#39;</span><span class="p">,</span> <span class="s1">&#39;TService&#39;</span><span class="p">,</span>
+    
+    <span class="c1"># Common combinations</span>
+    <span class="s1">&#39;CommonTypes&#39;</span><span class="p">,</span> <span class="s1">&#39;ConfigDict&#39;</span><span class="p">,</span> <span class="s1">&#39;ErrorResult&#39;</span><span class="p">,</span> <span class="s1">&#39;SuccessResult&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

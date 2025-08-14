@@ -1,0 +1,492 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.config.agent_config &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.config.agent_config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.config.agent_config</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Agent Configuration Module</span>
+
+<span class="sd">Provides configuration support for agent loading across all tiers,</span>
+<span class="sd">with special support for PROJECT-level agent directories.</span>
+
+<span class="sd">This module handles:</span>
+<span class="sd">- Agent directory discovery and configuration</span>
+<span class="sd">- Environment variable support for agent paths</span>
+<span class="sd">- Project-specific agent overrides</span>
+<span class="sd">- Tier precedence configuration</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config_paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigPaths</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="AgentPrecedenceMode">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentPrecedenceMode">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentPrecedenceMode</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent loading precedence modes.&quot;&quot;&quot;</span>
+    <span class="n">STRICT</span> <span class="o">=</span> <span class="s2">&quot;strict&quot;</span>       <span class="c1"># PROJECT &gt; USER &gt; SYSTEM (no fallback)</span>
+    <span class="n">OVERRIDE</span> <span class="o">=</span> <span class="s2">&quot;override&quot;</span>   <span class="c1"># PROJECT &gt; USER &gt; SYSTEM (with fallback)</span>
+    <span class="n">MERGE</span> <span class="o">=</span> <span class="s2">&quot;merge&quot;</span>        <span class="c1"># Merge agents from all tiers</span></div>
+
+
+
+<div class="viewcode-block" id="AgentConfig">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Configuration for agent loading and discovery.&quot;&quot;&quot;</span>
+    
+    <span class="c1"># Agent directory paths</span>
+    <span class="n">project_agents_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">user_agents_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">system_agents_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="c1"># Additional search paths (from environment or config)</span>
+    <span class="n">additional_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    
+    <span class="c1"># Precedence configuration</span>
+    <span class="n">precedence_mode</span><span class="p">:</span> <span class="n">AgentPrecedenceMode</span> <span class="o">=</span> <span class="n">AgentPrecedenceMode</span><span class="o">.</span><span class="n">OVERRIDE</span>
+    
+    <span class="c1"># Feature flags</span>
+    <span class="n">enable_project_agents</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">enable_user_agents</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">enable_system_agents</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">enable_hot_reload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    
+    <span class="c1"># Cache configuration</span>
+    <span class="n">cache_ttl_seconds</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3600</span>
+    <span class="n">enable_caching</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    
+    <span class="c1"># Validation settings</span>
+    <span class="n">validate_on_load</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">strict_validation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    
+<div class="viewcode-block" id="AgentConfig.from_environment">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig.from_environment">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_environment</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create configuration from environment variables.</span>
+<span class="sd">        </span>
+<span class="sd">        Environment variables:</span>
+<span class="sd">        - CLAUDE_MPM_PROJECT_AGENTS_DIR: Override project agents directory</span>
+<span class="sd">        - CLAUDE_MPM_USER_AGENTS_DIR: Override user agents directory</span>
+<span class="sd">        - CLAUDE_MPM_SYSTEM_AGENTS_DIR: Override system agents directory</span>
+<span class="sd">        - CLAUDE_MPM_AGENT_SEARCH_PATH: Additional paths (colon-separated)</span>
+<span class="sd">        - CLAUDE_MPM_AGENT_PRECEDENCE: Precedence mode (strict/override/merge)</span>
+<span class="sd">        - CLAUDE_MPM_DISABLE_PROJECT_AGENTS: Disable project agents</span>
+<span class="sd">        - CLAUDE_MPM_DISABLE_USER_AGENTS: Disable user agents</span>
+<span class="sd">        - CLAUDE_MPM_DISABLE_SYSTEM_AGENTS: Disable system agents</span>
+<span class="sd">        - CLAUDE_MPM_AGENT_HOT_RELOAD: Enable/disable hot reload</span>
+<span class="sd">        - CLAUDE_MPM_AGENT_CACHE_TTL: Cache TTL in seconds</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        
+        <span class="c1"># Directory overrides</span>
+        <span class="k">if</span> <span class="n">proj_dir</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_PROJECT_AGENTS_DIR&#39;</span><span class="p">):</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">proj_dir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project agents directory override: </span><span class="si">{</span><span class="n">proj_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">user_dir</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_USER_AGENTS_DIR&#39;</span><span class="p">):</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">user_dir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User agents directory override: </span><span class="si">{</span><span class="n">user_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">sys_dir</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_SYSTEM_AGENTS_DIR&#39;</span><span class="p">):</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">sys_dir</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;System agents directory override: </span><span class="si">{</span><span class="n">sys_dir</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Additional search paths</span>
+        <span class="k">if</span> <span class="n">search_path</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_AGENT_SEARCH_PATH&#39;</span><span class="p">):</span>
+            <span class="n">paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">search_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">strip</span><span class="p">()]</span>
+            <span class="n">config</span><span class="o">.</span><span class="n">additional_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">paths</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">exists</span><span class="p">()]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Additional agent search paths: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">additional_paths</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Precedence mode</span>
+        <span class="k">if</span> <span class="n">precedence</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_AGENT_PRECEDENCE&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">precedence_mode</span> <span class="o">=</span> <span class="n">AgentPrecedenceMode</span><span class="p">(</span><span class="n">precedence</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agent precedence mode: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">precedence_mode</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid precedence mode: </span><span class="si">{</span><span class="n">precedence</span><span class="si">}</span><span class="s2">, using default&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Feature flags</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">enable_project_agents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_DISABLE_PROJECT_AGENTS&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;true&#39;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">enable_user_agents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_DISABLE_USER_AGENTS&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;true&#39;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">enable_system_agents</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_DISABLE_SYSTEM_AGENTS&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s1">&#39;true&#39;</span>
+        <span class="n">config</span><span class="o">.</span><span class="n">enable_hot_reload</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_AGENT_HOT_RELOAD&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span>
+        
+        <span class="c1"># Cache configuration</span>
+        <span class="k">if</span> <span class="n">cache_ttl</span> <span class="o">:=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s1">&#39;CLAUDE_MPM_AGENT_CACHE_TTL&#39;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">cache_ttl_seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cache_ttl</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid cache TTL: </span><span class="si">{</span><span class="n">cache_ttl</span><span class="si">}</span><span class="s2">, using default&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">config</span></div>
+
+    
+<div class="viewcode-block" id="AgentConfig.from_file">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig.from_file">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">config_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Load configuration from a JSON or YAML file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config_file: Path to configuration file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            AgentConfig instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Config file not found: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">config_file</span><span class="o">.</span><span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.yaml&#39;</span><span class="p">,</span> <span class="s1">&#39;.yml&#39;</span><span class="p">]:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">config_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            
+            <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+            
+            <span class="c1"># Parse directory paths</span>
+            <span class="k">if</span> <span class="s1">&#39;project_agents_dir&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;project_agents_dir&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;user_agents_dir&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;user_agents_dir&#39;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="s1">&#39;system_agents_dir&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;system_agents_dir&#39;</span><span class="p">])</span>
+            
+            <span class="c1"># Parse additional paths</span>
+            <span class="k">if</span> <span class="s1">&#39;additional_paths&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">additional_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">Path</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;additional_paths&#39;</span><span class="p">]]</span>
+            
+            <span class="c1"># Parse precedence mode</span>
+            <span class="k">if</span> <span class="s1">&#39;precedence_mode&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">precedence_mode</span> <span class="o">=</span> <span class="n">AgentPrecedenceMode</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;precedence_mode&#39;</span><span class="p">])</span>
+            
+            <span class="c1"># Parse feature flags</span>
+            <span class="k">for</span> <span class="n">flag</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;enable_project_agents&#39;</span><span class="p">,</span> <span class="s1">&#39;enable_user_agents&#39;</span><span class="p">,</span> 
+                        <span class="s1">&#39;enable_system_agents&#39;</span><span class="p">,</span> <span class="s1">&#39;enable_hot_reload&#39;</span><span class="p">,</span>
+                        <span class="s1">&#39;enable_caching&#39;</span><span class="p">,</span> <span class="s1">&#39;validate_on_load&#39;</span><span class="p">,</span> <span class="s1">&#39;strict_validation&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">flag</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">flag</span><span class="p">,</span> <span class="nb">bool</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">flag</span><span class="p">]))</span>
+            
+            <span class="c1"># Parse cache TTL</span>
+            <span class="k">if</span> <span class="s1">&#39;cache_ttl_seconds&#39;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">cache_ttl_seconds</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;cache_ttl_seconds&#39;</span><span class="p">])</span>
+            
+            <span class="k">return</span> <span class="n">config</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading config from </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="AgentConfig.auto_discover">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig.auto_discover">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">auto_discover</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Automatically discover agent directories and create configuration.</span>
+<span class="sd">        </span>
+<span class="sd">        This method:</span>
+<span class="sd">        1. Checks environment variables first</span>
+<span class="sd">        2. Looks for config files in standard locations</span>
+<span class="sd">        3. Auto-discovers agent directories</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            AgentConfig with discovered settings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Start with environment configuration</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_environment</span><span class="p">()</span>
+        
+        <span class="c1"># Look for config file if not already configured</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">user_agents_dir</span><span class="p">:</span>
+            <span class="c1"># Check for project config file</span>
+            <span class="n">project_config</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">CONFIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;agent_config.yaml&#39;</span>
+            <span class="k">if</span> <span class="n">project_config</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading project agent config from </span><span class="si">{</span><span class="n">project_config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">file_config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">project_config</span><span class="p">)</span>
+                <span class="c1"># Merge with environment config (env takes precedence)</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_merge_configs</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">file_config</span><span class="p">)</span>
+            
+            <span class="c1"># Check for user config file</span>
+            <span class="n">user_config_dir</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">user_config_dir</span><span class="p">:</span>
+                <span class="n">user_config</span> <span class="o">=</span> <span class="n">user_config_dir</span> <span class="o">/</span> <span class="s1">&#39;agent_config.yaml&#39;</span>
+                <span class="k">if</span> <span class="n">user_config</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading user agent config from </span><span class="si">{</span><span class="n">user_config</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">file_config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">user_config</span><span class="p">)</span>
+                    <span class="n">config</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_merge_configs</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">file_config</span><span class="p">)</span>
+        
+        <span class="c1"># Auto-discover directories if not configured</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">project_agents_dir</span><span class="p">:</span>
+            <span class="n">project_agents</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">CONFIG_DIR</span> <span class="o">/</span> <span class="s1">&#39;agents&#39;</span>
+            <span class="k">if</span> <span class="n">project_agents</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="o">=</span> <span class="n">project_agents</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-discovered project agents at </span><span class="si">{</span><span class="n">project_agents</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">user_agents_dir</span><span class="p">:</span>
+            <span class="n">user_agents</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_agents_dir</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">user_agents</span> <span class="ow">and</span> <span class="n">user_agents</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="o">=</span> <span class="n">user_agents</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-discovered user agents at </span><span class="si">{</span><span class="n">user_agents</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">config</span><span class="o">.</span><span class="n">system_agents_dir</span><span class="p">:</span>
+            <span class="c1"># Default to built-in agents</span>
+            <span class="n">system_agents</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s1">&#39;agents&#39;</span>
+            <span class="k">if</span> <span class="n">system_agents</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">config</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="o">=</span> <span class="n">system_agents</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-discovered system agents at </span><span class="si">{</span><span class="n">system_agents</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">config</span></div>
+
+    
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_merge_configs</span><span class="p">(</span><span class="n">primary</span><span class="p">:</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">,</span> <span class="n">secondary</span><span class="p">:</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;AgentConfig&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merge two configurations, with primary taking precedence.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            primary: Primary configuration (higher precedence)</span>
+<span class="sd">            secondary: Secondary configuration (lower precedence)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Merged configuration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="p">()</span>
+        
+        <span class="c1"># Merge directory paths (primary takes precedence)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="ow">or</span> <span class="n">secondary</span><span class="o">.</span><span class="n">project_agents_dir</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="ow">or</span> <span class="n">secondary</span><span class="o">.</span><span class="n">user_agents_dir</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="ow">or</span> <span class="n">secondary</span><span class="o">.</span><span class="n">system_agents_dir</span>
+        
+        <span class="c1"># Merge additional paths</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">additional_paths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">primary</span><span class="o">.</span><span class="n">additional_paths</span> <span class="o">+</span> <span class="n">secondary</span><span class="o">.</span><span class="n">additional_paths</span><span class="p">))</span>
+        
+        <span class="c1"># Use primary&#39;s settings for other fields</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">precedence_mode</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">precedence_mode</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">enable_project_agents</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">enable_project_agents</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">enable_user_agents</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">enable_user_agents</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">enable_system_agents</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">enable_system_agents</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">enable_hot_reload</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">enable_hot_reload</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">cache_ttl_seconds</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">cache_ttl_seconds</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">enable_caching</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">enable_caching</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">validate_on_load</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">validate_on_load</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">strict_validation</span> <span class="o">=</span> <span class="n">primary</span><span class="o">.</span><span class="n">strict_validation</span>
+        
+        <span class="k">return</span> <span class="n">result</span>
+    
+<div class="viewcode-block" id="AgentConfig.get_enabled_tiers">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig.get_enabled_tiers">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_enabled_tiers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get enabled agent directories by tier.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping tier names to their paths (if enabled)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tiers</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_project_agents</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_agents_dir</span><span class="p">:</span>
+            <span class="n">tiers</span><span class="p">[</span><span class="s1">&#39;project&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_agents_dir</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_user_agents</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_agents_dir</span><span class="p">:</span>
+            <span class="n">tiers</span><span class="p">[</span><span class="s1">&#39;user&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_agents_dir</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_system_agents</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_agents_dir</span><span class="p">:</span>
+            <span class="n">tiers</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_agents_dir</span>
+        
+        <span class="k">return</span> <span class="n">tiers</span></div>
+
+    
+<div class="viewcode-block" id="AgentConfig.to_dict">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.AgentConfig.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert configuration to dictionary for serialization.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;project_agents_dir&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">project_agents_dir</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_agents_dir</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;user_agents_dir&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user_agents_dir</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">user_agents_dir</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;system_agents_dir&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">system_agents_dir</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">system_agents_dir</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s1">&#39;additional_paths&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">additional_paths</span><span class="p">],</span>
+            <span class="s1">&#39;precedence_mode&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">precedence_mode</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s1">&#39;enable_project_agents&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_project_agents</span><span class="p">,</span>
+            <span class="s1">&#39;enable_user_agents&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_user_agents</span><span class="p">,</span>
+            <span class="s1">&#39;enable_system_agents&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_system_agents</span><span class="p">,</span>
+            <span class="s1">&#39;enable_hot_reload&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_hot_reload</span><span class="p">,</span>
+            <span class="s1">&#39;cache_ttl_seconds&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_ttl_seconds</span><span class="p">,</span>
+            <span class="s1">&#39;enable_caching&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_caching</span><span class="p">,</span>
+            <span class="s1">&#39;validate_on_load&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_on_load</span><span class="p">,</span>
+            <span class="s1">&#39;strict_validation&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">strict_validation</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<span class="c1"># Global configuration instance</span>
+<span class="n">_global_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentConfig</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="get_agent_config">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.get_agent_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_agent_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AgentConfig</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the global agent configuration.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        AgentConfig instance (auto-discovered if not set)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_config</span>
+    <span class="k">if</span> <span class="n">_global_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_global_config</span> <span class="o">=</span> <span class="n">AgentConfig</span><span class="o">.</span><span class="n">auto_discover</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_global_config</span></div>
+
+
+
+<div class="viewcode-block" id="set_agent_config">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.set_agent_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_agent_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">AgentConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set the global agent configuration.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        config: AgentConfig instance to use globally</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_config</span>
+    <span class="n">_global_config</span> <span class="o">=</span> <span class="n">config</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agent configuration updated: </span><span class="si">{</span><span class="n">config</span><span class="o">.</span><span class="n">get_enabled_tiers</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="reset_agent_config">
+<a class="viewcode-back" href="../../../claude_mpm.config.agent_config.html#claude_mpm.config.reset_agent_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">reset_agent_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reset the global agent configuration to auto-discover on next access.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_config</span>
+    <span class="n">_global_config</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Agent configuration reset&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

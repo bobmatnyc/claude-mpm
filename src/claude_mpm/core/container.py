@@ -18,6 +18,7 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Set, Type, TypeVar, Union
 
 from .logger import get_logger
+from claude_mpm.services.core.interfaces import IServiceContainer
 
 logger = get_logger(__name__)
 
@@ -144,9 +145,12 @@ class ServiceScope:
         self.dispose()
 
 
-class DIContainer:
+class DIContainer(IServiceContainer):
     """
     Enhanced Dependency Injection Container.
+    
+    Implements IServiceContainer interface to provide a complete
+    dependency injection solution.
     
     Provides:
     - Service registration with multiple lifetime options
@@ -175,6 +179,34 @@ class DIContainer:
         
     def register(
         self,
+        service_type: type,
+        implementation: type,
+        singleton: bool = True
+    ) -> None:
+        """
+        Register a service implementation (IServiceContainer interface method).
+        
+        Args:
+            service_type: The interface/base type to register
+            implementation: The concrete implementation class
+            singleton: Whether to use singleton lifetime (default True)
+            
+        Examples:
+            # Register interface with implementation
+            container.register(ILogger, ConsoleLogger)
+            
+            # Register as transient (new instance each time)
+            container.register(IService, ServiceImpl, singleton=False)
+        """
+        lifetime = ServiceLifetime.SINGLETON if singleton else ServiceLifetime.TRANSIENT
+        self._register_internal(
+            service_type=service_type,
+            implementation=implementation,
+            lifetime=lifetime
+        )
+    
+    def _register_internal(
+        self,
         service_type: Type[T],
         implementation: Optional[Union[Type[T], Callable[..., T]]] = None,
         lifetime: ServiceLifetime = ServiceLifetime.SINGLETON,
@@ -183,7 +215,7 @@ class DIContainer:
         dependencies: Optional[Dict[str, Type]] = None
     ) -> None:
         """
-        Register a service in the container.
+        Internal registration method with full flexibility.
         
         Args:
             service_type: The interface/base type to register
@@ -192,19 +224,6 @@ class DIContainer:
             factory: Optional factory function
             instance: Pre-created instance (for singleton)
             dependencies: Explicit dependency mapping for constructor params
-            
-        Examples:
-            # Register interface with implementation
-            container.register(ILogger, ConsoleLogger)
-            
-            # Register with factory
-            container.register(IDatabase, factory=lambda c: Database(c.resolve(IConfig)))
-            
-            # Register singleton instance
-            container.register(IConfig, instance=Config())
-            
-            # Register with explicit dependencies
-            container.register(IService, ServiceImpl, dependencies={'logger': ILogger})
         """
         with self._lock:
             registration = ServiceRegistration(
@@ -220,6 +239,50 @@ class DIContainer:
             # If instance provided, store as singleton
             if instance is not None:
                 self._singletons[service_type] = instance
+    
+    def register_instance(self, service_type: type, instance: Any) -> None:
+        """
+        Register a service instance (IServiceContainer interface method).
+        
+        Args:
+            service_type: The interface/base type to register
+            instance: Pre-created instance to register as singleton
+            
+        Examples:
+            # Register a pre-created instance
+            config = Config()
+            container.register_instance(IConfig, config)
+        """
+        self._register_internal(
+            service_type=service_type,
+            instance=instance,
+            lifetime=ServiceLifetime.SINGLETON
+        )
+    
+    def resolve_all(self, service_type: type) -> List[Any]:
+        """
+        Resolve all implementations of a service type (IServiceContainer interface method).
+        
+        Args:
+            service_type: The type to resolve
+            
+        Returns:
+            List of all registered implementations for the service type
+            
+        Examples:
+            # Register multiple implementations
+            container.register(IPlugin, PluginA)
+            container.register(IPlugin, PluginB)
+            
+            # Get all implementations
+            plugins = container.resolve_all(IPlugin)
+        """
+        with self._lock:
+            # For now, return a list with the single registered implementation
+            # In the future, we could support multiple registrations for the same type
+            if service_type in self._registrations:
+                return [self._resolve_internal(service_type)]
+            return []
                 
     def register_singleton(
         self,
@@ -274,12 +337,12 @@ class DIContainer:
         else:
             # Normal registration without name
             if instance is not None:
-                self.register(interface, instance=instance)
+                self._register_internal(interface, instance=instance)
             elif implementation is not None and not inspect.isclass(implementation):
                 # It's an instance passed as implementation (backward compatibility)
-                self.register(interface, instance=implementation)
+                self._register_internal(interface, instance=implementation)
             else:
-                self.register(interface, implementation, lifetime=ServiceLifetime.SINGLETON)
+                self._register_internal(interface, implementation, lifetime=ServiceLifetime.SINGLETON)
                 
         # Handle disposal handler
         if dispose_handler:
@@ -321,7 +384,7 @@ class DIContainer:
                 context = container.get(IRequestContext)  # Created
                 context2 = container.get(IRequestContext)  # Same instance
         """
-        self.register(interface, implementation, lifetime=ServiceLifetime.SCOPED)
+        self._register_internal(interface, implementation, lifetime=ServiceLifetime.SCOPED)
         if name:
             self._named_registrations[name] = self._registrations[interface]
     
@@ -335,7 +398,7 @@ class DIContainer:
         
         Convenience method for registering transient services.
         """
-        self.register(service_type, implementation, lifetime=ServiceLifetime.TRANSIENT)
+        self._register_internal(service_type, implementation, lifetime=ServiceLifetime.TRANSIENT)
         
     def register_factory(
         self,
@@ -363,7 +426,7 @@ class DIContainer:
                 lifetime=ServiceLifetime.SINGLETON
             )
         """
-        self.register(interface, factory=factory, lifetime=lifetime)
+        self._register_internal(interface, factory=factory, lifetime=lifetime)
         self._factories[interface] = factory
         if name:
             self._named_registrations[name] = self._registrations[interface]
@@ -551,6 +614,12 @@ class DIContainer:
                         module = frame.f_globals
                         if param_type in module:
                             param_type = module[param_type]
+                        else:
+                            # Try looking in registrations by name
+                            for reg_type in self._registrations:
+                                if reg_type.__name__ == param_type:
+                                    param_type = reg_type
+                                    break
                     except:
                         # If we can't resolve, skip this parameter
                         if param.default != param.empty:
@@ -564,11 +633,13 @@ class DIContainer:
                     param_type = next((arg for arg in args if arg is not type(None)), None)
                     
                 if param_type and param_type in self._registrations:
-                    # Avoid circular dependency by checking if we're already resolving this type
-                    if param_type not in self._resolving:
+                    # Check for circular dependency
+                    if param_type in self._resolving:
+                        # Circular dependency detected
+                        cycle = " -> ".join(str(t.__name__) for t in self._resolving) + f" -> {param_type.__name__}"
+                        raise CircularDependencyError(f"Circular dependency detected: {cycle}")
+                    else:
                         kwargs[param_name] = self.resolve(param_type)
-                    elif param.default != param.empty:
-                        kwargs[param_name] = param.default
                 elif param.default != param.empty:
                     # Use default value
                     kwargs[param_name] = param.default

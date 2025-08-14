@@ -3,7 +3,7 @@
 This guide provides comprehensive documentation for the Claude MPM service layer, including service domains, interfaces, implementations, usage examples, and lifecycle management.
 
 **Last Updated**: 2025-08-14  
-**Architecture Version**: 3.7.8  
+**Architecture Version**: 3.8.2  
 **Related Documents**: [ARCHITECTURE.md](../ARCHITECTURE.md), [TESTING.md](../TESTING.md)
 
 ## Table of Contents
