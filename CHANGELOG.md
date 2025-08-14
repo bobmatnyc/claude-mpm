@@ -5,6 +5,8 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0] - 2025-08-14
+
 ## [3.9.0] - 2025-08-14
 
 ### ✨ Enhanced Memory Management System
@@ -36,6 +38,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Foundation for dynamic mem0AI Memory integration (planned for future releases)
   - Consistent memory interface ready for advanced AI memory systems
   - Backwards compatible with existing memory workflows
+
+### 🎫 Ticketing Agent Improvements
+- **FIX**: Resolved config file creation error in ticket_manager.py
+  - Fixed "'str' object has no attribute 'parent'" error
+  - ai-trackdown-pytools Config.create_default() now receives Path object correctly
+  - Both ticket_manager.py and ticket_manager_di.py updated with proper Path handling
+- **ENHANCEMENT**: Added ISS/TSK creation rules to ticketing agent
+  - ISS tickets are always created by PM and attached to Epics
+  - TSK tickets are always created by agents for implementation work
+  - Clear hierarchy enforcement: Epic → Issue (PM) → Task (Agent)
+- **IMPROVEMENT**: Embedded help reference in ticketing agent instructions
+  - Common commands documented inline to avoid repeated help calls
+  - Quick reference for listing, searching, viewing, and updating tickets
+  - Clear examples for proper ticket hierarchy creation
 
 ### 🔧 Infrastructure & Documentation Fixes
 - **CRITICAL**: Read the Docs configuration fixes from v3.8.4 maintained
