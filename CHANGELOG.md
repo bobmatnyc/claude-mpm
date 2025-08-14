@@ -5,6 +5,36 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.3] - 2025-08-14
+
+### 🚨 Critical Infrastructure Fixes
+
+#### GitHub Actions Deprecation Updates
+- **CRITICAL**: Updated actions/upload-artifact and actions/download-artifact from v3 to v4
+  - v3 actions will stop working on January 30, 2025
+  - Ensures continued CI/CD pipeline functionality
+- Updated actions/setup-python from v4 to v5 for latest Node.js compatibility
+- Updated actions/cache from v3 to v4 for improved caching performance
+- Updated nwtgck/actions-netlify from v2.0 to v3.0 for deployment stability
+
+#### Documentation Build Infrastructure
+- **CRITICAL**: Fixed invalid Read the Docs configuration causing build failures
+  - Corrected python.install configuration syntax errors
+  - Removed duplicate configuration entries that violated RTD v2 specification
+  - Restored automated documentation building and deployment
+
+### 🔧 DevOps & Infrastructure
+- All CI/CD workflows now use supported action versions
+- Documentation builds restored to full functionality
+- Improved deployment pipeline reliability
+- Enhanced GitHub Actions security and performance
+
+### 💡 Impact
+This patch release addresses critical infrastructure issues that would have caused:
+- Complete CI/CD pipeline failures starting January 30, 2025
+- Documentation build failures on Read the Docs platform
+- Potential deployment and release process disruptions
+
 ## [3.8.2] - 2025-08-14
 
 ### 🐛 Bug Fixes & Improvements (TSK-0057 Epic)
