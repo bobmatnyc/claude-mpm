@@ -325,14 +325,14 @@ class Config:
                 "enabled": True,                    # Master switch for memory system
                 "auto_learning": True,              # Automatic learning extraction (changed default to True)
                 "limits": {
-                    "default_size_kb": 8,           # Default file size limit
+                    "default_size_kb": 80,          # Default file size limit (80KB ~20k tokens)
                     "max_sections": 10,             # Maximum sections per file
                     "max_items_per_section": 15,    # Maximum items per section
                     "max_line_length": 120          # Maximum line length
                 },
                 "agent_overrides": {
                     "research": {                   # Research agent override
-                        "size_kb": 16,              # Can have larger memory
+                        "size_kb": 120,             # Can have larger memory (120KB ~30k tokens)
                         "auto_learning": True       # Enable auto learning
                     },
                     "qa": {                         # QA agent override
