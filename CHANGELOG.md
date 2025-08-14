@@ -5,6 +5,33 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.1] - 2025-08-14
+
+### 📝 Documentation & Polish
+- Enhanced CHANGELOG.md with complete v3.8.0 release notes
+- Added comprehensive ticket tracking for refactoring epic (EP-0006)
+- Documented all 19 completed refactoring tasks across 4 phases
+- Added performance validation benchmarks and reports
+- Fixed metadata stripping in PM instructions loader
+
+### 🐛 Bug Fixes
+- Fixed HTML metadata comments appearing in PM instructions
+- Corrected agent version inconsistencies in deployed agents
+- Fixed import errors in test files
+- Resolved linting issues identified during code review
+
+### 🧪 Testing
+- All E2E tests passing (11/11)
+- Core functionality verified stable
+- Performance benchmarks validated (startup: 1.66s)
+- Security framework tested with zero vulnerabilities
+
+### 📊 Metrics
+- Maintained B+ grade codebase health
+- Test coverage sustained at >85%
+- Zero security issues
+- All performance targets exceeded
+
 ## [3.8.0] - 2025-08-14
 
 ### 🎉 Major Refactoring Complete
