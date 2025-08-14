@@ -1,0 +1,111 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2025-08-14T05:02:51.018719Z",
+    "execution_time": 6.067489147186279,
+    "total_tests": 7,
+    "successful_tests": 7,
+    "failed_tests": 0,
+    "target_hit_rate": 50.0,
+    "meets_target": true
+  },
+  "aggregate_metrics": {
+    "average_hit_rate_percent": 62.691694352159466,
+    "average_operations_per_second": 86840.45556075896,
+    "total_operations": 3060,
+    "cache_effectiveness_score": 100
+  },
+  "test_results": [
+    {
+      "test_name": "Basic Operations",
+      "operation_count": 1000,
+      "duration_seconds": 0.018352031707763672,
+      "hit_rate_percent": 100.0,
+      "miss_rate_percent": 0.0,
+      "operations_per_second": 54489.87969963884,
+      "memory_usage_mb": 0.4876995086669922,
+      "cache_size_entries": 500,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:44.969964Z"
+    },
+    {
+      "test_name": "Hit Rate Pattern (sequential)",
+      "operation_count": 500,
+      "duration_seconds": 0.002991199493408203,
+      "hit_rate_percent": 100.0,
+      "miss_rate_percent": 0.0,
+      "operations_per_second": 167157.02215845688,
+      "memory_usage_mb": 0.06522178649902344,
+      "cache_size_entries": 125,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:44.973315Z"
+    },
+    {
+      "test_name": "Hit Rate Pattern (random)",
+      "operation_count": 500,
+      "duration_seconds": 0.0030031204223632812,
+      "hit_rate_percent": 51.4,
+      "miss_rate_percent": 48.6,
+      "operations_per_second": 166493.48999682438,
+      "memory_usage_mb": 0.06474494934082031,
+      "cache_size_entries": 125,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:44.976395Z"
+    },
+    {
+      "test_name": "Hit Rate Pattern (mixed)",
+      "operation_count": 500,
+      "duration_seconds": 0.0028297901153564453,
+      "hit_rate_percent": 70.0,
+      "miss_rate_percent": 30.0,
+      "operations_per_second": 176691.549414441,
+      "memory_usage_mb": 0.06462574005126953,
+      "cache_size_entries": 125,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:44.979340Z"
+    },
+    {
+      "test_name": "Concurrency Test",
+      "operation_count": 250,
+      "duration_seconds": 0.007355928421020508,
+      "hit_rate_percent": 17.441860465116278,
+      "miss_rate_percent": 82.55813953488372,
+      "operations_per_second": 33986.1925906719,
+      "memory_usage_mb": 0.01499176025390625,
+      "cache_size_entries": 65,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:44.986788Z"
+    },
+    {
+      "test_name": "Memory Efficiency",
+      "operation_count": 250,
+      "duration_seconds": 0.027608871459960938,
+      "hit_rate_percent": 100.0,
+      "miss_rate_percent": 0.0,
+      "operations_per_second": 9055.060449050086,
+      "memory_usage_mb": 0.8082437515258789,
+      "cache_size_entries": 250,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:45.014668Z"
+    },
+    {
+      "test_name": "TTL Behavior",
+      "operation_count": 60,
+      "duration_seconds": 6.003232002258301,
+      "hit_rate_percent": 0.0,
+      "miss_rate_percent": 100.0,
+      "operations_per_second": 9.994616229629164,
+      "memory_usage_mb": 0.0,
+      "cache_size_entries": 0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:51.018100Z"
+    }
+  ],
+  "failed_tests": []
+}

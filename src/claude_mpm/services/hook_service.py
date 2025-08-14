@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 from claude_mpm.core.config import Config
-from claude_mpm.core.logger import get_logger
+from claude_mpm.core.logging_config import get_logger, log_operation
 from claude_mpm.hooks.base_hook import (
     BaseHook,
     PreDelegationHook,
@@ -25,9 +25,10 @@ from claude_mpm.hooks.base_hook import (
     HookResult,
     HookType
 )
+from claude_mpm.core.interfaces import HookServiceInterface
 
 
-class HookService:
+class HookService(HookServiceInterface):
     """Service for managing and executing hooks in the delegation workflow.
     
     WHY: Provides a centralized place to register and execute hooks, ensuring
@@ -47,7 +48,7 @@ class HookService:
             config: Optional configuration object for controlling hook behavior
         """
         self.config = config or Config()
-        self.logger = get_logger("hook_service")
+        self.logger = get_logger(__name__)
         
         # Separate lists for different hook types for performance
         self.pre_delegation_hooks: List[PreDelegationHook] = []
@@ -360,3 +361,62 @@ class HookService:
                 
         self.logger.warning(f"Hook not found: {hook_name}")
         return False
+    
+    # ================================================================================
+    # Interface Adapter Methods
+    # ================================================================================
+    # These methods are added to comply with HookServiceInterface
+    
+    def get_registered_hooks(self) -> Dict[str, List[Any]]:
+        """Get all registered hooks by type.
+        
+        WHY: This method provides interface compliance by exposing the
+        registered hooks for inspection and debugging purposes.
+        
+        Returns:
+            Dictionary mapping hook types to lists of hooks
+        """
+        return {
+            "pre_delegation": [
+                {
+                    "name": hook.name,
+                    "priority": hook.priority,
+                    "enabled": hook.enabled,
+                    "type": "pre_delegation"
+                }
+                for hook in self.pre_delegation_hooks
+            ],
+            "post_delegation": [
+                {
+                    "name": hook.name,
+                    "priority": hook.priority,
+                    "enabled": hook.enabled,
+                    "type": "post_delegation"
+                }
+                for hook in self.post_delegation_hooks
+            ]
+        }
+    
+    def clear_hooks(self, hook_type: Optional[str] = None) -> None:
+        """Clear registered hooks.
+        
+        WHY: This method provides interface compliance by allowing bulk
+        removal of hooks, useful for testing and cleanup scenarios.
+        
+        Args:
+            hook_type: Optional specific hook type to clear, or None for all
+        """
+        if hook_type is None or hook_type == "pre_delegation":
+            count = len(self.pre_delegation_hooks)
+            self.pre_delegation_hooks.clear()
+            if count > 0:
+                self.logger.info(f"Cleared {count} pre-delegation hooks")
+        
+        if hook_type is None or hook_type == "post_delegation":
+            count = len(self.post_delegation_hooks)
+            self.post_delegation_hooks.clear()
+            if count > 0:
+                self.logger.info(f"Cleared {count} post-delegation hooks")
+        
+        if hook_type and hook_type not in ["pre_delegation", "post_delegation"]:
+            self.logger.warning(f"Unknown hook type: {hook_type}")

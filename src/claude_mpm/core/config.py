@@ -14,6 +14,7 @@ import json
 
 from ..utils.config_manager import ConfigurationManager
 from .config_paths import ConfigPaths
+from .exceptions import ConfigurationError
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +441,10 @@ class Config:
             elif format.lower() in ["yaml", "yml"]:
                 self._config_mgr.save_yaml(self._config, file_path)
             else:
-                raise ValueError(f"Unsupported format: {format}")
+                raise ConfigurationError(
+                    f"Unsupported configuration format: {format}",
+                    context={"format": format, "supported_formats": ["json", "yaml", "yml"]}
+                )
 
             logger.info(f"Configuration saved to {file_path}")
 

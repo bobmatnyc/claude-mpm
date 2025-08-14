@@ -34,13 +34,20 @@ import time
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
-from claude_mpm.core.logger import get_logger
+from claude_mpm.core.logging_config import get_logger, log_operation, log_performance_context
+from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.constants import EnvironmentVars, Paths, AgentMetadata
 from claude_mpm.config.paths import paths
 from claude_mpm.core.config import Config
+from claude_mpm.core.constants import (
+    TimeoutConfig,
+    SystemLimits,
+    ResourceLimits
+)
+from claude_mpm.core.interfaces import AgentDeploymentInterface
 
 
-class AgentDeploymentService:
+class AgentDeploymentService(AgentDeploymentInterface):
     """Service for deploying Claude Code native agents.
     
     METRICS COLLECTION OPPORTUNITIES:
@@ -85,7 +92,7 @@ class AgentDeploymentService:
         - Base agent loading time
         - Initial validation overhead
         """
-        self.logger = get_logger(self.__class__.__name__)
+        self.logger = get_logger(__name__)
         
         # METRICS: Initialize deployment metrics tracking
         # This data structure would be used for collecting deployment telemetry
@@ -207,125 +214,36 @@ class AgentDeploymentService:
         
         # Try async deployment for better performance if requested
         if use_async:
-            try:
-                from .async_agent_deployment import deploy_agents_async_wrapper
-                self.logger.info("Using async deployment for improved performance")
-                
-                # Run async deployment
-                results = deploy_agents_async_wrapper(
-                    templates_dir=self.templates_dir,
-                    base_agent_path=self.base_agent_path,
-                    working_directory=self.working_directory,
-                    target_dir=target_dir,
-                    force_rebuild=force_rebuild,
-                    config=config
-                )
-                
-                # Add metrics about async vs sync
-                if 'metrics' in results:
-                    results['metrics']['deployment_method'] = 'async'
-                    duration_ms = results['metrics'].get('duration_ms', 0)
-                    self.logger.info(f"Async deployment completed in {duration_ms:.1f}ms")
-                    
-                    # Update internal metrics
-                    self._deployment_metrics['total_deployments'] += 1
-                    if not results.get('errors'):
-                        self._deployment_metrics['successful_deployments'] += 1
-                    else:
-                        self._deployment_metrics['failed_deployments'] += 1
-                
-                return results
-                
-            except ImportError:
-                self.logger.warning("Async deployment not available, falling back to sync")
-            except Exception as e:
-                self.logger.warning(f"Async deployment failed, falling back to sync: {e}")
+            async_results = self._try_async_deployment(
+                target_dir=target_dir,
+                force_rebuild=force_rebuild,
+                config=config,
+                deployment_start_time=deployment_start_time
+            )
+            if async_results is not None:
+                return async_results
         
         # Continue with synchronous deployment
         self.logger.info("Using synchronous deployment")
         
-        # Load configuration if not provided
-        if config is None:
-            config = Config()
+        # Load and process configuration
+        config, excluded_agents = self._load_deployment_config(config)
         
-        # Get agent exclusion configuration
-        excluded_agents = config.get('agent_deployment.excluded_agents', [])
-        case_sensitive = config.get('agent_deployment.case_sensitive', False)
-        exclude_dependencies = config.get('agent_deployment.exclude_dependencies', False)
+        # Determine target agents directory
+        agents_dir = self._determine_agents_directory(target_dir)
         
-        # Normalize excluded agents list for comparison
-        if not case_sensitive:
-            excluded_agents = [agent.lower() for agent in excluded_agents]
-        
-        # Log exclusion configuration if agents are being excluded
-        if excluded_agents:
-            self.logger.info(f"Excluding agents from deployment: {excluded_agents}")
-            self.logger.debug(f"Case sensitive matching: {case_sensitive}")
-            self.logger.debug(f"Exclude dependencies: {exclude_dependencies}")
-        
-        if not target_dir:
-            # Default to working directory's .claude/agents directory (not home)
-            # This ensures we deploy to the user's project directory, not the framework directory
-            agents_dir = self.working_directory / ".claude" / "agents"
-        else:
-            # If target_dir provided, use it directly (caller decides structure)
-            # This allows for both passing a project dir or the full agents path
-            target_dir = Path(target_dir)
-            # Check if this is already an agents directory
-            if target_dir.name == "agents":
-                # Already an agents directory, use as-is
-                agents_dir = target_dir
-            elif target_dir.name == ".claude-mpm":
-                # .claude-mpm directory, add agents subdirectory
-                agents_dir = target_dir / "agents"
-            elif target_dir.name == ".claude":
-                # .claude directory, add agents subdirectory
-                agents_dir = target_dir / "agents"
-            else:
-                # Assume it's a project directory, add .claude/agents
-                agents_dir = target_dir / ".claude" / "agents"
-        
-        results = {
-            "target_dir": str(agents_dir),
-            "deployed": [],
-            "errors": [],
-            "skipped": [],
-            "updated": [],
-            "migrated": [],  # Track agents migrated from old format
-            "converted": [],  # Track YAML to MD conversions
-            "repaired": [],  # Track agents with repaired frontmatter
-            "total": 0,
-            # METRICS: Add detailed timing and performance data to results
-            "metrics": {
-                "start_time": deployment_start_time,
-                "end_time": None,
-                "duration_ms": None,
-                "agent_timings": {},  # Track individual agent deployment times
-                "validation_times": {},  # Track template validation times
-                "resource_usage": {}  # Could track memory/CPU if needed
-            }
-        }
+        # Initialize results dictionary
+        results = self._initialize_deployment_results(agents_dir, deployment_start_time)
         
         try:
             # Create agents directory if needed
             agents_dir.mkdir(parents=True, exist_ok=True)
             
             # STEP 0: Validate and repair broken frontmatter in existing agents
-            # This ensures all existing agents have valid YAML frontmatter before deploying new ones
-            repair_results = self._validate_and_repair_existing_agents(agents_dir)
-            if repair_results["repaired"]:
-                results["repaired"] = repair_results["repaired"]
-                self.logger.info(f"Repaired frontmatter in {len(repair_results['repaired'])} existing agents")
-                for agent_name in repair_results["repaired"]:
-                    self.logger.debug(f"  - Repaired: {agent_name}")
+            self._repair_existing_agents(agents_dir, results)
             
-            # Determine source tier for logging
-            source_tier = "SYSTEM"
-            if ".claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
-                source_tier = "PROJECT" 
-            elif "/.claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
-                source_tier = "USER"
-            
+            # Log deployment source tier
+            source_tier = self._determine_source_tier()
             self.logger.info(f"Building and deploying {source_tier} agents to: {agents_dir}")
             
             # Note: System instructions are now loaded directly by SimpleClaudeRunner
@@ -342,162 +260,23 @@ class AgentDeploymentService:
             results["converted"] = conversion_results.get("converted", [])
             
             # Load base agent content
-            # OPERATIONAL NOTE: Base agent contains shared configuration and instructions
-            # that all agents inherit. This reduces duplication and ensures consistency.
-            # If base agent fails to load, deployment continues with agent-specific configs only.
-            base_agent_data = {}
-            base_agent_version = 0
-            if self.base_agent_path.exists():
-                try:
-                    import json
-                    base_agent_data = json.loads(self.base_agent_path.read_text())
-                    # Handle both 'base_version' (new format) and 'version' (old format)
-                    # MIGRATION PATH: Supporting both formats during transition period
-                    base_agent_version = self._parse_version(base_agent_data.get('base_version') or base_agent_data.get('version', 0))
-                    self.logger.info(f"Loaded base agent template (version {self._format_version_display(base_agent_version)})")
-                except Exception as e:
-                    # NON-FATAL: Base agent is optional enhancement, not required
-                    self.logger.warning(f"Could not load base agent: {e}")
+            base_agent_data, base_agent_version = self._load_base_agent()
             
-            # Get all template files
-            template_files = list(self.templates_dir.glob("*.json"))
-            
-            # Build the combined exclusion set
-            # Start with hardcoded exclusions (these are ALWAYS excluded)
-            hardcoded_exclusions = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", "README", "pm", "PM", "project_manager"}
-            
-            # Add user-configured exclusions
-            user_exclusions = set()
-            for agent in excluded_agents:
-                if case_sensitive:
-                    user_exclusions.add(agent)
-                else:
-                    # For case-insensitive, we'll check during filtering
-                    user_exclusions.add(agent.lower())
-            
-            # Filter out excluded agents
-            filtered_files = []
-            excluded_count = 0
-            for f in template_files:
-                agent_name = f.stem
-                
-                # Check hardcoded exclusions (always case-sensitive)
-                if agent_name in hardcoded_exclusions:
-                    self.logger.debug(f"Excluding {agent_name}: hardcoded system exclusion")
-                    excluded_count += 1
-                    continue
-                
-                # Check file patterns
-                if agent_name.startswith(".") or agent_name.endswith(".backup"):
-                    self.logger.debug(f"Excluding {agent_name}: file pattern exclusion")
-                    excluded_count += 1
-                    continue
-                
-                # Check user-configured exclusions
-                compare_name = agent_name.lower() if not case_sensitive else agent_name
-                if compare_name in user_exclusions:
-                    self.logger.info(f"Excluding {agent_name}: user-configured exclusion")
-                    excluded_count += 1
-                    continue
-                
-                # Agent is not excluded, add to filtered list
-                filtered_files.append(f)
-            
-            template_files = filtered_files
+            # Get and filter template files
+            template_files = self._get_filtered_templates(excluded_agents, config)
             results["total"] = len(template_files)
             
-            if excluded_count > 0:
-                self.logger.info(f"Excluded {excluded_count} agents from deployment")
-            
+            # Deploy each agent template
             for template_file in template_files:
-                try:
-                    # METRICS: Track individual agent deployment time
-                    agent_start_time = time.time()
-                    
-                    agent_name = template_file.stem
-                    target_file = agents_dir / f"{agent_name}.md"
-                    
-                    # Check if agent needs update
-                    needs_update = force_rebuild
-                    is_migration = False
-                    
-                    # In project deployment mode, always deploy regardless of version
-                    if deployment_mode == "project":
-                        if target_file.exists():
-                            # Check if it's a system agent that we should update
-                            needs_update = True
-                            self.logger.debug(f"Project deployment mode: will deploy {agent_name}")
-                        else:
-                            needs_update = True
-                    elif not needs_update and target_file.exists():
-                        # In update mode, check version compatibility
-                        needs_update, reason = self._check_agent_needs_update(
-                            target_file, template_file, base_agent_version
-                        )
-                        if needs_update:
-                            # Check if this is a migration from old format
-                            if "migration needed" in reason:
-                                is_migration = True
-                                self.logger.info(f"Migrating agent {agent_name}: {reason}")
-                            else:
-                                self.logger.info(f"Agent {agent_name} needs update: {reason}")
-                    
-                    # Skip if exists and doesn't need update (only in update mode)
-                    if target_file.exists() and not needs_update and deployment_mode != "project":
-                        results["skipped"].append(agent_name)
-                        self.logger.debug(f"Skipped up-to-date agent: {agent_name}")
-                        continue
-                    
-                    # Build the agent file as markdown with YAML frontmatter
-                    agent_content = self._build_agent_markdown(agent_name, template_file, base_agent_data)
-                    
-                    # Write the agent file
-                    is_update = target_file.exists()
-                    target_file.write_text(agent_content)
-                    
-                    # METRICS: Record deployment time for this agent
-                    agent_deployment_time = (time.time() - agent_start_time) * 1000  # Convert to ms
-                    results["metrics"]["agent_timings"][agent_name] = agent_deployment_time
-                    
-                    # METRICS: Update agent type deployment counts
-                    self._deployment_metrics['agent_type_counts'][agent_name] = \
-                        self._deployment_metrics['agent_type_counts'].get(agent_name, 0) + 1
-                    
-                    if is_migration:
-                        results["migrated"].append({
-                            "name": agent_name,
-                            "template": str(template_file),
-                            "target": str(target_file),
-                            "reason": reason,
-                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
-                        })
-                        self.logger.info(f"Successfully migrated agent: {agent_name} to semantic versioning")
-                        
-                        # METRICS: Track migration statistics
-                        self._deployment_metrics['migrations_performed'] += 1
-                        self._deployment_metrics['version_migration_count'] += 1
-                        
-                    elif is_update:
-                        results["updated"].append({
-                            "name": agent_name,
-                            "template": str(template_file),
-                            "target": str(target_file),
-                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
-                        })
-                        self.logger.debug(f"Updated agent: {agent_name}")
-                    else:
-                        results["deployed"].append({
-                            "name": agent_name,
-                            "template": str(template_file),
-                            "target": str(target_file),
-                            "deployment_time_ms": agent_deployment_time  # METRICS: Include timing
-                        })
-                        self.logger.debug(f"Built and deployed agent: {agent_name}")
-                    
-                except Exception as e:
-                    error_msg = f"Failed to build {template_file.name}: {e}"
-                    self.logger.error(error_msg)
-                    results["errors"].append(error_msg)
+                self._deploy_single_agent(
+                    template_file=template_file,
+                    agents_dir=agents_dir,
+                    base_agent_data=base_agent_data,
+                    base_agent_version=base_agent_version,
+                    force_rebuild=force_rebuild,
+                    deployment_mode=deployment_mode,
+                    results=results
+                )
             
             self.logger.info(
                 f"Deployed {len(results['deployed'])} agents, "
@@ -509,7 +288,12 @@ class AgentDeploymentService:
                 f"errors: {len(results['errors'])}"
             )
             
+        except AgentDeploymentError as e:
+            # Custom error with context already formatted
+            self.logger.error(str(e))
+            results["errors"].append(str(e))
         except Exception as e:
+            # Wrap unexpected errors
             error_msg = f"Agent deployment failed: {e}"
             self.logger.error(error_msg)
             results["errors"].append(error_msg)
@@ -740,13 +524,31 @@ class AgentDeploymentService:
         # IMPORTANT: No spaces after commas - Claude Code requires exact format
         tools_str = ','.join(tools) if isinstance(tools, list) else tools
         
+        # Validate tools format - CRITICAL: No spaces allowed!
+        if ', ' in tools_str:
+            self.logger.error(f"Tools contain spaces: '{tools_str}'")
+            raise AgentDeploymentError(
+                f"Tools must be comma-separated WITHOUT spaces",
+                context={"agent_name": agent_name, "invalid_tools": tools_str}
+            )
+        
         # Extract proper agent_id and name from template
         agent_id = template_data.get('agent_id', agent_name)
         display_name = template_data.get('metadata', {}).get('name', agent_id)
         
         # Convert agent_id to Claude Code compatible name (replace underscores with hyphens)
         # Claude Code requires name to match pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+        # CRITICAL: NO underscores allowed - they cause silent failures!
         claude_code_name = agent_id.replace('_', '-').lower()
+        
+        # Validate the name before proceeding
+        import re
+        if not re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', claude_code_name):
+            self.logger.error(f"Invalid agent name '{claude_code_name}' - must match ^[a-z0-9]+(-[a-z0-9]+)*$")
+            raise AgentDeploymentError(
+                f"Agent name '{claude_code_name}' does not meet Claude Code requirements",
+                context={"agent_name": agent_name, "invalid_name": claude_code_name}
+            )
         
         # Build frontmatter with only the fields Claude Code uses
         frontmatter_lines = [
@@ -1228,9 +1030,15 @@ temperature: {temperature}"""
             
             return True
             
+        except AgentDeploymentError:
+            # Re-raise our custom exceptions
+            raise
         except Exception as e:
-            self.logger.error(f"Failed to deploy agent {agent_name}: {e}")
-            return False
+            # Wrap generic exceptions with context
+            raise AgentDeploymentError(
+                f"Failed to deploy agent {agent_name}",
+                context={"agent_name": agent_name, "error": str(e)}
+            ) from e
     
     def list_available_agents(self) -> List[Dict[str, Any]]:
         """
@@ -1498,6 +1306,7 @@ temperature: {temperature}"""
                 error_msg = f"Failed to remove {agent_file.name}: {e}"
                 self.logger.error(error_msg)
                 results["errors"].append(error_msg)
+                # Not raising AgentDeploymentError here to continue cleanup
         
         return results
     
@@ -1726,10 +1535,10 @@ temperature: {temperature}"""
         """
         # Base configuration all agents share
         base_config = {
-            'timeout': 600,
-            'max_tokens': 8192,
-            'memory_limit': 2048,
-            'cpu_limit': 50,
+            'timeout': TimeoutConfig.DEFAULT_TIMEOUT,
+            'max_tokens': SystemLimits.MAX_TOKEN_LIMIT,
+            'memory_limit': ResourceLimits.STANDARD_MEMORY_RANGE[0],  # Use lower bound of standard memory
+            'cpu_limit': ResourceLimits.STANDARD_CPU_RANGE[1],  # Use upper bound of standard CPU
             'network_access': True,
         }
         
@@ -1913,6 +1722,7 @@ temperature: {temperature}"""
             error_msg = f"Failed to deploy system instructions: {e}"
             self.logger.error(error_msg)
             results["errors"].append(error_msg)
+            # Not raising AgentDeploymentError as this is non-critical
     
     def _convert_yaml_to_md(self, target_dir: Path) -> Dict[str, Any]:
         """
@@ -2122,6 +1932,443 @@ metadata:
         
         return None
     
+    def _try_async_deployment(self, target_dir: Optional[Path], force_rebuild: bool, 
+                              config: Optional[Config], deployment_start_time: float) -> Optional[Dict[str, Any]]:
+        """
+        Try to use async deployment for better performance.
+        
+        WHY: Async deployment is 50-70% faster than synchronous deployment
+        by using concurrent operations for file I/O and processing.
+        
+        Args:
+            target_dir: Target directory for deployment
+            force_rebuild: Whether to force rebuild
+            config: Configuration object
+            deployment_start_time: Start time for metrics
+            
+        Returns:
+            Deployment results if successful, None if async not available
+        """
+        try:
+            from .async_agent_deployment import deploy_agents_async_wrapper
+            self.logger.info("Using async deployment for improved performance")
+            
+            # Run async deployment
+            results = deploy_agents_async_wrapper(
+                templates_dir=self.templates_dir,
+                base_agent_path=self.base_agent_path,
+                working_directory=self.working_directory,
+                target_dir=target_dir,
+                force_rebuild=force_rebuild,
+                config=config
+            )
+            
+            # Add metrics about async vs sync
+            if 'metrics' in results:
+                results['metrics']['deployment_method'] = 'async'
+                duration_ms = results['metrics'].get('duration_ms', 0)
+                self.logger.info(f"Async deployment completed in {duration_ms:.1f}ms")
+                
+                # Update internal metrics
+                self._deployment_metrics['total_deployments'] += 1
+                if not results.get('errors'):
+                    self._deployment_metrics['successful_deployments'] += 1
+                else:
+                    self._deployment_metrics['failed_deployments'] += 1
+            
+            return results
+            
+        except ImportError:
+            self.logger.warning("Async deployment not available, falling back to sync")
+            return None
+        except Exception as e:
+            self.logger.warning(f"Async deployment failed, falling back to sync: {e}")
+            return None
+    
+    def _load_deployment_config(self, config: Optional[Config]) -> tuple:
+        """
+        Load and process deployment configuration.
+        
+        WHY: Centralized configuration loading reduces duplication
+        and ensures consistent handling of exclusion settings.
+        
+        Args:
+            config: Optional configuration object
+            
+        Returns:
+            Tuple of (config, excluded_agents)
+        """
+        # Load configuration if not provided
+        if config is None:
+            config = Config()
+        
+        # Get agent exclusion configuration
+        excluded_agents = config.get('agent_deployment.excluded_agents', [])
+        case_sensitive = config.get('agent_deployment.case_sensitive', False)
+        exclude_dependencies = config.get('agent_deployment.exclude_dependencies', False)
+        
+        # Normalize excluded agents list for comparison
+        if not case_sensitive:
+            excluded_agents = [agent.lower() for agent in excluded_agents]
+        
+        # Log exclusion configuration if agents are being excluded
+        if excluded_agents:
+            self.logger.info(f"Excluding agents from deployment: {excluded_agents}")
+            self.logger.debug(f"Case sensitive matching: {case_sensitive}")
+            self.logger.debug(f"Exclude dependencies: {exclude_dependencies}")
+        
+        return config, excluded_agents
+    
+    def _determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
+        """
+        Determine the correct agents directory based on input.
+        
+        WHY: Different deployment scenarios require different directory
+        structures. This method centralizes the logic for consistency.
+        
+        Args:
+            target_dir: Optional target directory
+            
+        Returns:
+            Path to agents directory
+        """
+        if not target_dir:
+            # Default to working directory's .claude/agents directory (not home)
+            # This ensures we deploy to the user's project directory
+            return self.working_directory / ".claude" / "agents"
+        
+        # If target_dir provided, use it directly (caller decides structure)
+        target_dir = Path(target_dir)
+        
+        # Check if this is already an agents directory
+        if target_dir.name == "agents":
+            # Already an agents directory, use as-is
+            return target_dir
+        elif target_dir.name == ".claude-mpm":
+            # .claude-mpm directory, add agents subdirectory
+            return target_dir / "agents"
+        elif target_dir.name == ".claude":
+            # .claude directory, add agents subdirectory
+            return target_dir / "agents"
+        else:
+            # Assume it's a project directory, add .claude/agents
+            return target_dir / ".claude" / "agents"
+    
+    def _initialize_deployment_results(self, agents_dir: Path, deployment_start_time: float) -> Dict[str, Any]:
+        """
+        Initialize the deployment results dictionary.
+        
+        WHY: Consistent result structure ensures all deployment
+        operations return the same format for easier processing.
+        
+        Args:
+            agents_dir: Target agents directory
+            deployment_start_time: Start time for metrics
+            
+        Returns:
+            Initialized results dictionary
+        """
+        return {
+            "target_dir": str(agents_dir),
+            "deployed": [],
+            "errors": [],
+            "skipped": [],
+            "updated": [],
+            "migrated": [],  # Track agents migrated from old format
+            "converted": [],  # Track YAML to MD conversions
+            "repaired": [],  # Track agents with repaired frontmatter
+            "total": 0,
+            # METRICS: Add detailed timing and performance data to results
+            "metrics": {
+                "start_time": deployment_start_time,
+                "end_time": None,
+                "duration_ms": None,
+                "agent_timings": {},  # Track individual agent deployment times
+                "validation_times": {},  # Track template validation times
+                "resource_usage": {}  # Could track memory/CPU if needed
+            }
+        }
+    
+    def _repair_existing_agents(self, agents_dir: Path, results: Dict[str, Any]) -> None:
+        """
+        Validate and repair broken frontmatter in existing agents.
+        
+        WHY: Ensures all existing agents have valid YAML frontmatter
+        before deployment, preventing runtime errors in Claude Code.
+        
+        Args:
+            agents_dir: Directory containing agent files
+            results: Results dictionary to update
+        """
+        repair_results = self._validate_and_repair_existing_agents(agents_dir)
+        if repair_results["repaired"]:
+            results["repaired"] = repair_results["repaired"]
+            self.logger.info(f"Repaired frontmatter in {len(repair_results['repaired'])} existing agents")
+            for agent_name in repair_results["repaired"]:
+                self.logger.debug(f"  - Repaired: {agent_name}")
+    
+    def _determine_source_tier(self) -> str:
+        """
+        Determine the source tier for logging.
+        
+        WHY: Understanding which tier (SYSTEM/USER/PROJECT) agents
+        are being deployed from helps with debugging and auditing.
+        
+        Returns:
+            Source tier string
+        """
+        if ".claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
+            return "PROJECT"
+        elif "/.claude-mpm/agents" in str(self.templates_dir) and "/templates" not in str(self.templates_dir):
+            return "USER"
+        return "SYSTEM"
+    
+    def _load_base_agent(self) -> tuple:
+        """
+        Load base agent content and version.
+        
+        WHY: Base agent contains shared configuration that all agents
+        inherit, reducing duplication and ensuring consistency.
+        
+        Returns:
+            Tuple of (base_agent_data, base_agent_version)
+        """
+        base_agent_data = {}
+        base_agent_version = (0, 0, 0)
+        
+        if self.base_agent_path.exists():
+            try:
+                import json
+                base_agent_data = json.loads(self.base_agent_path.read_text())
+                # Handle both 'base_version' (new format) and 'version' (old format)
+                # MIGRATION PATH: Supporting both formats during transition period
+                base_agent_version = self._parse_version(
+                    base_agent_data.get('base_version') or base_agent_data.get('version', 0)
+                )
+                self.logger.info(f"Loaded base agent template (version {self._format_version_display(base_agent_version)})")
+            except Exception as e:
+                # NON-FATAL: Base agent is optional enhancement, not required
+                self.logger.warning(f"Could not load base agent: {e}")
+        
+        return base_agent_data, base_agent_version
+    
+    def _get_filtered_templates(self, excluded_agents: list, config: Config) -> list:
+        """
+        Get and filter template files based on exclusion rules.
+        
+        WHY: Centralized filtering logic ensures consistent exclusion
+        handling across different deployment scenarios.
+        
+        Args:
+            excluded_agents: List of agents to exclude
+            config: Configuration object
+            
+        Returns:
+            List of filtered template files
+        """
+        # Get all template files
+        template_files = list(self.templates_dir.glob("*.json"))
+        
+        # Build the combined exclusion set
+        # Start with hardcoded exclusions (these are ALWAYS excluded)
+        hardcoded_exclusions = {"__init__", "MEMORIES", "TODOWRITE", "INSTRUCTIONS", 
+                               "README", "pm", "PM", "project_manager"}
+        
+        # Get case sensitivity setting
+        case_sensitive = config.get('agent_deployment.case_sensitive', False)
+        
+        # Filter out excluded agents
+        filtered_files = []
+        excluded_count = 0
+        
+        for f in template_files:
+            agent_name = f.stem
+            
+            # Check hardcoded exclusions (always case-sensitive)
+            if agent_name in hardcoded_exclusions:
+                self.logger.debug(f"Excluding {agent_name}: hardcoded system exclusion")
+                excluded_count += 1
+                continue
+            
+            # Check file patterns
+            if agent_name.startswith(".") or agent_name.endswith(".backup"):
+                self.logger.debug(f"Excluding {agent_name}: file pattern exclusion")
+                excluded_count += 1
+                continue
+            
+            # Check user-configured exclusions
+            compare_name = agent_name.lower() if not case_sensitive else agent_name
+            if compare_name in excluded_agents:
+                self.logger.info(f"Excluding {agent_name}: user-configured exclusion")
+                excluded_count += 1
+                continue
+            
+            # Agent is not excluded, add to filtered list
+            filtered_files.append(f)
+        
+        if excluded_count > 0:
+            self.logger.info(f"Excluded {excluded_count} agents from deployment")
+        
+        return filtered_files
+    
+    def _deploy_single_agent(self, template_file: Path, agents_dir: Path, 
+                            base_agent_data: dict, base_agent_version: tuple,
+                            force_rebuild: bool, deployment_mode: str, 
+                            results: Dict[str, Any]) -> None:
+        """
+        Deploy a single agent template.
+        
+        WHY: Extracting single agent deployment logic reduces complexity
+        and makes the main deployment loop more readable.
+        
+        Args:
+            template_file: Agent template file
+            agents_dir: Target agents directory
+            base_agent_data: Base agent data
+            base_agent_version: Base agent version
+            force_rebuild: Whether to force rebuild
+            deployment_mode: Deployment mode (update/project)
+            results: Results dictionary to update
+        """
+        try:
+            # METRICS: Track individual agent deployment time
+            agent_start_time = time.time()
+            
+            agent_name = template_file.stem
+            target_file = agents_dir / f"{agent_name}.md"
+            
+            # Check if agent needs update
+            needs_update, is_migration, reason = self._check_update_status(
+                target_file, template_file, base_agent_version, 
+                force_rebuild, deployment_mode
+            )
+            
+            # Skip if exists and doesn't need update (only in update mode)
+            if target_file.exists() and not needs_update and deployment_mode != "project":
+                results["skipped"].append(agent_name)
+                self.logger.debug(f"Skipped up-to-date agent: {agent_name}")
+                return
+            
+            # Build the agent file as markdown with YAML frontmatter
+            agent_content = self._build_agent_markdown(agent_name, template_file, base_agent_data)
+            
+            # Write the agent file
+            is_update = target_file.exists()
+            target_file.write_text(agent_content)
+            
+            # Record metrics and update results
+            self._record_agent_deployment(
+                agent_name, template_file, target_file,
+                is_update, is_migration, reason,
+                agent_start_time, results
+            )
+            
+        except AgentDeploymentError as e:
+            # Re-raise our custom exceptions
+            self.logger.error(str(e))
+            results["errors"].append(str(e))
+        except Exception as e:
+            # Wrap generic exceptions with context
+            error_msg = f"Failed to build {template_file.name}: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)
+    
+    def _check_update_status(self, target_file: Path, template_file: Path,
+                            base_agent_version: tuple, force_rebuild: bool,
+                            deployment_mode: str) -> tuple:
+        """
+        Check if agent needs update and determine status.
+        
+        WHY: Centralized update checking logic ensures consistent
+        version comparison and migration detection.
+        
+        Args:
+            target_file: Target agent file
+            template_file: Template file
+            base_agent_version: Base agent version
+            force_rebuild: Whether to force rebuild
+            deployment_mode: Deployment mode
+            
+        Returns:
+            Tuple of (needs_update, is_migration, reason)
+        """
+        needs_update = force_rebuild
+        is_migration = False
+        reason = ""
+        
+        # In project deployment mode, always deploy regardless of version
+        if deployment_mode == "project":
+            if target_file.exists():
+                needs_update = True
+                self.logger.debug(f"Project deployment mode: will deploy {template_file.stem}")
+            else:
+                needs_update = True
+        elif not needs_update and target_file.exists():
+            # In update mode, check version compatibility
+            needs_update, reason = self._check_agent_needs_update(
+                target_file, template_file, base_agent_version
+            )
+            if needs_update:
+                # Check if this is a migration from old format
+                if "migration needed" in reason:
+                    is_migration = True
+                    self.logger.info(f"Migrating agent {template_file.stem}: {reason}")
+                else:
+                    self.logger.info(f"Agent {template_file.stem} needs update: {reason}")
+        
+        return needs_update, is_migration, reason
+    
+    def _record_agent_deployment(self, agent_name: str, template_file: Path,
+                                target_file: Path, is_update: bool,
+                                is_migration: bool, reason: str,
+                                agent_start_time: float, results: Dict[str, Any]) -> None:
+        """
+        Record deployment metrics and update results.
+        
+        WHY: Centralized metrics recording ensures consistent tracking
+        of deployment performance and statistics.
+        
+        Args:
+            agent_name: Name of the agent
+            template_file: Template file
+            target_file: Target file
+            is_update: Whether this is an update
+            is_migration: Whether this is a migration
+            reason: Update/migration reason
+            agent_start_time: Start time for this agent
+            results: Results dictionary to update
+        """
+        # METRICS: Record deployment time for this agent
+        agent_deployment_time = (time.time() - agent_start_time) * 1000  # Convert to ms
+        results["metrics"]["agent_timings"][agent_name] = agent_deployment_time
+        
+        # METRICS: Update agent type deployment counts
+        self._deployment_metrics['agent_type_counts'][agent_name] = \
+            self._deployment_metrics['agent_type_counts'].get(agent_name, 0) + 1
+        
+        deployment_info = {
+            "name": agent_name,
+            "template": str(template_file),
+            "target": str(target_file),
+            "deployment_time_ms": agent_deployment_time
+        }
+        
+        if is_migration:
+            deployment_info["reason"] = reason
+            results["migrated"].append(deployment_info)
+            self.logger.info(f"Successfully migrated agent: {agent_name} to semantic versioning")
+            
+            # METRICS: Track migration statistics
+            self._deployment_metrics['migrations_performed'] += 1
+            self._deployment_metrics['version_migration_count'] += 1
+            
+        elif is_update:
+            results["updated"].append(deployment_info)
+            self.logger.debug(f"Updated agent: {agent_name}")
+        else:
+            results["deployed"].append(deployment_info)
+            self.logger.debug(f"Built and deployed agent: {agent_name}")
+    
     def _validate_and_repair_existing_agents(self, agents_dir: Path) -> Dict[str, Any]:
         """
         Validate and repair broken frontmatter in existing agent files.
@@ -2245,3 +2492,75 @@ metadata:
             results["errors"].append(error_msg)
         
         return results
+    
+    # ================================================================================
+    # Interface Adapter Methods
+    # ================================================================================
+    # These methods adapt the existing implementation to comply with AgentDeploymentInterface
+    
+    def validate_agent(self, agent_path: Path) -> tuple[bool, List[str]]:
+        """Validate agent configuration and structure.
+        
+        WHY: This adapter method provides interface compliance while leveraging
+        the existing validation logic in _check_agent_needs_update and other methods.
+        
+        Args:
+            agent_path: Path to agent configuration file
+            
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        errors = []
+        
+        try:
+            if not agent_path.exists():
+                return False, [f"Agent file not found: {agent_path}"]
+            
+            content = agent_path.read_text()
+            
+            # Check YAML frontmatter format
+            if not content.startswith("---"):
+                errors.append("Missing YAML frontmatter")
+            
+            # Extract and validate version
+            import re
+            version_match = re.search(r'^version:\s*["\']?(.+?)["\']?$', content, re.MULTILINE)
+            if not version_match:
+                errors.append("Missing version field in frontmatter")
+            
+            # Check for required fields
+            required_fields = ['name', 'description', 'tools']
+            for field in required_fields:
+                field_match = re.search(rf'^{field}:\s*.+$', content, re.MULTILINE)
+                if not field_match:
+                    errors.append(f"Missing required field: {field}")
+            
+            # If no errors, validation passed
+            return len(errors) == 0, errors
+            
+        except Exception as e:
+            return False, [f"Validation error: {str(e)}"]
+    
+    def get_deployment_status(self) -> Dict[str, Any]:
+        """Get current deployment status and metrics.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        verify_deployment and adding deployment metrics.
+        
+        Returns:
+            Dictionary with deployment status information
+        """
+        # Get verification results
+        verification = self.verify_deployment()
+        
+        # Add deployment metrics
+        status = {
+            "deployment_metrics": self._deployment_metrics.copy(),
+            "verification": verification,
+            "agents_deployed": len(verification.get("agents_found", [])),
+            "agents_needing_migration": len(verification.get("agents_needing_migration", [])),
+            "has_warnings": len(verification.get("warnings", [])) > 0,
+            "environment_configured": bool(verification.get("environment", {}))
+        }
+        
+        return status

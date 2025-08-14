@@ -174,19 +174,51 @@ The system supports three tiers of agents with clear precedence:
 
 
 ### `/src/claude_mpm/services/` - Service Layer
-Business logic and service implementations:
-- **hook_service.py**: Hook service for extensibility
-- **Agent services**: Lifecycle, management, and profile loading
-  - **deployed_agent_discovery.py**: Discovers and analyzes deployed agents
-  - **agent_capabilities_generator.py**: Generates dynamic agent documentation
-- **Framework services**: INSTRUCTIONS.md/CLAUDE.md generation and management
+Modern service-oriented architecture with clear separation of concerns:
+
+#### Core Services (`/src/claude_mpm/services/core/`)
+- **interfaces.py**: Comprehensive interface definitions for all service contracts
+- **base.py**: Base service classes (`BaseService`, `SyncBaseService`, `SingletonService`)
+
+#### Agent Services (`/src/claude_mpm/services/agent/`)
+- **deployment.py**: Agent deployment operations (`AgentDeploymentService`)
+- **management.py**: Agent lifecycle management (`AgentManagementService`)
+- **registry.py**: Agent discovery and registration (`AgentRegistry`)
+
+#### Legacy Agent Services (Backward Compatibility)
+- **agents/**: Original nested structure maintained for compatibility
+  - **deployment/**: Agent deployment and lifecycle management
+  - **memory/**: Agent memory and persistence services
+  - **registry/**: Agent discovery and modification tracking
+  - **loading/**: Agent profile loading services
+  - **management/**: Agent capabilities and management
+
+#### Communication Services (`/src/claude_mpm/services/communication/`)
+- **socketio.py**: SocketIO server implementation for real-time communication
+- **websocket.py**: WebSocket client management
+
+#### Project Services (`/src/claude_mpm/services/project/`)
+- **analyzer.py**: Project structure and technology detection
+- **registry.py**: Project registration and metadata management
+
+#### Infrastructure Services (`/src/claude_mpm/services/infrastructure/`)
+- **logging.py**: Structured logging service
+- **monitoring.py**: Health monitoring and metrics collection
+
+#### Framework Services
+- **framework_claude_md_generator/**: INSTRUCTIONS.md/CLAUDE.md generation and management
   - **content_assembler.py**: Assembles content with dynamic agent capabilities
   - **deployment_manager.py**: Manages deployment with fresh capability generation
-- **agent_modification_tracker/**: Real-time agent modification tracking
-  - Uses **tree-sitter** for AST-level code analysis
-  - **TreeSitterAnalyzer** provides syntax-aware parsing for 41+ languages
-  - Supports real-time monitoring, backups, and cache invalidation
-  - Enables Research Agent's advanced code analysis capabilities
+- **memory/**: Agent memory system
+  - **builder.py**: Memory construction and optimization
+  - **router.py**: Memory routing and management
+  - **optimizer.py**: Memory optimization and cleanup
+  - **cache/**: Caching services for performance
+
+#### Other Services
+- **hook_service.py**: Hook service for extensibility
+- **ticket_manager.py**: Ticket management and tracking
+- **version_control/**: Git integration and version management
 
 ### `/src/claude_mpm/hooks/` - Hook System
 Extensibility through pre/post hooks:
@@ -273,7 +305,13 @@ When creating new files, follow these guidelines:
 
 ## Design Patterns
 
-1. **Service-Oriented Architecture**: Business logic in service layer
-2. **Plugin Architecture**: Hook system for extensibility
-3. **Registry Pattern**: Dynamic agent discovery
-5. **Adapter Pattern**: Integration with external systems
+1. **Service-Oriented Architecture**: Business logic organized into specialized service domains
+2. **Interface-Based Contracts**: All major services implement well-defined interfaces
+3. **Dependency Injection**: Services use dependency injection container for loose coupling
+4. **Lazy Loading**: Performance optimization through deferred resource initialization
+5. **Plugin Architecture**: Hook system for extensibility
+6. **Registry Pattern**: Dynamic agent discovery and management
+7. **Factory Pattern**: Service factories for creating configured instances
+8. **Singleton Pattern**: Shared resources and configuration management
+9. **Adapter Pattern**: Integration with external systems
+10. **Observer Pattern**: Event-driven communication between services

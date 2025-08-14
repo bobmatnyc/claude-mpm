@@ -1,0 +1,343 @@
+{
+  "total_samples": 24,
+  "successful_samples": 9,
+  "success_rate": 37.5,
+  "overall_stats": {
+    "mean_time": 0.7804128064049615,
+    "median_time": 0.44196414947509766,
+    "min_time": 0.3133251667022705,
+    "max_time": 1.6989102363586426,
+    "std_dev_time": 0.612412915821844,
+    "mean_memory_mb": 8.661458333333334,
+    "target_time": 2.0,
+    "meets_target": true
+  },
+  "by_mode": {
+    "agents list": {
+      "samples": 3,
+      "mean": 0.31555740038553876,
+      "median": 0.3164219856262207,
+      "min": 0.3133251667022705,
+      "max": 0.316925048828125,
+      "std_dev": 0.001949466224076602
+    },
+    "tickets list": {
+      "samples": 3,
+      "mean": 0.4341124693552653,
+      "median": 0.44196414947509766,
+      "min": 0.4078330993652344,
+      "max": 0.45254015922546387,
+      "std_dev": 0.02336486595006836
+    },
+    "run --non-interactive": {
+      "samples": 3,
+      "mean": 1.5915685494740803,
+      "median": 1.5428731441497803,
+      "min": 1.5329222679138184,
+      "max": 1.6989102363586426,
+      "std_dev": 0.09309368019303672
+    }
+  },
+  "failed_measurements": [
+    {
+      "mode": "info --version",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:25.939499Z"
+    },
+    {
+      "mode": "info --version",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:26.255182Z"
+    },
+    {
+      "mode": "info --version",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:26.566173Z"
+    },
+    {
+      "mode": "info --system",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:26.878030Z"
+    },
+    {
+      "mode": "info --system",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:27.191523Z"
+    },
+    {
+      "mode": "info --system",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:27.504429Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.113124Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.461041Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.802157Z"
+    },
+    {
+      "mode": "agents deploy",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:35.908400Z"
+    },
+    {
+      "mode": "agents deploy",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:36.248176Z"
+    },
+    {
+      "mode": "agents deploy",
+      "error": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:36.562295Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:36.882432Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:37.201895Z"
+    },
+    {
+      "mode": "memory list",
+      "error": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:37.524052Z"
+    }
+  ],
+  "benchmark_metadata": {
+    "total_execution_time": 11.940717935562134,
+    "timestamp": "2025-08-14T05:02:37.524459Z",
+    "samples_per_test": 3,
+    "target_startup_time": 2.0,
+    "baseline_startup_time": 4.0
+  },
+  "raw_measurements": [
+    {
+      "mode": "info --version",
+      "time_seconds": 0.3557140827178955,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:25.939499Z"
+    },
+    {
+      "mode": "info --version",
+      "time_seconds": 0.31535887718200684,
+      "memory_mb": 0.3125,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:26.255182Z"
+    },
+    {
+      "mode": "info --version",
+      "time_seconds": 0.3108201026916504,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --version",
+      "timestamp": "2025-08-14T05:02:26.566173Z"
+    },
+    {
+      "mode": "info --system",
+      "time_seconds": 0.3116328716278076,
+      "memory_mb": 3.40625,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:26.878030Z"
+    },
+    {
+      "mode": "info --system",
+      "time_seconds": 0.3132297992706299,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:27.191523Z"
+    },
+    {
+      "mode": "info --system",
+      "time_seconds": 0.31270289421081543,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --system",
+      "timestamp": "2025-08-14T05:02:27.504429Z"
+    },
+    {
+      "mode": "agents list",
+      "time_seconds": 0.316925048828125,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:27.821589Z"
+    },
+    {
+      "mode": "agents list",
+      "time_seconds": 0.3133251667022705,
+      "memory_mb": 0.125,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:28.135036Z"
+    },
+    {
+      "mode": "agents list",
+      "time_seconds": 0.3164219856262207,
+      "memory_mb": 4.078125,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:28.451562Z"
+    },
+    {
+      "mode": "tickets list",
+      "time_seconds": 0.45254015922546387,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:28.904291Z"
+    },
+    {
+      "mode": "tickets list",
+      "time_seconds": 0.4078330993652344,
+      "memory_mb": 44.828125,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:29.312217Z"
+    },
+    {
+      "mode": "tickets list",
+      "time_seconds": 0.44196414947509766,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:29.754272Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3586430549621582,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.113124Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3477151393890381,
+      "memory_mb": 24.28125,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.461041Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3408999443054199,
+      "memory_mb": 1.265625,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:30.802157Z"
+    },
+    {
+      "mode": "run --non-interactive",
+      "time_seconds": 1.6989102363586426,
+      "memory_mb": 28.921875,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:32.501322Z"
+    },
+    {
+      "mode": "run --non-interactive",
+      "time_seconds": 1.5329222679138184,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:34.034519Z"
+    },
+    {
+      "mode": "run --non-interactive",
+      "time_seconds": 1.5428731441497803,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": true,
+      "error_message": null,
+      "timestamp": "2025-08-14T05:02:35.577606Z"
+    },
+    {
+      "mode": "agents deploy",
+      "time_seconds": 0.3305380344390869,
+      "memory_mb": 16.046875,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:35.908400Z"
+    },
+    {
+      "mode": "agents deploy",
+      "time_seconds": 0.3395669460296631,
+      "memory_mb": 165.09375,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:36.248176Z"
+    },
+    {
+      "mode": "agents deploy",
+      "time_seconds": 0.3139040470123291,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm [-h] [--version] [-d] [--logging {OFF,INFO,DEBUG}]\n                  [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                  [--agents-dir AGENTS_DIR] [--no-hooks] [--no-tickets]\n                  [--intercept-commands] [--no-native-agents]\n                  [--launch-method {exec,subprocess}] [--monitor]\n                  [--websocket-port WEBSOCKET_PORT] [--resume [RESUME]]\n                  [--no-check-dependencies] [--force-check-dependencies]\n                  [--no-prompt] [--force-prompt] [-i INPUT]\n                  [--non-interactive]\n                  COMMAND ...\nclaude-mpm: error: unrecognized arguments: --quiet",
+      "timestamp": "2025-08-14T05:02:36.562295Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3198966979980469,
+      "memory_mb": 8.125,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:36.882432Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3192408084869385,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:37.201895Z"
+    },
+    {
+      "mode": "memory list",
+      "time_seconds": 0.3219623565673828,
+      "memory_mb": 0,
+      "cpu_percent": 0.0,
+      "success": false,
+      "error_message": "usage: claude-mpm memory [-h] [-d] [--logging {OFF,INFO,DEBUG}]\n                         [--log-dir LOG_DIR] [--framework-path FRAMEWORK_PATH]\n                         [--agents-dir AGENTS_DIR]\n                         SUBCOMMAND ...\nclaude-mpm memory: error: argument SUBCOMMAND: invalid choice: 'list' (choose from init, status, view, add, clean, optimize, build, cross-ref, route, show)",
+      "timestamp": "2025-08-14T05:02:37.524052Z"
+    }
+  ]
+}

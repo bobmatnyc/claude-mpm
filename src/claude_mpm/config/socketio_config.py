@@ -15,6 +15,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
+# Import constants for default values
+from claude_mpm.core.constants import NetworkConfig, SystemLimits, RetryConfig
+
 
 @dataclass
 class SocketIOConfig:
@@ -22,18 +25,18 @@ class SocketIOConfig:
     
     # Server settings
     host: str = "localhost"
-    port: int = 8765
+    port: int = NetworkConfig.DEFAULT_DASHBOARD_PORT
     server_id: Optional[str] = None
     
     # Connection settings
     cors_allowed_origins: str = "*"  # Configure properly for production
-    ping_timeout: int = 60
-    ping_interval: int = 25
+    ping_timeout: int = NetworkConfig.PING_TIMEOUT_STANDARD
+    ping_interval: int = NetworkConfig.PING_INTERVAL_STANDARD
     max_http_buffer_size: int = 1000000
     
     # Compatibility settings
     min_client_version: str = "0.7.0"
-    max_history_size: int = 10000
+    max_history_size: int = SystemLimits.MAX_EVENT_HISTORY
     
     # Deployment settings
     deployment_mode: str = "auto"  # auto, standalone, embedded, client
@@ -47,7 +50,7 @@ class SocketIOConfig:
     
     # Health monitoring
     health_check_interval: int = 30
-    max_connection_attempts: int = 3
+    max_connection_attempts: int = RetryConfig.MAX_CONNECTION_RETRIES
     reconnection_delay: int = 1
     
     @classmethod

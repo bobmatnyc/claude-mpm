@@ -1,0 +1,53 @@
+{
+  "name": "Claude MPM Performance Validation Suite (Partial)",
+  "version": "1.0.0",
+  "results": [
+    {
+      "name": "Startup Performance",
+      "value": 1.661787748336792,
+      "unit": "seconds",
+      "target": {
+        "name": "Startup Time",
+        "target_value": 2.0,
+        "target_unit": "seconds",
+        "description": "Time from launch to ready state",
+        "baseline_value": 4.0,
+        "baseline_unit": "seconds"
+      },
+      "passed": true,
+      "improvement_percent": 58.4553062915802,
+      "samples": [
+        1.7722318172454834,
+        1.5677921772003174,
+        1.7704780101776123,
+        1.6446468830108643,
+        1.5537898540496826
+      ],
+      "timestamp": "2025-08-14T05:03:08.119812Z"
+    },
+    {
+      "name": "Cache Effectiveness",
+      "value": 100.0,
+      "unit": "percent",
+      "target": {
+        "name": "Cache Hit Rate",
+        "target_value": 50.0,
+        "target_unit": "percent",
+        "description": "File operation cache effectiveness",
+        "baseline_value": 0.0,
+        "baseline_unit": "percent"
+      },
+      "passed": true,
+      "improvement_percent": 100.0,
+      "samples": [
+        100.0
+      ],
+      "timestamp": "2025-08-14T05:03:08.121605Z"
+    }
+  ],
+  "total_passed": 2,
+  "total_failed": 0,
+  "overall_score": 100.0,
+  "execution_time": 10.104192733764648,
+  "timestamp": "2025-08-14T05:03:08.121705Z"
+}

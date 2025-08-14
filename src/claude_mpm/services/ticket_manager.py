@@ -4,13 +4,12 @@ from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
-try:
-    from ..core.logger import get_logger
-except ImportError:
-    from core.logger import get_logger
+from claude_mpm.core.logging_config import get_logger
+
+from ..core.interfaces import TicketManagerInterface
 
 
-class TicketManager:
+class TicketManager(TicketManagerInterface):
     """
     Manage ticket creation using ai-trackdown-pytools.
     
@@ -25,7 +24,7 @@ class TicketManager:
         Args:
             project_path: Project root (defaults to current directory)
         """
-        self.logger = get_logger("ticket_manager")
+        self.logger = get_logger(__name__)
         self.project_path = project_path or Path.cwd()
         self.task_manager = self._init_task_manager()
         
@@ -374,3 +373,167 @@ class TicketManager:
             self.logger.info(f"Try using the CLI: aitrackdown show {ticket_id}")
             self.logger.debug("Full error details:", exc_info=True)
             return None
+    
+    # ================================================================================
+    # Interface Adapter Methods
+    # ================================================================================
+    # These methods adapt the existing implementation to comply with TicketManagerInterface
+    
+    def create_task(self, title: str, description: str, **kwargs) -> Optional[str]:
+        """Create a new task ticket.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        the underlying task manager's create functionality.
+        
+        Args:
+            title: Task title
+            description: Task description
+            **kwargs: Additional task properties
+            
+        Returns:
+            Task ID if created successfully, None otherwise
+        """
+        if not self.task_manager:
+            self.logger.error("Task manager not initialized")
+            return None
+        
+        try:
+            # Create task using ai-trackdown-pytools
+            from ai_trackdown_pytools.core.task import Task
+            
+            task = Task(
+                title=title,
+                description=description,
+                status=kwargs.get('status', 'open'),
+                priority=kwargs.get('priority', 'medium'),
+                tags=kwargs.get('tags', []),
+                assignees=kwargs.get('assignees', [])
+            )
+            
+            # Save the task
+            task_id = self.task_manager.create_task(task)
+            self.logger.info(f"Created task {task_id}: {title}")
+            return task_id
+            
+        except ImportError:
+            self.logger.error("ai-trackdown-pytools not available")
+            return None
+        except Exception as e:
+            self.logger.error(f"Failed to create task: {e}")
+            return None
+    
+    def update_task(self, task_id: str, **updates) -> bool:
+        """Update an existing task.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        task update operations.
+        
+        Args:
+            task_id: ID of task to update
+            **updates: Fields to update
+            
+        Returns:
+            True if update successful
+        """
+        if not self.task_manager:
+            self.logger.error("Task manager not initialized")
+            return False
+        
+        try:
+            # Get the existing task
+            task = self.task_manager.get_task(task_id)
+            if not task:
+                self.logger.error(f"Task {task_id} not found")
+                return False
+            
+            # Apply updates
+            for key, value in updates.items():
+                if hasattr(task, key):
+                    setattr(task, key, value)
+            
+            # Save the updated task
+            self.task_manager.update_task(task)
+            self.logger.info(f"Updated task {task_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to update task {task_id}: {e}")
+            return False
+    
+    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get task details.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        the existing get_ticket method.
+        
+        Args:
+            task_id: ID of task to retrieve
+            
+        Returns:
+            Task data dictionary or None if not found
+        """
+        # Use existing get_ticket method which already returns dict format
+        return self.get_ticket(task_id)
+    
+    def list_tasks(self, status: Optional[str] = None, **filters) -> List[Dict[str, Any]]:
+        """List tasks with optional filtering.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        task listing operations.
+        
+        Args:
+            status: Optional status filter
+            **filters: Additional filter criteria
+            
+        Returns:
+            List of task dictionaries
+        """
+        if not self.task_manager:
+            self.logger.error("Task manager not initialized")
+            return []
+        
+        try:
+            # Get all tasks
+            tasks = self.task_manager.list_tasks()
+            
+            # Apply filters
+            filtered_tasks = []
+            for task in tasks:
+                # Check status filter
+                if status and task.get('status') != status:
+                    continue
+                
+                # Check additional filters
+                match = True
+                for key, value in filters.items():
+                    if task.get(key) != value:
+                        match = False
+                        break
+                
+                if match:
+                    filtered_tasks.append(task)
+            
+            return filtered_tasks
+            
+        except Exception as e:
+            self.logger.error(f"Failed to list tasks: {e}")
+            return []
+    
+    def close_task(self, task_id: str, resolution: Optional[str] = None) -> bool:
+        """Close a task.
+        
+        WHY: This adapter method provides interface compliance by updating
+        task status to closed.
+        
+        Args:
+            task_id: ID of task to close
+            resolution: Optional resolution description
+            
+        Returns:
+            True if close successful
+        """
+        updates = {'status': 'closed'}
+        if resolution:
+            updates['resolution'] = resolution
+        
+        return self.update_task(task_id, **updates)

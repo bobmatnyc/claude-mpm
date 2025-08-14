@@ -22,6 +22,25 @@ import asyncio
 from pathlib import Path
 from collections import deque
 
+# Import constants for configuration
+try:
+    from claude_mpm.core.constants import (
+        NetworkConfig,
+        TimeoutConfig,
+        RetryConfig
+    )
+except ImportError:
+    # Fallback values if constants module not available
+    class NetworkConfig:
+        SOCKETIO_PORT_RANGE = (8080, 8099)
+        RECONNECTION_DELAY = 0.5
+        SOCKET_WAIT_TIMEOUT = 1.0
+    class TimeoutConfig:
+        QUICK_TIMEOUT = 2.0
+    class RetryConfig:
+        MAX_RETRIES = 3
+        INITIAL_RETRY_DELAY = 0.1
+
 # Debug mode is enabled by default for better visibility into hook processing
 # Set CLAUDE_MPM_HOOK_DEBUG=false to disable debug output
 DEBUG = os.environ.get('CLAUDE_MPM_HOOK_DEBUG', 'true').lower() != 'false'
@@ -412,7 +431,7 @@ class ClaudeHookHandler:
                 ['git', 'branch', '--show-current'],
                 capture_output=True,
                 text=True,
-                timeout=2  # Quick timeout to avoid hanging
+                timeout=TimeoutConfig.QUICK_TIMEOUT  # Quick timeout to avoid hanging
             )
             
             # Restore original directory
@@ -464,8 +483,8 @@ class ClaudeHookHandler:
         
         # Need to create or reconnect client
         port = int(os.environ.get('CLAUDE_MPM_SOCKETIO_PORT', '8765'))
-        max_retries = 3
-        retry_delay = 0.1  # Start with 100ms
+        max_retries = RetryConfig.MAX_RETRIES
+        retry_delay = RetryConfig.INITIAL_RETRY_DELAY
         
         for attempt in range(max_retries):
             try:
@@ -481,7 +500,7 @@ class ClaudeHookHandler:
                 self.sio_client = socketio.Client(
                     reconnection=True,  # Enable auto-reconnection
                     reconnection_attempts=3,
-                    reconnection_delay=0.5,
+                    reconnection_delay=NetworkConfig.RECONNECTION_DELAY,
                     reconnection_delay_max=2,
                     logger=False,
                     engineio_logger=False
@@ -491,7 +510,7 @@ class ClaudeHookHandler:
                 self.sio_client.connect(
                     f'http://localhost:{port}', 
                     wait=True, 
-                    wait_timeout=1.0  # Reasonable timeout
+                    wait_timeout=NetworkConfig.SOCKET_WAIT_TIMEOUT
                 )
                 
                 # Verify connection
@@ -540,36 +559,80 @@ class ClaudeHookHandler:
         - Always continues regardless of event status
         """
         try:
-            # Read event
-            event_data = sys.stdin.read()
-            event = json.loads(event_data)
-            hook_type = event.get('hook_event_name', 'unknown')
+            # Read and parse event
+            event = self._read_hook_event()
+            if not event:
+                self._continue_execution()
+                return
             
-            # Fast path for common events
-            if hook_type == 'UserPromptSubmit':
-                self._handle_user_prompt_fast(event)
-            elif hook_type == 'PreToolUse':
-                self._handle_pre_tool_fast(event)
-            elif hook_type == 'PostToolUse':
-                self._handle_post_tool_fast(event)
-            elif hook_type == 'Notification':
-                self._handle_notification_fast(event)
-            elif hook_type == 'Stop':
-                self._handle_stop_fast(event)
-            elif hook_type == 'SubagentStop':
-                self._handle_subagent_stop_fast(event)
-            elif hook_type == 'AssistantResponse':
-                self._handle_assistant_response(event)
+            # Route event to appropriate handler
+            self._route_event(event)
             
-            # Socket.IO emit is non-blocking and will complete asynchronously
-            # Removed sleep() to eliminate 100ms delay that was blocking Claude execution
-            
-            # Always continue
-            print(json.dumps({"action": "continue"}))
+            # Always continue execution
+            self._continue_execution()
             
         except:
             # Fail fast and silent
-            print(json.dumps({"action": "continue"}))
+            self._continue_execution()
+    
+    def _read_hook_event(self) -> dict:
+        """
+        Read and parse hook event from stdin.
+        
+        WHY: Centralized event reading with error handling
+        ensures consistent parsing and validation.
+        
+        Returns:
+            Parsed event dictionary or None if invalid
+        """
+        try:
+            event_data = sys.stdin.read()
+            return json.loads(event_data)
+        except (json.JSONDecodeError, ValueError):
+            if DEBUG:
+                print("Failed to parse hook event", file=sys.stderr)
+            return None
+    
+    def _route_event(self, event: dict) -> None:
+        """
+        Route event to appropriate handler based on type.
+        
+        WHY: Centralized routing reduces complexity and makes
+        it easier to add new event types.
+        
+        Args:
+            event: Hook event dictionary
+        """
+        hook_type = event.get('hook_event_name', 'unknown')
+        
+        # Map event types to handlers
+        event_handlers = {
+            'UserPromptSubmit': self._handle_user_prompt_fast,
+            'PreToolUse': self._handle_pre_tool_fast,
+            'PostToolUse': self._handle_post_tool_fast,
+            'Notification': self._handle_notification_fast,
+            'Stop': self._handle_stop_fast,
+            'SubagentStop': self._handle_subagent_stop_fast,
+            'AssistantResponse': self._handle_assistant_response
+        }
+        
+        # Call appropriate handler if exists
+        handler = event_handlers.get(hook_type)
+        if handler:
+            try:
+                handler(event)
+            except Exception as e:
+                if DEBUG:
+                    print(f"Error handling {hook_type}: {e}", file=sys.stderr)
+    
+    def _continue_execution(self) -> None:
+        """
+        Send continue action to Claude.
+        
+        WHY: Centralized response ensures consistent format
+        and makes it easier to add response modifications.
+        """
+        print(json.dumps({"action": "continue"}))
     
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
         """Emit Socket.IO event with improved reliability and logging.
@@ -1066,6 +1129,78 @@ class ClaudeHookHandler:
         # Emit to /hook namespace
         self._emit_socketio_event('/hook', 'notification', notification_data)
     
+    def _extract_stop_metadata(self, event: dict) -> dict:
+        """
+        Extract metadata from stop event.
+        
+        WHY: Centralized metadata extraction ensures consistent
+        data collection across stop event handling.
+        
+        Args:
+            event: Stop event dictionary
+            
+        Returns:
+            Metadata dictionary
+        """
+        working_dir = event.get('cwd', '')
+        return {
+            'timestamp': datetime.now().isoformat(),
+            'working_directory': working_dir,
+            'git_branch': self._get_git_branch(working_dir) if working_dir else 'Unknown',
+            'event_type': 'stop',
+            'reason': event.get('reason', 'unknown'),
+            'stop_type': event.get('stop_type', 'normal')
+        }
+    
+    def _track_stop_response(self, event: dict, session_id: str, metadata: dict) -> None:
+        """
+        Track response for stop events.
+        
+        WHY: Separated response tracking logic for better modularity
+        and easier testing/maintenance.
+        
+        Args:
+            event: Stop event dictionary
+            session_id: Session identifier
+            metadata: Event metadata
+        """
+        if not (self.response_tracking_enabled and self.response_tracker):
+            return
+        
+        try:
+            # Extract output from event
+            output = event.get('output', '') or event.get('final_output', '') or event.get('response', '')
+            
+            # Check if we have a pending prompt for this session
+            prompt_data = self.pending_prompts.get(session_id)
+            
+            if DEBUG:
+                print(f"  - output present: {bool(output)} (length: {len(str(output)) if output else 0})", file=sys.stderr)
+                print(f"  - prompt_data present: {bool(prompt_data)}", file=sys.stderr)
+            
+            if output and prompt_data:
+                # Add prompt timestamp to metadata
+                metadata['prompt_timestamp'] = prompt_data.get('timestamp')
+                
+                # Track the main Claude response
+                file_path = self.response_tracker.track_response(
+                    agent_name='claude_main',
+                    request=prompt_data['prompt'],
+                    response=str(output),
+                    session_id=session_id,
+                    metadata=metadata
+                )
+                
+                if file_path and DEBUG:
+                    print(f"  - Response tracked to: {file_path}", file=sys.stderr)
+                
+                # Clean up pending prompt
+                del self.pending_prompts[session_id]
+                
+        except Exception as e:
+            if DEBUG:
+                print(f"Error tracking stop response: {e}", file=sys.stderr)
+    
     def _handle_stop_fast(self, event):
         """Handle stop events when Claude processing stops.
         
@@ -1075,83 +1210,62 @@ class ClaudeHookHandler:
         - Enables tracking of session completion patterns
         - Useful for understanding when and why Claude stops responding
         """
-        reason = event.get('reason', 'unknown')
-        stop_type = event.get('stop_type', 'normal')
         session_id = event.get('session_id', '')
         
-        # Get working directory and git branch
-        working_dir = event.get('cwd', '')
-        git_branch = self._get_git_branch(working_dir) if working_dir else 'Unknown'
+        # Extract metadata for this stop event
+        metadata = self._extract_stop_metadata(event)
         
-        # Track response for Stop events (main Claude responses, not delegations)
+        # Debug logging
         if DEBUG:
-            print(f"[DEBUG] Stop event processing:", file=sys.stderr)
-            print(f"  - response_tracking_enabled: {self.response_tracking_enabled}", file=sys.stderr)
-            print(f"  - response_tracker exists: {self.response_tracker is not None}", file=sys.stderr)
-            print(f"  - session_id: {session_id[:8] if session_id else 'None'}...", file=sys.stderr)
-            print(f"  - reason: {reason}", file=sys.stderr)
-            print(f"  - stop_type: {stop_type}", file=sys.stderr)
+            self._log_stop_event_debug(event, session_id, metadata)
         
-        if self.response_tracking_enabled and self.response_tracker:
-            try:
-                # Extract output from event
-                output = event.get('output', '') or event.get('final_output', '') or event.get('response', '')
-                
-                # Check if we have a pending prompt for this session
-                prompt_data = self.pending_prompts.get(session_id)
-                
-                if DEBUG:
-                    print(f"  - output present: {bool(output)} (length: {len(str(output)) if output else 0})", file=sys.stderr)
-                    print(f"  - prompt_data present: {bool(prompt_data)}", file=sys.stderr)
-                    if prompt_data:
-                        print(f"  - prompt preview: {str(prompt_data.get('prompt', ''))[:100]}...", file=sys.stderr)
-                
-                if output and prompt_data:
-                    # Track the main Claude response
-                    metadata = {
-                        'timestamp': datetime.now().isoformat(),
-                        'prompt_timestamp': prompt_data.get('timestamp'),
-                        'working_directory': working_dir,
-                        'git_branch': git_branch,
-                        'event_type': 'stop',
-                        'reason': reason,
-                        'stop_type': stop_type
-                    }
-                    
-                    file_path = self.response_tracker.track_response(
-                        agent_name='claude_main',
-                        request=prompt_data['prompt'],
-                        response=str(output),
-                        session_id=session_id,
-                        metadata=metadata
-                    )
-                    
-                    if file_path and DEBUG:
-                        print(f"✅ Tracked main Claude response on Stop event for session {session_id[:8]}...: {file_path.name}", file=sys.stderr)
-                    
-                    # Clean up the stored prompt
-                    if session_id in self.pending_prompts:
-                        del self.pending_prompts[session_id]
-                        
-                elif DEBUG and not prompt_data:
-                    print(f"No stored prompt for Stop event session {session_id[:8]}...", file=sys.stderr)
-                elif DEBUG and not output:
-                    print(f"No output in Stop event for session {session_id[:8]}...", file=sys.stderr)
-                    
-            except Exception as e:
-                if DEBUG:
-                    print(f"❌ Failed to track response on Stop event: {e}", file=sys.stderr)
+        # Track response if enabled
+        self._track_stop_response(event, session_id, metadata)
         
+        # Emit stop event to Socket.IO
+        self._emit_stop_event(event, session_id, metadata)
+    
+    def _log_stop_event_debug(self, event: dict, session_id: str, metadata: dict) -> None:
+        """
+        Log debug information for stop events.
+        
+        WHY: Separated debug logging for cleaner code and easier
+        enable/disable of debug output.
+        
+        Args:
+            event: Stop event dictionary
+            session_id: Session identifier
+            metadata: Event metadata
+        """
+        print(f"[DEBUG] Stop event processing:", file=sys.stderr)
+        print(f"  - response_tracking_enabled: {self.response_tracking_enabled}", file=sys.stderr)
+        print(f"  - response_tracker exists: {self.response_tracker is not None}", file=sys.stderr)
+        print(f"  - session_id: {session_id[:8] if session_id else 'None'}...", file=sys.stderr)
+        print(f"  - reason: {metadata['reason']}", file=sys.stderr)
+        print(f"  - stop_type: {metadata['stop_type']}", file=sys.stderr)
+    
+    def _emit_stop_event(self, event: dict, session_id: str, metadata: dict) -> None:
+        """
+        Emit stop event data to Socket.IO.
+        
+        WHY: Separated Socket.IO emission for better modularity
+        and easier testing/mocking.
+        
+        Args:
+            event: Stop event dictionary
+            session_id: Session identifier
+            metadata: Event metadata
+        """
         stop_data = {
-            'reason': reason,
-            'stop_type': stop_type,
+            'reason': metadata['reason'],
+            'stop_type': metadata['stop_type'],
             'session_id': session_id,
-            'working_directory': working_dir,
-            'git_branch': git_branch,
-            'timestamp': datetime.now().isoformat(),
-            'is_user_initiated': reason in ['user_stop', 'user_cancel', 'interrupt'],
-            'is_error_stop': reason in ['error', 'timeout', 'failed'],
-            'is_completion_stop': reason in ['completed', 'finished', 'done'],
+            'working_directory': metadata['working_directory'],
+            'git_branch': metadata['git_branch'],
+            'timestamp': metadata['timestamp'],
+            'is_user_initiated': metadata['reason'] in ['user_stop', 'user_cancel', 'interrupt'],
+            'is_error_stop': metadata['reason'] in ['error', 'timeout', 'failed'],
+            'is_completion_stop': metadata['reason'] in ['completed', 'finished', 'done'],
             'has_output': bool(event.get('final_output'))
         }
         

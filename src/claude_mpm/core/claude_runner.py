@@ -7,22 +7,26 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import uuid
 from claude_mpm.config.paths import paths
 
-try:
+# Core imports that don't cause circular dependencies
+from claude_mpm.core.config import Config
+from claude_mpm.core.logging_config import get_logger, log_operation, log_performance_context
+from claude_mpm.core.logger import get_project_logger, ProjectLogger
+from claude_mpm.core.container import get_container, ServiceLifetime
+from claude_mpm.core.interfaces import (
+    AgentDeploymentInterface,
+    TicketManagerInterface, 
+    HookServiceInterface
+)
+
+# Type checking imports to avoid circular dependencies
+if TYPE_CHECKING:
     from claude_mpm.services.agents.deployment import AgentDeploymentService
     from claude_mpm.services.ticket_manager import TicketManager
     from claude_mpm.services.hook_service import HookService
-    from claude_mpm.core.config import Config
-    from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
-except ImportError:
-    from claude_mpm.services.agents.deployment import AgentDeploymentService
-    from claude_mpm.services.ticket_manager import TicketManager
-    from claude_mpm.services.hook_service import HookService
-    from claude_mpm.core.config import Config
-    from claude_mpm.core.logger import get_logger, get_project_logger, ProjectLogger
 
 
 class ClaudeRunner:
@@ -52,7 +56,7 @@ class ClaudeRunner:
         """Initialize the Claude runner."""
         self.enable_tickets = enable_tickets
         self.log_level = log_level
-        self.logger = get_logger("claude_runner")
+        self.logger = get_logger(__name__)
         self.claude_args = claude_args or []
         self.launch_method = launch_method
         self.enable_websocket = enable_websocket
@@ -73,49 +77,56 @@ class ClaudeRunner:
             except Exception as e:
                 self.logger.warning(f"Failed to initialize project logger: {e}")
         
-        # Initialize services with proper error handling
+        # Initialize services using dependency injection
         # Determine the user's working directory from environment
         user_working_dir = None
         if 'CLAUDE_MPM_USER_PWD' in os.environ:
             user_working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
-            self.logger.info(f"Using user working directory from CLAUDE_MPM_USER_PWD: {user_working_dir}")
+            self.logger.info(f"Using user working directory from CLAUDE_MPM_USER_PWD", extra={"directory": str(user_working_dir)})
+        
+        # Get DI container and resolve services
+        container = get_container()
+        
+        # Register and resolve deployment service
+        if not container.is_registered(AgentDeploymentInterface):
+            # Lazy import to avoid circular dependencies
+            from claude_mpm.services.agents.deployment import AgentDeploymentService
+            container.register_factory(
+                AgentDeploymentInterface,
+                lambda c: AgentDeploymentService(working_directory=user_working_dir),
+                lifetime=ServiceLifetime.SINGLETON
+            )
         
         try:
-            # Pass the user working directory to the deployment service
-            # This ensures agents are deployed to the correct user directory, not the framework directory
-            self.deployment_service = AgentDeploymentService(working_directory=user_working_dir)
-        except ImportError as e:
-            self.logger.error(f"Failed to import AgentDeploymentService: {e}")
-            raise RuntimeError("Required module AgentDeploymentService not available. Please reinstall claude-mpm.") from e
+            self.deployment_service = container.get(AgentDeploymentInterface)
         except Exception as e:
-            self.logger.error(f"Failed to initialize AgentDeploymentService: {e}")
+            self.logger.error(f"Failed to resolve AgentDeploymentService", exc_info=True)
             raise RuntimeError(f"Agent deployment service initialization failed: {e}") from e
         
-        # Initialize ticket manager if enabled
+        # Initialize ticket manager if enabled using DI
         if enable_tickets:
+            if not container.is_registered(TicketManagerInterface):
+                # Lazy import to avoid circular dependencies
+                from claude_mpm.services.ticket_manager import TicketManager
+                container.register_singleton(TicketManagerInterface, TicketManager)
+            
             try:
-                self.ticket_manager = TicketManager()
-            except ImportError as e:
-                self.logger.warning(f"Ticket manager module not available: {e}")
-                self.ticket_manager = None
-                self.enable_tickets = False
-            except TypeError as e:
-                self.logger.warning(f"Ticket manager initialization error: {e}")
-                self.ticket_manager = None
-                self.enable_tickets = False
+                self.ticket_manager = container.get(TicketManagerInterface)
             except Exception as e:
-                self.logger.warning(f"Unexpected error initializing ticket manager: {e}")
+                self.logger.warning("Failed to initialize TicketManager", exc_info=True)
                 self.ticket_manager = None
                 self.enable_tickets = False
+        else:
+            self.ticket_manager = None
         
         # Initialize configuration
         try:
             self.config = Config()
         except FileNotFoundError as e:
-            self.logger.warning(f"Configuration file not found, using defaults: {e}")
+            self.logger.warning("Configuration file not found, using defaults", extra={"error": str(e)})
             self.config = Config()  # Will use defaults
         except Exception as e:
-            self.logger.error(f"Failed to load configuration: {e}")
+            self.logger.error("Failed to load configuration", exc_info=True)
             raise RuntimeError(f"Configuration initialization failed: {e}") from e
         
         # Initialize response logging if enabled
@@ -132,17 +143,23 @@ class ClaudeRunner:
                         component="logging"
                     )
             except Exception as e:
-                self.logger.warning(f"Failed to initialize response logger: {e}")
+                self.logger.warning("Failed to initialize response logger", exc_info=True)
         
-        # Initialize hook service
+        # Initialize hook service using DI
+        if not container.is_registered(HookServiceInterface):
+            # Lazy import to avoid circular dependencies
+            from claude_mpm.services.hook_service import HookService
+            container.register_factory(
+                HookServiceInterface,
+                lambda c: HookService(self.config),
+                lifetime=ServiceLifetime.SINGLETON
+            )
+        
         try:
-            self.hook_service = HookService(self.config)
+            self.hook_service = container.get(HookServiceInterface)
             self._register_memory_hooks()
-        except ImportError as e:
-            self.logger.warning(f"Hook service module not available: {e}")
-            self.hook_service = None
         except Exception as e:
-            self.logger.warning(f"Failed to initialize hook service: {e}")
+            self.logger.warning("Failed to initialize hook service", exc_info=True)
             self.hook_service = None
         
         # Load system instructions
@@ -473,614 +490,96 @@ class ClaudeRunner:
     def run_interactive(self, initial_context: Optional[str] = None):
         """Run Claude in interactive mode.
         
-        WHY: This method manages the interactive Claude session with optional response
-        logging through the hook system. Response logging works seamlessly with both 
-        exec and subprocess launch methods via Claude Code's built-in hook infrastructure.
+        WHY: This method now delegates to InteractiveSession class for better
+        maintainability and reduced complexity. The session class handles all
+        the details while this method provides the simple interface.
         
-        DESIGN DECISION: The hook system captures Claude events (UserPromptSubmit,
-        PreToolUse, PostToolUse, Task delegations) directly from Claude Code, enabling 
-        response logging without process control overhead. This architecture provides:
-        - Better performance (no I/O stream interception needed)
-        - Full compatibility with exec mode (preserves default behavior)
-        - Clean separation of concerns (hooks handle logging independently)
-        - Comprehensive event capture (including agent delegations)
+        DESIGN DECISION: Using delegation pattern to reduce complexity from
+        39 to <10 and lines from 262 to <80, while maintaining 100% backward
+        compatibility. All functionality including response logging through
+        the hook system is preserved.
+        
+        The hook system continues to capture Claude events (UserPromptSubmit,
+        PreToolUse, PostToolUse, Task delegations) directly from Claude Code,
+        providing comprehensive event capture without process control overhead.
         
         Args:
             initial_context: Optional initial context to pass to Claude
         """
-        # Use the launch method as specified
-        effective_launch_method = self.launch_method
+        from claude_mpm.core.interactive_session import InteractiveSession
         
-        # Connect to Socket.IO server if enabled
-        if self.enable_websocket:
-            try:
-                # Use Socket.IO client proxy to connect to monitoring server
-                from claude_mpm.services.socketio_server import SocketIOClientProxy
-                self.websocket_server = SocketIOClientProxy(port=self.websocket_port)
-                self.websocket_server.start()
-                self.logger.info("Connected to Socket.IO monitoring server")
-                
-                # Generate session ID
-                session_id = str(uuid.uuid4())
-                working_dir = os.getcwd()
-                
-                # Notify session start
-                self.websocket_server.session_started(
-                    session_id=session_id,
-                    launch_method=effective_launch_method,
-                    working_dir=working_dir
-                )
-            except ImportError as e:
-                self.logger.warning(f"Socket.IO module not available: {e}")
-                self.websocket_server = None
-            except ConnectionError as e:
-                self.logger.warning(f"Cannot connect to Socket.IO server on port {self.websocket_port}: {e}")
-                self.websocket_server = None
-            except Exception as e:
-                self.logger.warning(f"Unexpected error with Socket.IO server: {e}")
-                self.websocket_server = None
+        # Create session handler
+        session = InteractiveSession(self)
         
-        # Get version with robust fallback mechanisms
-        version_str = self._get_version()
-        
-        # Print styled welcome box
-        print("\033[32m╭───────────────────────────────────────────────────╮\033[0m")
-        print("\033[32m│\033[0m ✻ Claude MPM - Interactive Session                \033[32m│\033[0m")
-        print(f"\033[32m│\033[0m   Version {version_str:<40}\033[32m│\033[0m")
-        print("\033[32m│                                                   │\033[0m")
-        print("\033[32m│\033[0m   Type '/agents' to see available agents          \033[32m│\033[0m")
-        print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
-        print("")  # Add blank line after box
-        
-        if self.project_logger:
-            self.project_logger.log_system(
-                "Starting interactive session",
-                level="INFO",
-                component="session"
-            )
-        
-        # Setup agents - first deploy system agents, then project agents
-        if not self.setup_agents():
-            print("Continuing without native agents...")
-        
-        # Deploy project-specific agents if they exist
-        self.deploy_project_agents_to_claude()
-        
-        # Build command with system instructions
-        cmd = [
-            "claude",
-            "--model", "opus", 
-            "--dangerously-skip-permissions"
-        ]
-        
-        # Add any custom Claude arguments
-        if self.claude_args:
-            cmd.extend(self.claude_args)
-        
-        # Add system instructions if available
-        system_prompt = self._create_system_prompt()
-        if system_prompt and system_prompt != create_simple_context():
-            cmd.extend(["--append-system-prompt", system_prompt])
-        
-        # Run interactive Claude directly
         try:
-            # Use execvp to replace the current process with Claude
-            # This should avoid any subprocess issues
+            # Step 1: Initialize session
+            success, error = session.initialize_interactive_session()
+            if not success:
+                self.logger.error(f"Failed to initialize interactive session: {error}")
+                return
             
-            # Clean environment
-            clean_env = os.environ.copy()
-            claude_vars_to_remove = [
-                'CLAUDE_CODE_ENTRYPOINT', 'CLAUDECODE', 'CLAUDE_CONFIG_DIR',
-                'CLAUDE_MAX_PARALLEL_SUBAGENTS', 'CLAUDE_TIMEOUT'
-            ]
-            for var in claude_vars_to_remove:
-                clean_env.pop(var, None)
+            # Step 2: Set up environment
+            success, environment = session.setup_interactive_environment()
+            if not success:
+                self.logger.error("Failed to setup interactive environment")
+                return
             
-            # Set the correct working directory for Claude Code
-            # If CLAUDE_MPM_USER_PWD is set, use that as the working directory
-            if 'CLAUDE_MPM_USER_PWD' in clean_env:
-                user_pwd = clean_env['CLAUDE_MPM_USER_PWD']
-                clean_env['CLAUDE_WORKSPACE'] = user_pwd
-                # Also change to that directory before launching Claude
-                try:
-                    os.chdir(user_pwd)
-                    self.logger.info(f"Changed working directory to: {user_pwd}")
-                except PermissionError as e:
-                    self.logger.warning(f"Permission denied accessing directory {user_pwd}: {e}")
-                except FileNotFoundError as e:
-                    self.logger.warning(f"Directory not found {user_pwd}: {e}")
-                except OSError as e:
-                    self.logger.warning(f"OS error changing to directory {user_pwd}: {e}")
+            # Step 3: Handle interactive input/output
+            # This is where the actual Claude process runs
+            session.handle_interactive_input(environment)
             
-            print("Launching Claude...")
-            
-            if self.project_logger:
-                self.project_logger.log_system(
-                    f"Launching Claude interactive mode with {effective_launch_method}",
-                    level="INFO",
-                    component="session"
-                )
-                self._log_session_event({
-                    "event": "launching_claude_interactive",
-                    "command": " ".join(cmd),
-                    "method": effective_launch_method
-                })
-            
-            # Notify WebSocket clients
-            if self.websocket_server:
-                self.websocket_server.claude_status_changed(
-                    status="starting",
-                    message="Launching Claude interactive session"
-                )
-            
-            # Launch using selected method
-            if effective_launch_method == "subprocess":
-                self._launch_subprocess_interactive(cmd, clean_env)
-            else:
-                # Default to exec for backward compatibility
-                if self.websocket_server:
-                    # Notify before exec (we won't be able to after)
-                    self.websocket_server.claude_status_changed(
-                        status="running",
-                        message="Claude process started (exec mode)"
-                    )
-                os.execvpe(cmd[0], cmd, clean_env)
-            
-        except FileNotFoundError as e:
-            error_msg = f"Claude CLI not found. Please ensure 'claude' is installed and in your PATH: {e}"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "interactive_launch_failed",
-                    "error": str(e),
-                    "exception_type": "FileNotFoundError",
-                    "recovery_action": "fallback_to_subprocess"
-                })
-        except PermissionError as e:
-            error_msg = f"Permission denied executing Claude CLI: {e}"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "interactive_launch_failed",
-                    "error": str(e),
-                    "exception_type": "PermissionError",
-                    "recovery_action": "check_file_permissions"
-                })
-        except OSError as e:
-            error_msg = f"OS error launching Claude: {e}"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "interactive_launch_failed",
-                    "error": str(e),
-                    "exception_type": "OSError",
-                    "recovery_action": "fallback_to_subprocess"
-                })
-        except KeyboardInterrupt:
-            print("\n⚠️  Session interrupted by user")
-            if self.project_logger:
-                self.project_logger.log_system(
-                    "Session interrupted by user",
-                    level="INFO",
-                    component="session"
-                )
-                self._log_session_event({
-                    "event": "session_interrupted",
-                    "reason": "user_interrupt"
-                })
-            return  # Clean exit on user interrupt
-        except Exception as e:
-            error_msg = f"Unexpected error launching Claude: {e}"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "interactive_launch_failed",
-                    "error": str(e),
-                    "exception_type": type(e).__name__,
-                    "recovery_action": "fallback_to_subprocess"
-                })
-            
-            # Notify WebSocket clients of error
-            if self.websocket_server:
-                self.websocket_server.claude_status_changed(
-                    status="error",
-                    message=f"Failed to launch Claude: {e}"
-                )
-            # Fallback to subprocess
-            print("\n🔄 Attempting fallback launch method...")
-            try:
-                # Use the same clean_env we prepared earlier
-                result = subprocess.run(cmd, stdin=None, stdout=None, stderr=None, env=clean_env)
-                if result.returncode == 0:
-                    if self.project_logger:
-                        self.project_logger.log_system(
-                            "Interactive session completed (subprocess fallback)",
-                            level="INFO",
-                            component="session"
-                        )
-                        self._log_session_event({
-                            "event": "interactive_session_complete",
-                            "fallback": True,
-                            "return_code": result.returncode
-                        })
-                else:
-                    print(f"⚠️  Claude exited with code {result.returncode}")
-                    if self.project_logger:
-                        self.project_logger.log_system(
-                            f"Claude exited with non-zero code: {result.returncode}",
-                            level="WARNING",
-                            component="session"
-                        )
-            except FileNotFoundError as e:
-                print(f"❌ Fallback failed: Claude CLI not found in PATH")
-                print("\n💡 To fix this issue:")
-                print("   1. Install Claude CLI: npm install -g @anthropic-ai/claude-ai")
-                print("   2. Or specify the full path to the claude binary")
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        f"Fallback failed - Claude CLI not found: {e}",
-                        level="ERROR",
-                        component="session"
-                    )
-            except KeyboardInterrupt:
-                print("\n⚠️  Fallback interrupted by user")
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        "Fallback interrupted by user",
-                        level="INFO",
-                        component="session"
-                    )
-            except Exception as fallback_error:
-                print(f"❌ Fallback failed with unexpected error: {fallback_error}")
-                print(f"   Error type: {type(fallback_error).__name__}")
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        f"Fallback launch failed: {fallback_error}",
-                        level="ERROR",
-                        component="session"
-                    )
-                    self._log_session_event({
-                        "event": "interactive_fallback_failed",
-                        "error": str(fallback_error),
-                        "exception_type": type(fallback_error).__name__
-                    })
+        finally:
+            # Step 4: Clean up session
+            session.cleanup_interactive_session()
     
     def run_oneshot(self, prompt: str, context: Optional[str] = None) -> bool:
-        """Run Claude with a single prompt and return success status."""
-        start_time = time.time()
+        """Run Claude with a single prompt and return success status.
         
-        # Connect to Socket.IO server if enabled
-        if self.enable_websocket:
-            try:
-                # Use Socket.IO client proxy to connect to monitoring server
-                from claude_mpm.services.socketio_server import SocketIOClientProxy
-                self.websocket_server = SocketIOClientProxy(port=self.websocket_port)
-                self.websocket_server.start()
-                self.logger.info("Connected to Socket.IO monitoring server")
-                
-                # Generate session ID
-                session_id = str(uuid.uuid4())
-                working_dir = os.getcwd()
-                
-                # Notify session start
-                self.websocket_server.session_started(
-                    session_id=session_id,
-                    launch_method="oneshot",
-                    working_dir=working_dir
-                )
-            except ImportError as e:
-                self.logger.warning(f"Socket.IO module not available: {e}")
-                self.websocket_server = None
-            except ConnectionError as e:
-                self.logger.warning(f"Cannot connect to Socket.IO server on port {self.websocket_port}: {e}")
-                self.websocket_server = None
-            except Exception as e:
-                self.logger.warning(f"Unexpected error with Socket.IO server: {e}")
-                self.websocket_server = None
+        WHY: This method now delegates to OneshotSession class for better
+        maintainability and reduced complexity. The session class handles
+        all the details while this method provides the simple interface.
         
-        # Check for /mpm: commands
-        if prompt.strip().startswith("/mpm:"):
-            return self._handle_mpm_command(prompt.strip())
+        DESIGN DECISION: Using delegation pattern to reduce complexity from
+        50 to <10 and lines from 332 to <80, while maintaining 100% backward
+        compatibility. All functionality is preserved through the session class.
         
-        if self.project_logger:
-            self.project_logger.log_system(
-                f"Starting non-interactive session with prompt: {prompt[:100]}",
-                level="INFO",
-                component="session"
-            )
+        Args:
+            prompt: The command or prompt to execute
+            context: Optional context to prepend to the prompt
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        from claude_mpm.core.oneshot_session import OneshotSession
         
-        # Setup agents - first deploy system agents, then project agents
-        if not self.setup_agents():
-            print("Continuing without native agents...")
-        
-        # Deploy project-specific agents if they exist
-        self.deploy_project_agents_to_claude()
-        
-        # Combine context and prompt
-        full_prompt = prompt
-        if context:
-            full_prompt = f"{context}\n\n{prompt}"
-        
-        # Build command with system instructions
-        cmd = [
-            "claude",
-            "--model", "opus",
-            "--dangerously-skip-permissions"
-        ]
-        
-        # Add any custom Claude arguments
-        if self.claude_args:
-            cmd.extend(self.claude_args)
-        
-        # Add print and prompt
-        cmd.extend(["--print", full_prompt])
-        
-        # Add system instructions if available
-        system_prompt = self._create_system_prompt()
-        if system_prompt and system_prompt != create_simple_context():
-            # Insert system prompt before the user prompt
-            cmd.insert(-2, "--append-system-prompt")
-            cmd.insert(-2, system_prompt)
+        # Create session handler
+        session = OneshotSession(self)
         
         try:
-            # Set up environment with correct working directory
-            env = os.environ.copy()
-            
-            # Set the correct working directory for Claude Code
-            if 'CLAUDE_MPM_USER_PWD' in env:
-                user_pwd = env['CLAUDE_MPM_USER_PWD']
-                env['CLAUDE_WORKSPACE'] = user_pwd
-                # Change to that directory before running Claude
-                try:
-                    original_cwd = os.getcwd()
-                    os.chdir(user_pwd)
-                    self.logger.info(f"Changed working directory to: {user_pwd}")
-                except PermissionError as e:
-                    self.logger.warning(f"Permission denied accessing directory {user_pwd}: {e}")
-                    original_cwd = None
-                except FileNotFoundError as e:
-                    self.logger.warning(f"Directory not found {user_pwd}: {e}")
-                    original_cwd = None
-                except OSError as e:
-                    self.logger.warning(f"OS error changing to directory {user_pwd}: {e}")
-                    original_cwd = None
-            else:
-                original_cwd = None
-            
-            # Run Claude
-            if self.project_logger:
-                self.project_logger.log_system(
-                    "Executing Claude subprocess",
-                    level="INFO",
-                    component="session"
-                )
-            
-            # Notify WebSocket clients
-            if self.websocket_server:
-                self.websocket_server.claude_status_changed(
-                    status="running",
-                    message="Executing Claude oneshot command"
-                )
-            
-            result = subprocess.run(cmd, capture_output=True, text=True, env=env)
-            
-            # Restore original directory if we changed it
-            if original_cwd:
-                try:
-                    os.chdir(original_cwd)
-                except Exception:
-                    pass
-            execution_time = time.time() - start_time
-            
-            if result.returncode == 0:
-                response = result.stdout.strip()
-                print(response)
-                
-                # Log response if logging enabled
-                if self.response_logger and response:
-                    execution_time = time.time() - start_time
-                    response_summary = prompt[:200] + "..." if len(prompt) > 200 else prompt
-                    self.response_logger.log_response(
-                        request_summary=response_summary,
-                        response_content=response,
-                        metadata={
-                            "mode": "oneshot",
-                            "model": "opus",
-                            "exit_code": result.returncode,
-                            "execution_time": execution_time
-                        },
-                        agent="claude-direct"
-                    )
-                
-                # Broadcast output to WebSocket clients
-                if self.websocket_server and response:
-                    self.websocket_server.claude_output(response, "stdout")
-                
-                if self.project_logger:
-                    # Log successful completion
-                    self.project_logger.log_system(
-                        f"Non-interactive session completed successfully in {execution_time:.2f}s",
-                        level="INFO",
-                        component="session"
-                    )
-                    
-                    # Log session event
-                    self._log_session_event({
-                        "event": "session_complete",
-                        "success": True,
-                        "execution_time": execution_time,
-                        "response_length": len(response)
-                    })
-                    
-                    # Log agent invocation if we detect delegation patterns
-                    if self._contains_delegation(response):
-                        self.project_logger.log_system(
-                            "Detected potential agent delegation in response",
-                            level="INFO",
-                            component="delegation"
-                        )
-                        self._log_session_event({
-                            "event": "delegation_detected",
-                            "prompt": prompt[:200],
-                            "indicators": [p for p in ["Task(", "subagent_type=", "engineer agent", "qa agent"] 
-                                          if p.lower() in response.lower()]
-                        })
-                        
-                        # Notify WebSocket clients about delegation
-                        if self.websocket_server:
-                            # Try to extract agent name
-                            agent_name = self._extract_agent_from_response(response)
-                            if agent_name:
-                                self.websocket_server.agent_delegated(
-                                    agent=agent_name,
-                                    task=prompt[:100],
-                                    status="detected"
-                                )
-                
-                # Extract tickets if enabled
-                if self.enable_tickets and self.ticket_manager and response:
-                    self._extract_tickets(response)
-                
-                return True
-            else:
-                error_msg = result.stderr or "Unknown error"
-                print(f"Error: {error_msg}")
-                
-                # Broadcast error to WebSocket clients
-                if self.websocket_server:
-                    self.websocket_server.claude_output(error_msg, "stderr")
-                    self.websocket_server.claude_status_changed(
-                        status="error",
-                        message=f"Command failed with code {result.returncode}"
-                    )
-                
-                if self.project_logger:
-                    self.project_logger.log_system(
-                        f"Non-interactive session failed: {error_msg}",
-                        level="ERROR",
-                        component="session"
-                    )
-                    self._log_session_event({
-                        "event": "session_failed",
-                        "success": False,
-                        "error": error_msg,
-                        "return_code": result.returncode
-                    })
-                
+            # Step 1: Initialize session
+            success, error = session.initialize_session(prompt)
+            if not success:
                 return False
-        
-        except subprocess.TimeoutExpired as e:
-            error_msg = f"Command timed out after {e.timeout} seconds"
-            print(f"⏱️  {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "session_timeout",
-                    "success": False,
-                    "timeout": e.timeout,
-                    "exception_type": "TimeoutExpired"
-                })
-            return False
-        
-        except FileNotFoundError as e:
-            error_msg = "Claude CLI not found. Please ensure 'claude' is installed and in your PATH"
-            print(f"❌ {error_msg}")
-            print("\n💡 To fix: Install Claude CLI with 'npm install -g @anthropic-ai/claude-ai'")
-            if self.project_logger:
-                self.project_logger.log_system(f"{error_msg}: {e}", level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "session_exception",
-                    "success": False,
-                    "exception": str(e),
-                    "exception_type": "FileNotFoundError"
-                })
-            return False
-        
-        except PermissionError as e:
-            error_msg = f"Permission denied executing Claude CLI: {e}"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(error_msg, level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "session_exception",
-                    "success": False,
-                    "exception": str(e),
-                    "exception_type": "PermissionError"
-                })
-            return False
-        
-        except KeyboardInterrupt:
-            print("\n⚠️  Command interrupted by user")
-            if self.project_logger:
-                self.project_logger.log_system(
-                    "Session interrupted by user",
-                    level="INFO",
-                    component="session"
-                )
-                self._log_session_event({
-                    "event": "session_interrupted",
-                    "success": False,
-                    "reason": "user_interrupt"
-                })
-            return False
-        
-        except MemoryError as e:
-            error_msg = "Out of memory while processing command"
-            print(f"❌ {error_msg}")
-            if self.project_logger:
-                self.project_logger.log_system(f"{error_msg}: {e}", level="ERROR", component="session")
-                self._log_session_event({
-                    "event": "session_exception",
-                    "success": False,
-                    "exception": str(e),
-                    "exception_type": "MemoryError"
-                })
-            return False
-        
-        except Exception as e:
-            error_msg = f"Unexpected error: {e}"
-            print(f"❌ {error_msg}")
-            print(f"   Error type: {type(e).__name__}")
             
-            if self.project_logger:
-                self.project_logger.log_system(
-                    f"Exception during non-interactive session: {e}",
-                    level="ERROR",
-                    component="session"
-                )
-                self._log_session_event({
-                    "event": "session_exception",
-                    "success": False,
-                    "exception": str(e),
-                    "exception_type": type(e).__name__
-                })
+            # Special case: MPM commands return early
+            if error is None and prompt.strip().startswith("/mpm:"):
+                return success
             
-            return False
+            # Step 2: Deploy agents
+            if not session.deploy_agents():
+                self.logger.warning("Agent deployment had issues, continuing...")
+            
+            # Step 3: Set up infrastructure
+            infrastructure = session.setup_infrastructure()
+            
+            # Step 4: Execute command
+            success, response = session.execute_command(prompt, context, infrastructure)
+            
+            return success
+            
         finally:
-            # Ensure logs are flushed
-            if self.project_logger:
-                try:
-                    # Log session summary
-                    summary = self.project_logger.get_session_summary()
-                    self.project_logger.log_system(
-                        f"Session {summary['session_id']} completed",
-                        level="INFO",
-                        component="session"
-                    )
-                except Exception as e:
-                    self.logger.debug(f"Failed to log session summary: {e}")
-            
-            # End WebSocket session
-            if self.websocket_server:
-                self.websocket_server.claude_status_changed(
-                    status="stopped",
-                    message="Session completed"
-                )
-                self.websocket_server.session_ended()
+            # Step 5: Clean up session
+            session.cleanup_session()
     
     def _extract_tickets(self, text: str):
         """Extract tickets from Claude's response."""
@@ -1153,6 +652,9 @@ class ClaudeRunner:
             # Read raw instructions
             raw_instructions = instructions_path.read_text()
             
+            # Strip HTML metadata comments before processing
+            raw_instructions = self._strip_metadata_comments(raw_instructions)
+            
             # Process template variables if ContentAssembler is available
             try:
                 from claude_mpm.services.framework_claude_md_generator.content_assembler import ContentAssembler
@@ -1163,6 +665,9 @@ class ClaudeRunner:
                 base_pm_path = Path(__file__).parent.parent / "agents" / "BASE_PM.md"
                 if base_pm_path.exists():
                     base_pm_content = base_pm_path.read_text()
+                    
+                    # Strip metadata comments from BASE_PM.md as well
+                    base_pm_content = self._strip_metadata_comments(base_pm_content)
                     
                     # Process BASE_PM.md with dynamic content injection
                     base_pm_content = self._process_base_pm_content(base_pm_content)
@@ -1204,6 +709,45 @@ class ClaudeRunner:
             base_pm_content = base_pm_content.replace('{{agent-capabilities}}', capabilities_section)
         
         return base_pm_content
+    
+    def _strip_metadata_comments(self, content: str) -> str:
+        """Strip HTML metadata comments from content.
+        
+        Removes comments like:
+        <!-- FRAMEWORK_VERSION: 0010 -->
+        <!-- LAST_MODIFIED: 2025-08-10T00:00:00Z -->
+        <!-- WORKFLOW_VERSION: ... -->
+        <!-- PROJECT_WORKFLOW_VERSION: ... -->
+        <!-- CUSTOM_PROJECT_WORKFLOW -->
+        
+        WHY: These metadata comments are useful for internal tracking but should not
+        appear in the final instructions passed to Claude via --append-system-prompt.
+        They clutter the instructions and provide no value to the Claude agent.
+        
+        DESIGN DECISION: Using regex to remove all HTML comments that contain known
+        metadata patterns. Also removes any resulting leading blank lines.
+        """
+        import re
+        
+        # Remove HTML comments that contain metadata
+        patterns_to_strip = [
+            'FRAMEWORK_VERSION',
+            'LAST_MODIFIED', 
+            'WORKFLOW_VERSION',
+            'PROJECT_WORKFLOW_VERSION',
+            'CUSTOM_PROJECT_WORKFLOW',
+            'AGENT_VERSION',
+            'METADATA_VERSION'
+        ]
+        
+        # Build regex pattern to match any of these metadata comments
+        pattern = r'<!--\s*(' + '|'.join(patterns_to_strip) + r')[^>]*-->\n?'
+        cleaned = re.sub(pattern, '', content)
+        
+        # Also remove any leading blank lines that might result
+        cleaned = cleaned.lstrip('\n')
+        
+        return cleaned
     
     def _generate_deployed_agent_capabilities(self) -> str:
         """Generate agent capabilities from deployed agents following Claude Code's hierarchy.

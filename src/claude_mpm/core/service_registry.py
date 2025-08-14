@@ -7,11 +7,15 @@ the DI container to manage application services.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type, Union
+from typing import Any, Dict, List, Optional, Type, Union, TYPE_CHECKING
 
 from .container import DIContainer, ServiceLifetime, get_container
 from .base_service import BaseService
 from .logger import get_logger
+from .config import Config
+
+if TYPE_CHECKING:
+    from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 logger = get_logger(__name__)
 
@@ -41,13 +45,12 @@ class ServiceRegistry:
         from ..services import AgentDeploymentService
         from .session_manager import SessionManager
         from .agent_session_manager import AgentSessionManager
-        from .config import Config
         
-        # Register configuration as singleton
+        # Register configuration as singleton with name
         config = Config()
-        self.container.register_singleton(Config, instance=config)
+        self.container.register_singleton(Config, instance=config, name="main_config")
         
-        # Register core services
+        # Register core services with proper lifetime management
         self.register_service(
             "session_manager",
             SessionManager,
@@ -59,33 +62,51 @@ class ServiceRegistry:
             AgentSessionManager,
             lifetime=ServiceLifetime.SINGLETON,
             dependencies={
-                'session_dir': lambda c: c.resolve(Config).get('session_dir')
+                'session_dir': lambda c: c.get(Config).get('session_dir')
             }
         )
         
-        # Register shared cache as singleton (it's already a singleton internally)
-        self.register_service(
-            "prompt_cache",
+        # Register shared cache as singleton with factory
+        self.container.register_factory(
             SharedPromptCache,
+            lambda c: SharedPromptCache.get_instance(),
             lifetime=ServiceLifetime.SINGLETON,
-            factory=lambda c: SharedPromptCache.get_instance()
+            name="prompt_cache"
         )
         
-        # Register ticket manager
-        self.register_service(
-            "ticket_manager",
+        # Register ticket manager as scoped (per-request)
+        self.container.register_scoped(
             TicketManager,
-            lifetime=ServiceLifetime.TRANSIENT
+            TicketManager,
+            name="ticket_manager"
         )
         
-        # Register agent deployment service
-        self.register_service(
-            "agent_deployment",
+        # Register agent deployment service with factory for better initialization
+        self.container.register_factory(
             AgentDeploymentService,
-            lifetime=ServiceLifetime.TRANSIENT
+            lambda c: self._create_agent_deployment_service(c),
+            lifetime=ServiceLifetime.TRANSIENT,
+            name="agent_deployment"
         )
         
-        logger.info("Core services registered")
+        logger.info("Core services registered with enhanced DI container")
+        
+    def _create_agent_deployment_service(self, container: DIContainer) -> 'AgentDeploymentService':
+        """Factory method for creating agent deployment service."""
+        import os
+        from pathlib import Path
+        
+        config = container.get(Config)
+        
+        # Get working directory from environment or config
+        if 'CLAUDE_MPM_USER_PWD' in os.environ:
+            working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
+        else:
+            working_dir = Path(config.get('project.dir', '.'))
+            
+        # Lazy import to avoid circular dependencies
+        from claude_mpm.services.agents.deployment import AgentDeploymentService
+        return AgentDeploymentService(working_directory=working_dir)
         
     def register_service(
         self,
@@ -138,14 +159,19 @@ class ServiceRegistry:
             Service instance
         """
         if isinstance(service_type, str):
-            # Look up by name
-            if service_type not in self._services:
-                raise KeyError(f"Service '{service_type}' not registered")
-            service_class = self._services[service_type]
+            # First try to get by name from container
+            try:
+                # Use the enhanced container's named resolution
+                return self.container.get(BaseService, name=service_type)
+            except:
+                # Fall back to looking up class and resolving
+                if service_type not in self._services:
+                    raise KeyError(f"Service '{service_type}' not registered")
+                service_class = self._services[service_type]
+                return self.container.get(service_class)
         else:
-            service_class = service_type
-            
-        return self.container.resolve(service_class)
+            # Direct class resolution
+            return self.container.get(service_type)
         
     def get_service_optional(
         self,
