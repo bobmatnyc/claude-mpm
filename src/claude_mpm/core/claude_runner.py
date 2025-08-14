@@ -1134,22 +1134,22 @@ Use these agents to delegate specialized work via the Task tool.
     
     def _get_version(self) -> str:
         """
-        Robust version determination with multiple fallback mechanisms.
+        Robust version determination with build number tracking.
         
         WHY: The version display is critical for debugging and user experience.
-        This implementation ensures we always show the correct version rather than 
-        defaulting to v0.0.0, even in edge cases where imports might fail.
+        This implementation ensures we always show the correct version with build
+        number for precise tracking of code changes.
         
-        DESIGN DECISION: We try multiple methods in order of preference:
-        1. Package import (__version__) - fastest for normal installations
-        2. importlib.metadata - standard for installed packages  
-        3. VERSION file reading - fallback for development environments
-        4. Only then default to v0.0.0 with detailed error logging
+        DESIGN DECISION: We combine semantic version with build number:
+        - Semantic version (X.Y.Z) for API compatibility tracking
+        - Build number for fine-grained code change tracking
+        - Format: vX.Y.Z-BBBBB (5-digit zero-padded build number)
         
-        Returns version string formatted as "vX.Y.Z"
+        Returns version string formatted as "vX.Y.Z-BBBBB"
         """
         version = "0.0.0"
         method_used = "default"
+        build_number = None
         
         # Method 1: Try package import (fastest, most common)
         try:
@@ -1189,6 +1189,20 @@ Use these agents to delegate specialized work via the Task tool.
             except Exception as e:
                 self.logger.warning(f"Failed to read VERSION file: {e}")
         
+        # Try to read build number
+        try:
+            build_file = paths.project_root / "BUILDVERSION"
+            if build_file.exists():
+                build_content = build_file.read_text().strip()
+                build_number = int(build_content)
+                self.logger.debug(f"Build number obtained: {build_number}")
+        except (ValueError, IOError) as e:
+            self.logger.debug(f"Could not read BUILDVERSION: {e}")
+            build_number = None
+        except Exception as e:
+            self.logger.debug(f"Unexpected error reading BUILDVERSION: {e}")
+            build_number = None
+        
         # Log final result
         if version == "0.0.0":
             self.logger.error(
@@ -1197,7 +1211,11 @@ Use these agents to delegate specialized work via the Task tool.
         else:
             self.logger.debug(f"Final version: {version} (method: {method_used})")
         
-        return f"v{version}"
+        # Format version with build number if available
+        if build_number is not None:
+            return f"v{version}-{build_number:05d}"
+        else:
+            return f"v{version}"
     
     def _register_memory_hooks(self):
         """Register memory integration hooks with the hook service.
