@@ -5,6 +5,68 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0] - 2025-08-14
+
+### ✨ Enhanced Memory Management System
+
+#### 🧠 Massively Expanded Memory Capacity
+- **MAJOR**: Increased memory limits from 8KB to 80KB (~20,000 tokens capacity)
+  - 10x increase in memory storage per agent
+  - Enhanced context retention for complex, long-running projects
+  - Supports detailed project histories and comprehensive documentation
+  - Better handling of large codebases and extensive conversation threads
+
+#### 🎯 Improved Memory Loading Strategy
+- **NEW**: MEMORY.md now loads after WORKFLOW.md with project-specific priority
+  - Strategic memory placement ensures optimal context utilization
+  - Project-specific memories take precedence over general workflows
+  - Better integration with agent decision-making processes
+  - Enhanced relevance of retrieved memory content
+
+#### 🎛️ Direct PM Memory Management
+- **ENHANCEMENT**: PM now manages memory directly instead of delegation
+  - More efficient memory operations with reduced overhead
+  - Direct control over memory persistence and retrieval
+  - Improved memory consistency across agent interactions
+  - Streamlined memory workflow without intermediate delegation layers
+
+#### 🗄️ Static Memory Foundation (Future-Ready)
+- **FOUNDATION**: Full static memory support implemented
+  - Robust file-based memory persistence and retrieval
+  - Foundation for dynamic mem0AI Memory integration (planned for future releases)
+  - Consistent memory interface ready for advanced AI memory systems
+  - Backwards compatible with existing memory workflows
+
+### 🔧 Infrastructure & Documentation Fixes
+- **CRITICAL**: Read the Docs configuration fixes from v3.8.4 maintained
+- **CRITICAL**: Python 3.8 aiohttp-cors compatibility fixes maintained
+- Enhanced documentation builds and deployment stability
+
+### 💡 Impact
+This minor release delivers major memory management improvements that enable:
+- **Enhanced Agent Capabilities**: 20k token memory capacity supports complex reasoning
+- **Better Project Continuity**: Massive memory increase enables comprehensive project tracking
+- **Improved Performance**: Direct PM memory management reduces operational overhead
+- **Future Scalability**: Static memory foundation ready for advanced AI memory integration
+
+### 📈 Performance & Scalability
+- Memory operations optimized for 10x capacity increase
+- Direct PM management reduces memory access latency
+- Foundation architecture supports future dynamic memory systems
+- Maintained backwards compatibility with existing memory workflows
+
+### 🧪 Quality Assurance
+- All existing memory workflows tested and verified
+- Performance validated with expanded memory capacity
+- Static memory persistence thoroughly tested
+- Zero regression in existing memory functionality
+
+### 📋 Migration Notes
+- **No breaking changes**: Existing memory configurations work unchanged
+- **Automatic upgrade**: Memory capacity increase applies automatically
+- **Enhanced capabilities**: Projects can now utilize significantly more memory
+- **Future ready**: Architecture prepared for dynamic memory system integration
+
 ## [3.8.4] - 2025-08-14
 
 ### 🚨 Critical Dependency & Documentation Fixes
