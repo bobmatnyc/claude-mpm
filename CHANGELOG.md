@@ -5,8 +5,6 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.10.0] - 2025-08-14
-
 ## [3.9.0] - 2025-08-14
 
 ### ✨ Enhanced Memory Management System
@@ -38,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Foundation for dynamic mem0AI Memory integration (planned for future releases)
   - Consistent memory interface ready for advanced AI memory systems
   - Backwards compatible with existing memory workflows
+
+### 🚀 Agent Deployment System Redesign
+- **MAJOR**: Agents now deploy to Claude's user directory (`~/.claude/agents/`) by default
+  - System agents deploy to `~/.claude/agents/` for global availability
+  - Project-specific agents from `.claude-mpm/agents/` deploy to project's `.claude/agents/`
+  - User custom agents from `~/.claude-mpm/agents/` deploy to `~/.claude/agents/`
+- **ENHANCEMENT**: Framework files deployment follows same hierarchy
+  - INSTRUCTIONS.md, WORKFLOW.md, MEMORY.md deploy to appropriate locations
+  - System/User versions go to `~/.claude/`, project versions stay in project
+- **FIX**: Made agent loading synchronous by default
+  - Changed `use_async` parameter default to False for better reliability
+  - Ensures agents are available when Claude Code starts
 
 ### 🎫 Ticketing Agent Improvements
 - **FIX**: Resolved config file creation error in ticket_manager.py

@@ -44,7 +44,9 @@ def manage_agents(args):
         if 'CLAUDE_MPM_USER_PWD' in os.environ:
             user_working_dir = Path(os.environ['CLAUDE_MPM_USER_PWD'])
         
-        deployment_service = AgentDeploymentService(working_directory=user_working_dir)
+        # For system agents, don't pass working_directory so they deploy to ~/.claude/agents/
+        # The service will determine the correct path based on the agent source
+        deployment_service = AgentDeploymentService()
         
         if not args.agents_command:
             # No subcommand - show agent versions
@@ -196,7 +198,9 @@ def _deploy_agents(args, deployment_service, force=False):
         print("Deploying system agents...")
     
     # Pass configuration to deployment service
-    results = deployment_service.deploy_agents(args.target, force_rebuild=force, config=config)
+    # Don't pass args.target for system agents - let the service determine the correct path
+    # based on whether it's system, user, or project agents
+    results = deployment_service.deploy_agents(None, force_rebuild=force, config=config)
     
     # Also deploy project agents if they exist
     from pathlib import Path
@@ -220,8 +224,9 @@ def _deploy_agents(args, deployment_service, force=False):
                 working_directory=project_dir  # Pass the project directory
             )
             # Pass the same configuration to project agent deployment
+            # For project agents, let the service determine they should stay in project directory
             project_results = project_service.deploy_agents(
-                target_dir=args.target if args.target else Path.cwd() / '.claude' / 'agents',
+                target_dir=None,  # Let service detect it's a project deployment
                 force_rebuild=force,
                 deployment_mode='project',
                 config=config

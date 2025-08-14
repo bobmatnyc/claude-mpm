@@ -64,3 +64,9 @@ TOOL_RESULT_*.md
 # Temporary JSON reports
 *_qa_report*.json
 *test_report*.json
+
+# Documentation build files
+docs/api/_build/
+docs/_build/
+*.doctrees
+*.buildinfo
