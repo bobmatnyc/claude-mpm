@@ -5,6 +5,34 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.4] - 2025-08-14
+
+### 🚨 Critical Dependency & Documentation Fixes
+
+#### Python 3.8 Compatibility Fix
+- **CRITICAL**: Fixed aiohttp-cors dependency for Python 3.8 compatibility
+  - Constrained aiohttp-cors to version 0.7.x (was allowing 0.8.0 which is yanked)
+  - Prevents installation failures due to yanked v0.8.0 package
+  - Ensures package can be installed on Python 3.8 systems
+
+#### Read the Docs Configuration Fix
+- **CRITICAL**: Fixed invalid RTD configuration preventing documentation builds
+  - Removed invalid build.environment configuration key
+  - Cleaned up duplicate/invalid python.install entries
+  - Ensured full RTD v2 specification compliance
+  - Restored automated documentation generation
+
+### 🔧 DevOps & Infrastructure
+- Package installation now works reliably across all supported Python versions
+- Documentation builds restored on Read the Docs platform
+- CI/CD pipelines no longer blocked by dependency resolution failures
+
+### 💡 Impact
+This patch release resolves critical issues that were:
+- Preventing package installation entirely due to dependency conflicts
+- Blocking documentation builds and updates on RTD platform
+- Causing CI/CD pipeline failures during dependency resolution
+
 ## [3.8.3] - 2025-08-14
 
 ### 🚨 Critical Infrastructure Fixes
