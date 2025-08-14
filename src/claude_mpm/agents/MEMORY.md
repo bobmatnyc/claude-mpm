@@ -15,10 +15,13 @@ This system provides **Static Memory** support where you (PM) directly manage me
 
 ### Memory File Format
 
-- **Location**: `.claude-mpm/memories/{agent_id}_agent.md`
-- **Size Limit**: 80KB (~20k tokens) 
+- **Project Memory Location**: `.claude-mpm/memories/`
+  - **PM Memory**: `.claude-mpm/memories/PM.md` (Project Manager's memory)
+  - **Agent Memories**: `.claude-mpm/memories/{agent_name}.md` (e.g., engineer.md, qa.md, research.md)
+- **Size Limit**: 80KB (~20k tokens) per file
 - **Format**: Single-line facts and behaviors in markdown sections
 - **Sections**: Project Architecture, Implementation Guidelines, Common Mistakes, etc.
+- **Naming**: Use exact agent names (engineer, qa, research, security, etc.) matching agent definitions
 
 ### Memory Update Process (PM Instructions)
 
