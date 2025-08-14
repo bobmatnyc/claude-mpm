@@ -204,6 +204,37 @@ class FrameworkLoader:
                     content["project_workflow"] = "system"
                     self.logger.info("Using system WORKFLOW.md")
     
+    def _load_memory_instructions(self, content: Dict[str, Any]) -> None:
+        """
+        Load MEMORY.md with project-specific override support.
+        
+        Precedence:
+        1. Project-specific: .claude-mpm/agents/MEMORY.md
+        2. System default: src/claude_mpm/agents/MEMORY.md
+        
+        Args:
+            content: Dictionary to update with memory instructions
+        """
+        # Check for project-specific memory instructions first
+        project_memory_path = Path.cwd() / ".claude-mpm" / "agents" / "MEMORY.md"
+        if project_memory_path.exists():
+            loaded_content = self._try_load_file(project_memory_path, "project-specific MEMORY.md")
+            if loaded_content:
+                content["memory_instructions"] = loaded_content
+                content["project_memory"] = "project"
+                self.logger.info("Using project-specific MEMORY.md")
+                return
+        
+        # Fall back to system memory instructions
+        if self.framework_path:
+            system_memory_path = self.framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
+            if system_memory_path.exists():
+                loaded_content = self._try_load_file(system_memory_path, "system MEMORY.md")
+                if loaded_content:
+                    content["memory_instructions"] = loaded_content
+                    content["project_memory"] = "system"
+                    self.logger.info("Using system MEMORY.md")
+    
     def _load_single_agent(self, agent_file: Path) -> tuple[Optional[str], Optional[str]]:
         """
         Load a single agent file.
@@ -277,7 +308,9 @@ class FrameworkLoader:
             "working_claude_md": "",
             "framework_instructions": "",
             "workflow_instructions": "",
-            "project_workflow": ""
+            "project_workflow": "",
+            "memory_instructions": "",
+            "project_memory": ""
         }
         
         # Load instructions file from working directory
@@ -310,6 +343,9 @@ class FrameworkLoader:
         
         # Load WORKFLOW.md - check for project-specific first, then system
         self._load_workflow_instructions(content)
+        
+        # Load MEMORY.md - check for project-specific first, then system
+        self._load_memory_instructions(content)
         
         # Discover agent directories
         agents_dir, templates_dir, main_dir = self._discover_framework_paths()
@@ -363,6 +399,12 @@ class FrameworkLoader:
                 workflow_content = self._strip_metadata_comments(self.framework_content['workflow_instructions'])
                 instructions += f"\n\n{workflow_content}\n"
                 # Note: project-specific workflow is being used (logged elsewhere)
+            
+            # Add MEMORY.md after workflow instructions
+            if self.framework_content.get("memory_instructions"):
+                memory_content = self._strip_metadata_comments(self.framework_content['memory_instructions'])
+                instructions += f"\n\n{memory_content}\n"
+                # Note: project-specific memory instructions being used (logged elsewhere)
             
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()
