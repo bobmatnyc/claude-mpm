@@ -56,7 +56,7 @@ class AITrackdownAdapter(ITaskManagerAdapter):
             # Configure ai-trackdown if needed
             config_file = self.project_path / ".trackdown.yaml"
             if not config_file.exists():
-                config = TrackdownConfig.create_default(config_file)
+                config = TrackdownConfig.create_default(config_file)  # Already correct - using Path object
                 config.set("paths.tickets_dir", "tickets")
                 config.set("paths.epics_dir", "tickets/epics")
                 config.set("paths.issues_dir", "tickets/issues")

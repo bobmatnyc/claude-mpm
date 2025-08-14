@@ -110,12 +110,13 @@ class AgentDeploymentService(AgentDeploymentInterface):
         }
         
         # Determine the actual working directory
-        # Priority: working_directory param > CLAUDE_MPM_USER_PWD env var > current directory
+        # For deployment, we need to track the working directory but NOT use it
+        # for determining where system agents go (they always go to ~/.claude/agents/)
+        # Priority: working_directory param > current directory
         if working_directory:
             self.working_directory = Path(working_directory)
-        elif 'CLAUDE_MPM_USER_PWD' in os.environ:
-            self.working_directory = Path(os.environ['CLAUDE_MPM_USER_PWD'])
         else:
+            # Use current directory but don't let CLAUDE_MPM_USER_PWD affect system agent deployment
             self.working_directory = Path.cwd()
         
         self.logger.info(f"Working directory for deployment: {self.working_directory}")
@@ -139,7 +140,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
         
-    def deploy_agents(self, target_dir: Optional[Path] = None, force_rebuild: bool = False, deployment_mode: str = "update", config: Optional[Config] = None, use_async: bool = True) -> Dict[str, Any]:
+    def deploy_agents(self, target_dir: Optional[Path] = None, force_rebuild: bool = False, deployment_mode: str = "update", config: Optional[Config] = None, use_async: bool = False) -> Dict[str, Any]:
         """
         Build and deploy agents by combining base_agent.md with templates.
         Also deploys system instructions for PM framework.
@@ -277,6 +278,9 @@ class AgentDeploymentService(AgentDeploymentInterface):
                     deployment_mode=deployment_mode,
                     results=results
                 )
+            
+            # Deploy system instructions and framework files
+            self._deploy_system_instructions(agents_dir, force_rebuild, results)
             
             self.logger.info(
                 f"Deployed {len(results['deployed'])} agents, "
@@ -1668,7 +1672,11 @@ temperature: {temperature}"""
 
     def _deploy_system_instructions(self, target_dir: Path, force_rebuild: bool, results: Dict[str, Any]) -> None:
         """
-        Deploy system instructions for PM framework.
+        Deploy system instructions and framework files for PM framework.
+        
+        Deploys INSTRUCTIONS.md, WORKFLOW.md, and MEMORY.md files following hierarchy:
+        - System/User versions → Deploy to ~/.claude/
+        - Project-specific versions → Deploy to <project>/.claude/
         
         Args:
             target_dir: Target directory for deployment
@@ -1676,47 +1684,64 @@ temperature: {temperature}"""
             results: Results dictionary to update
         """
         try:
-            # Find the INSTRUCTIONS.md file
-            module_path = Path(__file__).parent.parent
-            instructions_path = module_path / "agents" / "INSTRUCTIONS.md"
-            
-            if not instructions_path.exists():
-                self.logger.warning(f"System instructions not found: {instructions_path}")
-                return
-            
-            # Target file for system instructions - use CLAUDE.md in user's home .claude directory
-            target_file = Path("~/.claude/CLAUDE.md").expanduser()
+            # Determine target location based on deployment type
+            if self._is_project_specific_deployment():
+                # Project-specific files go to project's .claude directory
+                claude_dir = self.working_directory / ".claude"
+            else:
+                # System and user files go to home ~/.claude directory
+                claude_dir = Path.home() / ".claude"
             
             # Ensure .claude directory exists
-            target_file.parent.mkdir(exist_ok=True)
+            claude_dir.mkdir(parents=True, exist_ok=True)
             
-            # Check if update needed
-            if not force_rebuild and target_file.exists():
-                # Compare modification times
-                if target_file.stat().st_mtime >= instructions_path.stat().st_mtime:
-                    results["skipped"].append("CLAUDE.md")
-                    self.logger.debug("System instructions up to date")
-                    return
+            # Framework files to deploy
+            framework_files = [
+                ("INSTRUCTIONS.md", "CLAUDE.md"),  # INSTRUCTIONS.md deploys as CLAUDE.md
+                ("WORKFLOW.md", "WORKFLOW.md"),
+                ("MEMORY.md", "MEMORY.md")
+            ]
             
-            # Read and deploy system instructions
-            instructions_content = instructions_path.read_text()
-            target_file.write_text(instructions_content)
+            # Find the agents directory with framework files
+            # Use centralized paths for consistency
+            from claude_mpm.config.paths import paths
+            agents_path = paths.agents_dir
             
-            is_update = target_file.exists()
-            if is_update:
-                results["updated"].append({
-                    "name": "CLAUDE.md", 
-                    "template": str(instructions_path),
+            for source_name, target_name in framework_files:
+                source_path = agents_path / source_name
+                
+                if not source_path.exists():
+                    self.logger.warning(f"Framework file not found: {source_path}")
+                    continue
+                
+                target_file = claude_dir / target_name
+                
+                # Check if update needed
+                if not force_rebuild and target_file.exists():
+                    # Compare modification times
+                    if target_file.stat().st_mtime >= source_path.stat().st_mtime:
+                        results["skipped"].append(target_name)
+                        self.logger.debug(f"Framework file {target_name} up to date")
+                        continue
+                
+                # Read and deploy framework file
+                file_content = source_path.read_text()
+                target_file.write_text(file_content)
+                
+                # Track deployment
+                file_existed = target_file.exists()
+                deployment_info = {
+                    "name": target_name,
+                    "template": str(source_path),
                     "target": str(target_file)
-                })
-                self.logger.info("Updated system instructions")
-            else:
-                results["deployed"].append({
-                    "name": "CLAUDE.md",
-                    "template": str(instructions_path), 
-                    "target": str(target_file)
-                })
-                self.logger.info("Deployed system instructions")
+                }
+                
+                if file_existed:
+                    results["updated"].append(deployment_info)
+                    self.logger.info(f"Updated framework file: {target_name}")
+                else:
+                    results["deployed"].append(deployment_info)
+                    self.logger.info(f"Deployed framework file: {target_name}")
                 
         except Exception as e:
             error_msg = f"Failed to deploy system instructions: {e}"
@@ -2026,6 +2051,11 @@ metadata:
         WHY: Different deployment scenarios require different directory
         structures. This method centralizes the logic for consistency.
         
+        HIERARCHY:
+        - System agents → Deploy to ~/.claude/agents/ (user's home directory)
+        - User custom agents from ~/.claude-mpm/agents/ → Deploy to ~/.claude/agents/
+        - Project-specific agents from <project>/.claude-mpm/agents/ → Deploy to <project>/.claude/agents/
+        
         Args:
             target_dir: Optional target directory
             
@@ -2033,9 +2063,17 @@ metadata:
             Path to agents directory
         """
         if not target_dir:
-            # Default to working directory's .claude/agents directory (not home)
-            # This ensures we deploy to the user's project directory
-            return self.working_directory / ".claude" / "agents"
+            # Default deployment location depends on agent source
+            # Check if we're deploying system agents or user/project agents
+            if self._is_system_agent_deployment():
+                # System agents go to user's home ~/.claude/agents/
+                return Path.home() / ".claude" / "agents"
+            elif self._is_project_specific_deployment():
+                # Project agents stay in project directory
+                return self.working_directory / ".claude" / "agents"
+            else:
+                # Default: User custom agents go to home ~/.claude/agents/
+                return Path.home() / ".claude" / "agents"
         
         # If target_dir provided, use it directly (caller decides structure)
         target_dir = Path(target_dir)
@@ -2054,6 +2092,69 @@ metadata:
             # Assume it's a project directory, add .claude/agents
             return target_dir / ".claude" / "agents"
     
+    def _is_system_agent_deployment(self) -> bool:
+        """
+        Check if this is a deployment of system agents.
+        
+        System agents are those provided by the claude-mpm package itself,
+        located in the package's agents/templates directory.
+        
+        Returns:
+            True if deploying system agents, False otherwise
+        """
+        # Check if templates_dir points to the system templates
+        if self.templates_dir and self.templates_dir.exists():
+            # System agents are in the package's agents/templates directory
+            try:
+                # Check if templates_dir is within the claude_mpm package structure
+                templates_str = str(self.templates_dir.resolve())
+                return ("site-packages/claude_mpm" in templates_str or 
+                        "src/claude_mpm/agents/templates" in templates_str or
+                        (paths.agents_dir / "templates").resolve() == self.templates_dir.resolve())
+            except Exception:
+                pass
+        return False
+    
+    def _is_project_specific_deployment(self) -> bool:
+        """
+        Check if deploying project-specific agents.
+        
+        Project-specific agents are those found in the project's
+        .claude-mpm/agents/ directory.
+        
+        Returns:
+            True if deploying project-specific agents, False otherwise
+        """
+        # Check if we're in a project directory with .claude-mpm/agents
+        project_agents_dir = self.working_directory / ".claude-mpm" / "agents"
+        if project_agents_dir.exists():
+            # Check if templates_dir points to project agents
+            if self.templates_dir and self.templates_dir.exists():
+                try:
+                    return project_agents_dir.resolve() == self.templates_dir.resolve()
+                except Exception:
+                    pass
+        return False
+    
+    def _is_user_custom_deployment(self) -> bool:
+        """
+        Check if deploying user custom agents.
+        
+        User custom agents are those in ~/.claude-mpm/agents/
+        
+        Returns:
+            True if deploying user custom agents, False otherwise
+        """
+        user_agents_dir = Path.home() / ".claude-mpm" / "agents"
+        if user_agents_dir.exists():
+            # Check if templates_dir points to user agents
+            if self.templates_dir and self.templates_dir.exists():
+                try:
+                    return user_agents_dir.resolve() == self.templates_dir.resolve()
+                except Exception:
+                    pass
+        return False
+
     def _initialize_deployment_results(self, agents_dir: Path, deployment_start_time: float) -> Dict[str, Any]:
         """
         Initialize the deployment results dictionary.
