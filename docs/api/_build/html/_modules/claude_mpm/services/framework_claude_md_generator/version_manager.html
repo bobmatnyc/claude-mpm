@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.framework_claude_md_generator.version_manager &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+          <li class="breadcrumb-item"><a href="../framework_claude_md_generator.html">claude_mpm.services.framework_claude_md_generator</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.framework_claude_md_generator.version_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.framework_claude_md_generator.version_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Version management for framework CLAUDE.md templates.</span>
+
+<span class="sd">Handles version parsing, incrementing, and comparison operations.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="VersionManager">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.version_manager.html#claude_mpm.services.framework_claude_md_generator.version_manager.VersionManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VersionManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages version numbering for framework CLAUDE.md templates.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="VersionManager.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.version_manager.html#claude_mpm.services.framework_claude_md_generator.version_manager.VersionManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize version manager.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">framework_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_framework_version</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_framework_version</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the current framework version from framework/VERSION file.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Framework version (e.g., &quot;015&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check if we&#39;re in a wheel installation</span>
+        <span class="n">package_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+        <span class="n">path_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">package_path</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+        <span class="k">if</span> <span class="s1">&#39;site-packages&#39;</span> <span class="ow">in</span> <span class="n">path_str</span> <span class="ow">or</span> <span class="s1">&#39;dist-packages&#39;</span> <span class="ow">in</span> <span class="n">path_str</span><span class="p">:</span>
+            <span class="c1"># For wheel installations, check data directory</span>
+            <span class="n">version_path</span> <span class="o">=</span> <span class="n">package_path</span> <span class="o">/</span> <span class="s2">&quot;data&quot;</span> <span class="o">/</span> <span class="s2">&quot;framework&quot;</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">version_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="c1"># Try package root as fallback</span>
+                <span class="n">version_path</span> <span class="o">=</span> <span class="n">package_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;framework&quot;</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Source installation</span>
+            <span class="n">version_path</span> <span class="o">=</span> <span class="n">package_path</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;framework&quot;</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span>
+        
+        <span class="k">if</span> <span class="n">version_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">version_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">version_content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="c1"># Framework VERSION file contains just the framework version number</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">version_content</span><span class="p">)</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="c1"># If not a plain number, try to extract from version string</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)&#39;</span><span class="p">,</span> <span class="n">version_content</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span><span class="si">:</span><span class="s2">03d</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;014&quot;</span>  <span class="c1"># Default fallback</span>
+    
+<div class="viewcode-block" id="VersionManager.parse_current_version">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.version_manager.html#claude_mpm.services.framework_claude_md_generator.version_manager.VersionManager.parse_current_version">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_current_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse the current CLAUDE_MD_VERSION from existing content.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: Existing CLAUDE.md content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Version number (e.g., &quot;016&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># First try simple serial format</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;CLAUDE_MD_VERSION:\s*(\d+)(?!-)&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+        <span class="c1"># Handle old format for backward compatibility</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;CLAUDE_MD_VERSION:\s*(\d+)-(\d+)&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Return just the framework part</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">framework_version</span></div>
+
+    
+<div class="viewcode-block" id="VersionManager.auto_increment_version">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.version_manager.html#claude_mpm.services.framework_claude_md_generator.version_manager.VersionManager.auto_increment_version">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">auto_increment_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_content</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the current framework version (no auto-increment for simple serial numbers).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            current_content: Current CLAUDE.md content (unused with simple serials)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Current framework version (e.g., &quot;016&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># With simple serial numbers, we just use the framework version</span>
+        <span class="c1"># Incrementing is done by updating the framework/VERSION file</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">framework_version</span></div>
+
+    
+<div class="viewcode-block" id="VersionManager.compare_versions">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.version_manager.html#claude_mpm.services.framework_claude_md_generator.version_manager.VersionManager.compare_versions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compare_versions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version1</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">version2</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Compare two version strings.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            version1: First version string (e.g., &quot;016&quot;)</span>
+<span class="sd">            version2: Second version string (e.g., &quot;017&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            int: -1 if version1 &lt; version2, 0 if equal, 1 if version1 &gt; version2</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">parse_version</span><span class="p">(</span><span class="n">v</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="c1"># Handle simple serial format</span>
+            <span class="k">if</span> <span class="s1">&#39;-&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="mi">0</span>
+            
+            <span class="c1"># Handle old format for backward compatibility</span>
+            <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)-(\d+)&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># Just compare framework part</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        
+        <span class="n">v1</span> <span class="o">=</span> <span class="n">parse_version</span><span class="p">(</span><span class="n">version1</span><span class="p">)</span>
+        <span class="n">v2</span> <span class="o">=</span> <span class="n">parse_version</span><span class="p">(</span><span class="n">version2</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">v1</span> <span class="o">&lt;</span> <span class="n">v2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">elif</span> <span class="n">v1</span> <span class="o">&gt;</span> <span class="n">v2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

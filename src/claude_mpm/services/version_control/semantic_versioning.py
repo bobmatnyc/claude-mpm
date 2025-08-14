@@ -334,11 +334,42 @@ class SemanticVersionManager:
 
     def get_current_version(self) -> Optional[SemanticVersion]:
         """
-        Get the current version from project files.
+        Get the current version from multiple sources with intelligent fallback.
+        
+        Uses the enhanced version parser to check:
+        1. Git tags (most recent)
+        2. VERSION file
+        3. package.json
+        4. pyproject.toml
+        5. Other configured version files
 
         Returns:
             Current SemanticVersion or None if not found
         """
+        try:
+            # Import here to avoid circular dependency
+            from claude_mpm.services.version_control.version_parser import get_version_parser
+            
+            # Use enhanced parser for current version
+            parser = get_version_parser(self.project_root)
+            version_meta = parser.get_current_version()
+            
+            if version_meta:
+                version = self.parse_version(version_meta.version)
+                if version:
+                    self.logger.info(f"Found version {version} from {version_meta.source}")
+                    # Optionally attach metadata
+                    if hasattr(version, '__dict__'):
+                        version.source = version_meta.source
+                    return version
+                
+        except ImportError:
+            # Fallback to original implementation
+            self.logger.debug("Enhanced version parser not available, using fallback")
+        except Exception as e:
+            self.logger.error(f"Error getting current version with enhanced parser: {e}")
+        
+        # Fallback to original implementation
         for filename, parser in self.version_files.items():
             file_path = self.project_root / filename
 
@@ -811,19 +842,61 @@ class SemanticVersionManager:
 
     def get_version_history(self) -> List[SemanticVersion]:
         """
-        Get version history from changelog or Git tags.
+        Get version history from multiple sources with intelligent fallback.
+        
+        Uses the enhanced version parser to retrieve version history from:
+        1. Git tags (primary source)
+        2. CHANGELOG.md (fallback)
+        3. VERSION files (current version only)
 
         Returns:
             List of versions in descending order
         """
+        try:
+            # Import here to avoid circular dependency
+            from claude_mpm.services.version_control.version_parser import get_version_parser
+            
+            # Use enhanced parser for comprehensive version history
+            parser = get_version_parser(self.project_root)
+            version_metadata = parser.get_version_history(include_prereleases=False)
+            
+            # Convert to SemanticVersion objects
+            versions = []
+            for meta in version_metadata:
+                version = self.parse_version(meta.version)
+                if version:
+                    # Optionally attach metadata to version
+                    if hasattr(version, '__dict__'):
+                        version.source = meta.source
+                        version.release_date = meta.release_date
+                        version.commit_hash = meta.commit_hash
+                    versions.append(version)
+            
+            return versions
+            
+        except ImportError:
+            # Fallback to original implementation if enhanced parser not available
+            self.logger.warning("Enhanced version parser not available, falling back to changelog parsing")
+            return self._parse_changelog_versions_fallback()
+        except Exception as e:
+            self.logger.error(f"Error getting version history: {e}")
+            # Fallback to original implementation
+            return self._parse_changelog_versions_fallback()
+
+    def _parse_changelog_versions_fallback(self) -> List[SemanticVersion]:
+        """Fallback method: Parse versions from changelog file only."""
         versions = []
 
         # Try to get versions from changelog
-        changelog_path = self.project_root / "docs" / "CHANGELOG.md"
-        if changelog_path.exists():
-            versions.extend(self._parse_changelog_versions(changelog_path))
-
-        # TODO: Add Git tag parsing if needed
+        changelog_paths = [
+            self.project_root / "CHANGELOG.md",
+            self.project_root / "docs" / "CHANGELOG.md"
+        ]
+        
+        for changelog_path in changelog_paths:
+            if changelog_path.exists():
+                versions.extend(self._parse_changelog_versions(changelog_path))
+                break
 
         # Sort versions in descending order
         versions.sort(reverse=True)

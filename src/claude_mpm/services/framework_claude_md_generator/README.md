@@ -38,8 +38,11 @@ The API remains unchanged from the original implementation:
 ```python
 from claude_pm.services.framework_claude_md_generator import FrameworkClaudeMdGenerator
 
-# Create generator instance
+# Create generator instance (default: INSTRUCTIONS.md)
 generator = FrameworkClaudeMdGenerator()
+
+# Or specify a custom target filename (e.g., for legacy compatibility)
+generator = FrameworkClaudeMdGenerator(target_filename="CLAUDE.md")
 
 # Generate content
 content = generator.generate(
@@ -55,6 +58,30 @@ generator.update_section('agents', 'Custom agents content')
 
 # Add custom section
 generator.add_custom_section('custom', 'Custom content', after='agents')
+```
+
+## Configuration Options
+
+### Target Filename
+
+The generator supports configurable target filenames for deployment:
+
+- **Default**: `"INSTRUCTIONS.md"` - The standard filename for framework instructions
+- **Legacy**: `"CLAUDE.md"` - For backward compatibility with older projects
+- **Custom**: Any filename can be specified for special use cases
+
+This configuration affects:
+- Deployment target filename
+- Backup file naming
+- Deployment check logic
+
+Example:
+```python
+# Use legacy filename for older projects
+generator = FrameworkClaudeMdGenerator(target_filename="CLAUDE.md")
+
+# Use custom filename for special environments
+generator = FrameworkClaudeMdGenerator(target_filename="PROJECT_INSTRUCTIONS.md")
 ```
 
 ## Design Benefits

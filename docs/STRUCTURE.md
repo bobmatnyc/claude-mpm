@@ -297,6 +297,7 @@ When creating new files, follow these guidelines:
   - Powers real-time agent modification tracking with syntax awareness
   - Provides fast, incremental parsing for performance-critical operations
 - **Project Reorganization** (v3.4.5): Major cleanup and reorganization
+- **Service Layer Refactoring** (v3.8.2): Service-oriented architecture with 50-80% performance improvements
   - Moved 458+ test files from `/scripts/` to `/tests/` directory
   - Created `/docs/archive/` for historical documentation and QA reports
   - Added `/docs/assets/` for documentation resources

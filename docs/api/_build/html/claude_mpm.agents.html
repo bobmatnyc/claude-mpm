@@ -1,0 +1,518 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.agents package &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.agents.templates package" href="claude_mpm.agents.templates.html" />
+    <link rel="prev" title="claude_mpm package" href="claude_mpm.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.agents package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.agents.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.agents">
+<span id="claude-mpm-agents-package"></span><h1>claude_mpm.agents package<a class="headerlink" href="#module-claude_mpm.agents" title="Link to this heading"></a></h1>
+<p>Claude PM Framework Agents Package</p>
+<p>System-level agent implementations with Task Tool integration.
+These agents provide specialized prompts and capabilities for PM orchestration.</p>
+<p>Uses unified agent loader to load prompts from JSON templates in agents/templates/
+for better structure and maintainability.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_documentation_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_documentation_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_documentation_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_documentation_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Documentation Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“documentation_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_version_control_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_version_control_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_version_control_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_version_control_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Version Control Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“version_control_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_qa_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_qa_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_qa_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_qa_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete QA Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“qa_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_research_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_research_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_research_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_research_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Research Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“research_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_ops_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_ops_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_ops_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_ops_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Ops Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“ops_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_security_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_security_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_security_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_security_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Security Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“security_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_engineer_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_engineer_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_engineer_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_engineer_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Engineer Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“engineer_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.get_data_engineer_agent_prompt">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">get_data_engineer_agent_prompt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#get_data_engineer_agent_prompt"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.get_data_engineer_agent_prompt" title="Link to this definition"></a></dt>
+<dd><p>Get the complete Data Engineer Agent prompt with base instructions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Complete prompt string ready for use with Claude API</p>
+</dd>
+</dl>
+<p>DEPRECATED: Use get_agent_prompt(“data_engineer_agent”) instead</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.list_available_agents">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">list_available_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#list_available_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.list_available_agents" title="Link to this definition"></a></dt>
+<dd><p>List all available agents with their key metadata.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary mapping agent IDs to their metadata summaries</p>
+</dd>
+</dl>
+<p>The returned dictionary provides a comprehensive view of all registered
+agents, useful for:
+- UI agent selection interfaces
+- Documentation generation
+- System introspection and debugging
+- Programmatic agent discovery</p>
+<dl>
+<dt>Example Return Value:</dt><dd><dl class="simple">
+<dt>{</dt><dd><dl class="simple">
+<dt>“research_agent”: {</dt><dd><p>“name”: “Research Agent”,
+“description”: “Analyzes codebases…”,
+“category”: “analysis”,
+“version”: “1.0.0”,
+“model”: “claude-opus-4-20250514”,
+“resource_tier”: “standard”,
+“tools”: [“code_analysis”, “search”]</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>}</p>
+</dd>
+</dl>
+<p>WHY: This aggregated view is more useful than raw agent data because:
+- It provides a consistent interface regardless of schema changes
+- It includes only the fields relevant for agent selection
+- It’s optimized for UI display and decision making</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.clear_agent_cache">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">clear_agent_cache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#clear_agent_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.clear_agent_cache" title="Link to this definition"></a></dt>
+<dd><p>Clear cached agent prompts for development or after updates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_name</strong> – Specific agent ID to clear, or None to clear all agents</p>
+</dd>
+</dl>
+<p>This function is useful for:
+- Development when modifying agent prompts
+- Forcing reload after agent template updates
+- Troubleshooting caching issues
+- Memory management in long-running processes</p>
+<p class="rubric">Examples</p>
+<p># Clear specific agent cache
+clear_agent_cache(“research_agent”)</p>
+<p># Clear all agent caches
+clear_agent_cache()</p>
+<p>WHY: Manual cache management is important because:
+- Agent prompts have a 1-hour TTL but may need immediate refresh
+- Development requires seeing changes without waiting for TTL
+- System administrators need cache control for troubleshooting</p>
+<p>Error Handling: Failures are logged but don’t raise exceptions to ensure
+the system remains operational even if cache clearing fails.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.agents.validate_agent_files">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.agents.</span></span><span class="sig-name descname"><span class="pre">validate_agent_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/agents/agent_loader.html#validate_agent_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.agents.validate_agent_files" title="Link to this definition"></a></dt>
+<dd><p>Validate all agent template files against the schema.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary mapping agent names to validation results</p>
+</dd>
+</dl>
+<p>This function performs comprehensive validation of all agent files,
+checking for:
+- JSON syntax errors
+- Schema compliance
+- Required fields presence
+- Data type correctness
+- Constraint violations</p>
+<dl>
+<dt>Return Format:</dt><dd><dl class="simple">
+<dt>{</dt><dd><dl class="simple">
+<dt>“agent_name”: {</dt><dd><p>“valid”: bool,
+“errors”: [list of error messages],
+“warnings”: [list of warning messages],
+“file_path”: “/full/path/to/file.json”</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>}</p>
+</dd>
+</dl>
+<p>Use Cases:
+- Pre-deployment validation in CI/CD
+- Development-time agent verification
+- Troubleshooting agent loading issues
+- Automated testing of agent configurations</p>
+<p>WHY: Separate validation allows checking agents without loading them,
+useful for CI/CD pipelines and development workflows where we want to
+catch errors before runtime.</p>
+</dd></dl>
+
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.templates.html">claude_mpm.agents.templates package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.templates.html#agent-delegation-templates-module">Agent Delegation Templates Module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.templates.html#claude_mpm.agents.templates.get_template_path"><code class="docutils literal notranslate"><span class="pre">get_template_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.templates.html#claude_mpm.agents.templates.load_template"><code class="docutils literal notranslate"><span class="pre">load_template()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.templates.html#claude_mpm.agents.templates.get_available_templates"><code class="docutils literal notranslate"><span class="pre">get_available_templates()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.templates.html#claude_mpm.agents.templates.get_agent_nickname"><code class="docutils literal notranslate"><span class="pre">get_agent_nickname()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.agent_loader.html">claude_mpm.agents.agent_loader module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#unified-agent-loader-system">Unified Agent Loader System</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#architecture-overview">Architecture Overview:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#key-features">Key Features:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#design-decisions">Design Decisions:</a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#usage-examples">Usage Examples:</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ComplexityLevel"><code class="docutils literal notranslate"><span class="pre">ComplexityLevel</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ComplexityLevel.LOW"><code class="docutils literal notranslate"><span class="pre">ComplexityLevel.LOW</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ComplexityLevel.MEDIUM"><code class="docutils literal notranslate"><span class="pre">ComplexityLevel.MEDIUM</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ComplexityLevel.HIGH"><code class="docutils literal notranslate"><span class="pre">ComplexityLevel.HIGH</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ModelType"><code class="docutils literal notranslate"><span class="pre">ModelType</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ModelType.HAIKU"><code class="docutils literal notranslate"><span class="pre">ModelType.HAIKU</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ModelType.SONNET"><code class="docutils literal notranslate"><span class="pre">ModelType.SONNET</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.ModelType.OPUS"><code class="docutils literal notranslate"><span class="pre">ModelType.OPUS</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentTier"><code class="docutils literal notranslate"><span class="pre">AgentTier</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentTier.PROJECT"><code class="docutils literal notranslate"><span class="pre">AgentTier.PROJECT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentTier.USER"><code class="docutils literal notranslate"><span class="pre">AgentTier.USER</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentTier.SYSTEM"><code class="docutils literal notranslate"><span class="pre">AgentTier.SYSTEM</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader"><code class="docutils literal notranslate"><span class="pre">AgentLoader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.validator"><code class="docutils literal notranslate"><span class="pre">AgentLoader.validator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.cache"><code class="docutils literal notranslate"><span class="pre">AgentLoader.cache</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader._agent_registry"><code class="docutils literal notranslate"><span class="pre">AgentLoader._agent_registry</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.__init__"><code class="docutils literal notranslate"><span class="pre">AgentLoader.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.get_agent"><code class="docutils literal notranslate"><span class="pre">AgentLoader.get_agent()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.list_agents"><code class="docutils literal notranslate"><span class="pre">AgentLoader.list_agents()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.get_agent_prompt"><code class="docutils literal notranslate"><span class="pre">AgentLoader.get_agent_prompt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.get_metrics"><code class="docutils literal notranslate"><span class="pre">AgentLoader.get_metrics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.AgentLoader.get_agent_metadata"><code class="docutils literal notranslate"><span class="pre">AgentLoader.get_agent_metadata()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.load_agent_prompt_from_md"><code class="docutils literal notranslate"><span class="pre">load_agent_prompt_from_md()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_documentation_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_documentation_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_version_control_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_version_control_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_qa_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_qa_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_research_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_research_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_ops_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_ops_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_security_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_security_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_engineer_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_engineer_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_data_engineer_agent_prompt"><code class="docutils literal notranslate"><span class="pre">get_data_engineer_agent_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_agent_prompt_with_model_info"><code class="docutils literal notranslate"><span class="pre">get_agent_prompt_with_model_info()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.list_available_agents"><code class="docutils literal notranslate"><span class="pre">list_available_agents()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.clear_agent_cache"><code class="docutils literal notranslate"><span class="pre">clear_agent_cache()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.list_agents_by_tier"><code class="docutils literal notranslate"><span class="pre">list_agents_by_tier()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.validate_agent_files"><code class="docutils literal notranslate"><span class="pre">validate_agent_files()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.reload_agents"><code class="docutils literal notranslate"><span class="pre">reload_agents()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader.html#claude_mpm.agents.agent_loader.get_agent_tier"><code class="docutils literal notranslate"><span class="pre">get_agent_tier()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html">claude_mpm.agents.agent_loader_integration module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#agent-loader-integration">Agent Loader Integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.__init__"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.get_agent_definition"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.get_agent_definition()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.get_agent_metadata"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.get_agent_metadata()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.get_agent_capabilities"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.get_agent_capabilities()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.get_agent_selection_criteria"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.get_agent_selection_criteria()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.update_agent_version"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.update_agent_version()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.EnhancedAgentLoader.refresh_agent_prompt"><code class="docutils literal notranslate"><span class="pre">EnhancedAgentLoader.refresh_agent_prompt()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.get_enhanced_loader"><code class="docutils literal notranslate"><span class="pre">get_enhanced_loader()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.get_agent_full_definition"><code class="docutils literal notranslate"><span class="pre">get_agent_full_definition()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.get_agent_version"><code class="docutils literal notranslate"><span class="pre">get_agent_version()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.check_agent_capability"><code class="docutils literal notranslate"><span class="pre">check_agent_capability()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agent_loader_integration.html#claude_mpm.agents.agent_loader_integration.should_select_agent"><code class="docutils literal notranslate"><span class="pre">should_select_agent()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.agents_metadata.html">claude_mpm.agents.agents_metadata module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.agents_metadata.html#agent-metadata-definitions">Agent Metadata Definitions</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html">claude_mpm.agents.async_agent_loader module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AgentTier"><code class="docutils literal notranslate"><span class="pre">AgentTier</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AgentTier.PROJECT"><code class="docutils literal notranslate"><span class="pre">AgentTier.PROJECT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AgentTier.USER"><code class="docutils literal notranslate"><span class="pre">AgentTier.USER</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AgentTier.SYSTEM"><code class="docutils literal notranslate"><span class="pre">AgentTier.SYSTEM</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.__init__"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.discover_agent_dirs_async"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.discover_agent_dirs_async()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.load_agents_from_dir_async"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.load_agents_from_dir_async()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.load_json_agent_async"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.load_json_agent_async()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.load_md_agent_async"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.load_md_agent_async()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.load_all_agents_async"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.load_all_agents_async()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.cleanup"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.cleanup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.AsyncAgentLoader.get_metrics"><code class="docutils literal notranslate"><span class="pre">AsyncAgentLoader.get_metrics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.async_agent_loader.html#claude_mpm.agents.async_agent_loader.load_agents_async"><code class="docutils literal notranslate"><span class="pre">load_agents_async()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html">claude_mpm.agents.base_agent_loader module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#base-agent-loader-utility">Base Agent Loader Utility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.prepend_base_instructions"><code class="docutils literal notranslate"><span class="pre">prepend_base_instructions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.load_base_agent_instructions"><code class="docutils literal notranslate"><span class="pre">load_base_agent_instructions()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.clear_base_agent_cache"><code class="docutils literal notranslate"><span class="pre">clear_base_agent_cache()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.get_base_agent_path"><code class="docutils literal notranslate"><span class="pre">get_base_agent_path()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.validate_base_agent_file"><code class="docutils literal notranslate"><span class="pre">validate_base_agent_file()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.PromptTemplate"><code class="docutils literal notranslate"><span class="pre">PromptTemplate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.PromptTemplate.MINIMAL"><code class="docutils literal notranslate"><span class="pre">PromptTemplate.MINIMAL</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.PromptTemplate.STANDARD"><code class="docutils literal notranslate"><span class="pre">PromptTemplate.STANDARD</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.base_agent_loader.html#claude_mpm.agents.base_agent_loader.PromptTemplate.FULL"><code class="docutils literal notranslate"><span class="pre">PromptTemplate.FULL</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html">claude_mpm.agents.frontmatter_validator module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#frontmatter-validator-for-agent-files">Frontmatter Validator for Agent Files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult"><code class="docutils literal notranslate"><span class="pre">ValidationResult</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.is_valid"><code class="docutils literal notranslate"><span class="pre">ValidationResult.is_valid</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.errors"><code class="docutils literal notranslate"><span class="pre">ValidationResult.errors</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.warnings"><code class="docutils literal notranslate"><span class="pre">ValidationResult.warnings</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.corrections"><code class="docutils literal notranslate"><span class="pre">ValidationResult.corrections</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.corrected_frontmatter"><code class="docutils literal notranslate"><span class="pre">ValidationResult.corrected_frontmatter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.field_corrections"><code class="docutils literal notranslate"><span class="pre">ValidationResult.field_corrections</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.ValidationResult.__init__"><code class="docutils literal notranslate"><span class="pre">ValidationResult.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.MODEL_MAPPINGS"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.MODEL_MAPPINGS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.TOOL_CORRECTIONS"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.TOOL_CORRECTIONS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.VALID_TOOLS"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.VALID_TOOLS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.VALID_MODELS"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.VALID_MODELS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.__init__"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.validate_and_correct"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.validate_and_correct()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.validate_file"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.validate_file()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.agents.frontmatter_validator.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.correct_file"><code class="docutils literal notranslate"><span class="pre">FrontmatterValidator.correct_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.agents.system_agent_config.html">claude_mpm.agents.system_agent_config module</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.html" class="btn btn-neutral float-left" title="claude_mpm package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.agents.templates.html" class="btn btn-neutral float-right" title="claude_mpm.agents.templates package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

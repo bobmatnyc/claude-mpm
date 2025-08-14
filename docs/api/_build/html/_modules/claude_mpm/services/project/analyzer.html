@@ -1,0 +1,1012 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.project.analyzer &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.project.analyzer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.project.analyzer</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Project Analyzer Service</span>
+<span class="sd">=======================</span>
+
+<span class="sd">Analyzes project characteristics to enable project-specific memory creation.</span>
+
+<span class="sd">WHY: Instead of creating generic memories, agents need to understand the specific</span>
+<span class="sd">project they&#39;re working on - its tech stack, architecture patterns, coding conventions,</span>
+<span class="sd">and key components. This service extracts these characteristics automatically.</span>
+
+<span class="sd">DESIGN DECISION: Separates project analysis from memory creation to allow reuse</span>
+<span class="sd">across different memory-related services and enable caching of analysis results.</span>
+
+<span class="sd">This service analyzes:</span>
+<span class="sd">- Technology stack from config files (package.json, requirements.txt, etc.)</span>
+<span class="sd">- Code patterns from source files</span>
+<span class="sd">- Architecture patterns from directory structure</span>
+<span class="sd">- Testing frameworks and approaches</span>
+<span class="sd">- API patterns and endpoints</span>
+<span class="sd">- Database integrations</span>
+<span class="sd">- Project-specific terminology and conventions</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.utils.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathResolver</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.interfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectAnalyzerInterface</span>
+
+
+<div class="viewcode-block" id="ProjectCharacteristics">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectCharacteristics">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProjectCharacteristics</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Structured representation of project characteristics.&quot;&quot;&quot;</span>
+    
+    <span class="c1"># Core project info</span>
+    <span class="n">project_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">primary_language</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">languages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">frameworks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="c1"># Architecture and structure</span>
+    <span class="n">architecture_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">main_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">key_directories</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">entry_points</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="c1"># Development practices</span>
+    <span class="n">testing_framework</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">test_patterns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">package_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">build_tools</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="c1"># Integrations and dependencies</span>
+    <span class="n">databases</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">web_frameworks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">api_patterns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">key_dependencies</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="c1"># Project-specific patterns</span>
+    <span class="n">code_conventions</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">configuration_patterns</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">project_terminology</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+    <span class="c1"># Documentation and structure</span>
+    <span class="n">documentation_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">important_configs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="ProjectCharacteristics.to_dict">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectCharacteristics.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert to dictionary for JSON serialization.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">asdict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ProjectAnalyzer">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProjectAnalyzer</span><span class="p">(</span><span class="n">ProjectAnalyzerInterface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Analyzes project characteristics for context-aware memory creation.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Generic agent memories aren&#39;t helpful for specific projects. This analyzer</span>
+<span class="sd">    extracts project-specific characteristics that enable agents to create relevant,</span>
+<span class="sd">    actionable memories with proper context.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Uses a combination of file pattern analysis, content parsing,</span>
+<span class="sd">    and directory structure analysis to build comprehensive project understanding</span>
+<span class="sd">    without requiring external tools or API calls.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Common configuration files and their indicators</span>
+    <span class="n">CONFIG_FILE_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;package.json&#39;</span><span class="p">:</span> <span class="s1">&#39;node_js&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;requirements.txt&#39;</span><span class="p">:</span> <span class="s1">&#39;python&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pyproject.toml&#39;</span><span class="p">:</span> <span class="s1">&#39;python&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;setup.py&#39;</span><span class="p">:</span> <span class="s1">&#39;python&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Cargo.toml&#39;</span><span class="p">:</span> <span class="s1">&#39;rust&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;pom.xml&#39;</span><span class="p">:</span> <span class="s1">&#39;java&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;build.gradle&#39;</span><span class="p">:</span> <span class="s1">&#39;java&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;composer.json&#39;</span><span class="p">:</span> <span class="s1">&#39;php&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Gemfile&#39;</span><span class="p">:</span> <span class="s1">&#39;ruby&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;go.mod&#39;</span><span class="p">:</span> <span class="s1">&#39;go&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;CMakeLists.txt&#39;</span><span class="p">:</span> <span class="s1">&#39;cpp&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Makefile&#39;</span><span class="p">:</span> <span class="s1">&#39;c_cpp&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Framework detection patterns</span>
+    <span class="n">FRAMEWORK_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;flask&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;from flask&#39;</span><span class="p">,</span> <span class="s1">&#39;Flask(&#39;</span><span class="p">,</span> <span class="s1">&#39;app.route&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;django&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;from django&#39;</span><span class="p">,</span> <span class="s1">&#39;DJANGO_SETTINGS&#39;</span><span class="p">,</span> <span class="s1">&#39;django.contrib&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;fastapi&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;from fastapi&#39;</span><span class="p">,</span> <span class="s1">&#39;FastAPI(&#39;</span><span class="p">,</span> <span class="s1">&#39;@app.&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;express&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;express()&#39;</span><span class="p">,</span> <span class="s1">&#39;app.get(&#39;</span><span class="p">,</span> <span class="s1">&#39;app.post(&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;react&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;import React&#39;</span><span class="p">,</span> <span class="s1">&#39;from react&#39;</span><span class="p">,</span> <span class="s1">&#39;ReactDOM&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;vue&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Vue.createApp&#39;</span><span class="p">,</span> <span class="s1">&#39;new Vue(&#39;</span><span class="p">,</span> <span class="s1">&#39;vue-&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;angular&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;@Component&#39;</span><span class="p">,</span> <span class="s1">&#39;@Injectable&#39;</span><span class="p">,</span> <span class="s1">&#39;Angular&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;spring&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;@SpringBootApplication&#39;</span><span class="p">,</span> <span class="s1">&#39;@RestController&#39;</span><span class="p">,</span> <span class="s1">&#39;Spring&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;rails&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;Rails.application&#39;</span><span class="p">,</span> <span class="s1">&#39;ApplicationController&#39;</span><span class="p">],</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Database detection patterns</span>
+    <span class="n">DATABASE_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;postgresql&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;psycopg2&#39;</span><span class="p">,</span> <span class="s1">&#39;postgresql:&#39;</span><span class="p">,</span> <span class="s1">&#39;postgres:&#39;</span><span class="p">,</span> <span class="s1">&#39;pg_&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mysql&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;mysql-connector&#39;</span><span class="p">,</span> <span class="s1">&#39;mysql:&#39;</span><span class="p">,</span> <span class="s1">&#39;MySQLdb&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;sqlite&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;sqlite3&#39;</span><span class="p">,</span> <span class="s1">&#39;sqlite:&#39;</span><span class="p">,</span> <span class="s1">&#39;.db&#39;</span><span class="p">,</span> <span class="s1">&#39;.sqlite&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;mongodb&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;pymongo&#39;</span><span class="p">,</span> <span class="s1">&#39;mongodb:&#39;</span><span class="p">,</span> <span class="s1">&#39;mongoose&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;redis&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;redis:&#39;</span><span class="p">,</span> <span class="s1">&#39;redis-py&#39;</span><span class="p">,</span> <span class="s1">&#39;RedisClient&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;elasticsearch&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;elasticsearch:&#39;</span><span class="p">,</span> <span class="s1">&#39;elastic&#39;</span><span class="p">],</span>
+    <span class="p">}</span>
+    
+<div class="viewcode-block" id="ProjectAnalyzer.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">working_directory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the project analyzer.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Optional Config object</span>
+<span class="sd">            working_directory: Optional working directory path. If not provided, uses current.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">=</span> <span class="n">working_directory</span> <span class="ow">or</span> <span class="n">PathResolver</span><span class="o">.</span><span class="n">get_project_root</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Cache for analysis results</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_analysis_cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ProjectCharacteristics</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache_timestamp</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzer.analyze_project">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.analyze_project">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force_refresh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ProjectCharacteristics</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze the current project and return characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Comprehensive project analysis enables agents to create memories</span>
+<span class="sd">        that are specific to the actual project context, tech stack, and patterns.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            force_refresh: If True, ignores cache and performs fresh analysis</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ProjectCharacteristics: Structured project analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Check cache first (unless force refresh)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">force_refresh</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analysis_cache</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_timestamp</span><span class="p">:</span>
+                <span class="c1"># Cache is valid for 5 minutes</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+                <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache_timestamp</span> <span class="o">&lt;</span> <span class="mi">300</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Using cached project analysis&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analysis_cache</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Analyzing project at: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Initialize characteristics with basic info</span>
+            <span class="n">characteristics</span> <span class="o">=</span> <span class="n">ProjectCharacteristics</span><span class="p">(</span>
+                <span class="n">project_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">primary_language</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">languages</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">frameworks</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">architecture_type</span><span class="o">=</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+                <span class="n">main_modules</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">key_directories</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">entry_points</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">testing_framework</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">test_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">package_manager</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">build_tools</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">databases</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">web_frameworks</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">api_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">key_dependencies</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">code_conventions</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">configuration_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">project_terminology</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">documentation_files</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">important_configs</span><span class="o">=</span><span class="p">[]</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Perform various analyses</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_config_files</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_directory_structure</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_source_code</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_dependencies</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_testing_patterns</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_documentation</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_infer_architecture_type</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_extract_project_terminology</span><span class="p">(</span><span class="n">characteristics</span><span class="p">)</span>
+            
+            <span class="c1"># Cache the results</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_analysis_cache</span> <span class="o">=</span> <span class="n">characteristics</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache_timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Project analysis complete: </span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">primary_language</span><span class="si">}</span><span class="s2"> project with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="p">)</span><span class="si">}</span><span class="s2"> frameworks&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">characteristics</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error analyzing project: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Return minimal characteristics on error</span>
+            <span class="k">return</span> <span class="n">ProjectCharacteristics</span><span class="p">(</span>
+                <span class="n">project_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">primary_language</span><span class="o">=</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+                <span class="n">languages</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">frameworks</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">architecture_type</span><span class="o">=</span><span class="s2">&quot;unknown&quot;</span><span class="p">,</span>
+                <span class="n">main_modules</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">key_directories</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">entry_points</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">testing_framework</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">test_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">package_manager</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">build_tools</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">databases</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">web_frameworks</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">api_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">key_dependencies</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">code_conventions</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">configuration_patterns</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">project_terminology</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">documentation_files</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">important_configs</span><span class="o">=</span><span class="p">[]</span>
+            <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_config_files</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze configuration files to determine tech stack.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Configuration files are the most reliable indicators of project</span>
+<span class="sd">        technology stack and dependencies. They provide definitive information</span>
+<span class="sd">        about what technologies are actually used.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">config_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">languages_found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">config_file</span><span class="p">,</span> <span class="n">language</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">CONFIG_FILE_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">config_file</span>
+            <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">config_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+                <span class="n">languages_found</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">important_configs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">config_path</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="p">)))</span>
+                
+                <span class="c1"># Parse specific config files for more details</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">config_file</span> <span class="o">==</span> <span class="s1">&#39;package.json&#39;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_parse_package_json</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">config_file</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;requirements.txt&#39;</span><span class="p">,</span> <span class="s1">&#39;pyproject.toml&#39;</span><span class="p">]:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_parse_python_dependencies</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">config_file</span> <span class="o">==</span> <span class="s1">&#39;Cargo.toml&#39;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_parse_cargo_toml</span><span class="p">(</span><span class="n">config_path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Set primary language (prefer more specific indicators)</span>
+        <span class="n">language_priority</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;python&#39;</span><span class="p">,</span> <span class="s1">&#39;node_js&#39;</span><span class="p">,</span> <span class="s1">&#39;rust&#39;</span><span class="p">,</span> <span class="s1">&#39;java&#39;</span><span class="p">,</span> <span class="s1">&#39;go&#39;</span><span class="p">,</span> <span class="s1">&#39;php&#39;</span><span class="p">,</span> <span class="s1">&#39;ruby&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">lang</span> <span class="ow">in</span> <span class="n">language_priority</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">lang</span> <span class="ow">in</span> <span class="n">languages_found</span><span class="p">:</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">primary_language</span> <span class="o">=</span> <span class="n">lang</span>
+                <span class="k">break</span>
+        
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">languages_found</span><span class="p">)</span>
+        
+        <span class="c1"># Determine package manager</span>
+        <span class="k">if</span> <span class="s1">&#39;package.json&#39;</span> <span class="ow">in</span> <span class="n">config_files</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="s1">&#39;yarn.lock&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span> <span class="o">=</span> <span class="s1">&#39;yarn&#39;</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="s1">&#39;pnpm-lock.yaml&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span> <span class="o">=</span> <span class="s1">&#39;pnpm&#39;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span> <span class="o">=</span> <span class="s1">&#39;npm&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;requirements.txt&#39;</span> <span class="ow">in</span> <span class="n">config_files</span> <span class="ow">or</span> <span class="s1">&#39;pyproject.toml&#39;</span> <span class="ow">in</span> <span class="n">config_files</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span> <span class="o">=</span> <span class="s1">&#39;pip&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;Cargo.toml&#39;</span> <span class="ow">in</span> <span class="n">config_files</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span> <span class="o">=</span> <span class="s1">&#39;cargo&#39;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_package_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse package.json for Node.js project details.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">package_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">package_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            
+            <span class="c1"># Extract dependencies</span>
+            <span class="n">all_deps</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">all_deps</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">package_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dependencies&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+            <span class="n">all_deps</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">package_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;devDependencies&#39;</span><span class="p">,</span> <span class="p">{}))</span>
+            
+            <span class="c1"># Identify frameworks and tools</span>
+            <span class="k">for</span> <span class="n">dep_name</span> <span class="ow">in</span> <span class="n">all_deps</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">dep_lower</span> <span class="o">=</span> <span class="n">dep_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                
+                <span class="c1"># Web frameworks</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">fw</span> <span class="ow">in</span> <span class="n">dep_lower</span> <span class="k">for</span> <span class="n">fw</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;express&#39;</span><span class="p">,</span> <span class="s1">&#39;koa&#39;</span><span class="p">,</span> <span class="s1">&#39;hapi&#39;</span><span class="p">]):</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">fw</span> <span class="ow">in</span> <span class="n">dep_lower</span> <span class="k">for</span> <span class="n">fw</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;react&#39;</span><span class="p">,</span> <span class="s1">&#39;vue&#39;</span><span class="p">,</span> <span class="s1">&#39;angular&#39;</span><span class="p">,</span> <span class="s1">&#39;svelte&#39;</span><span class="p">]):</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">db</span> <span class="ow">in</span> <span class="n">dep_lower</span> <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;mysql&#39;</span><span class="p">,</span> <span class="s1">&#39;postgres&#39;</span><span class="p">,</span> <span class="s1">&#39;mongodb&#39;</span><span class="p">,</span> <span class="s1">&#39;redis&#39;</span><span class="p">]):</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">databases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">test</span> <span class="ow">in</span> <span class="n">dep_lower</span> <span class="k">for</span> <span class="n">test</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;jest&#39;</span><span class="p">,</span> <span class="s1">&#39;mocha&#39;</span><span class="p">,</span> <span class="s1">&#39;cypress&#39;</span><span class="p">,</span> <span class="s1">&#39;playwright&#39;</span><span class="p">]):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span><span class="p">:</span>
+                        <span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span> <span class="o">=</span> <span class="n">dep_name</span>
+                
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">key_dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+            
+            <span class="c1"># Check scripts for build tools</span>
+            <span class="n">scripts</span> <span class="o">=</span> <span class="n">package_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scripts&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">for</span> <span class="n">script_name</span><span class="p">,</span> <span class="n">script_cmd</span> <span class="ow">in</span> <span class="n">scripts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">tool</span> <span class="ow">in</span> <span class="n">script_cmd</span> <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;webpack&#39;</span><span class="p">,</span> <span class="s1">&#39;rollup&#39;</span><span class="p">,</span> <span class="s1">&#39;vite&#39;</span><span class="p">,</span> <span class="s1">&#39;parcel&#39;</span><span class="p">]):</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">build_tools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">script_name</span><span class="p">)</span>
+                    
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing package.json: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_python_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deps_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse Python dependency files.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">deps_path</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;requirements.txt&#39;</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">deps_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+                <span class="n">deps</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&lt;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> 
+                       <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">content</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span> 
+                       <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">)]</span>
+            <span class="k">elif</span> <span class="n">deps_path</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;pyproject.toml&#39;</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">tomllib</span>
+                <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="kn">import</span><span class="w"> </span><span class="nn">tomli</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tomllib</span>
+                    <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TOML parsing not available for </span><span class="si">{</span><span class="n">deps_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">return</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">deps_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">tomllib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                <span class="n">deps</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;project&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dependencies&#39;</span><span class="p">,</span> <span class="p">[]))</span>
+                <span class="n">deps</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tool&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;poetry&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dependencies&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span>
+            
+            <span class="c1"># Identify frameworks and tools</span>
+            <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">deps</span><span class="p">:</span>
+                <span class="n">dep_lower</span> <span class="o">=</span> <span class="n">dep</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                
+                <span class="c1"># Web frameworks</span>
+                <span class="k">if</span> <span class="n">dep_lower</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;flask&#39;</span><span class="p">,</span> <span class="s1">&#39;django&#39;</span><span class="p">,</span> <span class="s1">&#39;fastapi&#39;</span><span class="p">,</span> <span class="s1">&#39;tornado&#39;</span><span class="p">]:</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">dep_lower</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pytest&#39;</span><span class="p">,</span> <span class="s1">&#39;unittest2&#39;</span><span class="p">,</span> <span class="s1">&#39;nose&#39;</span><span class="p">]:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span><span class="p">:</span>
+                        <span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span> <span class="o">=</span> <span class="n">dep</span>
+                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">db</span> <span class="ow">in</span> <span class="n">dep_lower</span> <span class="k">for</span> <span class="n">db</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;psycopg2&#39;</span><span class="p">,</span> <span class="s1">&#39;mysql&#39;</span><span class="p">,</span> <span class="s1">&#39;sqlite&#39;</span><span class="p">,</span> <span class="s1">&#39;redis&#39;</span><span class="p">,</span> <span class="s1">&#39;mongo&#39;</span><span class="p">]):</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">databases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+                
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">key_dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep</span><span class="p">)</span>
+                
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing Python dependencies: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_cargo_toml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cargo_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse Cargo.toml for Rust project details.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">tomllib</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">import</span><span class="w"> </span><span class="nn">tomli</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">tomllib</span>
+                <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;TOML parsing not available for </span><span class="si">{</span><span class="n">cargo_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">cargo_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">cargo_data</span> <span class="o">=</span> <span class="n">tomllib</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            
+            <span class="n">deps</span> <span class="o">=</span> <span class="n">cargo_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;dependencies&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">for</span> <span class="n">dep_name</span> <span class="ow">in</span> <span class="n">deps</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">key_dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                
+                <span class="c1"># Identify common Rust frameworks</span>
+                <span class="k">if</span> <span class="n">dep_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;actix-web&#39;</span><span class="p">,</span> <span class="s1">&#39;warp&#39;</span><span class="p">,</span> <span class="s1">&#39;rocket&#39;</span><span class="p">]:</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">dep_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;tokio&#39;</span><span class="p">,</span> <span class="s1">&#39;async-std&#39;</span><span class="p">]:</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dep_name</span><span class="p">)</span>
+                    
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error parsing Cargo.toml: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_directory_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze directory structure for architecture patterns.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Directory structure reveals architectural decisions and project</span>
+<span class="sd">        organization patterns that agents should understand and follow.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Common important directories to look for</span>
+        <span class="n">important_dirs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">,</span> <span class="s1">&#39;app&#39;</span><span class="p">,</span> <span class="s1">&#39;components&#39;</span><span class="p">,</span> <span class="s1">&#39;services&#39;</span><span class="p">,</span> <span class="s1">&#39;models&#39;</span><span class="p">,</span> <span class="s1">&#39;views&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;controllers&#39;</span><span class="p">,</span> <span class="s1">&#39;routes&#39;</span><span class="p">,</span> <span class="s1">&#39;api&#39;</span><span class="p">,</span> <span class="s1">&#39;web&#39;</span><span class="p">,</span> <span class="s1">&#39;static&#39;</span><span class="p">,</span> <span class="s1">&#39;templates&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;__tests__&#39;</span><span class="p">,</span> <span class="s1">&#39;spec&#39;</span><span class="p">,</span> <span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="s1">&#39;documentation&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;config&#39;</span><span class="p">,</span> <span class="s1">&#39;configs&#39;</span><span class="p">,</span> <span class="s1">&#39;settings&#39;</span><span class="p">,</span> <span class="s1">&#39;utils&#39;</span><span class="p">,</span> <span class="s1">&#39;helpers&#39;</span><span class="p">,</span> <span class="s1">&#39;core&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;modules&#39;</span><span class="p">,</span> <span class="s1">&#39;packages&#39;</span><span class="p">,</span> <span class="s1">&#39;plugins&#39;</span><span class="p">,</span> <span class="s1">&#39;extensions&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Check which directories exist</span>
+        <span class="n">existing_dirs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">dir_name</span> <span class="ow">in</span> <span class="n">important_dirs</span><span class="p">:</span>
+            <span class="n">dir_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">dir_name</span>
+            <span class="k">if</span> <span class="n">dir_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dir_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                <span class="n">existing_dirs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dir_name</span><span class="p">)</span>
+                
+                <span class="c1"># Special handling for certain directories</span>
+                <span class="k">if</span> <span class="n">dir_name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">,</span> <span class="s1">&#39;app&#39;</span><span class="p">]:</span>
+                    <span class="c1"># These are likely main module directories</span>
+                    <span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_subdirectories</span><span class="p">(</span><span class="n">dir_path</span><span class="p">))</span>
+        
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span> <span class="o">=</span> <span class="n">existing_dirs</span>
+        
+        <span class="c1"># Look for entry points</span>
+        <span class="n">entry_point_patterns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;main.py&#39;</span><span class="p">,</span> <span class="s1">&#39;app.py&#39;</span><span class="p">,</span> <span class="s1">&#39;server.py&#39;</span><span class="p">,</span> <span class="s1">&#39;index.js&#39;</span><span class="p">,</span> <span class="s1">&#39;main.js&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;app.js&#39;</span><span class="p">,</span> <span class="s1">&#39;server.js&#39;</span><span class="p">,</span> <span class="s1">&#39;main.rs&#39;</span><span class="p">,</span> <span class="s1">&#39;lib.rs&#39;</span><span class="p">,</span> <span class="s1">&#39;Main.java&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;main.go&#39;</span><span class="p">,</span> <span class="s1">&#39;index.php&#39;</span><span class="p">,</span> <span class="s1">&#39;application.rb&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">entry_point_patterns</span><span class="p">:</span>
+            <span class="n">entry_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">pattern</span>
+            <span class="k">if</span> <span class="n">entry_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">entry_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+            
+            <span class="c1"># Also check in src/ directory</span>
+            <span class="n">src_entry_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="s1">&#39;src&#39;</span> <span class="o">/</span> <span class="n">pattern</span>
+            <span class="k">if</span> <span class="n">src_entry_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">entry_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;src/</span><span class="si">{</span><span class="n">pattern</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_subdirectories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">max_depth</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get subdirectory names up to a certain depth.&quot;&quot;&quot;</span>
+        <span class="n">subdirs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">item</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+                    <span class="n">subdirs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">max_depth</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="k">for</span> <span class="n">subitem</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">iterdir</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="n">subitem</span><span class="o">.</span><span class="n">is_dir</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">subitem</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">):</span>
+                                <span class="n">subdirs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">item</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">subitem</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">PermissionError</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="n">subdirs</span><span class="p">[:</span><span class="mi">10</span><span class="p">]</span>  <span class="c1"># Limit to prevent overwhelming output</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_source_code</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze source code files for patterns and conventions.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Source code contains the actual implementation patterns that agents</span>
+<span class="sd">        should understand and follow. This analysis extracts coding conventions</span>
+<span class="sd">        and architectural patterns from the codebase.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">source_extensions</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;.py&#39;</span><span class="p">:</span> <span class="s1">&#39;python&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.js&#39;</span><span class="p">:</span> <span class="s1">&#39;javascript&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;.ts&#39;</span><span class="p">:</span> <span class="s1">&#39;typescript&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.jsx&#39;</span><span class="p">:</span> <span class="s1">&#39;react&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.tsx&#39;</span><span class="p">:</span> <span class="s1">&#39;react&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.rs&#39;</span><span class="p">:</span> <span class="s1">&#39;rust&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.java&#39;</span><span class="p">:</span> <span class="s1">&#39;java&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.go&#39;</span><span class="p">:</span> <span class="s1">&#39;go&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.php&#39;</span><span class="p">:</span> <span class="s1">&#39;php&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.rb&#39;</span><span class="p">:</span> <span class="s1">&#39;ruby&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.cpp&#39;</span><span class="p">:</span> <span class="s1">&#39;cpp&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.cc&#39;</span><span class="p">:</span> <span class="s1">&#39;cpp&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;.c&#39;</span><span class="p">:</span> <span class="s1">&#39;c&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Find source files</span>
+        <span class="n">source_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">languages_found</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">ext</span><span class="p">,</span> <span class="n">lang</span> <span class="ow">in</span> <span class="n">source_extensions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;*</span><span class="si">{</span><span class="n">ext</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">))</span>
+            <span class="c1"># Filter out node_modules, .git, etc.</span>
+            <span class="n">files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">part</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">part</span> <span class="o">==</span> <span class="s1">&#39;node_modules&#39;</span> 
+                                                <span class="k">for</span> <span class="n">part</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">parts</span><span class="p">)]</span>
+            <span class="n">source_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
+                <span class="n">languages_found</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">lang</span><span class="p">)</span>
+        
+        <span class="c1"># Update languages found</span>
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">lang</span> <span class="k">for</span> <span class="n">lang</span> <span class="ow">in</span> <span class="n">languages_found</span> 
+                                        <span class="k">if</span> <span class="n">lang</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span><span class="p">])</span>
+        
+        <span class="c1"># Analyze a sample of source files for patterns</span>
+        <span class="n">sample_files</span> <span class="o">=</span> <span class="n">source_files</span><span class="p">[:</span><span class="mi">20</span><span class="p">]</span>  <span class="c1"># Don&#39;t analyze too many files</span>
+        
+        <span class="n">framework_mentions</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+        <span class="n">pattern_mentions</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">file_path</span> <span class="ow">in</span> <span class="n">sample_files</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># Look for framework patterns</span>
+                <span class="k">for</span> <span class="n">framework</span><span class="p">,</span> <span class="n">patterns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">FRAMEWORK_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">pattern</span> <span class="ow">in</span> <span class="n">content</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">):</span>
+                        <span class="n">framework_mentions</span><span class="p">[</span><span class="n">framework</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+                <span class="c1"># Look for database patterns</span>
+                <span class="k">for</span> <span class="n">db</span><span class="p">,</span> <span class="n">patterns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">DATABASE_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">pattern</span> <span class="ow">in</span> <span class="n">content</span> <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="n">db</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">databases</span><span class="p">:</span>
+                            <span class="n">characteristics</span><span class="o">.</span><span class="n">databases</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+                
+                <span class="c1"># Look for common patterns</span>
+                <span class="k">if</span> <span class="s1">&#39;class &#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">and</span> <span class="s1">&#39;def __init__&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">pattern_mentions</span><span class="p">[</span><span class="s1">&#39;object_oriented&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="s1">&#39;@app.route&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;app.get(&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">pattern_mentions</span><span class="p">[</span><span class="s1">&#39;web_routes&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="s1">&#39;async def&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;async function&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">pattern_mentions</span><span class="p">[</span><span class="s1">&#39;async_programming&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="s1">&#39;import pytest&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;describe(&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">pattern_mentions</span><span class="p">[</span><span class="s1">&#39;unit_testing&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error analyzing </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+        
+        <span class="c1"># Add discovered frameworks</span>
+        <span class="k">for</span> <span class="n">framework</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">framework_mentions</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">framework</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="p">:</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">framework</span><span class="p">)</span>
+        
+        <span class="c1"># Add coding conventions based on patterns found</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">pattern_mentions</span><span class="o">.</span><span class="n">most_common</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># Pattern appears in multiple files</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">code_conventions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pattern</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze dependencies for integration patterns.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This is partially covered by config file analysis</span>
+        <span class="c1"># Here we can add more sophisticated dependency analysis</span>
+        
+        <span class="c1"># Look for common integration patterns in dependencies</span>
+        <span class="n">api_indicators</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;requests&#39;</span><span class="p">,</span> <span class="s1">&#39;axios&#39;</span><span class="p">,</span> <span class="s1">&#39;fetch&#39;</span><span class="p">,</span> <span class="s1">&#39;http&#39;</span><span class="p">,</span> <span class="s1">&#39;urllib&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;rest&#39;</span><span class="p">,</span> <span class="s1">&#39;graphql&#39;</span><span class="p">,</span> <span class="s1">&#39;grpc&#39;</span><span class="p">,</span> <span class="s1">&#39;soap&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">dep</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_dependencies</span><span class="p">:</span>
+            <span class="n">dep_lower</span> <span class="o">=</span> <span class="n">dep</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">indicator</span> <span class="ow">in</span> <span class="n">api_indicators</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">indicator</span> <span class="ow">in</span> <span class="n">dep_lower</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="s1">&#39;REST API&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">api_patterns</span><span class="p">:</span>
+                        <span class="n">characteristics</span><span class="o">.</span><span class="n">api_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;REST API&#39;</span><span class="p">)</span>
+                    <span class="k">break</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_testing_patterns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze testing patterns and frameworks.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">test_dirs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;__tests__&#39;</span><span class="p">,</span> <span class="s1">&#39;spec&#39;</span><span class="p">]</span>
+        <span class="n">test_patterns</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">test_dir</span> <span class="ow">in</span> <span class="n">test_dirs</span><span class="p">:</span>
+            <span class="n">test_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">test_dir</span>
+            <span class="k">if</span> <span class="n">test_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">test_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                <span class="n">test_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tests in /</span><span class="si">{</span><span class="n">test_dir</span><span class="si">}</span><span class="s2">/ directory&quot;</span><span class="p">)</span>
+                
+                <span class="c1"># Look for test files to understand patterns</span>
+                <span class="n">test_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">test_path</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s1">&#39;*.py&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">test_path</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s1">&#39;*.js&#39;</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">test_path</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s1">&#39;*.ts&#39;</span><span class="p">))</span>
+                
+                <span class="k">for</span> <span class="n">test_file</span> <span class="ow">in</span> <span class="n">test_files</span><span class="p">[:</span><span class="mi">5</span><span class="p">]:</span>  <span class="c1"># Sample a few test files</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">content</span> <span class="o">=</span> <span class="n">test_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span> <span class="n">errors</span><span class="o">=</span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="s1">&#39;def test_&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                            <span class="n">test_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Python unittest pattern&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;describe(&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">and</span> <span class="s1">&#39;it(&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                            <span class="n">test_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;BDD test pattern&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;@pytest.fixture&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                            <span class="n">test_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;pytest fixtures&quot;</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="s1">&#39;beforeEach(&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;beforeAll(&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                            <span class="n">test_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Setup/teardown patterns&quot;</span><span class="p">)</span>
+                            
+                    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                        <span class="k">continue</span>
+        
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">test_patterns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">test_patterns</span><span class="p">))</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_documentation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze documentation files.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">doc_patterns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;README.md&#39;</span><span class="p">,</span> <span class="s1">&#39;README.rst&#39;</span><span class="p">,</span> <span class="s1">&#39;README.txt&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;CONTRIBUTING.md&#39;</span><span class="p">,</span> <span class="s1">&#39;CHANGELOG.md&#39;</span><span class="p">,</span> <span class="s1">&#39;HISTORY.md&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;docs/&#39;</span><span class="p">,</span> <span class="s1">&#39;documentation/&#39;</span><span class="p">,</span> <span class="s1">&#39;wiki/&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="n">doc_files</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">doc_patterns</span><span class="p">:</span>
+            <span class="n">doc_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">pattern</span>
+            <span class="k">if</span> <span class="n">doc_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">doc_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                    <span class="n">doc_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">doc_path</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+                    <span class="c1"># Find markdown files in doc directories</span>
+                    <span class="n">md_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">doc_path</span><span class="o">.</span><span class="n">rglob</span><span class="p">(</span><span class="s1">&#39;*.md&#39;</span><span class="p">))[:</span><span class="mi">10</span><span class="p">]</span>
+                    <span class="n">doc_files</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="nb">str</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">relative_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">md_files</span><span class="p">])</span>
+        
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">documentation_files</span> <span class="o">=</span> <span class="n">doc_files</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_infer_architecture_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Infer architecture type based on discovered patterns.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Simple architecture inference based on patterns</span>
+        <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">fw</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span> <span class="k">for</span> <span class="n">fw</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;flask&#39;</span><span class="p">,</span> <span class="s1">&#39;django&#39;</span><span class="p">,</span> <span class="s1">&#39;express&#39;</span><span class="p">,</span> <span class="s1">&#39;fastapi&#39;</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="s1">&#39;api&#39;</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span><span class="p">:</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;REST API Service&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;Web Application&quot;</span>
+        <span class="k">elif</span> <span class="s1">&#39;services&#39;</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;Service-Oriented Architecture&quot;</span>
+        <span class="k">elif</span> <span class="s1">&#39;modules&#39;</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span> <span class="ow">or</span> <span class="s1">&#39;packages&#39;</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;Modular Architecture&quot;</span>
+        <span class="k">elif</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">primary_language</span> <span class="o">==</span> <span class="s1">&#39;python&#39;</span> <span class="ow">and</span> <span class="s1">&#39;cli&#39;</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;CLI Application&quot;</span>
+        <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="s1">&#39;react&#39;</span> <span class="ow">in</span> <span class="n">fw</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">fw</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="p">):</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;Single Page Application&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span> <span class="o">=</span> <span class="s2">&quot;Standard Application&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_project_terminology</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">characteristics</span><span class="p">:</span> <span class="n">ProjectCharacteristics</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract project-specific terminology from various sources.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Projects often have domain-specific terminology that agents should</span>
+<span class="sd">        understand and use consistently.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            characteristics: ProjectCharacteristics object to update</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">terminology</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="c1"># Extract from project name</span>
+        <span class="n">project_words</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Z][a-z]+|[a-z]+&#39;</span><span class="p">,</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">project_name</span><span class="p">)</span>
+        <span class="n">terminology</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">project_words</span><span class="p">)</span>
+        
+        <span class="c1"># Extract from directory names</span>
+        <span class="k">for</span> <span class="n">dir_name</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span><span class="p">:</span>
+            <span class="n">words</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Z][a-z]+|[a-z]+&#39;</span><span class="p">,</span> <span class="n">dir_name</span><span class="p">)</span>
+            <span class="n">terminology</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
+        
+        <span class="c1"># Extract from main modules</span>
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="p">:</span>
+            <span class="n">words</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[A-Z][a-z]+|[a-z]+&#39;</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+            <span class="n">terminology</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
+        
+        <span class="c1"># Filter out common words and keep domain-specific terms</span>
+        <span class="n">common_words</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;src&#39;</span><span class="p">,</span> <span class="s1">&#39;lib&#39;</span><span class="p">,</span> <span class="s1">&#39;app&#39;</span><span class="p">,</span> <span class="s1">&#39;main&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;tests&#39;</span><span class="p">,</span> <span class="s1">&#39;docs&#39;</span><span class="p">,</span> <span class="s1">&#39;config&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;utils&#39;</span><span class="p">,</span> <span class="s1">&#39;helpers&#39;</span><span class="p">,</span> <span class="s1">&#39;core&#39;</span><span class="p">,</span> <span class="s1">&#39;base&#39;</span><span class="p">,</span> <span class="s1">&#39;common&#39;</span><span class="p">,</span> <span class="s1">&#39;shared&#39;</span><span class="p">,</span> <span class="s1">&#39;public&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;private&#39;</span><span class="p">,</span> <span class="s1">&#39;static&#39;</span><span class="p">,</span> <span class="s1">&#39;assets&#39;</span><span class="p">,</span> <span class="s1">&#39;build&#39;</span><span class="p">,</span> <span class="s1">&#39;dist&#39;</span><span class="p">,</span> <span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="s1">&#39;modules&#39;</span>
+        <span class="p">}</span>
+        
+        <span class="n">domain_terms</span> <span class="o">=</span> <span class="p">[</span><span class="n">term</span> <span class="k">for</span> <span class="n">term</span> <span class="ow">in</span> <span class="n">terminology</span> 
+                       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">term</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">term</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">common_words</span><span class="p">]</span>
+        
+        <span class="n">characteristics</span><span class="o">.</span><span class="n">project_terminology</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">domain_terms</span><span class="p">))[:</span><span class="mi">10</span><span class="p">]</span>  <span class="c1"># Limit to most relevant</span>
+    
+<div class="viewcode-block" id="ProjectAnalyzer.get_project_context_summary">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.get_project_context_summary">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_project_context_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get a concise summary of project context for memory templates.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Provides a formatted summary specifically designed for inclusion</span>
+<span class="sd">        in agent memory templates, focusing on the most relevant characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            str: Formatted project context summary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        
+        <span class="n">summary_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Basic project info</span>
+        <span class="n">lang_info</span> <span class="o">=</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">primary_language</span> <span class="ow">or</span> <span class="s2">&quot;mixed&quot;</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">lang_info</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">lang_info</span><span class="si">}</span><span class="s2"> (with </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span><span class="si">}</span><span class="s2">)&quot;</span>
+        
+        <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">project_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">lang_info</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Key directories and modules</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="p">:</span>
+            <span class="n">modules_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="p">[:</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- Main modules: </span><span class="si">{</span><span class="n">modules_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Frameworks and tools</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span> <span class="ow">or</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span><span class="p">:</span>
+            <span class="n">all_frameworks</span> <span class="o">=</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span> <span class="o">+</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span>
+            <span class="n">frameworks_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">all_frameworks</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- Uses: </span><span class="si">{</span><span class="n">frameworks_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Testing</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span><span class="p">:</span>
+            <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- Testing: </span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">testing_framework</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">test_patterns</span><span class="p">:</span>
+            <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- Testing: </span><span class="si">{</span><span class="n">characteristics</span><span class="o">.</span><span class="n">test_patterns</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Key patterns</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">code_conventions</span><span class="p">:</span>
+            <span class="n">patterns_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">code_conventions</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">summary_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- Key patterns: </span><span class="si">{</span><span class="n">patterns_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">summary_parts</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzer.get_important_files_for_context">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.get_important_files_for_context">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_important_files_for_context</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of important files that should be considered for memory context.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Instead of hardcoding which files to analyze for memory creation,</span>
+<span class="sd">        this method dynamically determines the most relevant files based on</span>
+<span class="sd">        the actual project structure.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List[str]: List of file paths relative to project root</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        <span class="n">important_files</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Always include standard documentation</span>
+        <span class="n">standard_docs</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;README.md&#39;</span><span class="p">,</span> <span class="s1">&#39;CONTRIBUTING.md&#39;</span><span class="p">,</span> <span class="s1">&#39;CHANGELOG.md&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">doc</span> <span class="ow">in</span> <span class="n">standard_docs</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">doc</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">important_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">doc</span><span class="p">)</span>
+        
+        <span class="c1"># Include configuration files</span>
+        <span class="n">important_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">important_configs</span><span class="p">)</span>
+        
+        <span class="c1"># Include project-specific documentation</span>
+        <span class="n">important_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">documentation_files</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span>
+        
+        <span class="c1"># Include entry points</span>
+        <span class="n">important_files</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">entry_points</span><span class="p">)</span>
+        
+        <span class="c1"># Look for architecture documentation</span>
+        <span class="n">arch_patterns</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ARCHITECTURE.md&#39;</span><span class="p">,</span> <span class="s1">&#39;docs/architecture.md&#39;</span><span class="p">,</span> <span class="s1">&#39;docs/STRUCTURE.md&#39;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">arch_patterns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">pattern</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">important_files</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span>
+        
+        <span class="c1"># Remove duplicates and return</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">important_files</span><span class="p">))</span></div>
+
+    
+    <span class="c1"># ================================================================================</span>
+    <span class="c1"># Interface Adapter Methods</span>
+    <span class="c1"># ================================================================================</span>
+    <span class="c1"># These methods adapt the existing implementation to comply with ProjectAnalyzerInterface</span>
+    
+<div class="viewcode-block" id="ProjectAnalyzer.detect_technology_stack">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.detect_technology_stack">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_technology_stack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Detect technologies used in the project.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: This adapter method provides interface compliance by extracting</span>
+<span class="sd">        technology information from the analyzed project characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of detected technologies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        
+        <span class="n">technologies</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">technologies</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">languages</span><span class="p">)</span>
+        <span class="n">technologies</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">frameworks</span><span class="p">)</span>
+        <span class="n">technologies</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">web_frameworks</span><span class="p">)</span>
+        <span class="n">technologies</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">databases</span><span class="p">)</span>
+        
+        <span class="c1"># Add package manager as technology</span>
+        <span class="k">if</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span><span class="p">:</span>
+            <span class="n">technologies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">package_manager</span><span class="p">)</span>
+        
+        <span class="c1"># Add build tools</span>
+        <span class="n">technologies</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">characteristics</span><span class="o">.</span><span class="n">build_tools</span><span class="p">)</span>
+        
+        <span class="c1"># Remove duplicates</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">technologies</span><span class="p">))</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzer.analyze_code_patterns">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.analyze_code_patterns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_code_patterns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze code patterns and conventions.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: This adapter method provides interface compliance by extracting</span>
+<span class="sd">        pattern information from the project characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary of pattern analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;code_conventions&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">code_conventions</span><span class="p">,</span>
+            <span class="s2">&quot;test_patterns&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">test_patterns</span><span class="p">,</span>
+            <span class="s2">&quot;api_patterns&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">api_patterns</span><span class="p">,</span>
+            <span class="s2">&quot;configuration_patterns&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">configuration_patterns</span><span class="p">,</span>
+            <span class="s2">&quot;architecture_type&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzer.get_project_structure">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.get_project_structure">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_project_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get project directory structure analysis.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: This adapter method provides interface compliance by organizing</span>
+<span class="sd">        structural information from the project characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary representing project structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;project_name&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">project_name</span><span class="p">,</span>
+            <span class="s2">&quot;main_modules&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">main_modules</span><span class="p">,</span>
+            <span class="s2">&quot;key_directories&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">key_directories</span><span class="p">,</span>
+            <span class="s2">&quot;entry_points&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">entry_points</span><span class="p">,</span>
+            <span class="s2">&quot;documentation_files&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">documentation_files</span><span class="p">,</span>
+            <span class="s2">&quot;important_configs&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">important_configs</span><span class="p">,</span>
+            <span class="s2">&quot;architecture_type&quot;</span><span class="p">:</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">architecture_type</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzer.identify_entry_points">
+<a class="viewcode-back" href="../../../../claude_mpm.services.project.analyzer.html#claude_mpm.services.project.ProjectAnalyzer.identify_entry_points">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">identify_entry_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identify project entry points.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: This adapter method provides interface compliance by converting</span>
+<span class="sd">        string entry points to Path objects as expected by the interface.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of entry point paths</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">characteristics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_project</span><span class="p">()</span>
+        
+        <span class="c1"># Convert string paths to Path objects</span>
+        <span class="n">entry_paths</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry_point</span> <span class="ow">in</span> <span class="n">characteristics</span><span class="o">.</span><span class="n">entry_points</span><span class="p">:</span>
+            <span class="n">entry_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="n">entry_point</span>
+            <span class="k">if</span> <span class="n">entry_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="n">entry_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry_path</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">entry_paths</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

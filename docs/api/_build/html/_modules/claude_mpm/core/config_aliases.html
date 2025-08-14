@@ -1,0 +1,455 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.config_aliases &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.config_aliases</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.config_aliases</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Configuration alias management for Claude PM Framework.</span>
+
+<span class="sd">Manages friendly directory aliases for configuration paths, allowing users to</span>
+<span class="sd">reference configurations using memorable names instead of full paths.</span>
+
+<span class="sd">Example:</span>
+<span class="sd">    claude-pm --config personal  # Resolves to ~/.claude-mpm/configs/personal/</span>
+<span class="sd">    claude-pm --config work      # Resolves to ~/work/claude-configs/</span>
+
+<span class="sd">Aliases are stored in ~/.claude-mpm/config_aliases.json</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..utils.config_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigurationManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">.config_paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigPaths</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConfigAliasError">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigAliasError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception for configuration alias errors.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="AliasNotFoundError">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.AliasNotFoundError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AliasNotFoundError</span><span class="p">(</span><span class="n">ConfigAliasError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when attempting to resolve a non-existent alias.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="DuplicateAliasError">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.DuplicateAliasError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DuplicateAliasError</span><span class="p">(</span><span class="n">ConfigAliasError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when attempting to create an alias that already exists.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="InvalidDirectoryError">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.InvalidDirectoryError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InvalidDirectoryError</span><span class="p">(</span><span class="n">ConfigAliasError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a directory path is invalid or cannot be created.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ConfigAliasManager">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigAliasManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages configuration directory aliases for the Claude PM Framework.</span>
+<span class="sd">    </span>
+<span class="sd">    Provides methods to create, delete, list, and resolve aliases that map</span>
+<span class="sd">    friendly names to actual directory paths.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ConfigAliasManager.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aliases_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the configuration alias manager.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            aliases_file: Path to the aliases JSON file. Defaults to</span>
+<span class="sd">                         ~/.claude-pm/config_aliases.json</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">aliases_file</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;config_aliases.json&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">aliases_file</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_mgr</span> <span class="o">=</span> <span class="n">ConfigurationManager</span><span class="p">(</span><span class="n">cache_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_aliases_file</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_aliases</span><span class="p">()</span></div>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_ensure_aliases_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure the aliases file and its parent directory exist.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_aliases</span><span class="p">({})</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created new aliases file at </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load aliases from the JSON file.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_mgr</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load aliases: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{}</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aliases</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save aliases to the JSON file.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config_mgr</span><span class="o">.</span><span class="n">save_json</span><span class="p">(</span><span class="n">aliases</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">aliases_file</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save aliases: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="n">ConfigAliasError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save aliases: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="ConfigAliasManager.create_alias">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.create_alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new configuration alias.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The friendly name for the alias</span>
+<span class="sd">            directory_path: The directory path this alias should resolve to</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            DuplicateAliasError: If the alias already exists</span>
+<span class="sd">            InvalidDirectoryError: If the directory path is invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Validate alias name</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alias_name</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">alias_name</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Alias name cannot be empty&quot;</span><span class="p">)</span>
+        
+        <span class="n">alias_name</span> <span class="o">=</span> <span class="n">alias_name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="c1"># Check for duplicate</span>
+        <span class="k">if</span> <span class="n">alias_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">DuplicateAliasError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; already exists, pointing to: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Validate and normalize the directory path</span>
+        <span class="n">validated_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_directory</span><span class="p">(</span><span class="n">directory_path</span><span class="p">)</span>
+        
+        <span class="c1"># Add the alias</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">validated_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_aliases</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">)</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; -&gt; </span><span class="si">{</span><span class="n">validated_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.resolve_alias">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.resolve_alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve an alias to its directory path.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The alias to resolve</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The Path object for the resolved directory</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            AliasNotFoundError: If the alias does not exist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">alias_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AliasNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; not found&quot;</span><span class="p">)</span>
+        
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">])</span>
+        
+        <span class="c1"># Ensure the directory still exists or can be created</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_directory</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+        <span class="k">except</span> <span class="n">InvalidDirectoryError</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Directory for alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; no longer valid: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Still return the path, let the caller handle the missing directory</span>
+        
+        <span class="k">return</span> <span class="n">path</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.list_aliases">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.list_aliases">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List all configured aliases.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            A list of tuples containing (alias_name, directory_path)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">items</span><span class="p">())</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.delete_alias">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.delete_alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete a configuration alias.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The alias to delete</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            AliasNotFoundError: If the alias does not exist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">alias_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AliasNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; not found&quot;</span><span class="p">)</span>
+        
+        <span class="n">directory_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_aliases</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">)</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; (was pointing to: </span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.validate_directory">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.validate_directory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate that a directory exists or can be created.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            path: The directory path to validate</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The normalized Path object</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            InvalidDirectoryError: If the path is invalid or cannot be created</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Expand user home directory and environment variables</span>
+            <span class="n">expanded_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expandvars</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+            <span class="n">directory_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">expanded_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+            
+            <span class="c1"># Check if it&#39;s a file</span>
+            <span class="k">if</span> <span class="n">directory_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">directory_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="n">InvalidDirectoryError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Path exists but is a file, not a directory: </span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Try to create the directory if it doesn&#39;t exist</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">directory_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">directory_path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created directory: </span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InvalidDirectoryError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Cannot create directory &#39;</span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            
+            <span class="c1"># Verify we can write to the directory</span>
+            <span class="n">test_file</span> <span class="o">=</span> <span class="n">directory_path</span> <span class="o">/</span> <span class="s2">&quot;.claude_pm_test&quot;</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">test_file</span><span class="o">.</span><span class="n">touch</span><span class="p">()</span>
+                <span class="n">test_file</span><span class="o">.</span><span class="n">unlink</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InvalidDirectoryError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Directory &#39;</span><span class="si">{</span><span class="n">directory_path</span><span class="si">}</span><span class="s2">&#39; is not writable: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">directory_path</span>
+            
+        <span class="k">except</span> <span class="n">InvalidDirectoryError</span><span class="p">:</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InvalidDirectoryError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid directory path &#39;</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.get_alias">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.get_alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the directory path for an alias without validation.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The alias to look up</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            The directory path string if the alias exists, None otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">alias_name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.update_alias">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.update_alias">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_alias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">new_directory_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update an existing alias to point to a new directory.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The alias to update</span>
+<span class="sd">            new_directory_path: The new directory path</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            AliasNotFoundError: If the alias does not exist</span>
+<span class="sd">            InvalidDirectoryError: If the new directory path is invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">alias_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">AliasNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39; not found&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate the new directory path</span>
+        <span class="n">validated_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_directory</span><span class="p">(</span><span class="n">new_directory_path</span><span class="p">)</span>
+        
+        <span class="n">old_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">[</span><span class="n">alias_name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">validated_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_aliases</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="p">)</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated alias &#39;</span><span class="si">{</span><span class="n">alias_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">old_path</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">validated_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.alias_exists">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.alias_exists">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">alias_exists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">alias_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if an alias exists.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            alias_name: The alias to check</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if the alias exists, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">alias_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.get_all_aliases">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.get_all_aliases">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get a copy of all aliases.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            A dictionary mapping alias names to directory paths</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="ConfigAliasManager.reload_aliases">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_aliases.html#claude_mpm.core.config_aliases.ConfigAliasManager.reload_aliases">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reload_aliases</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reload aliases from the file, discarding any in-memory changes.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_aliases</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_aliases</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Reloaded aliases from file&quot;</span><span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

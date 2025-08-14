@@ -1,0 +1,97 @@
+# Read the Docs configuration file for claude-mpm
+# See https://docs.readthedocs.io/en/stable/config-file/v2.html for details
+
+# Required - specify configuration file version
+version: 2
+
+# Build documentation in the docs/api/ directory with Sphinx
+sphinx:
+  configuration: docs/api/conf.py
+  builder: html
+  fail_on_warning: false
+
+# Build formats - enable PDF and EPUB generation (optional)
+formats:
+  - pdf
+  - epub
+  - htmlzip
+
+# Operating system and build tools versions
+build:
+  os: ubuntu-22.04
+  tools:
+    python: "3.11"
+  
+  # APT packages for system dependencies (if needed for documentation)
+  apt_packages:
+    - graphviz  # For generating diagrams
+    - libgraphviz-dev
+    - pkg-config
+  
+  # Environment variables for the build
+  environment:
+    READTHEDOCS: "True"
+    CLAUDE_MPM_DOCS_BUILD: "True"
+  
+  # Commands to run before installing Python dependencies
+  # Useful for any pre-build setup
+  jobs:
+    pre_install:
+      # Ensure the VERSION file is available for version detection
+      - echo "Preparing build environment..."
+      - cp VERSION docs/api/VERSION 2>/dev/null || true
+    
+    post_install:
+      # Install the project in development mode for better autodoc
+      - pip install -e .
+      
+    pre_build:
+      # Generate any dynamic documentation files if needed
+      - echo "Running pre-build tasks..."
+      # Create _static directory if it doesn't exist
+      - mkdir -p docs/api/_static
+      # Create custom.css if it doesn't exist
+      - touch docs/api/_static/custom.css
+
+# Python configuration
+python:
+  install:
+    # Install the package with documentation extras
+    - method: pip
+      path: .
+      extra_requirements:
+        - docs
+    
+    # Install documentation-specific requirements
+    - requirements: docs/api/requirements.txt
+    
+    # Additional packages that might be needed for building docs
+    - method: pip
+      extra_requirements:
+        - docs
+
+# VCS configuration
+submodules:
+  # Include git submodules if any
+  include: all
+  recursive: true
+
+# Search configuration
+search:
+  # Enable search with default settings
+  ranking:
+    # Boost ranking for API reference pages
+    api/*: 2
+    # Boost ranking for main documentation
+    index.html: 3
+  
+  # Ignore certain files from search
+  ignore:
+    - search.html
+    - genindex.html
+    - 404.html
+
+# Advanced configuration
+conda:
+  # Not using conda, but keeping as reference
+  # environment: environment.yml

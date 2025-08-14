@@ -1,0 +1,504 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.deployment.agent_deployment module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.agents.deployment.agent_lifecycle_manager module" href="claude_mpm.services.agents.deployment.agent_lifecycle_manager.html" />
+    <link rel="prev" title="claude_mpm.services.agents.deployment package" href="claude_mpm.services.agents.deployment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.html">claude_mpm.services.agents package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.deployment.html">claude_mpm.services.agents.deployment package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.deployment.agent_deployment module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.agents.deployment.agent_deployment.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.agents.deployment.agent_deployment">
+<span id="claude-mpm-services-agents-deployment-agent-deployment-module"></span><h1>claude_mpm.services.agents.deployment.agent_deployment module<a class="headerlink" href="#module-claude_mpm.services.agents.deployment.agent_deployment" title="Link to this heading"></a></h1>
+<p>Agent deployment service for Claude Code native subagents.</p>
+<p>This service handles the complete lifecycle of agent deployment:
+1. Building agent YAML files from JSON templates
+2. Managing versioning and updates
+3. Deploying to Claude Code’s .claude/agents directory
+4. Environment configuration for agent discovery
+5. Deployment verification and cleanup</p>
+<p>OPERATIONAL CONSIDERATIONS:
+- Deployment is idempotent - safe to run multiple times
+- Version checking prevents unnecessary rebuilds (saves I/O)
+- Supports force rebuild for troubleshooting
+- Maintains backward compatibility with legacy versions
+- Handles migration from old serial versioning to semantic versioning</p>
+<p>MONITORING:
+- Check logs for deployment status and errors
+- Monitor disk space in .claude/agents directory
+- Track version migration progress
+- Verify agent discovery after deployment</p>
+<p>ROLLBACK PROCEDURES:
+- Keep backups of .claude/agents before major updates
+- Use clean_deployment() to remove system agents
+- User-created agents are preserved during cleanup
+- Version tracking allows targeted rollbacks</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.deployment.agent_deployment.</span></span><span class="sig-name descname"><span class="pre">AgentDeploymentService</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">templates_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_agent_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="claude_mpm.core.interfaces.html#claude_mpm.core.interfaces.AgentDeploymentInterface" title="claude_mpm.core.interfaces.AgentDeploymentInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">AgentDeploymentInterface</span></code></a></p>
+<p>Service for deploying Claude Code native agents.</p>
+<p>METRICS COLLECTION OPPORTUNITIES:
+This service could collect valuable deployment metrics including:
+- Agent deployment frequency and success rates
+- Template validation performance
+- Version migration patterns
+- Deployment duration by agent type
+- Cache hit rates for agent templates
+- Resource usage during deployment (memory, CPU)
+- Agent file sizes and complexity metrics
+- Deployment failure reasons and patterns</p>
+<p>DEPLOYMENT PIPELINE:
+1. Initialize with template and base agent paths
+2. Load base agent configuration (shared settings)
+3. Iterate through agent templates
+4. Check version and update requirements
+5. Build YAML files with proper formatting
+6. Deploy to target directory
+7. Set environment variables for discovery
+8. Verify deployment success</p>
+<p>ENVIRONMENT REQUIREMENTS:
+- Write access to .claude/agents directory
+- Python 3.8+ for pathlib and typing features
+- JSON parsing for template files
+- YAML generation capabilities</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">templates_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_agent_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize agent deployment service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>templates_dir</strong> – Directory containing agent JSON files</p></li>
+<li><p><strong>base_agent_path</strong> – Path to base_agent.md file</p></li>
+<li><p><strong>working_directory</strong> – User’s working directory (for project agents)</p></li>
+</ul>
+</dd>
+</dl>
+<p>METRICS OPPORTUNITY: Track initialization performance:
+- Template directory scan time
+- Base agent loading time
+- Initial validation overhead</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.deploy_agents">
+<span class="sig-name descname"><span class="pre">deploy_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_rebuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">deployment_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'update'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.deploy_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.deploy_agents" title="Link to this definition"></a></dt>
+<dd><p>Build and deploy agents by combining base_agent.md with templates.
+Also deploys system instructions for PM framework.</p>
+<p>DEPLOYMENT MODES:
+- “update”: Normal update mode - skip agents with matching versions (default)
+- “project”: Project deployment mode - always deploy all agents regardless of version</p>
+<p>CONFIGURATION:
+The config parameter or default configuration is used to determine:
+- Which agents to exclude from deployment
+- Case sensitivity for agent name matching
+- Whether to exclude agent dependencies</p>
+<p>METRICS COLLECTED:
+- Deployment start/end timestamps
+- Individual agent deployment durations
+- Success/failure rates by agent type
+- Version migration statistics
+- Template validation performance
+- Error type frequencies</p>
+<p>OPERATIONAL FLOW:
+0. Validates and repairs broken frontmatter in existing agents (Step 0)
+1. Validates target directory (creates if needed)
+2. Loads base agent configuration
+3. Discovers all agent templates
+4. For each agent:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Checks if update needed (version comparison)</p></li>
+<li><p>Builds YAML configuration</p></li>
+<li><p>Writes to target directory</p></li>
+<li><p>Tracks deployment status</p></li>
+</ul>
+</div></blockquote>
+<p>PERFORMANCE CONSIDERATIONS:
+- Skips unchanged agents (version-based caching)
+- Batch processes all agents in single pass
+- Minimal file I/O with in-memory building
+- Parallel-safe (no shared state mutations)</p>
+<p>ERROR HANDLING:
+- Continues deployment on individual agent failures
+- Collects all errors for reporting
+- Logs detailed error context
+- Returns comprehensive results dict</p>
+<p>MONITORING POINTS:
+- Track total deployment time
+- Monitor skipped vs updated vs new agents
+- Check error rates and patterns
+- Verify migration completion</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>target_dir</strong> – Target directory for agents (default: .claude/agents/)</p></li>
+<li><p><strong>force_rebuild</strong> – Force rebuild even if agents exist (useful for troubleshooting)</p></li>
+<li><p><strong>deployment_mode</strong> – “update” for version-aware updates, “project” for always deploy</p></li>
+<li><p><strong>config</strong> – Optional configuration object (loads default if not provided)</p></li>
+<li><p><strong>use_async</strong> – Use async operations for 50-70% faster deployment (default: True)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>target_dir: Deployment location</p></li>
+<li><p>deployed: List of newly deployed agents</p></li>
+<li><p>updated: List of updated agents</p></li>
+<li><p>migrated: List of agents migrated to new version format</p></li>
+<li><p>skipped: List of unchanged agents</p></li>
+<li><p>errors: List of deployment errors</p></li>
+<li><p>total: Total number of agents processed</p></li>
+<li><p>repaired: List of agents with repaired frontmatter</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary with deployment results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.get_deployment_metrics">
+<span class="sig-name descname"><span class="pre">get_deployment_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.get_deployment_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.get_deployment_metrics" title="Link to this definition"></a></dt>
+<dd><p>Get current deployment metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><ul class="simple">
+<li><p>Total deployments and success rates</p></li>
+<li><p>Average deployment time</p></li>
+<li><p>Agent type distribution</p></li>
+<li><p>Migration statistics</p></li>
+<li><p>Error analysis</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary containing</p>
+</dd>
+</dl>
+<p>This demonstrates a metrics API endpoint that could be:
+- Exposed via REST API for monitoring tools
+- Pushed to time-series databases (Prometheus, InfluxDB)
+- Used for dashboards and alerting
+- Integrated with AI observability platforms</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.reset_metrics">
+<span class="sig-name descname"><span class="pre">reset_metrics</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.reset_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.reset_metrics" title="Link to this definition"></a></dt>
+<dd><p>Reset deployment metrics.</p>
+<p>Useful for:
+- Starting fresh metrics collection periods
+- Testing and development
+- Scheduled metric rotation (e.g., daily reset)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.set_claude_environment">
+<span class="sig-name descname"><span class="pre">set_claude_environment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.set_claude_environment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.set_claude_environment" title="Link to this definition"></a></dt>
+<dd><p>Set Claude environment variables for agent discovery.</p>
+<p>OPERATIONAL PURPOSE:
+Claude Code discovers agents through environment variables that
+point to configuration directories. This method ensures proper
+environment setup for agent runtime discovery.</p>
+<p>ENVIRONMENT VARIABLES SET:
+1. CLAUDE_CONFIG_DIR: Root configuration directory path
+2. CLAUDE_MAX_PARALLEL_SUBAGENTS: Concurrency limit (default: 5)
+3. CLAUDE_TIMEOUT: Agent execution timeout (default: 600s)</p>
+<p>DEPLOYMENT CONSIDERATIONS:
+- Call after agent deployment for immediate availability
+- Environment changes affect current process and children
+- Does not persist across system restarts
+- Add to shell profile for permanent configuration</p>
+<p>TROUBLESHOOTING:
+- Verify with: echo $CLAUDE_CONFIG_DIR
+- Check agent discovery: ls $CLAUDE_CONFIG_DIR/agents/
+- Monitor timeout issues in production
+- Adjust parallel limits based on system resources</p>
+<p>PERFORMANCE TUNING:
+- Increase parallel agents for CPU-bound tasks
+- Reduce for memory-constrained environments
+- Balance timeout with longest expected operations
+- Monitor resource usage during parallel execution</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_dir</strong> – Claude configuration directory (default: .claude/)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of environment variables set for verification</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.verify_deployment">
+<span class="sig-name descname"><span class="pre">verify_deployment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.verify_deployment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.verify_deployment" title="Link to this definition"></a></dt>
+<dd><p>Verify agent deployment and Claude configuration.</p>
+<p>OPERATIONAL PURPOSE:
+Post-deployment verification ensures agents are correctly deployed
+and discoverable by Claude Code. Critical for deployment validation
+and troubleshooting runtime issues.</p>
+<p>VERIFICATION CHECKS:
+1. Configuration directory exists and is accessible
+2. Agents directory contains expected YAML files
+3. Agent files have valid YAML frontmatter
+4. Version format is current (identifies migration needs)
+5. Environment variables are properly set</p>
+<p>MONITORING INTEGRATION:
+- Call after deployment for health checks
+- Include in deployment pipelines
+- Log results for audit trails
+- Alert on missing agents or errors</p>
+<p>TROUBLESHOOTING GUIDE:
+- Missing config_dir: Check deployment target path
+- No agents found: Verify deployment completed
+- Migration needed: Run with force_rebuild
+- Environment warnings: Call set_claude_environment()</p>
+<p>RESULT INTERPRETATION:
+- agents_found: Successfully deployed agents
+- agents_needing_migration: Require version update
+- warnings: Non-critical issues to address
+- environment: Current runtime configuration</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_dir</strong> – Claude configuration directory (default: .claude/)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>config_dir: Checked directory path</p></li>
+<li><p>agents_found: List of discovered agents with metadata</p></li>
+<li><p>agents_needing_migration: Agents with old version format</p></li>
+<li><p>environment: Current environment variables</p></li>
+<li><p>warnings: List of potential issues</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Verification results dictionary</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.deploy_agent">
+<span class="sig-name descname"><span class="pre">deploy_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">force_rebuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.deploy_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.deploy_agent" title="Link to this definition"></a></dt>
+<dd><p>Deploy a single agent to the specified directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_name</strong> – Name of the agent to deploy</p></li>
+<li><p><strong>target_dir</strong> – Target directory for deployment (Path object)</p></li>
+<li><p><strong>force_rebuild</strong> – Whether to force rebuild even if version is current</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if deployment was successful, False otherwise</p>
+</dd>
+</dl>
+<p>WHY: Single agent deployment because:
+- Users may want to deploy specific agents only
+- Reduces deployment time for targeted updates
+- Enables selective agent management in projects</p>
+<p>FIXED: Method now correctly handles all internal calls to:
+- _check_agent_needs_update (with 3 arguments)
+- _build_agent_markdown (with 3 arguments including base_agent_data)
+- Properly loads base_agent_data before building agent content</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.list_available_agents">
+<span class="sig-name descname"><span class="pre">list_available_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.list_available_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.list_available_agents" title="Link to this definition"></a></dt>
+<dd><p>List available agent templates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of agent information dictionaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.clean_deployment">
+<span class="sig-name descname"><span class="pre">clean_deployment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.clean_deployment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.clean_deployment" title="Link to this definition"></a></dt>
+<dd><p>Clean up deployed agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config_dir</strong> – Claude configuration directory (default: .claude/)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Cleanup results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.validate_agent">
+<span class="sig-name descname"><span class="pre">validate_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.validate_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.validate_agent" title="Link to this definition"></a></dt>
+<dd><p>Validate agent configuration and structure.</p>
+<p>WHY: This adapter method provides interface compliance while leveraging
+the existing validation logic in _check_agent_needs_update and other methods.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_path</strong> – Path to agent configuration file</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (is_valid, list_of_errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.get_deployment_status">
+<span class="sig-name descname"><span class="pre">get_deployment_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/deployment/agent_deployment.html#AgentDeploymentService.get_deployment_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.deployment.agent_deployment.AgentDeploymentService.get_deployment_status" title="Link to this definition"></a></dt>
+<dd><p>Get current deployment status and metrics.</p>
+<p>WHY: This adapter method provides interface compliance by wrapping
+verify_deployment and adding deployment metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary with deployment status information</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.agents.deployment.html" class="btn btn-neutral float-left" title="claude_mpm.services.agents.deployment package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.agents.deployment.agent_lifecycle_manager.html" class="btn btn-neutral float-right" title="claude_mpm.services.agents.deployment.agent_lifecycle_manager module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

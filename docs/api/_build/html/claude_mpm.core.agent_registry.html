@@ -1,0 +1,503 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.agent_registry module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.core.agent_session_manager module" href="claude_mpm.core.agent_session_manager.html" />
+    <link rel="prev" title="claude_mpm.core.agent_name_normalizer module" href="claude_mpm.core.agent_name_normalizer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.core.html">claude_mpm.core package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.agent_registry module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.core.agent_registry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.core.agent_registry">
+<span id="claude-mpm-core-agent-registry-module"></span><h1>claude_mpm.core.agent_registry module<a class="headerlink" href="#module-claude_mpm.core.agent_registry" title="Link to this heading"></a></h1>
+<p>Consolidated Agent Registry for Claude MPM.</p>
+<p>This module combines functionality from:
+- agent_registry.py (current working implementation)
+- agent_registry_original.py (legacy convenience functions)</p>
+<p>Provides:
+- Agent discovery from the framework
+- Agent listing and selection
+- Compatibility with both sync and async interfaces
+- Legacy function names for backwards compatibility</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistry">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">AgentRegistry</span></span><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistry" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry" title="claude_mpm.core.agent_registry.SimpleAgentRegistry"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleAgentRegistry</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">AgentRegistryAdapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">framework_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Adapter to integrate agent registry functionality.</p>
+<p>This adapter:
+1. Locates the claude-mpm installation
+2. Provides a clean interface for agent operations
+3. Maintains backwards compatibility</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">framework_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the agent registry adapter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>framework_path</strong> – Path to claude-mpm (auto-detected if None)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.list_agents">
+<span class="sig-name descname"><span class="pre">list_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.list_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.list_agents" title="Link to this definition"></a></dt>
+<dd><p>List available agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – Arguments to pass to registry</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of agents with metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.get_agent_definition">
+<span class="sig-name descname"><span class="pre">get_agent_definition</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.get_agent_definition"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.get_agent_definition" title="Link to this definition"></a></dt>
+<dd><p>Get agent definition by name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_name</strong> – Name of the agent</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Agent definition content or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.select_agent_for_task">
+<span class="sig-name descname"><span class="pre">select_agent_for_task</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">task_description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">required_specializations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.select_agent_for_task"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.select_agent_for_task" title="Link to this definition"></a></dt>
+<dd><p>Select optimal agent for a task.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>task_description</strong> – Description of the task</p></li>
+<li><p><strong>required_specializations</strong> – Required agent specializations</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Agent metadata or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.get_agent_hierarchy">
+<span class="sig-name descname"><span class="pre">get_agent_hierarchy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.get_agent_hierarchy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.get_agent_hierarchy" title="Link to this definition"></a></dt>
+<dd><p>Get agent hierarchy (project → user → system).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary with hierarchy levels and agent names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.get_core_agents">
+<span class="sig-name descname"><span class="pre">get_core_agents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.get_core_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.get_core_agents" title="Link to this definition"></a></dt>
+<dd><p>Get list of core system agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of core agent names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentRegistryAdapter.format_agent_for_task_tool">
+<span class="sig-name descname"><span class="pre">format_agent_for_task_tool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentRegistryAdapter.format_agent_for_task_tool"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentRegistryAdapter.format_agent_for_task_tool" title="Link to this definition"></a></dt>
+<dd><p>Format agent delegation for Task Tool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_name</strong> – Name of the agent</p></li>
+<li><p><strong>task</strong> – Task description</p></li>
+<li><p><strong>context</strong> – Additional context</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Formatted Task Tool prompt</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">AgentMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'system'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_modified</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specializations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#AgentMetadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Metadata for an agent.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.name">
+<span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.type">
+<span class="sig-name descname"><span class="pre">type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.path">
+<span class="sig-name descname"><span class="pre">path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.tier">
+<span class="sig-name descname"><span class="pre">tier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'system'</span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.tier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.last_modified">
+<span class="sig-name descname"><span class="pre">last_modified</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.last_modified" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.specializations">
+<span class="sig-name descname"><span class="pre">specializations</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.specializations" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.description">
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.description" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.AgentMetadata.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'system'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_modified</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">specializations</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.core.agent_registry.AgentMetadata.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">SimpleAgentRegistry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">framework_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Simple agent registry implementation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">framework_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.list_agents">
+<span class="sig-name descname"><span class="pre">list_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.list_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.list_agents" title="Link to this definition"></a></dt>
+<dd><p>List all agents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.listAgents">
+<span class="sig-name descname"><span class="pre">listAgents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.listAgents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.listAgents" title="Link to this definition"></a></dt>
+<dd><p>DEPRECATED: Use list_agents() instead. Kept for backward compatibility.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.list_agents_filtered">
+<span class="sig-name descname"><span class="pre">list_agents_filtered</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.list_agents_filtered"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.list_agents_filtered" title="Link to this definition"></a></dt>
+<dd><p>List agents with optional filtering.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.get_agent">
+<span class="sig-name descname"><span class="pre">get_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.get_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.get_agent" title="Link to this definition"></a></dt>
+<dd><p>Get a specific agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.discover_agents">
+<span class="sig-name descname"><span class="pre">discover_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force_refresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#SimpleAgentRegistry.discover_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.discover_agents" title="Link to this definition"></a></dt>
+<dd><p>Discover agents (optionally refresh).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.core_agent_types">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">core_agent_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.13)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.core_agent_types" title="Link to this definition"></a></dt>
+<dd><p>Get core agent types.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.SimpleAgentRegistry.specialized_agent_types">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">specialized_agent_types</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.13)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry.specialized_agent_types" title="Link to this definition"></a></dt>
+<dd><p>Get specialized agent types beyond core.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.create_agent_registry">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">create_agent_registry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_service</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framework_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.core.agent_registry.SimpleAgentRegistry" title="claude_mpm.core.agent_registry.SimpleAgentRegistry"><span class="pre">SimpleAgentRegistry</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#create_agent_registry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.create_agent_registry" title="Link to this definition"></a></dt>
+<dd><p>Create a new AgentRegistry instance</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cache_service</strong> – Ignored for compatibility</p></li>
+<li><p><strong>framework_path</strong> – Path to framework (auto-detected if None)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>AgentRegistry instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.discover_agents">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">discover_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force_refresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#discover_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.discover_agents" title="Link to this definition"></a></dt>
+<dd><p>Convenience function for synchronous agent discovery</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>force_refresh</strong> – Force cache refresh</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of discovered agents</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.get_core_agent_types">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">get_core_agent_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.13)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#get_core_agent_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.get_core_agent_types" title="Link to this definition"></a></dt>
+<dd><p>Get the set of core agent types</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of core agent type names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.get_specialized_agent_types">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">get_specialized_agent_types</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.13)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#get_specialized_agent_types"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.get_specialized_agent_types" title="Link to this definition"></a></dt>
+<dd><p>Get the set of specialized agent types beyond core 9</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Set of specialized agent type names</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.list_agents_all">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">list_agents_all</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#list_agents_all"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.list_agents_all" title="Link to this definition"></a></dt>
+<dd><p>Synchronous function for listing all agents</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary of agent name -&gt; agent metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.list_agents">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">list_agents</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#list_agents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.list_agents" title="Link to this definition"></a></dt>
+<dd><p>Synchronous function to list agents with optional filtering</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_type</strong> – Filter by agent type</p></li>
+<li><p><strong>tier</strong> – Filter by hierarchy tier</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of agent metadata dictionaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.listAgents">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">listAgents</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#listAgents"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.listAgents" title="Link to this definition"></a></dt>
+<dd><p>DEPRECATED: Use list_agents_all() instead. Kept for backward compatibility.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary of agent name -&gt; agent metadata</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.discover_agents_sync">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">discover_agents_sync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force_refresh</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.core.agent_registry.AgentMetadata" title="claude_mpm.core.agent_registry.AgentMetadata"><span class="pre">AgentMetadata</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#discover_agents_sync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.discover_agents_sync" title="Link to this definition"></a></dt>
+<dd><p>Synchronous function for agent discovery</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>force_refresh</strong> – Force cache refresh</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary of discovered agents</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.get_agent">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">get_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#get_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.get_agent" title="Link to this definition"></a></dt>
+<dd><p>Synchronous function to get a specific agent</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_name</strong> – Name of agent to retrieve</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Agent metadata or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.core.agent_registry.get_registry_stats">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.core.agent_registry.</span></span><span class="sig-name descname"><span class="pre">get_registry_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/core/agent_registry.html#get_registry_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.core.agent_registry.get_registry_stats" title="Link to this definition"></a></dt>
+<dd><p>Synchronous function to get registry statistics</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary of registry statistics</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.core.agent_name_normalizer.html" class="btn btn-neutral float-left" title="claude_mpm.core.agent_name_normalizer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.core.agent_session_manager.html" class="btn btn-neutral float-right" title="claude_mpm.core.agent_session_manager module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

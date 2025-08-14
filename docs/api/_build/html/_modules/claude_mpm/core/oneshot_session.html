@@ -1,0 +1,600 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.oneshot_session &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.oneshot_session</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.oneshot_session</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Oneshot session handler for Claude MPM.</span>
+
+<span class="sd">This module encapsulates the logic for running one-time Claude commands,</span>
+<span class="sd">breaking down the monolithic run_oneshot method into focused, testable components.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">TYPE_CHECKING</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">logging</span><span class="w"> </span><span class="kn">import</span> <span class="n">Logger</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.typing_utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SessionId</span><span class="p">,</span> <span class="n">SessionStatus</span><span class="p">,</span> <span class="n">ErrorResult</span><span class="p">,</span> <span class="n">SuccessResult</span><span class="p">,</span>
+    <span class="n">SessionConfig</span><span class="p">,</span> <span class="n">SessionResult</span><span class="p">,</span> <span class="n">SessionEvent</span>
+<span class="p">)</span>
+
+<span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.claude_runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClaudeRunner</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.socketio_server</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketIOClientProxy</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.response_logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">ResponseLogger</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.agents.memory.ticket_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketManager</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">ProjectLogger</span>
+
+
+<div class="viewcode-block" id="OneshotSession">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OneshotSession</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages a single oneshot Claude execution session.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: This class extracts the complex oneshot logic from ClaudeRunner,</span>
+<span class="sd">    reducing cyclomatic complexity and improving maintainability.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Each method focuses on a single responsibility with</span>
+<span class="sd">    complexity &lt; 10 and lines &lt; 80, making the code easier to test and modify.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="OneshotSession.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runner</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the oneshot session with a reference to the runner.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            runner: The ClaudeRunner instance that owns this session</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">runner</span> <span class="o">=</span> <span class="n">runner</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;oneshot_session&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original_cwd</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+        
+<div class="viewcode-block" id="OneshotSession.initialize_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.initialize_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the oneshot session.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (success, error_message)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        
+        <span class="c1"># Check for special MPM commands</span>
+        <span class="k">if</span> <span class="n">prompt</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;/mpm:&quot;</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_handle_mpm_command</span><span class="p">(</span><span class="n">prompt</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize WebSocket if enabled</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">enable_websocket</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_setup_websocket</span><span class="p">()</span>
+        
+        <span class="c1"># Log session start</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Starting non-interactive session with prompt: </span><span class="si">{</span><span class="n">prompt</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="OneshotSession.deploy_agents">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.deploy_agents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deploy_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deploy system and project agents.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if successful, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Deploy system agents</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">setup_agents</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Continuing without native agents...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Deploy project-specific agents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">deploy_project_agents_to_claude</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="OneshotSession.setup_infrastructure">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.setup_infrastructure">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">setup_infrastructure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set up the execution environment and build the command.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary containing command, environment, and other setup details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">infrastructure</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;env&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_environment</span><span class="p">(),</span>
+            <span class="s1">&#39;cmd&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_command</span><span class="p">(),</span>
+            <span class="s1">&#39;working_dir_changed&#39;</span><span class="p">:</span> <span class="kc">False</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Change to user working directory if specified</span>
+        <span class="k">if</span> <span class="s1">&#39;CLAUDE_MPM_USER_PWD&#39;</span> <span class="ow">in</span> <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;env&#39;</span><span class="p">]:</span>
+            <span class="n">user_pwd</span> <span class="o">=</span> <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;env&#39;</span><span class="p">][</span><span class="s1">&#39;CLAUDE_MPM_USER_PWD&#39;</span><span class="p">]</span>
+            <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;env&#39;</span><span class="p">][</span><span class="s1">&#39;CLAUDE_WORKSPACE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_pwd</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">original_cwd</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">user_pwd</span><span class="p">)</span>
+                <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;working_dir_changed&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Changed working directory to: </span><span class="si">{</span><span class="n">user_pwd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="p">(</span><span class="ne">PermissionError</span><span class="p">,</span> <span class="ne">FileNotFoundError</span><span class="p">,</span> <span class="ne">OSError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not change to directory </span><span class="si">{</span><span class="n">user_pwd</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">original_cwd</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="k">return</span> <span class="n">infrastructure</span></div>
+
+    
+<div class="viewcode-block" id="OneshotSession.execute_command">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.execute_command">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
+                       <span class="n">infrastructure</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute the Claude command with the given prompt.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            prompt: The user&#39;s prompt</span>
+<span class="sd">            context: Optional context to prepend</span>
+<span class="sd">            infrastructure: Setup details from setup_infrastructure</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (success, response_or_error)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Build final command</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_final_command</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">infrastructure</span><span class="p">)</span>
+        
+        <span class="c1"># Log and notify</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_notify_execution_start</span><span class="p">()</span>
+        
+        <span class="c1"># Execute with proper error handling</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_subprocess</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;env&#39;</span><span class="p">],</span> <span class="n">prompt</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_final_command</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> 
+                            <span class="n">infrastructure</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the final command with prompt and system instructions.&quot;&quot;&quot;</span>
+        <span class="n">full_prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="se">\n\n</span><span class="si">{</span><span class="n">prompt</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">context</span> <span class="k">else</span> <span class="n">prompt</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="n">infrastructure</span><span class="p">[</span><span class="s1">&#39;cmd&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;--print&quot;</span><span class="p">,</span> <span class="n">full_prompt</span><span class="p">]</span>
+        
+        <span class="c1"># Add system instructions if available</span>
+        <span class="n">system_prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_create_system_prompt</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">system_prompt</span> <span class="ow">and</span> <span class="n">system_prompt</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_simple_context</span><span class="p">():</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;--append-system-prompt&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">system_prompt</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">cmd</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_notify_execution_start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log and notify about execution start.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="s2">&quot;Executing Claude subprocess&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">claude_status_changed</span><span class="p">(</span>
+                <span class="n">status</span><span class="o">=</span><span class="s2">&quot;running&quot;</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Executing Claude oneshot command&quot;</span>
+            <span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_run_subprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">env</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Run the subprocess and handle all exception types.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">env</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">response</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_successful_response</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">prompt</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">stderr</span> <span class="ow">or</span> <span class="s2">&quot;Unknown error&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_handle_error_response</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+                
+        <span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_timeout</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_claude_not_found</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">PermissionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_permission_error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyboardInterrupt</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_keyboard_interrupt</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">MemoryError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_memory_error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_handle_unexpected_error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="OneshotSession.cleanup_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.oneshot_session.html#claude_mpm.core.oneshot_session.OneshotSession.cleanup_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up the session and restore state.&quot;&quot;&quot;</span>
+        <span class="c1"># Restore original working directory</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_cwd</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original_cwd</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="c1"># Log session summary</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">get_session_summary</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Session </span><span class="si">{</span><span class="n">summary</span><span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> completed&quot;</span><span class="p">,</span>
+                    <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+                    <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+                <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to log session summary: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># End WebSocket session</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">claude_status_changed</span><span class="p">(</span>
+                <span class="n">status</span><span class="o">=</span><span class="s2">&quot;stopped&quot;</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="s2">&quot;Session completed&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">session_ended</span><span class="p">()</span></div>
+
+    
+    <span class="c1"># Private helper methods</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_setup_websocket</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize WebSocket connection.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.socketio_server</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketIOClientProxy</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span> <span class="o">=</span> <span class="n">SocketIOClientProxy</span><span class="p">(</span>
+                <span class="n">port</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_port</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Connected to Socket.IO monitoring server&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Notify session start</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">session_started</span><span class="p">(</span>
+                <span class="n">session_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+                <span class="n">launch_method</span><span class="o">=</span><span class="s2">&quot;oneshot&quot;</span><span class="p">,</span>
+                <span class="n">working_dir</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">ImportError</span><span class="p">,</span> <span class="ne">ConnectionError</span><span class="p">,</span> <span class="ne">Exception</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Socket.IO connection failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_prepare_environment</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Prepare the execution environment.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_command</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build the base Claude command.&quot;&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s2">&quot;claude&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--model&quot;</span><span class="p">,</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--dangerously-skip-permissions&quot;</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add custom arguments</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">claude_args</span><span class="p">:</span>
+            <span class="n">cmd</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">claude_args</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">cmd</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_successful_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Process a successful Claude response.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+        
+        <span class="n">execution_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_time</span>
+        
+        <span class="c1"># Log response if enabled</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">response_logger</span> <span class="ow">and</span> <span class="n">response</span><span class="p">:</span>
+            <span class="n">response_summary</span> <span class="o">=</span> <span class="n">prompt</span><span class="p">[:</span><span class="mi">200</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">200</span> <span class="k">else</span> <span class="n">prompt</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">response_logger</span><span class="o">.</span><span class="n">log_response</span><span class="p">(</span>
+                <span class="n">request_summary</span><span class="o">=</span><span class="n">response_summary</span><span class="p">,</span>
+                <span class="n">response_content</span><span class="o">=</span><span class="n">response</span><span class="p">,</span>
+                <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                    <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="s2">&quot;oneshot&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;model&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+                    <span class="s2">&quot;exit_code&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;execution_time&quot;</span><span class="p">:</span> <span class="n">execution_time</span>
+                <span class="p">},</span>
+                <span class="n">agent</span><span class="o">=</span><span class="s2">&quot;claude-direct&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Broadcast to WebSocket</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span> <span class="ow">and</span> <span class="n">response</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">claude_output</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="s2">&quot;stdout&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Check for delegation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_contains_delegation</span><span class="p">(</span><span class="n">response</span><span class="p">):</span>
+                <span class="n">agent_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_extract_agent_from_response</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">agent_name</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">agent_delegated</span><span class="p">(</span>
+                        <span class="n">agent</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                        <span class="n">task</span><span class="o">=</span><span class="n">prompt</span><span class="p">[:</span><span class="mi">100</span><span class="p">],</span>
+                        <span class="n">status</span><span class="o">=</span><span class="s2">&quot;detected&quot;</span>
+                    <span class="p">)</span>
+        
+        <span class="c1"># Log completion</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Non-interactive session completed successfully in </span><span class="si">{</span><span class="n">execution_time</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_complete&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;execution_time&quot;</span><span class="p">:</span> <span class="n">execution_time</span><span class="p">,</span>
+                <span class="s2">&quot;response_length&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+            <span class="p">})</span>
+        
+        <span class="c1"># Extract tickets if enabled</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">enable_tickets</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">ticket_manager</span> <span class="ow">and</span> <span class="n">response</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_extract_tickets</span><span class="p">(</span><span class="n">response</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_error_response</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">return_code</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle an error response from Claude.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error: </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Broadcast error</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">claude_output</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="s2">&quot;stderr&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">websocket_server</span><span class="o">.</span><span class="n">claude_status_changed</span><span class="p">(</span>
+                <span class="n">status</span><span class="o">=</span><span class="s2">&quot;error&quot;</span><span class="p">,</span>
+                <span class="n">message</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Command failed with code </span><span class="si">{</span><span class="n">return_code</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Log error</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Non-interactive session failed: </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_failed&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="n">error_msg</span><span class="p">,</span>
+                <span class="s2">&quot;return_code&quot;</span><span class="p">:</span> <span class="n">return_code</span>
+            <span class="p">})</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_timeout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">TimeoutExpired</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle command timeout.&quot;&quot;&quot;</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Command timed out after </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">timeout</span><span class="si">}</span><span class="s2"> seconds&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;⏱️  </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_timeout&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">e</span><span class="o">.</span><span class="n">timeout</span><span class="p">,</span>
+                <span class="s2">&quot;exception_type&quot;</span><span class="p">:</span> <span class="s2">&quot;TimeoutExpired&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_claude_not_found</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle Claude CLI not found error.&quot;&quot;&quot;</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;Claude CLI not found. Please ensure &#39;claude&#39; is installed and in your PATH&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">💡 To fix: Install Claude CLI with &#39;npm install -g @anthropic-ai/claude-ai&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> 
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> 
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_exception&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;exception&quot;</span><span class="p">:</span> <span class="s2">&quot;FileNotFoundError&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;exception_type&quot;</span><span class="p">:</span> <span class="s2">&quot;FileNotFoundError&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_permission_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="ne">PermissionError</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle permission denied error.&quot;&quot;&quot;</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Permission denied executing Claude CLI: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span><span class="n">error_msg</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_exception&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;exception&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                <span class="s2">&quot;exception_type&quot;</span><span class="p">:</span> <span class="s2">&quot;PermissionError&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_keyboard_interrupt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle keyboard interrupt.&quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">⚠️  Command interrupted by user&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="s2">&quot;Session interrupted by user&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_interrupted&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;reason&quot;</span><span class="p">:</span> <span class="s2">&quot;user_interrupt&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;User interrupted&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_memory_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="ne">MemoryError</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle out of memory error.&quot;&quot;&quot;</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="s2">&quot;Out of memory while processing command&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> 
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> 
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_exception&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;exception&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                <span class="s2">&quot;exception_type&quot;</span><span class="p">:</span> <span class="s2">&quot;MemoryError&quot;</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_handle_unexpected_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle unexpected errors.&quot;&quot;&quot;</span>
+        <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Unexpected error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;❌ </span><span class="si">{</span><span class="n">error_msg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;   Error type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">project_logger</span><span class="o">.</span><span class="n">log_system</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Exception during non-interactive session: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="s2">&quot;ERROR&quot;</span><span class="p">,</span>
+                <span class="n">component</span><span class="o">=</span><span class="s2">&quot;session&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">runner</span><span class="o">.</span><span class="n">_log_session_event</span><span class="p">({</span>
+                <span class="s2">&quot;event&quot;</span><span class="p">:</span> <span class="s2">&quot;session_exception&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;exception&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                <span class="s2">&quot;exception_type&quot;</span><span class="p">:</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_simple_context</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the simple context string for comparison.&quot;&quot;&quot;</span>
+        <span class="c1"># Import here to avoid circular dependency</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.claude_runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_simple_context</span>
+        <span class="k">return</span> <span class="n">create_simple_context</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

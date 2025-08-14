@@ -1,0 +1,853 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.version_control.branch_strategy &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.version_control.branch_strategy</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.version_control.branch_strategy</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Branch Strategy Manager - Branch strategy implementations for Version Control Agent.</span>
+
+<span class="sd">This module provides comprehensive branch strategy management including:</span>
+<span class="sd">1. Issue-driven development workflow</span>
+<span class="sd">2. GitFlow implementation</span>
+<span class="sd">3. GitHub Flow implementation</span>
+<span class="sd">4. Custom branch strategies</span>
+<span class="sd">5. Branch lifecycle management</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config_paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigPaths</span>
+
+
+<div class="viewcode-block" id="BranchStrategyType">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchStrategyType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Types of branch strategies.&quot;&quot;&quot;</span>
+
+    <span class="n">ISSUE_DRIVEN</span> <span class="o">=</span> <span class="s2">&quot;issue_driven&quot;</span>
+    <span class="n">GITFLOW</span> <span class="o">=</span> <span class="s2">&quot;gitflow&quot;</span>
+    <span class="n">GITHUB_FLOW</span> <span class="o">=</span> <span class="s2">&quot;github_flow&quot;</span>
+    <span class="n">CUSTOM</span> <span class="o">=</span> <span class="s2">&quot;custom&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BranchType">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchType">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Types of branches in different strategies.&quot;&quot;&quot;</span>
+
+    <span class="n">MAIN</span> <span class="o">=</span> <span class="s2">&quot;main&quot;</span>
+    <span class="n">DEVELOP</span> <span class="o">=</span> <span class="s2">&quot;develop&quot;</span>
+    <span class="n">FEATURE</span> <span class="o">=</span> <span class="s2">&quot;feature&quot;</span>
+    <span class="n">ISSUE</span> <span class="o">=</span> <span class="s2">&quot;issue&quot;</span>
+    <span class="n">ENHANCEMENT</span> <span class="o">=</span> <span class="s2">&quot;enhancement&quot;</span>
+    <span class="n">HOTFIX</span> <span class="o">=</span> <span class="s2">&quot;hotfix&quot;</span>
+    <span class="n">RELEASE</span> <span class="o">=</span> <span class="s2">&quot;release&quot;</span>
+    <span class="n">EPIC</span> <span class="o">=</span> <span class="s2">&quot;epic&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BranchNamingRule">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchNamingRule">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchNamingRule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rules for branch naming.&quot;&quot;&quot;</span>
+
+    <span class="n">branch_type</span><span class="p">:</span> <span class="n">BranchType</span>
+    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">required_fields</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">max_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="BranchLifecycleRule">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchLifecycleRule">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchLifecycleRule</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Rules for branch lifecycle management.&quot;&quot;&quot;</span>
+
+    <span class="n">branch_type</span><span class="p">:</span> <span class="n">BranchType</span>
+    <span class="n">auto_create</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">auto_merge_target</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">auto_merge_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;merge&quot;</span>
+    <span class="n">auto_delete_after_merge</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">requires_qa_approval</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">requires_review</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">merge_message_template</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="BranchWorkflow">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchWorkflow">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchWorkflow</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Workflow definition for a branch strategy.&quot;&quot;&quot;</span>
+
+    <span class="n">strategy_type</span><span class="p">:</span> <span class="n">BranchStrategyType</span>
+    <span class="n">main_branch</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">development_branch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">naming_rules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BranchNamingRule</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">lifecycle_rules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">BranchLifecycleRule</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">merge_targets</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">quality_gates</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="BranchStrategyManager">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BranchStrategyManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages branch strategies for the Version Control Agent.</span>
+
+<span class="sd">    Provides implementation of different branching strategies including</span>
+<span class="sd">    issue-driven development, GitFlow, and GitHub Flow.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BranchStrategyManager.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_root</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize Branch Strategy Manager.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            project_root: Root directory of the project</span>
+<span class="sd">            logger: Logger instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logger</span>
+
+        <span class="c1"># Initialize predefined strategies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">ISSUE_DRIVEN</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_issue_driven_strategy</span><span class="p">(),</span>
+            <span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">GITFLOW</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_gitflow_strategy</span><span class="p">(),</span>
+            <span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">GITHUB_FLOW</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_github_flow_strategy</span><span class="p">(),</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Current strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BranchWorkflow</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># Load strategy from configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_strategy_configuration</span><span class="p">()</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_issue_driven_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BranchWorkflow</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create issue-driven development strategy.&quot;&quot;&quot;</span>
+        <span class="n">naming_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">ISSUE</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;issue/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^issue/[A-Z]+-\d+(-.*)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticket_id&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Issue branches for bug fixes and standard issues&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;feature/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^feature/[A-Z]+-\d+(-.*)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticket_id&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Feature branches for new functionality&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">ENHANCEMENT</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;enhancement/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^enhancement/[A-Z]+-\d+(-.*)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticket_id&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Enhancement branches for improvements&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">HOTFIX</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;hotfix/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^hotfix/[A-Z]+-\d+(-.*)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ticket_id&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Hotfix branches for critical fixes&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">EPIC</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;epic/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^epic/[A-Z]+-\d+(-.*)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;epic_id&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Epic branches for large features&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="n">lifecycle_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">ISSUE</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">merge_message_template</span><span class="o">=</span><span class="s2">&quot;Merge </span><span class="si">{branch_name}</span><span class="s2">: </span><span class="si">{ticket_title}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_review</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">merge_message_template</span><span class="o">=</span><span class="s2">&quot;Merge </span><span class="si">{branch_name}</span><span class="s2">: </span><span class="si">{ticket_title}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">ENHANCEMENT</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">merge_message_template</span><span class="o">=</span><span class="s2">&quot;Merge </span><span class="si">{branch_name}</span><span class="s2">: </span><span class="si">{ticket_title}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">HOTFIX</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># Hotfixes can be fast-tracked</span>
+                <span class="n">merge_message_template</span><span class="o">=</span><span class="s2">&quot;Hotfix </span><span class="si">{branch_name}</span><span class="s2">: </span><span class="si">{ticket_title}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">EPIC</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;squash&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_review</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">merge_message_template</span><span class="o">=</span><span class="s2">&quot;Complete epic </span><span class="si">{branch_name}</span><span class="s2">: </span><span class="si">{epic_title}</span><span class="s2">&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">BranchWorkflow</span><span class="p">(</span>
+            <span class="n">strategy_type</span><span class="o">=</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">ISSUE_DRIVEN</span><span class="p">,</span>
+            <span class="n">main_branch</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+            <span class="n">naming_rules</span><span class="o">=</span><span class="n">naming_rules</span><span class="p">,</span>
+            <span class="n">lifecycle_rules</span><span class="o">=</span><span class="n">lifecycle_rules</span><span class="p">,</span>
+            <span class="n">merge_targets</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;issue/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;feature/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;enhancement/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;hotfix/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;epic/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">quality_gates</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;documentation_validation&quot;</span><span class="p">,</span> <span class="s2">&quot;qa_testing&quot;</span><span class="p">,</span> <span class="s2">&quot;code_quality&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_gitflow_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BranchWorkflow</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create GitFlow strategy.&quot;&quot;&quot;</span>
+        <span class="n">naming_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;feature/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^feature/.*$&quot;</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Feature branches for new functionality&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">RELEASE</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;release/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^release/\d+\.\d+(\.\d+)?$&quot;</span><span class="p">,</span>
+                <span class="n">required_fields</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Release branches for version preparation&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">HOTFIX</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;hotfix/&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^hotfix/.*$&quot;</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Hotfix branches for critical fixes&quot;</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="n">lifecycle_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;develop&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_review</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">RELEASE</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">HOTFIX</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;merge&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">BranchWorkflow</span><span class="p">(</span>
+            <span class="n">strategy_type</span><span class="o">=</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">GITFLOW</span><span class="p">,</span>
+            <span class="n">main_branch</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+            <span class="n">development_branch</span><span class="o">=</span><span class="s2">&quot;develop&quot;</span><span class="p">,</span>
+            <span class="n">naming_rules</span><span class="o">=</span><span class="n">naming_rules</span><span class="p">,</span>
+            <span class="n">lifecycle_rules</span><span class="o">=</span><span class="n">lifecycle_rules</span><span class="p">,</span>
+            <span class="n">merge_targets</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;feature/*&quot;</span><span class="p">:</span> <span class="s2">&quot;develop&quot;</span><span class="p">,</span> <span class="s2">&quot;release/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">,</span> <span class="s2">&quot;hotfix/*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">},</span>
+            <span class="n">quality_gates</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="s2">&quot;code_review&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_github_flow_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BranchWorkflow</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create GitHub Flow strategy.&quot;&quot;&quot;</span>
+        <span class="n">naming_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchNamingRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">pattern</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;^[a-z0-9\-/]+$&quot;</span><span class="p">,</span>
+                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Feature branches with descriptive names&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="n">lifecycle_rules</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">BranchLifecycleRule</span><span class="p">(</span>
+                <span class="n">branch_type</span><span class="o">=</span><span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span><span class="p">,</span>
+                <span class="n">auto_merge_target</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+                <span class="n">auto_merge_strategy</span><span class="o">=</span><span class="s2">&quot;squash&quot;</span><span class="p">,</span>
+                <span class="n">auto_delete_after_merge</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_review</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">requires_qa_approval</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">BranchWorkflow</span><span class="p">(</span>
+            <span class="n">strategy_type</span><span class="o">=</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">GITHUB_FLOW</span><span class="p">,</span>
+            <span class="n">main_branch</span><span class="o">=</span><span class="s2">&quot;main&quot;</span><span class="p">,</span>
+            <span class="n">naming_rules</span><span class="o">=</span><span class="n">naming_rules</span><span class="p">,</span>
+            <span class="n">lifecycle_rules</span><span class="o">=</span><span class="n">lifecycle_rules</span><span class="p">,</span>
+            <span class="n">merge_targets</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;*&quot;</span><span class="p">:</span> <span class="s2">&quot;main&quot;</span><span class="p">},</span>
+            <span class="n">quality_gates</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;ci_tests&quot;</span><span class="p">,</span> <span class="s2">&quot;code_review&quot;</span><span class="p">,</span> <span class="s2">&quot;deployment_test&quot;</span><span class="p">],</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_strategy_configuration</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load strategy configuration from project files.&quot;&quot;&quot;</span>
+        <span class="c1"># Try to load from configuration files</span>
+        <span class="n">config_files</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">ConfigPaths</span><span class="o">.</span><span class="n">CONFIG_DIR</span><span class="si">}</span><span class="s2">/config.json&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;workflow.md&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;.github/workflows/branch-strategy.yml&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;branch-strategy.json&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">config_file</span> <span class="ow">in</span> <span class="n">config_files</span><span class="p">:</span>
+            <span class="n">config_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="n">config_file</span>
+            <span class="k">if</span> <span class="n">config_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_strategy_config</span><span class="p">(</span><span class="n">config_path</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">strategy</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span> <span class="o">=</span> <span class="n">strategy</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded branch strategy from </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">return</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading strategy from </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Default to issue-driven strategy</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="p">[</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">ISSUE_DRIVEN</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using default issue-driven branch strategy&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_strategy_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BranchWorkflow</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse strategy configuration from file.&quot;&quot;&quot;</span>
+        <span class="c1"># This would implement parsing logic for different config file formats</span>
+        <span class="c1"># For now, return None to use defaults</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="BranchStrategyManager.get_current_strategy">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.get_current_strategy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_current_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BranchWorkflow</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the current branch strategy.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="p">[</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">ISSUE_DRIVEN</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.set_strategy">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.set_strategy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy_type</span><span class="p">:</span> <span class="n">BranchStrategyType</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Set the current branch strategy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            strategy_type: Type of strategy to use</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if strategy was set successfully</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">strategy_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">current_strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strategies</span><span class="p">[</span><span class="n">strategy_type</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set branch strategy to </span><span class="si">{</span><span class="n">strategy_type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown strategy type: </span><span class="si">{</span><span class="n">strategy_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.generate_branch_name">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.generate_branch_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_branch_name</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">branch_type</span><span class="p">:</span> <span class="n">BranchType</span><span class="p">,</span>
+        <span class="n">ticket_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a branch name following the current strategy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_type: Type of branch to create</span>
+<span class="sd">            ticket_id: Ticket/issue ID</span>
+<span class="sd">            description: Optional description</span>
+<span class="sd">            **kwargs: Additional parameters</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Generated branch name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="c1"># Find naming rule for this branch type</span>
+        <span class="n">naming_rule</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">naming_rules</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">branch_type</span> <span class="o">==</span> <span class="n">branch_type</span><span class="p">:</span>
+                <span class="n">naming_rule</span> <span class="o">=</span> <span class="n">rule</span>
+                <span class="k">break</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">naming_rule</span><span class="p">:</span>
+            <span class="c1"># Fallback to simple naming</span>
+            <span class="n">prefix</span> <span class="o">=</span> <span class="n">branch_type</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+            <span class="k">if</span> <span class="n">ticket_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">ticket_id</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">elif</span> <span class="n">description</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">_sanitize_branch_name</span><span class="p">(</span><span class="n">description</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="c1"># Generate name based on rule</span>
+        <span class="k">if</span> <span class="n">strategy</span><span class="o">.</span><span class="n">strategy_type</span> <span class="o">==</span> <span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">ISSUE_DRIVEN</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">ticket_id</span><span class="p">:</span>
+                <span class="n">branch_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">naming_rule</span><span class="o">.</span><span class="n">prefix</span><span class="si">}{</span><span class="n">ticket_id</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="n">description</span><span class="p">:</span>
+                    <span class="n">sanitized_desc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanitize_branch_name</span><span class="p">(</span><span class="n">description</span><span class="p">)</span>
+                    <span class="n">branch_name</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;-</span><span class="si">{</span><span class="n">sanitized_desc</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">return</span> <span class="n">branch_name</span>
+
+        <span class="c1"># Default generation</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">naming_rule</span><span class="o">.</span><span class="n">prefix</span><span class="si">}{</span><span class="n">ticket_id</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;branch&#39;</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_sanitize_branch_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sanitize a string for use in branch names.&quot;&quot;&quot;</span>
+        <span class="c1"># Convert to lowercase and replace spaces/special chars with hyphens</span>
+        <span class="n">sanitized</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[^a-zA-Z0-9\-_]&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+        <span class="c1"># Remove multiple consecutive hyphens</span>
+        <span class="n">sanitized</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;-+&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="n">sanitized</span><span class="p">)</span>
+        <span class="c1"># Remove leading/trailing hyphens</span>
+        <span class="n">sanitized</span> <span class="o">=</span> <span class="n">sanitized</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">)</span>
+        <span class="c1"># Limit length</span>
+        <span class="k">return</span> <span class="n">sanitized</span><span class="p">[:</span><span class="mi">50</span><span class="p">]</span>
+
+<div class="viewcode-block" id="BranchStrategyManager.validate_branch_name">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.validate_branch_name">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_branch_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate a branch name against current strategy rules.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name to validate</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (is_valid, error_message)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="c1"># Check against naming rules</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">naming_rules</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">branch_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">prefix</span><span class="p">):</span>
+                <span class="c1"># Check pattern</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Branch name doesn&#39;t match pattern: </span><span class="si">{</span><span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="c1"># Check length</span>
+                <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">max_length</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">rule</span><span class="o">.</span><span class="n">max_length</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Branch name exceeds maximum length: </span><span class="si">{</span><span class="n">rule</span><span class="o">.</span><span class="n">max_length</span><span class="si">}</span><span class="s2">&quot;</span>
+
+                <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;Valid branch name&quot;</span>
+
+        <span class="c1"># Check if it&#39;s a protected branch</span>
+        <span class="n">protected_branches</span> <span class="o">=</span> <span class="p">[</span><span class="n">strategy</span><span class="o">.</span><span class="n">main_branch</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">strategy</span><span class="o">.</span><span class="n">development_branch</span><span class="p">:</span>
+            <span class="n">protected_branches</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">strategy</span><span class="o">.</span><span class="n">development_branch</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">branch_name</span> <span class="ow">in</span> <span class="n">protected_branches</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Cannot use protected branch name: </span><span class="si">{</span><span class="n">branch_name</span><span class="si">}</span><span class="s2">&quot;</span>
+
+        <span class="k">return</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;Valid branch name&quot;</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.get_merge_target">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.get_merge_target">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_merge_target</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the merge target for a branch based on current strategy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Source branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Target branch name or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="c1"># Check specific merge targets</span>
+        <span class="k">for</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">merge_targets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">pattern</span> <span class="o">==</span> <span class="s2">&quot;*&quot;</span> <span class="ow">or</span> <span class="n">branch_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">pattern</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)):</span>
+                <span class="k">return</span> <span class="n">target</span>
+
+        <span class="c1"># Default to main branch</span>
+        <span class="k">return</span> <span class="n">strategy</span><span class="o">.</span><span class="n">main_branch</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.get_lifecycle_rule">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.get_lifecycle_rule">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_lifecycle_rule</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">BranchLifecycleRule</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the lifecycle rule for a branch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            BranchLifecycleRule or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="c1"># Determine branch type from name</span>
+        <span class="n">branch_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_branch_type</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+
+        <span class="c1"># Find matching lifecycle rule</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">lifecycle_rules</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">rule</span><span class="o">.</span><span class="n">branch_type</span> <span class="o">==</span> <span class="n">branch_type</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">rule</span>
+
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_branch_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BranchType</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine branch type from branch name.&quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="c1"># Check against naming rules</span>
+        <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">naming_rules</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">branch_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">rule</span><span class="o">.</span><span class="n">prefix</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">rule</span><span class="o">.</span><span class="n">branch_type</span>
+
+        <span class="c1"># Default to feature</span>
+        <span class="k">return</span> <span class="n">BranchType</span><span class="o">.</span><span class="n">FEATURE</span>
+
+<div class="viewcode-block" id="BranchStrategyManager.should_auto_merge">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.should_auto_merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">should_auto_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a branch should be automatically merged.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if branch should be auto-merged</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rule</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_merge_target</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.should_delete_after_merge">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.should_delete_after_merge">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">should_delete_after_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a branch should be deleted after merge.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if branch should be deleted after merge</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rule</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_delete_after_merge</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.requires_qa_approval">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.requires_qa_approval">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires_qa_approval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a branch requires QA approval before merge.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if QA approval is required</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rule</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">requires_qa_approval</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.requires_code_review">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.requires_code_review">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">requires_code_review</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a branch requires code review before merge.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            True if code review is required</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rule</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">requires_review</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.get_merge_strategy">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.get_merge_strategy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_merge_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the merge strategy for a branch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Branch name</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Merge strategy (merge, squash, rebase)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_merge_strategy</span> <span class="k">if</span> <span class="n">rule</span> <span class="k">else</span> <span class="s2">&quot;merge&quot;</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.generate_merge_message">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.generate_merge_message">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_merge_message</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">branch_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ticket_title</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate merge commit message based on strategy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            branch_name: Source branch name</span>
+<span class="sd">            ticket_title: Optional ticket title</span>
+<span class="sd">            **kwargs: Additional template variables</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Generated merge message</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_lifecycle_rule</span><span class="p">(</span><span class="n">branch_name</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">rule</span> <span class="ow">and</span> <span class="n">rule</span><span class="o">.</span><span class="n">merge_message_template</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="n">rule</span><span class="o">.</span><span class="n">merge_message_template</span>
+
+            <span class="c1"># Replace template variables</span>
+            <span class="n">variables</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;branch_name&quot;</span><span class="p">:</span> <span class="n">branch_name</span><span class="p">,</span>
+                <span class="s2">&quot;ticket_title&quot;</span><span class="p">:</span> <span class="n">ticket_title</span> <span class="ow">or</span> <span class="s2">&quot;Updates&quot;</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+            <span class="p">}</span>
+
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">variables</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">template</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">{{</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="se">}}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">template</span>
+
+        <span class="c1"># Default merge message</span>
+        <span class="k">if</span> <span class="n">ticket_title</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Merge </span><span class="si">{</span><span class="n">branch_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">ticket_title</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Merge </span><span class="si">{</span><span class="n">branch_name</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.get_quality_gates">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.get_quality_gates">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_quality_gates</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get quality gates for the current strategy.&quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">strategy</span><span class="o">.</span><span class="n">quality_gates</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.create_custom_strategy">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.create_custom_strategy">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_custom_strategy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BranchWorkflow</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a custom branch strategy.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            name: Strategy name</span>
+<span class="sd">            config: Strategy configuration</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Custom BranchWorkflow</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># This would implement custom strategy creation</span>
+        <span class="c1"># For now, return a basic custom strategy</span>
+        <span class="k">return</span> <span class="n">BranchWorkflow</span><span class="p">(</span>
+            <span class="n">strategy_type</span><span class="o">=</span><span class="n">BranchStrategyType</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">,</span>
+            <span class="n">main_branch</span><span class="o">=</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;main_branch&quot;</span><span class="p">,</span> <span class="s2">&quot;main&quot;</span><span class="p">),</span>
+            <span class="n">naming_rules</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">lifecycle_rules</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">merge_targets</span><span class="o">=</span><span class="p">{},</span>
+            <span class="n">quality_gates</span><span class="o">=</span><span class="p">[],</span>
+        <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BranchStrategyManager.export_strategy_config">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.branch_strategy.html#claude_mpm.services.version_control.BranchStrategyManager.export_strategy_config">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">export_strategy_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Export current strategy as configuration.&quot;&quot;&quot;</span>
+        <span class="n">strategy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_strategy</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;strategy_type&quot;</span><span class="p">:</span> <span class="n">strategy</span><span class="o">.</span><span class="n">strategy_type</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+            <span class="s2">&quot;main_branch&quot;</span><span class="p">:</span> <span class="n">strategy</span><span class="o">.</span><span class="n">main_branch</span><span class="p">,</span>
+            <span class="s2">&quot;development_branch&quot;</span><span class="p">:</span> <span class="n">strategy</span><span class="o">.</span><span class="n">development_branch</span><span class="p">,</span>
+            <span class="s2">&quot;naming_rules&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;branch_type&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">branch_type</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                    <span class="s2">&quot;prefix&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span>
+                    <span class="s2">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span>
+                    <span class="s2">&quot;required_fields&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">required_fields</span><span class="p">,</span>
+                    <span class="s2">&quot;max_length&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">max_length</span><span class="p">,</span>
+                    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">naming_rules</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;lifecycle_rules&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;branch_type&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">branch_type</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                    <span class="s2">&quot;auto_merge_target&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_merge_target</span><span class="p">,</span>
+                    <span class="s2">&quot;auto_merge_strategy&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_merge_strategy</span><span class="p">,</span>
+                    <span class="s2">&quot;auto_delete_after_merge&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">auto_delete_after_merge</span><span class="p">,</span>
+                    <span class="s2">&quot;requires_qa_approval&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">requires_qa_approval</span><span class="p">,</span>
+                    <span class="s2">&quot;requires_review&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">requires_review</span><span class="p">,</span>
+                    <span class="s2">&quot;merge_message_template&quot;</span><span class="p">:</span> <span class="n">rule</span><span class="o">.</span><span class="n">merge_message_template</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">rule</span> <span class="ow">in</span> <span class="n">strategy</span><span class="o">.</span><span class="n">lifecycle_rules</span>
+            <span class="p">],</span>
+            <span class="s2">&quot;merge_targets&quot;</span><span class="p">:</span> <span class="n">strategy</span><span class="o">.</span><span class="n">merge_targets</span><span class="p">,</span>
+            <span class="s2">&quot;quality_gates&quot;</span><span class="p">:</span> <span class="n">strategy</span><span class="o">.</span><span class="n">quality_gates</span><span class="p">,</span>
+        <span class="p">}</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

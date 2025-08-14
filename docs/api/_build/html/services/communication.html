@@ -1,0 +1,1006 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Communication Services &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Infrastructure Services" href="infrastructure.html" />
+    <link rel="prev" title="Agent Services" href="agent_services.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../core/index.html">Core API</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Services API</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="agent_services.html">Agent Services</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Communication Services</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-claude_mpm.services.standalone_socketio_server">SocketIO Server</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer"><code class="docutils literal notranslate"><span class="pre">StandaloneSocketIOServer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.standalone_socketio_server.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#socketio-client-management">SocketIO Client Management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.ServerInfo"><code class="docutils literal notranslate"><span class="pre">ServerInfo</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager"><code class="docutils literal notranslate"><span class="pre">SocketIOClientManager</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.get_client_manager"><code class="docutils literal notranslate"><span class="pre">get_client_manager()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.start_client_manager"><code class="docutils literal notranslate"><span class="pre">start_client_manager()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.stop_client_manager"><code class="docutils literal notranslate"><span class="pre">stop_client_manager()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-claude_mpm.services.event_aggregator">Event Aggregation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.event_aggregator.EventAggregator"><code class="docutils literal notranslate"><span class="pre">EventAggregator</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.event_aggregator.get_aggregator"><code class="docutils literal notranslate"><span class="pre">get_aggregator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.event_aggregator.start_aggregator"><code class="docutils literal notranslate"><span class="pre">start_aggregator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.event_aggregator.stop_aggregator"><code class="docutils literal notranslate"><span class="pre">stop_aggregator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.event_aggregator.aggregator_status"><code class="docutils literal notranslate"><span class="pre">aggregator_status()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-claude_mpm.services.claude_session_logger">Session Logging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger"><code class="docutils literal notranslate"><span class="pre">ClaudeSessionLogger</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.claude_session_logger.get_session_logger"><code class="docutils literal notranslate"><span class="pre">get_session_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.claude_session_logger.log_response"><code class="docutils literal notranslate"><span class="pre">log_response()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.async_session_logger.LogFormat"><code class="docutils literal notranslate"><span class="pre">LogFormat</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.async_session_logger.LogEntry"><code class="docutils literal notranslate"><span class="pre">LogEntry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger"><code class="docutils literal notranslate"><span class="pre">AsyncSessionLogger</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.async_session_logger.get_async_logger"><code class="docutils literal notranslate"><span class="pre">get_async_logger()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.async_session_logger.log_response_async"><code class="docutils literal notranslate"><span class="pre">log_response_async()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-claude_mpm.services.response_tracker">Response Tracking</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.response_tracker.ResponseTracker"><code class="docutils literal notranslate"><span class="pre">ResponseTracker</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.response_tracker.get_response_tracker"><code class="docutils literal notranslate"><span class="pre">get_response_tracker()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#claude_mpm.services.response_tracker.track_response"><code class="docutils literal notranslate"><span class="pre">track_response()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="infrastructure.html">Infrastructure Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="project_services.html">Project Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="core_services.html">Core Services</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#service-domains">Service Domains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#architecture-benefits">Architecture Benefits</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Services API</a></li>
+      <li class="breadcrumb-item active">Communication Services</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/services/communication.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="communication-services">
+<h1>Communication Services<a class="headerlink" href="#communication-services" title="Link to this heading"></a></h1>
+<p>Communication services provide real-time communication capabilities including WebSocket,
+SocketIO, and event broadcasting functionality.</p>
+<section id="module-claude_mpm.services.standalone_socketio_server">
+<span id="socketio-server"></span><h2>SocketIO Server<a class="headerlink" href="#module-claude_mpm.services.standalone_socketio_server" title="Link to this heading"></a></h2>
+<p>Standalone Socket.IO server with independent versioning and deployment agnostic design.</p>
+<p>This server is designed to run independently of claude-mpm and maintain its own versioning.
+It provides a persistent Socket.IO service that can handle multiple claude-mpm client connections.</p>
+<p>KEY DESIGN PRINCIPLES:
+1. Single server per machine - Only one instance should run
+2. Persistent across sessions - Server keeps running when code is pushed
+3. Separate versioning - Server has its own version schema independent of claude-mpm
+4. Version compatibility mapping - Track which server versions work with which claude-mpm versions
+5. Deployment agnostic - Works with local script, PyPI, npm installations</p>
+<p>WHY standalone architecture:
+- Allows server evolution independent of claude-mpm releases
+- Enables persistent monitoring across multiple claude-mpm sessions
+- Provides better resource management (one server vs multiple)
+- Simplifies debugging and maintenance
+- Supports different installation methods (PyPI, local, Docker, etc.)</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.standalone_socketio_server.</span></span><span class="sig-name descname"><span class="pre">StandaloneSocketIOServer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8765</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Standalone Socket.IO server with independent lifecycle and versioning.</p>
+<p>This server runs independently of claude-mpm processes and provides:
+- Version compatibility checking
+- Process isolation and management
+- Persistent operation across claude-mpm sessions
+- Health monitoring and diagnostics
+- Event namespacing and routing</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8765</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">server_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.check_compatibility">
+<span class="sig-name descname"><span class="pre">check_compatibility</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.check_compatibility"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.check_compatibility" title="Link to this definition"></a></dt>
+<dd><p>Check if client version is compatible with this server version.</p>
+<p>Returns compatibility info including warnings and supported features.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.is_already_running">
+<span class="sig-name descname"><span class="pre">is_already_running</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raise_on_conflict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.is_already_running"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.is_already_running" title="Link to this definition"></a></dt>
+<dd><p>Enhanced check if another server instance is already running on this port.</p>
+<p>This method performs comprehensive validation including:
+- PID file existence and validity
+- Process identity verification (command line, start time)
+- Zombie process detection
+- Port availability check
+- Automatic cleanup of stale PID files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if a valid server is already running, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.create_pidfile">
+<span class="sig-name descname"><span class="pre">create_pidfile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.create_pidfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.create_pidfile" title="Link to this definition"></a></dt>
+<dd><p>Create PID file with exclusive locking to track this server instance.</p>
+<p>This method creates a PID file with exclusive locking to prevent race conditions
+and ensures only one server instance can hold the lock at a time.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.remove_pidfile">
+<span class="sig-name descname"><span class="pre">remove_pidfile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.remove_pidfile"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.remove_pidfile" title="Link to this definition"></a></dt>
+<dd><p>Remove PID file and release lock on shutdown.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.setup_signal_handlers">
+<span class="sig-name descname"><span class="pre">setup_signal_handlers</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.setup_signal_handlers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.setup_signal_handlers" title="Link to this definition"></a></dt>
+<dd><p>Setup signal handlers for graceful shutdown.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.start_async">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start_async</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.start_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.start_async" title="Link to this definition"></a></dt>
+<dd><p>Start the server asynchronously.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.start" title="Link to this definition"></a></dt>
+<dd><p>Start the server in the main thread (for standalone execution).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#StandaloneSocketIOServer.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.StandaloneSocketIOServer.stop" title="Link to this definition"></a></dt>
+<dd><p>Stop the server gracefully.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.standalone_socketio_server.main">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.standalone_socketio_server.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/standalone_socketio_server.html#main"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.standalone_socketio_server.main" title="Link to this definition"></a></dt>
+<dd><p>Main entry point for standalone server execution.</p>
+</dd></dl>
+
+</section>
+<section id="socketio-client-management">
+<h2>SocketIO Client Management<a class="headerlink" href="#socketio-client-management" title="Link to this heading"></a></h2>
+<p id="module-claude_mpm.services.socketio_client_manager">Socket.IO client manager for connecting to standalone servers.</p>
+<p>This module provides intelligent client management that:
+1. Detects existing standalone servers
+2. Performs version compatibility checks
+3. Handles graceful fallback to embedded servers
+4. Manages connection lifecycle and reconnection</p>
+<p>WHY this approach:
+- Enables seamless integration with standalone servers
+- Provides compatibility checking before connection
+- Handles both local and remote server scenarios
+- Maintains backward compatibility with embedded servers</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.ServerInfo">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.socketio_client_manager.</span></span><span class="sig-name descname"><span class="pre">ServerInfo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#ServerInfo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.ServerInfo" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Information about a detected Socket.IO server.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.ServerInfo.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#ServerInfo.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.ServerInfo.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.ServerInfo.url">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">url</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.ServerInfo.url" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.ServerInfo.is_compatible">
+<span class="sig-name descname"><span class="pre">is_compatible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'3.8.1'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#ServerInfo.is_compatible"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.ServerInfo.is_compatible" title="Link to this definition"></a></dt>
+<dd><p>Check if this server is compatible with the client version.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.socketio_client_manager.</span></span><span class="sig-name descname"><span class="pre">SocketIOClientManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'3.8.1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages Socket.IO client connections with server discovery and compatibility checking.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">client_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'3.8.1'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.discover_servers">
+<span class="sig-name descname"><span class="pre">discover_servers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ports</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hosts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.ServerInfo" title="claude_mpm.services.socketio_client_manager.ServerInfo"><span class="pre">ServerInfo</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.discover_servers"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.discover_servers" title="Link to this definition"></a></dt>
+<dd><p>Discover available Socket.IO servers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ports</strong> – List of ports to check (default: [8765, 8766, 8767])</p></li>
+<li><p><strong>hosts</strong> – List of hosts to check (default: [‘localhost’, ‘127.0.0.1’])</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of discovered server info objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.find_best_server">
+<span class="sig-name descname"><span class="pre">find_best_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">discovered_servers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.ServerInfo" title="claude_mpm.services.socketio_client_manager.ServerInfo"><span class="pre">ServerInfo</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.ServerInfo" title="claude_mpm.services.socketio_client_manager.ServerInfo"><span class="pre">ServerInfo</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.find_best_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.find_best_server" title="Link to this definition"></a></dt>
+<dd><p>Find the best compatible server from discovered servers.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.connect_to_server">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">connect_to_server</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">server_info</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.ServerInfo" title="claude_mpm.services.socketio_client_manager.ServerInfo"><span class="pre">ServerInfo</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.connect_to_server"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.connect_to_server" title="Link to this definition"></a></dt>
+<dd><p>Connect to a specific server with compatibility verification.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.emit_event">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">emit_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.emit_event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.emit_event" title="Link to this definition"></a></dt>
+<dd><p>Emit an event to the connected server.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.start_connection_manager">
+<span class="sig-name descname"><span class="pre">start_connection_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.start_connection_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.start_connection_manager" title="Link to this definition"></a></dt>
+<dd><p>Start the connection manager in a background thread.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.stop_connection_manager">
+<span class="sig-name descname"><span class="pre">stop_connection_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.stop_connection_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.stop_connection_manager" title="Link to this definition"></a></dt>
+<dd><p>Stop the connection manager.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.broadcast_event">
+<span class="sig-name descname"><span class="pre">broadcast_event</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.broadcast_event"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.broadcast_event" title="Link to this definition"></a></dt>
+<dd><p>Legacy compatibility method for broadcasting events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.session_started">
+<span class="sig-name descname"><span class="pre">session_started</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">launch_method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.session_started"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.session_started" title="Link to this definition"></a></dt>
+<dd><p>Compatibility method for session start events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.session_ended">
+<span class="sig-name descname"><span class="pre">session_ended</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.session_ended"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.session_ended" title="Link to this definition"></a></dt>
+<dd><p>Compatibility method for session end events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.claude_status_changed">
+<span class="sig-name descname"><span class="pre">claude_status_changed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.claude_status_changed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.claude_status_changed" title="Link to this definition"></a></dt>
+<dd><p>Compatibility method for Claude status events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.agent_delegated">
+<span class="sig-name descname"><span class="pre">agent_delegated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">task</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'started'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.agent_delegated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.agent_delegated" title="Link to this definition"></a></dt>
+<dd><p>Compatibility method for agent delegation events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.todo_updated">
+<span class="sig-name descname"><span class="pre">todo_updated</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">todos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#SocketIOClientManager.todo_updated"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.todo_updated" title="Link to this definition"></a></dt>
+<dd><p>Compatibility method for todo update events.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.SocketIOClientManager.running_status">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">running_status</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager.running_status" title="Link to this definition"></a></dt>
+<dd><p>Compatibility property.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.get_client_manager">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.socketio_client_manager.</span></span><span class="sig-name descname"><span class="pre">get_client_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.socketio_client_manager.SocketIOClientManager" title="claude_mpm.services.socketio_client_manager.SocketIOClientManager"><span class="pre">SocketIOClientManager</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#get_client_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.get_client_manager" title="Link to this definition"></a></dt>
+<dd><p>Get or create the global client manager instance.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.start_client_manager">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.socketio_client_manager.</span></span><span class="sig-name descname"><span class="pre">start_client_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#start_client_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.start_client_manager" title="Link to this definition"></a></dt>
+<dd><p>Start the global client manager.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.socketio_client_manager.stop_client_manager">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.socketio_client_manager.</span></span><span class="sig-name descname"><span class="pre">stop_client_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/socketio_client_manager.html#stop_client_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.socketio_client_manager.stop_client_manager" title="Link to this definition"></a></dt>
+<dd><p>Stop the global client manager.</p>
+</dd></dl>
+
+</section>
+<section id="module-claude_mpm.services.event_aggregator">
+<span id="event-aggregation"></span><h2>Event Aggregation<a class="headerlink" href="#module-claude_mpm.services.event_aggregator" title="Link to this heading"></a></h2>
+<p>Event Aggregator Service for Claude MPM.</p>
+<p>WHY: This service connects to the Socket.IO dashboard server as a client and
+captures all events emitted during Claude MPM sessions. It builds complete
+session representations that can be saved as JSON documents for analysis.</p>
+<p>DESIGN DECISION: We run as a Socket.IO client rather than modifying the server
+to avoid interfering with the existing dashboard functionality. This allows the
+aggregator to run alongside the dashboard without any conflicts.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.event_aggregator.</span></span><span class="sig-name descname"><span class="pre">EventAggregator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8765</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Aggregates Socket.IO events into complete agent sessions.</p>
+<p>WHY: The dashboard emits events in real-time but doesn’t persist complete
+sessions. This service captures those events and builds structured session
+documents for analysis and debugging.</p>
+<p>DESIGN DECISION: We maintain active sessions in memory and save them when
+they complete or after a timeout. This balances memory usage with the need
+to capture all events even if a session doesn’t complete cleanly.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">host</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'localhost'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">port</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8765</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the event aggregator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>host</strong> – Socket.IO server host</p></li>
+<li><p><strong>port</strong> – Socket.IO server port</p></li>
+<li><p><strong>save_dir</strong> – Directory to save session files (defaults to .claude-mpm/sessions/)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.start">
+<span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.start" title="Link to this definition"></a></dt>
+<dd><p>Start the aggregator service.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if started successfully, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.stop" title="Link to this definition"></a></dt>
+<dd><p>Stop the aggregator service.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.get_status">
+<span class="sig-name descname"><span class="pre">get_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.get_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.get_status" title="Link to this definition"></a></dt>
+<dd><p>Get current status of the aggregator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Status dictionary with metrics and state</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.list_sessions">
+<span class="sig-name descname"><span class="pre">list_sessions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">limit</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.list_sessions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.list_sessions" title="Link to this definition"></a></dt>
+<dd><p>List captured sessions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>limit</strong> – Maximum number of sessions to return</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of session summaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.EventAggregator.load_session">
+<span class="sig-name descname"><span class="pre">load_session</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id_prefix</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../claude_mpm.models.agent_session.html#claude_mpm.models.agent_session.AgentSession" title="claude_mpm.models.agent_session.AgentSession"><span class="pre">AgentSession</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#EventAggregator.load_session"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.EventAggregator.load_session" title="Link to this definition"></a></dt>
+<dd><p>Load a session by ID prefix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session_id_prefix</strong> – First few characters of session ID</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>AgentSession if found, None otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.get_aggregator">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.event_aggregator.</span></span><span class="sig-name descname"><span class="pre">get_aggregator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.event_aggregator.EventAggregator" title="claude_mpm.services.event_aggregator.EventAggregator"><span class="pre">EventAggregator</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#get_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.get_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Get or create the global aggregator instance.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.start_aggregator">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.event_aggregator.</span></span><span class="sig-name descname"><span class="pre">start_aggregator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#start_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.start_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Start the global aggregator service.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.stop_aggregator">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.event_aggregator.</span></span><span class="sig-name descname"><span class="pre">stop_aggregator</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#stop_aggregator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.stop_aggregator" title="Link to this definition"></a></dt>
+<dd><p>Stop the global aggregator service.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.event_aggregator.aggregator_status">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.event_aggregator.</span></span><span class="sig-name descname"><span class="pre">aggregator_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/event_aggregator.html#aggregator_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.event_aggregator.aggregator_status" title="Link to this definition"></a></dt>
+<dd><p>Get status of the aggregator service.</p>
+</dd></dl>
+
+</section>
+<section id="module-claude_mpm.services.claude_session_logger">
+<span id="session-logging"></span><h2>Session Logging<a class="headerlink" href="#module-claude_mpm.services.claude_session_logger" title="Link to this heading"></a></h2>
+<p>Claude Session Response Logger</p>
+<p>Simplified response logging system that uses Claude Code session IDs.
+Stores responses in docs/responses/{session-id}/ for easy access.</p>
+<p>Now with optional async logging support for improved performance.
+Configuration via .claude-mpm/configuration.yaml.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.claude_session_logger.</span></span><span class="sig-name descname"><span class="pre">ClaudeSessionLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Simplified response logger for Claude Code sessions.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the session logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_dir</strong> – Base directory for responses. Overrides config.</p></li>
+<li><p><strong>use_async</strong> – Use async logging if available. Overrides config.</p></li>
+<li><p><strong>config</strong> – Configuration instance to use (creates new if not provided)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger.log_response">
+<span class="sig-name descname"><span class="pre">log_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger.log_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger.log_response" title="Link to this definition"></a></dt>
+<dd><p>Log a response to the session directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request_summary</strong> – Brief summary of the request</p></li>
+<li><p><strong>response_content</strong> – The full response content</p></li>
+<li><p><strong>metadata</strong> – Optional metadata (agent name, model, etc.)</p></li>
+<li><p><strong>agent</strong> – Optional agent name (overrides metadata)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved response file, or None if disabled</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger.set_session_id">
+<span class="sig-name descname"><span class="pre">set_session_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger.set_session_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger.set_session_id" title="Link to this definition"></a></dt>
+<dd><p>Manually set the session ID.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session_id</strong> – The session ID to use</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger.get_session_path">
+<span class="sig-name descname"><span class="pre">get_session_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger.get_session_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger.get_session_path" title="Link to this definition"></a></dt>
+<dd><p>Get the path to the responses directory.</p>
+<p>Note: With flat structure, returns the base directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path to responses directory, or None if no session</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.ClaudeSessionLogger.is_enabled">
+<span class="sig-name descname"><span class="pre">is_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#ClaudeSessionLogger.is_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger.is_enabled" title="Link to this definition"></a></dt>
+<dd><p>Check if logging is enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if logging is enabled (session ID available)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.get_session_logger">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.claude_session_logger.</span></span><span class="sig-name descname"><span class="pre">get_session_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.claude_session_logger.ClaudeSessionLogger" title="claude_mpm.services.claude_session_logger.ClaudeSessionLogger"><span class="pre">ClaudeSessionLogger</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#get_session_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.get_session_logger" title="Link to this definition"></a></dt>
+<dd><p>Get the singleton session logger instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Optional configuration instance to use</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The shared ClaudeSessionLogger instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.claude_session_logger.log_response">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.claude_session_logger.</span></span><span class="sig-name descname"><span class="pre">log_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/claude_session_logger.html#log_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.claude_session_logger.log_response" title="Link to this definition"></a></dt>
+<dd><p>Convenience function to log a response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request_summary</strong> – Brief summary of the request</p></li>
+<li><p><strong>response_content</strong> – The full response content</p></li>
+<li><p><strong>metadata</strong> – Optional metadata</p></li>
+<li><p><strong>agent</strong> – Optional agent name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved response file</p>
+</dd>
+</dl>
+</dd></dl>
+
+<p id="module-claude_mpm.services.async_session_logger">Async Claude Session Response Logger with Optimized Performance</p>
+<p>High-performance async logging system with timestamp-based filenames to eliminate
+concurrency issues and achieve near-zero performance overhead.</p>
+<p>Key Features:
+- Timestamp-based filenames with microsecond precision
+- Async I/O with fire-and-forget pattern
+- Queue-based background writing
+- Optional OS-native logging format
+- Zero blocking on main thread
+- Configuration via .claude-mpm/configuration.yaml</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogFormat">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.async_session_logger.</span></span><span class="sig-name descname"><span class="pre">LogFormat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#LogFormat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogFormat" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Supported log formats for response storage.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogFormat.JSON">
+<span class="sig-name descname"><span class="pre">JSON</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'json'</span></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogFormat.JSON" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogFormat.SYSLOG">
+<span class="sig-name descname"><span class="pre">SYSLOG</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'syslog'</span></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogFormat.SYSLOG" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogFormat.JOURNALD">
+<span class="sig-name descname"><span class="pre">JOURNALD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'journald'</span></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogFormat.JOURNALD" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.async_session_logger.</span></span><span class="sig-name descname"><span class="pre">LogEntry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">microseconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#LogEntry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a log entry to be written.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.timestamp">
+<span class="sig-name descname"><span class="pre">timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.timestamp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.agent">
+<span class="sig-name descname"><span class="pre">agent</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.agent" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.session_id">
+<span class="sig-name descname"><span class="pre">session_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.session_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.request">
+<span class="sig-name descname"><span class="pre">request</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.request" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.response">
+<span class="sig-name descname"><span class="pre">response</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.response" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.metadata" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.microseconds">
+<span class="sig-name descname"><span class="pre">microseconds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.microseconds" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.LogEntry.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">microseconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.async_session_logger.LogEntry.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.async_session_logger.</span></span><span class="sig-name descname"><span class="pre">AsyncSessionLogger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.async_session_logger.LogFormat" title="claude_mpm.services.async_session_logger.LogFormat"><span class="pre">LogFormat</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_queue_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_compression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>High-performance async logger with timestamp-based filenames.</p>
+<p>Features:
+- Non-blocking async writes with background queue processing
+- Timestamp-based filenames to eliminate lookup overhead
+- Configurable log formats (JSON, syslog, journald)
+- Fire-and-forget pattern for zero latency impact
+- Graceful degradation on errors</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">base_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.async_session_logger.LogFormat" title="claude_mpm.services.async_session_logger.LogFormat"><span class="pre">LogFormat</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_queue_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_compression</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the async session logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>base_dir</strong> – Base directory for responses (overrides config)</p></li>
+<li><p><strong>log_format</strong> – Format to use for logging (overrides config)</p></li>
+<li><p><strong>max_queue_size</strong> – Maximum queue size for async writes (overrides config)</p></li>
+<li><p><strong>enable_async</strong> – Enable async writing (overrides config)</p></li>
+<li><p><strong>enable_compression</strong> – Enable gzip compression for JSON logs (overrides config)</p></li>
+<li><p><strong>config</strong> – Configuration instance to use (creates new if not provided)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.log_response">
+<span class="sig-name descname"><span class="pre">log_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.log_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.log_response" title="Link to this definition"></a></dt>
+<dd><p>Log a response with fire-and-forget async pattern.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request_summary</strong> – Brief summary of the request</p></li>
+<li><p><strong>response_content</strong> – The full response content</p></li>
+<li><p><strong>metadata</strong> – Optional metadata (agent name, model, etc.)</p></li>
+<li><p><strong>agent</strong> – Optional agent name (overrides metadata)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if queued successfully, False if dropped</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.flush">
+<span class="sig-name descname"><span class="pre">flush</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.flush"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.flush" title="Link to this definition"></a></dt>
+<dd><p>Flush pending log entries with timeout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – Maximum time to wait for flush</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if all entries flushed, False if timeout</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.shutdown">
+<span class="sig-name descname"><span class="pre">shutdown</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.shutdown"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.shutdown" title="Link to this definition"></a></dt>
+<dd><p>Gracefully shutdown the logger.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – Maximum time to wait for shutdown</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.get_stats">
+<span class="sig-name descname"><span class="pre">get_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.get_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.get_stats" title="Link to this definition"></a></dt>
+<dd><p>Get logger statistics.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.set_session_id">
+<span class="sig-name descname"><span class="pre">set_session_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.set_session_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.set_session_id" title="Link to this definition"></a></dt>
+<dd><p>Set a new session ID.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.AsyncSessionLogger.is_enabled">
+<span class="sig-name descname"><span class="pre">is_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#AsyncSessionLogger.is_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger.is_enabled" title="Link to this definition"></a></dt>
+<dd><p>Check if logging is enabled.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.get_async_logger">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.async_session_logger.</span></span><span class="sig-name descname"><span class="pre">get_async_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">log_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.async_session_logger.LogFormat" title="claude_mpm.services.async_session_logger.LogFormat"><span class="pre">LogFormat</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enable_async</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.async_session_logger.AsyncSessionLogger" title="claude_mpm.services.async_session_logger.AsyncSessionLogger"><span class="pre">AsyncSessionLogger</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#get_async_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.get_async_logger" title="Link to this definition"></a></dt>
+<dd><p>Get the singleton async logger instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_format</strong> – Optional log format override</p></li>
+<li><p><strong>enable_async</strong> – Enable async mode override</p></li>
+<li><p><strong>config</strong> – Optional configuration instance to use</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The shared AsyncSessionLogger instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.async_session_logger.log_response_async">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.async_session_logger.</span></span><span class="sig-name descname"><span class="pre">log_response_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request_summary</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/async_session_logger.html#log_response_async"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.async_session_logger.log_response_async" title="Link to this definition"></a></dt>
+<dd><p>Convenience function for async response logging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request_summary</strong> – Brief summary of the request</p></li>
+<li><p><strong>response_content</strong> – The full response content</p></li>
+<li><p><strong>metadata</strong> – Optional metadata</p></li>
+<li><p><strong>agent</strong> – Optional agent name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if logged/queued successfully</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-claude_mpm.services.response_tracker">
+<span id="response-tracking"></span><h2>Response Tracking<a class="headerlink" href="#module-claude_mpm.services.response_tracker" title="Link to this heading"></a></h2>
+<p>Response Tracker Service</p>
+<p>Wraps the ClaudeSessionLogger to provide compatibility with the hook_handler.py
+response tracking integration. This service acts as a bridge between the hook
+system and the session logging system.</p>
+<p>WHY: The hook_handler expects a ResponseTracker class with specific methods,
+but we already have ClaudeSessionLogger that does the actual work. This wrapper
+ensures compatibility while respecting configuration settings.</p>
+<p>DESIGN DECISIONS:
+- Wraps ClaudeSessionLogger instead of duplicating code
+- Properly checks configuration to respect enabled/disabled state
+- Provides the expected interface for hook_handler.py
+- Handles agent name normalization for consistent tracking</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.response_tracker.</span></span><span class="sig-name descname"><span class="pre">ResponseTracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Response tracker that wraps ClaudeSessionLogger for hook compatibility.</p>
+<p>WHY: This class provides the interface expected by hook_handler.py while
+delegating actual logging to the proven ClaudeSessionLogger implementation.
+This avoids code duplication and maintains consistency.</p>
+<p>DESIGN: The tracker checks configuration settings on initialization and
+respects the enabled/disabled state. It provides the track_response method
+expected by the hook handler.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the response tracker.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Optional configuration instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker.track_response">
+<span class="sig-name descname"><span class="pre">track_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker.track_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker.track_response" title="Link to this definition"></a></dt>
+<dd><p>Track an agent response.</p>
+<p>WHY: This method provides the interface expected by hook_handler.py
+while delegating to ClaudeSessionLogger for actual storage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_name</strong> – Name of the agent that generated the response</p></li>
+<li><p><strong>request</strong> – The original request/prompt</p></li>
+<li><p><strong>response</strong> – The agent’s response</p></li>
+<li><p><strong>session_id</strong> – Optional session ID (will use logger’s if not provided)</p></li>
+<li><p><strong>metadata</strong> – Optional additional metadata</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved response file, or None if disabled/failed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker.is_enabled">
+<span class="sig-name descname"><span class="pre">is_enabled</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker.is_enabled"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker.is_enabled" title="Link to this definition"></a></dt>
+<dd><p>Check if response tracking is enabled.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if tracking is enabled, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker.get_session_path">
+<span class="sig-name descname"><span class="pre">get_session_path</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker.get_session_path"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker.get_session_path" title="Link to this definition"></a></dt>
+<dd><p>Get the current session directory path.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path to the session directory, or None if not available</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.ResponseTracker.set_session_id">
+<span class="sig-name descname"><span class="pre">set_session_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#ResponseTracker.set_session_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.ResponseTracker.set_session_id" title="Link to this definition"></a></dt>
+<dd><p>Set a specific session ID for tracking.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session_id</strong> – The session ID to use</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.get_response_tracker">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.response_tracker.</span></span><span class="sig-name descname"><span class="pre">get_response_tracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="../claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.response_tracker.ResponseTracker" title="claude_mpm.services.response_tracker.ResponseTracker"><span class="pre">ResponseTracker</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#get_response_tracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.get_response_tracker" title="Link to this definition"></a></dt>
+<dd><p>Get the singleton response tracker instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>config</strong> – Optional configuration instance</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The shared ResponseTracker instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.response_tracker.track_response">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.response_tracker.</span></span><span class="sig-name descname"><span class="pre">track_response</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">response</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/claude_mpm/services/response_tracker.html#track_response"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.response_tracker.track_response" title="Link to this definition"></a></dt>
+<dd><p>Convenience function to track a response.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_name</strong> – Name of the agent</p></li>
+<li><p><strong>request</strong> – The original request</p></li>
+<li><p><strong>response</strong> – The agent’s response</p></li>
+<li><p><strong>session_id</strong> – Optional session ID</p></li>
+<li><p><strong>metadata</strong> – Optional metadata</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved response file</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="agent_services.html" class="btn btn-neutral float-left" title="Agent Services" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="infrastructure.html" class="btn btn-neutral float-right" title="Infrastructure Services" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

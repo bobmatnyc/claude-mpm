@@ -1,0 +1,483 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.hooks package &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.hooks.claude_hooks package" href="claude_mpm.hooks.claude_hooks.html" />
+    <link rel="prev" title="claude_mpm.generators.agent_profile_generator module" href="claude_mpm.generators.agent_profile_generator.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.hooks package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.hooks.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.hooks">
+<span id="claude-mpm-hooks-package"></span><h1>claude_mpm.hooks package<a class="headerlink" href="#module-claude_mpm.hooks" title="Link to this heading"></a></h1>
+<p>Hook system for claude-mpm.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.</span></span><span class="sig-name descname"><span class="pre">BaseHook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/abc.html#abc.ABC" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></a></p>
+<p>Base class for all hooks.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">priority</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize hook with name and priority.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – Unique name for the hook</p></li>
+<li><p><strong>priority</strong> – Execution priority (0-100, lower executes first)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.__lt__">
+<span class="sig-name descname"><span class="pre">__lt__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.__lt__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.__lt__" title="Link to this definition"></a></dt>
+<dd><p>Compare hooks by priority for sorting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.__repr__">
+<span class="sig-name descname"><span class="pre">__repr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.__repr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.__repr__" title="Link to this definition"></a></dt>
+<dd><p>String representation of hook.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.async_execute">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">async_execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookContext" title="claude_mpm.hooks.base_hook.HookContext"><span class="pre">HookContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookResult" title="claude_mpm.hooks.base_hook.HookResult"><span class="pre">HookResult</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.async_execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.async_execute" title="Link to this definition"></a></dt>
+<dd><p>Async version of execute. Override for async hooks.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.execute">
+<em class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">execute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookContext" title="claude_mpm.hooks.base_hook.HookContext"><span class="pre">HookContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookResult" title="claude_mpm.hooks.base_hook.HookResult"><span class="pre">HookResult</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.execute"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.execute" title="Link to this definition"></a></dt>
+<dd><p>Execute the hook with given context.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>context</strong> – Hook context containing data and metadata</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>HookResult with execution results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.BaseHook.validate">
+<span class="sig-name descname"><span class="pre">validate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookContext" title="claude_mpm.hooks.base_hook.HookContext"><span class="pre">HookContext</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#BaseHook.validate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.BaseHook.validate" title="Link to this definition"></a></dt>
+<dd><p>Validate if hook should run for given context.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>context</strong> – Hook context to validate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if hook should execute, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.</span></span><span class="sig-name descname"><span class="pre">HookContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookType" title="claude_mpm.hooks.base_hook.HookType"><span class="pre">HookType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><span class="pre">datetime</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#HookContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.HookContext" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Context passed to hooks for processing.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hook_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookType" title="claude_mpm.hooks.base_hook.HookType"><span class="pre">HookType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><span class="pre">datetime</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">session_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.hooks.HookContext.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.__post_init__">
+<span class="sig-name descname"><span class="pre">__post_init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#HookContext.__post_init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.HookContext.__post_init__" title="Link to this definition"></a></dt>
+<dd><p>Ensure timestamp is set.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.session_id">
+<span class="sig-name descname"><span class="pre">session_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.session_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.user_id">
+<span class="sig-name descname"><span class="pre">user_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.user_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.hook_type">
+<span class="sig-name descname"><span class="pre">hook_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="hooks/base.html#claude_mpm.hooks.base_hook.HookType" title="claude_mpm.hooks.base_hook.HookType"><span class="pre">HookType</span></a></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.hook_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.data">
+<span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.metadata" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookContext.timestamp">
+<span class="sig-name descname"><span class="pre">timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><span class="pre">datetime</span></a></em><a class="headerlink" href="#claude_mpm.hooks.HookContext.timestamp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.</span></span><span class="sig-name descname"><span class="pre">HookResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modified</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution_time_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#HookResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.HookResult" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Result returned from hook execution.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modified</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution_time_ms</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.hooks.HookResult.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.data">
+<span class="sig-name descname"><span class="pre">data</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.error">
+<span class="sig-name descname"><span class="pre">error</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.error" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.execution_time_ms">
+<span class="sig-name descname"><span class="pre">execution_time_ms</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.execution_time_ms" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.metadata" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.modified">
+<span class="sig-name descname"><span class="pre">modified</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.modified" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookResult.success">
+<span class="sig-name descname"><span class="pre">success</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><a class="headerlink" href="#claude_mpm.hooks.HookResult.success" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.hooks.</span></span><span class="sig-name descname"><span class="pre">HookType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/hooks/base_hook.html#HookType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.hooks.HookType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Types of hooks available in the system.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType.SUBMIT">
+<span class="sig-name descname"><span class="pre">SUBMIT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'submit'</span></em><a class="headerlink" href="#claude_mpm.hooks.HookType.SUBMIT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType.PRE_DELEGATION">
+<span class="sig-name descname"><span class="pre">PRE_DELEGATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pre_delegation'</span></em><a class="headerlink" href="#claude_mpm.hooks.HookType.PRE_DELEGATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType.POST_DELEGATION">
+<span class="sig-name descname"><span class="pre">POST_DELEGATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'post_delegation'</span></em><a class="headerlink" href="#claude_mpm.hooks.HookType.POST_DELEGATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType.TICKET_EXTRACTION">
+<span class="sig-name descname"><span class="pre">TICKET_EXTRACTION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'ticket_extraction'</span></em><a class="headerlink" href="#claude_mpm.hooks.HookType.TICKET_EXTRACTION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.hooks.HookType.CUSTOM">
+<span class="sig-name descname"><span class="pre">CUSTOM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'custom'</span></em><a class="headerlink" href="#claude_mpm.hooks.HookType.CUSTOM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<section id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html">claude_mpm.hooks.claude_hooks package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html#claude_mpm.hooks.claude_hooks.ClaudeHookHandler"><code class="docutils literal notranslate"><span class="pre">ClaudeHookHandler</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html#claude_mpm.hooks.claude_hooks.ClaudeHookHandler.__del__"><code class="docutils literal notranslate"><span class="pre">ClaudeHookHandler.__del__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html#claude_mpm.hooks.claude_hooks.ClaudeHookHandler.__init__"><code class="docutils literal notranslate"><span class="pre">ClaudeHookHandler.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html#claude_mpm.hooks.claude_hooks.ClaudeHookHandler.handle"><code class="docutils literal notranslate"><span class="pre">ClaudeHookHandler.handle()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.html#submodules">Submodules</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.hook_handler.html">claude_mpm.hooks.claude_hooks.hook_handler module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.hook_handler.html#claude_mpm.hooks.claude_hooks.hook_handler.ClaudeHookHandler"><code class="docutils literal notranslate"><span class="pre">ClaudeHookHandler</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.claude_hooks.hook_handler.html#claude_mpm.hooks.claude_hooks.hook_handler.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.hooks.base_hook.html">claude_mpm.hooks.base_hook module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType"><code class="docutils literal notranslate"><span class="pre">HookType</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType.SUBMIT"><code class="docutils literal notranslate"><span class="pre">HookType.SUBMIT</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType.PRE_DELEGATION"><code class="docutils literal notranslate"><span class="pre">HookType.PRE_DELEGATION</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType.POST_DELEGATION"><code class="docutils literal notranslate"><span class="pre">HookType.POST_DELEGATION</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType.TICKET_EXTRACTION"><code class="docutils literal notranslate"><span class="pre">HookType.TICKET_EXTRACTION</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookType.CUSTOM"><code class="docutils literal notranslate"><span class="pre">HookType.CUSTOM</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext"><code class="docutils literal notranslate"><span class="pre">HookContext</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.hook_type"><code class="docutils literal notranslate"><span class="pre">HookContext.hook_type</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.data"><code class="docutils literal notranslate"><span class="pre">HookContext.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.metadata"><code class="docutils literal notranslate"><span class="pre">HookContext.metadata</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.timestamp"><code class="docutils literal notranslate"><span class="pre">HookContext.timestamp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.session_id"><code class="docutils literal notranslate"><span class="pre">HookContext.session_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.user_id"><code class="docutils literal notranslate"><span class="pre">HookContext.user_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.__post_init__"><code class="docutils literal notranslate"><span class="pre">HookContext.__post_init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookContext.__init__"><code class="docutils literal notranslate"><span class="pre">HookContext.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult"><code class="docutils literal notranslate"><span class="pre">HookResult</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.success"><code class="docutils literal notranslate"><span class="pre">HookResult.success</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.data"><code class="docutils literal notranslate"><span class="pre">HookResult.data</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.error"><code class="docutils literal notranslate"><span class="pre">HookResult.error</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.modified"><code class="docutils literal notranslate"><span class="pre">HookResult.modified</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.metadata"><code class="docutils literal notranslate"><span class="pre">HookResult.metadata</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.execution_time_ms"><code class="docutils literal notranslate"><span class="pre">HookResult.execution_time_ms</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.HookResult.__init__"><code class="docutils literal notranslate"><span class="pre">HookResult.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook"><code class="docutils literal notranslate"><span class="pre">BaseHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.__init__"><code class="docutils literal notranslate"><span class="pre">BaseHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.execute"><code class="docutils literal notranslate"><span class="pre">BaseHook.execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.async_execute"><code class="docutils literal notranslate"><span class="pre">BaseHook.async_execute()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.validate"><code class="docutils literal notranslate"><span class="pre">BaseHook.validate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.__repr__"><code class="docutils literal notranslate"><span class="pre">BaseHook.__repr__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.BaseHook.__lt__"><code class="docutils literal notranslate"><span class="pre">BaseHook.__lt__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.SubmitHook"><code class="docutils literal notranslate"><span class="pre">SubmitHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.SubmitHook.__init__"><code class="docutils literal notranslate"><span class="pre">SubmitHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.SubmitHook.validate"><code class="docutils literal notranslate"><span class="pre">SubmitHook.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PreDelegationHook"><code class="docutils literal notranslate"><span class="pre">PreDelegationHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PreDelegationHook.__init__"><code class="docutils literal notranslate"><span class="pre">PreDelegationHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PreDelegationHook.validate"><code class="docutils literal notranslate"><span class="pre">PreDelegationHook.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PostDelegationHook"><code class="docutils literal notranslate"><span class="pre">PostDelegationHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PostDelegationHook.__init__"><code class="docutils literal notranslate"><span class="pre">PostDelegationHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.PostDelegationHook.validate"><code class="docutils literal notranslate"><span class="pre">PostDelegationHook.validate()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.TicketExtractionHook"><code class="docutils literal notranslate"><span class="pre">TicketExtractionHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.TicketExtractionHook.__init__"><code class="docutils literal notranslate"><span class="pre">TicketExtractionHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.base_hook.html#claude_mpm.hooks.base_hook.TicketExtractionHook.validate"><code class="docutils literal notranslate"><span class="pre">TicketExtractionHook.validate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html">claude_mpm.hooks.memory_integration_hook module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook"><code class="docutils literal notranslate"><span class="pre">MemoryPreDelegationHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook.__init__"><code class="docutils literal notranslate"><span class="pre">MemoryPreDelegationHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook.execute"><code class="docutils literal notranslate"><span class="pre">MemoryPreDelegationHook.execute()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook"><code class="docutils literal notranslate"><span class="pre">MemoryPostDelegationHook</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook.__init__"><code class="docutils literal notranslate"><span class="pre">MemoryPostDelegationHook.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.memory_integration_hook.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook.execute"><code class="docutils literal notranslate"><span class="pre">MemoryPostDelegationHook.execute()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html">claude_mpm.hooks.tool_call_interceptor module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner"><code class="docutils literal notranslate"><span class="pre">SimpleHookRunner</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.__init__"><code class="docutils literal notranslate"><span class="pre">SimpleHookRunner.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.register_hook"><code class="docutils literal notranslate"><span class="pre">SimpleHookRunner.register_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.SimpleHookRunner.run_hooks"><code class="docutils literal notranslate"><span class="pre">SimpleHookRunner.run_hooks()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor"><code class="docutils literal notranslate"><span class="pre">ToolCallInterceptor</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.__init__"><code class="docutils literal notranslate"><span class="pre">ToolCallInterceptor.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.intercept_tool_call"><code class="docutils literal notranslate"><span class="pre">ToolCallInterceptor.intercept_tool_call()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallInterceptor.intercept_tool_call_sync"><code class="docutils literal notranslate"><span class="pre">ToolCallInterceptor.intercept_tool_call_sync()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration"><code class="docutils literal notranslate"><span class="pre">ToolCallHookIntegration</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration.wrap_tool_executor"><code class="docutils literal notranslate"><span class="pre">ToolCallHookIntegration.wrap_tool_executor()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.tool_call_interceptor.html#claude_mpm.hooks.tool_call_interceptor.ToolCallHookIntegration.create_tool_call_validator"><code class="docutils literal notranslate"><span class="pre">ToolCallHookIntegration.create_tool_call_validator()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html">claude_mpm.hooks.validation_hooks module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks"><code class="docutils literal notranslate"><span class="pre">ValidationHooks</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.__init__"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_load_hook"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.register_pre_load_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.register_post_load_hook"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.register_post_load_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.register_pre_execute_hook"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.register_pre_execute_hook()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_load_validation"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.run_pre_load_validation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.run_post_load_validation"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.run_post_load_validation()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationHooks.run_pre_execute_validation"><code class="docutils literal notranslate"><span class="pre">ValidationHooks.run_pre_execute_validation()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.validate_agent_dependencies"><code class="docutils literal notranslate"><span class="pre">validate_agent_dependencies()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.validate_security_constraints"><code class="docutils literal notranslate"><span class="pre">validate_security_constraints()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationError"><code class="docutils literal notranslate"><span class="pre">ValidationError</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationError.__init__"><code class="docutils literal notranslate"><span class="pre">ValidationError.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.hooks.validation_hooks.html#claude_mpm.hooks.validation_hooks.ValidationError.get_detailed_message"><code class="docutils literal notranslate"><span class="pre">ValidationError.get_detailed_message()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.generators.agent_profile_generator.html" class="btn btn-neutral float-left" title="claude_mpm.generators.agent_profile_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.hooks.claude_hooks.html" class="btn btn-neutral float-right" title="claude_mpm.hooks.claude_hooks package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

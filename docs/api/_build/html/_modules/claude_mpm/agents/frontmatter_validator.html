@@ -1,0 +1,679 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.agents.frontmatter_validator &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.agents.frontmatter_validator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.agents.frontmatter_validator</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Frontmatter Validator for Agent Files</span>
+<span class="sd">=====================================</span>
+
+<span class="sd">This module provides validation and automatic correction for agent file frontmatter</span>
+<span class="sd">in .md, .claude, and .claude-mpm files. It ensures consistency and compatibility</span>
+<span class="sd">across different agent file formats.</span>
+
+<span class="sd">Key Features:</span>
+<span class="sd">- Validates frontmatter against a defined schema</span>
+<span class="sd">- Automatically corrects common formatting issues</span>
+<span class="sd">- Normalizes model names to standard tiers (opus, sonnet, haiku)</span>
+<span class="sd">- Fixes tools field when provided as string representation</span>
+<span class="sd">- Provides detailed logging of corrections made</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ValidationResult">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.ValidationResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ValidationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result of frontmatter validation.&quot;&quot;&quot;</span>
+    <span class="n">is_valid</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">warnings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">corrections</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+    <span class="n">corrected_frontmatter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">field_corrections</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Specific field-level corrections</span></div>
+
+
+
+<div class="viewcode-block" id="FrontmatterValidator">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FrontmatterValidator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validates and corrects frontmatter in agent files.</span>
+<span class="sd">    </span>
+<span class="sd">    This class handles:</span>
+<span class="sd">    - Schema validation against frontmatter_schema.json</span>
+<span class="sd">    - Automatic correction of common issues</span>
+<span class="sd">    - Model name normalization</span>
+<span class="sd">    - Tools field parsing and correction</span>
+<span class="sd">    - Logging of all corrections made</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Model name mappings for normalization</span>
+    <span class="n">MODEL_MAPPINGS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Sonnet variations</span>
+        <span class="s2">&quot;claude-3-5-sonnet-20241022&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-5-sonnet-20240620&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-sonnet-4-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-4-sonnet-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-sonnet-20240229&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;20241022&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>  <span class="c1"># Common shorthand - maps to current Sonnet</span>
+        <span class="s2">&quot;20240620&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>  <span class="c1"># Previous Sonnet version</span>
+        <span class="s2">&quot;3.5-sonnet&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sonnet-3.5&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;sonnet-4&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        
+        <span class="c1"># Opus variations</span>
+        <span class="s2">&quot;claude-3-opus-20240229&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-opus-4-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-4-opus-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;3-opus&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;opus-3&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;opus-4&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        
+        <span class="c1"># Haiku variations</span>
+        <span class="s2">&quot;claude-3-haiku-20240307&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-5-haiku-20241022&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;3-haiku&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;haiku-3&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;haiku-3.5&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Tool name corrections (case normalization)</span>
+    <span class="n">TOOL_CORRECTIONS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;read&quot;</span><span class="p">:</span> <span class="s2">&quot;Read&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;write&quot;</span><span class="p">:</span> <span class="s2">&quot;Write&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;edit&quot;</span><span class="p">:</span> <span class="s2">&quot;Edit&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;multiedit&quot;</span><span class="p">:</span> <span class="s2">&quot;MultiEdit&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;grep&quot;</span><span class="p">:</span> <span class="s2">&quot;Grep&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;glob&quot;</span><span class="p">:</span> <span class="s2">&quot;Glob&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ls&quot;</span><span class="p">:</span> <span class="s2">&quot;LS&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;bash&quot;</span><span class="p">:</span> <span class="s2">&quot;Bash&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;websearch&quot;</span><span class="p">:</span> <span class="s2">&quot;WebSearch&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;webfetch&quot;</span><span class="p">:</span> <span class="s2">&quot;WebFetch&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;notebookread&quot;</span><span class="p">:</span> <span class="s2">&quot;NotebookRead&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;notebookedit&quot;</span><span class="p">:</span> <span class="s2">&quot;NotebookEdit&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;todowrite&quot;</span><span class="p">:</span> <span class="s2">&quot;TodoWrite&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;exitplanmode&quot;</span><span class="p">:</span> <span class="s2">&quot;ExitPlanMode&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Valid tool names</span>
+    <span class="n">VALID_TOOLS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;Read&quot;</span><span class="p">,</span> <span class="s2">&quot;Write&quot;</span><span class="p">,</span> <span class="s2">&quot;Edit&quot;</span><span class="p">,</span> <span class="s2">&quot;MultiEdit&quot;</span><span class="p">,</span> <span class="s2">&quot;Grep&quot;</span><span class="p">,</span> <span class="s2">&quot;Glob&quot;</span><span class="p">,</span> <span class="s2">&quot;LS&quot;</span><span class="p">,</span> <span class="s2">&quot;Bash&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;WebSearch&quot;</span><span class="p">,</span> <span class="s2">&quot;WebFetch&quot;</span><span class="p">,</span> <span class="s2">&quot;NotebookRead&quot;</span><span class="p">,</span> <span class="s2">&quot;NotebookEdit&quot;</span><span class="p">,</span> <span class="s2">&quot;TodoWrite&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;ExitPlanMode&quot;</span><span class="p">,</span> <span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;kubectl&quot;</span><span class="p">,</span> <span class="s2">&quot;terraform&quot;</span><span class="p">,</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;azure&quot;</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Valid model tiers</span>
+    <span class="n">VALID_MODELS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;opus&quot;</span><span class="p">,</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span> <span class="s2">&quot;haiku&quot;</span><span class="p">}</span>
+    
+<div class="viewcode-block" id="FrontmatterValidator.__init__">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the validator with schema if available.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_schema</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">all_valid_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_valid_fields</span><span class="p">()</span></div>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the frontmatter schema from JSON file.&quot;&quot;&quot;</span>
+        <span class="n">schema_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;schemas&quot;</span> <span class="o">/</span> <span class="s2">&quot;frontmatter_schema.json&quot;</span>
+        <span class="k">if</span> <span class="n">schema_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">schema_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load frontmatter schema: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_valid_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract all valid field names from the schema.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="ow">and</span> <span class="s1">&#39;properties&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">[</span><span class="s1">&#39;properties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="c1"># Fallback to known fields if schema not available</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;base_version&quot;</span><span class="p">,</span> <span class="s2">&quot;author&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;tools&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;tags&quot;</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">,</span> <span class="s2">&quot;max_tokens&quot;</span><span class="p">,</span> <span class="s2">&quot;temperature&quot;</span><span class="p">,</span> 
+            <span class="s2">&quot;resource_tier&quot;</span><span class="p">,</span> <span class="s2">&quot;dependencies&quot;</span><span class="p">,</span> <span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span>
+        <span class="p">}</span>
+    
+<div class="viewcode-block" id="FrontmatterValidator.validate_and_correct">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.validate_and_correct">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_and_correct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frontmatter</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate and automatically correct frontmatter.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            frontmatter: Dictionary of frontmatter fields</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ValidationResult with validation status and corrected frontmatter</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">warnings</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">corrections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">corrected</span> <span class="o">=</span> <span class="n">frontmatter</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">field_corrections</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Track only the fields that actually need correction</span>
+        
+        <span class="c1"># Required fields check (from schema)</span>
+        <span class="n">required_fields</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;required&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">])</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">required_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing required field: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate and correct name field</span>
+        <span class="k">if</span> <span class="s2">&quot;name&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;name&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[a-z][a-z0-9_]*$&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="c1"># Try to fix the name</span>
+                <span class="n">fixed_name</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span>
+                <span class="n">fixed_name</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;[^a-z0-9_]&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">fixed_name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">fixed_name</span> <span class="ow">and</span> <span class="n">fixed_name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">isalpha</span><span class="p">():</span>
+                    <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_name</span>
+                    <span class="n">field_corrections</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_name</span>
+                    <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Corrected name from &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">fixed_name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid name format: </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate and correct model field</span>
+        <span class="k">if</span> <span class="s2">&quot;model&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span>
+            
+            <span class="c1"># Convert to string if it&#39;s a number (YAML might parse dates as integers)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+                <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+                <span class="n">field_corrections</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">model</span>
+                <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Converted model from number to string: </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;model&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">normalized_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">normalized_model</span> <span class="o">!=</span> <span class="n">model</span><span class="p">:</span>
+                    <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalized_model</span>
+                    <span class="n">field_corrections</span><span class="p">[</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalized_model</span>
+                    <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalized model from &#39;</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">normalized_model</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">normalized_model</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_MODELS</span><span class="p">:</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid model: </span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2"> (normalized to </span><span class="si">{</span><span class="n">normalized_model</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate and correct tools field</span>
+        <span class="k">if</span> <span class="s2">&quot;tools&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">tools</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">]</span>
+            <span class="n">corrected_tools</span><span class="p">,</span> <span class="n">tool_corrections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_correct_tools</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tool_corrections</span><span class="p">:</span>
+                <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">corrected_tools</span>
+                <span class="n">field_corrections</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">corrected_tools</span>
+                <span class="n">corrections</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tool_corrections</span><span class="p">)</span>
+            
+            <span class="c1"># Validate tool names</span>
+            <span class="n">invalid_tools</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">corrected_tools</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tool</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_TOOLS</span><span class="p">:</span>
+                    <span class="c1"># Try to correct the tool name</span>
+                    <span class="n">corrected_tool</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TOOL_CORRECTIONS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tool</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+                    <span class="k">if</span> <span class="n">corrected_tool</span><span class="p">:</span>
+                        <span class="n">idx</span> <span class="o">=</span> <span class="n">corrected_tools</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+                        <span class="n">corrected_tools</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">corrected_tool</span>
+                        <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">corrected_tools</span>
+                        <span class="n">field_corrections</span><span class="p">[</span><span class="s2">&quot;tools&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">corrected_tools</span>
+                        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Corrected tool &#39;</span><span class="si">{</span><span class="n">tool</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">corrected_tool</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">invalid_tools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">invalid_tools</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown tools: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">invalid_tools</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate version fields</span>
+        <span class="n">version_fields</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;base_version&quot;</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">version_fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="n">field</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">version</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;</span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">version</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\d+\.\d+\.\d+$&quot;</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+                    <span class="c1"># Try to fix common version issues</span>
+                    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^\d+\.\d+$&quot;</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+                        <span class="n">fixed_version</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">.0&quot;</span>
+                        <span class="n">corrected</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_version</span>
+                        <span class="n">field_corrections</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_version</span>
+                        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fixed </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">fixed_version</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^v?\d+\.\d+\.\d+$&quot;</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+                        <span class="n">fixed_version</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;v&quot;</span><span class="p">)</span>
+                        <span class="n">corrected</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_version</span>
+                        <span class="n">field_corrections</span><span class="p">[</span><span class="n">field</span><span class="p">]</span> <span class="o">=</span> <span class="n">fixed_version</span>
+                        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Fixed </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> from &#39;</span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">fixed_version</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2"> format: </span><span class="si">{</span><span class="n">version</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate description</span>
+        <span class="k">if</span> <span class="s2">&quot;description&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">desc</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">desc</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;description&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Description too short (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars, minimum 10)&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">200</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Description too long (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">desc</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars, maximum 200)&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate optional fields</span>
+        <span class="k">if</span> <span class="s2">&quot;category&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">valid_categories</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;engineering&quot;</span><span class="p">,</span> <span class="s2">&quot;research&quot;</span><span class="p">,</span> <span class="s2">&quot;quality&quot;</span><span class="p">,</span> <span class="s2">&quot;operations&quot;</span><span class="p">,</span> <span class="s2">&quot;specialized&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_categories</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid category: </span><span class="si">{</span><span class="n">corrected</span><span class="p">[</span><span class="s1">&#39;category&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="s2">&quot;resource_tier&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">valid_tiers</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;standard&quot;</span><span class="p">,</span> <span class="s2">&quot;intensive&quot;</span><span class="p">,</span> <span class="s2">&quot;lightweight&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;resource_tier&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_tiers</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid resource_tier: </span><span class="si">{</span><span class="n">corrected</span><span class="p">[</span><span class="s1">&#39;resource_tier&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate color field</span>
+        <span class="k">if</span> <span class="s2">&quot;color&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">color</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;color&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;color&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">color</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Color validation could be expanded to check for valid color names/hex codes</span>
+        
+        <span class="c1"># Validate author field</span>
+        <span class="k">if</span> <span class="s2">&quot;author&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">author</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;author&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">author</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;author&#39; must be a string, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">author</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">author</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Author field too long (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">author</span><span class="p">)</span><span class="si">}</span><span class="s2"> chars, maximum 100)&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate tags field</span>
+        <span class="k">if</span> <span class="s2">&quot;tags&quot;</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+            <span class="n">tags</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="s2">&quot;tags&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tags</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;tags&#39; must be a list, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">tags</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;All tags must be strings, found </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^[a-z][a-z0-9-]*$&quot;</span><span class="p">,</span> <span class="n">tag</span><span class="p">):</span>
+                        <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tag &#39;</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&#39; doesn&#39;t match recommended pattern (lowercase, alphanumeric with hyphens)&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Validate numeric fields</span>
+        <span class="k">for</span> <span class="n">field_name</span><span class="p">,</span> <span class="p">(</span><span class="n">min_val</span><span class="p">,</span> <span class="n">max_val</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[(</span><span class="s2">&quot;max_tokens&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">200000</span><span class="p">)),</span> <span class="p">(</span><span class="s2">&quot;temperature&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))]:</span>
+            <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">corrected</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">corrected</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">field_name</span> <span class="o">==</span> <span class="s2">&quot;temperature&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&#39; must be a number, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">field_name</span> <span class="o">==</span> <span class="s2">&quot;max_tokens&quot;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&#39; must be an integer, got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">min_val</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="n">max_val</span><span class="p">):</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Field &#39;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">&#39; value </span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s2"> outside recommended range [</span><span class="si">{</span><span class="n">min_val</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">max_val</span><span class="si">}</span><span class="s2">]&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Determine if valid</span>
+        <span class="n">is_valid</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+        
+        <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span>
+            <span class="n">is_valid</span><span class="o">=</span><span class="n">is_valid</span><span class="p">,</span>
+            <span class="n">errors</span><span class="o">=</span><span class="n">errors</span><span class="p">,</span>
+            <span class="n">warnings</span><span class="o">=</span><span class="n">warnings</span><span class="p">,</span>
+            <span class="n">corrections</span><span class="o">=</span><span class="n">corrections</span><span class="p">,</span>
+            <span class="n">corrected_frontmatter</span><span class="o">=</span><span class="n">corrected</span> <span class="k">if</span> <span class="n">corrections</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">field_corrections</span><span class="o">=</span><span class="n">field_corrections</span> <span class="k">if</span> <span class="n">field_corrections</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Normalize model name to standard tier (opus, sonnet, haiku).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            model: Original model name</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Normalized model tier name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Direct mapping check</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODEL_MAPPINGS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODEL_MAPPINGS</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+        
+        <span class="c1"># Already normalized</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_MODELS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model</span>
+        
+        <span class="c1"># Try case-insensitive match</span>
+        <span class="n">model_lower</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">model_lower</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_MODELS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">model_lower</span>
+        
+        <span class="c1"># Check if model contains tier name</span>
+        <span class="k">for</span> <span class="n">tier</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">VALID_MODELS</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">tier</span> <span class="ow">in</span> <span class="n">model_lower</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tier</span>
+        
+        <span class="c1"># Default to sonnet if unrecognized</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized model &#39;</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&#39;, defaulting to &#39;sonnet&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;sonnet&quot;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_correct_tools</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tools</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Correct tools field formatting issues.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            tools: Original tools value (could be string, list, etc.)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (corrected_tools_list, list_of_corrections)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">corrections</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># If already a proper list, just validate</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tools</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">tools</span><span class="p">,</span> <span class="n">corrections</span>
+        
+        <span class="c1"># If it&#39;s a string, try to parse it</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tools</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="c1"># Remove any surrounding whitespace</span>
+            <span class="n">tools_str</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="c1"># Check if it&#39;s a string representation of a list</span>
+            <span class="k">if</span> <span class="n">tools_str</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">tools_str</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">):</span>
+                <span class="c1"># Try to parse as JSON array</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">parsed_tools</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">tools_str</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">parsed_tools</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsed tools from JSON string: </span><span class="si">{</span><span class="n">tools_str</span><span class="p">[:</span><span class="mi">50</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+                        <span class="k">return</span> <span class="n">parsed_tools</span><span class="p">,</span> <span class="n">corrections</span>
+                <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                
+                <span class="c1"># Try to extract comma-separated values</span>
+                <span class="n">tools_str</span> <span class="o">=</span> <span class="n">tools_str</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Remove brackets</span>
+            
+            <span class="c1"># Split by comma and clean up</span>
+            <span class="k">if</span> <span class="s2">&quot;,&quot;</span> <span class="ow">in</span> <span class="n">tools_str</span><span class="p">:</span>
+                <span class="n">tool_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tools_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Single tool or space-separated</span>
+                <span class="n">tool_list</span> <span class="o">=</span> <span class="n">tools_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            
+            <span class="c1"># Clean up tool names</span>
+            <span class="n">cleaned_tools</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">tool</span> <span class="ow">in</span> <span class="n">tool_list</span><span class="p">:</span>
+                <span class="n">tool</span> <span class="o">=</span> <span class="n">tool</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s2">&quot;&#39;</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">tool</span><span class="p">:</span>
+                    <span class="n">cleaned_tools</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tool</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">cleaned_tools</span><span class="p">:</span>
+                <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Converted tools from string to list: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">cleaned_tools</span><span class="p">)</span><span class="si">}</span><span class="s2"> tools&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">cleaned_tools</span><span class="p">,</span> <span class="n">corrections</span>
+        
+        <span class="c1"># If we can&#39;t parse it, return empty list</span>
+        <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Could not parse tools field (type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">), using empty list&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[],</span> <span class="n">corrections</span>
+    
+<div class="viewcode-block" id="FrontmatterValidator.validate_file">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.validate_file">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate frontmatter in a specific file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to agent file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ValidationResult with validation status</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            
+            <span class="c1"># Extract frontmatter</span>
+            <span class="n">frontmatter</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_frontmatter</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">frontmatter</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span>
+                    <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">errors</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;No frontmatter found in file&quot;</span><span class="p">],</span>
+                    <span class="n">warnings</span><span class="o">=</span><span class="p">[],</span>
+                    <span class="n">corrections</span><span class="o">=</span><span class="p">[]</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Validate and correct</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_and_correct</span><span class="p">(</span><span class="n">frontmatter</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ValidationResult</span><span class="p">(</span>
+                <span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">errors</span><span class="o">=</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;Error reading file: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">],</span>
+                <span class="n">warnings</span><span class="o">=</span><span class="p">[],</span>
+                <span class="n">corrections</span><span class="o">=</span><span class="p">[]</span>
+            <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_frontmatter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extract frontmatter from file content.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: File content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Parsed frontmatter dictionary or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Check for YAML frontmatter (between --- markers)</span>
+        <span class="k">if</span> <span class="n">content</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;---&quot;</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">end_marker</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">end_marker</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">end_marker</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">end_marker</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="n">frontmatter_str</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="n">end_marker</span><span class="p">]</span>
+                    <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">frontmatter_str</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse YAML frontmatter: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="FrontmatterValidator.correct_file">
+<a class="viewcode-back" href="../../../services/agent_services.html#claude_mpm.agents.frontmatter_validator.FrontmatterValidator.correct_file">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">correct_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">,</span> <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate and optionally correct a file&#39;s frontmatter.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to agent file</span>
+<span class="sd">            dry_run: If True, don&#39;t write changes to file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ValidationResult with corrections made</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">field_corrections</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">dry_run</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                
+                <span class="c1"># Find frontmatter boundaries</span>
+                <span class="k">if</span> <span class="n">content</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;---&quot;</span><span class="p">):</span>
+                    <span class="n">end_marker</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">end_marker</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">end_marker</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">---</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                    
+                    <span class="k">if</span> <span class="n">end_marker</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># Apply field-level corrections to preserve structure</span>
+                        <span class="n">frontmatter_content</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="mi">4</span><span class="p">:</span><span class="n">end_marker</span><span class="p">]</span>
+                        <span class="n">corrected_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_field_corrections</span><span class="p">(</span>
+                            <span class="n">frontmatter_content</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">field_corrections</span>
+                        <span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="n">corrected_content</span> <span class="o">!=</span> <span class="n">frontmatter_content</span><span class="p">:</span>
+                            <span class="n">new_content</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;---</span><span class="se">\n</span><span class="si">{</span><span class="n">corrected_content</span><span class="si">}</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="si">{</span><span class="n">content</span><span class="p">[</span><span class="n">end_marker</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">5</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+                            
+                            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">new_content</span><span class="p">)</span>
+                            
+                            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Corrected frontmatter in </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">correction</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">corrections</span><span class="p">:</span>
+                                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  - </span><span class="si">{</span><span class="n">correction</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to write corrections to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_field_corrections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frontmatter_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">field_corrections</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Apply field-level corrections while preserving structure and other fields.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            frontmatter_content: Original YAML frontmatter content</span>
+<span class="sd">            field_corrections: Dict of field corrections to apply</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Corrected frontmatter content</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">frontmatter_content</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">corrected_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="c1"># Check if this line contains a field we need to correct</span>
+            <span class="k">if</span> <span class="s1">&#39;:&#39;</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                <span class="n">field_name</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">field_name</span> <span class="ow">in</span> <span class="n">field_corrections</span><span class="p">:</span>
+                    <span class="c1"># Replace the field value while preserving structure</span>
+                    <span class="n">corrected_value</span> <span class="o">=</span> <span class="n">field_corrections</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">corrected_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                        <span class="c1"># Handle list fields like tools</span>
+                        <span class="k">if</span> <span class="n">field_name</span> <span class="o">==</span> <span class="s2">&quot;tools&quot;</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">corrected_value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                            <span class="c1"># Format as comma-separated string to preserve existing format</span>
+                            <span class="n">corrected_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corrected_value</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">corrected_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">corrected_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">corrected_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">field_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">corrected_value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">continue</span>
+            
+            <span class="c1"># Keep the original line if no correction needed</span>
+            <span class="n">corrected_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">corrected_lines</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

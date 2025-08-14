@@ -1,0 +1,578 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.exceptions &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.exceptions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.exceptions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Centralized exception hierarchy for Claude MPM.</span>
+
+<span class="sd">This module provides a comprehensive exception hierarchy for standardized error</span>
+<span class="sd">handling across the codebase. Each exception class supports contextual information</span>
+<span class="sd">for better debugging and error resolution.</span>
+
+<span class="sd">Design Principles:</span>
+<span class="sd">1. Clear inheritance hierarchy with MPMError as the base</span>
+<span class="sd">2. Context support for debugging (optional dict with additional details)</span>
+<span class="sd">3. Helpful error messages with actionable guidance</span>
+<span class="sd">4. Backward compatibility with existing error handling</span>
+<span class="sd">5. Structured error data for programmatic handling</span>
+
+<span class="sd">Usage:</span>
+<span class="sd">    from claude_mpm.core.exceptions import ConfigurationError, AgentDeploymentError</span>
+<span class="sd">    </span>
+<span class="sd">    # With context for debugging</span>
+<span class="sd">    raise ConfigurationError(</span>
+<span class="sd">        &quot;Invalid agent configuration&quot;,</span>
+<span class="sd">        context={&quot;agent_id&quot;: &quot;engineer&quot;, &quot;field&quot;: &quot;version&quot;, &quot;value&quot;: &quot;invalid&quot;}</span>
+<span class="sd">    )</span>
+<span class="sd">    </span>
+<span class="sd">    # Simple usage</span>
+<span class="sd">    raise AgentDeploymentError(&quot;Failed to deploy agent to .claude/agents directory&quot;)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+
+<div class="viewcode-block" id="MPMError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MPMError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MPMError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Base exception class for all Claude MPM errors.</span>
+<span class="sd">    </span>
+<span class="sd">    This base class provides common functionality for all MPM exceptions including</span>
+<span class="sd">    context storage for debugging and structured error representation.</span>
+<span class="sd">    </span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        message: Human-readable error message</span>
+<span class="sd">        context: Optional dictionary with additional debugging context</span>
+<span class="sd">        error_code: Machine-readable error code (defaults to class name in lowercase)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MPMError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MPMError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize MPM error with message and optional context.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Human-readable error message</span>
+<span class="sd">            context: Optional dictionary with debugging context</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error_code</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_error_code</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_error_code</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate error code from class name.&quot;&quot;&quot;</span>
+        <span class="c1"># Convert class name from CamelCase to snake_case</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+        <span class="c1"># Remove &#39;Error&#39; suffix if present</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;Error&#39;</span><span class="p">):</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">5</span><span class="p">]</span>
+        <span class="c1"># Special case for MPM acronym</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;MPM&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;mpm&#39;</span>
+        <span class="c1"># Convert to snake_case</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+        <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?&lt;!^)(?=[A-Z])&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    
+<div class="viewcode-block" id="MPMError.to_dict">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MPMError.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert error to dictionary format for structured logging/handling.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with error type, code, message, and context</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;error_type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;error_code&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_code</span><span class="p">,</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
+            <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="MPMError.__str__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MPMError.__str__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;String representation with context if available.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">:</span>
+            <span class="n">context_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">=</span><span class="si">{</span><span class="n">v</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2"> (context: </span><span class="si">{</span><span class="n">context_str</span><span class="si">}</span><span class="s2">)&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AgentDeploymentError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.AgentDeploymentError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentDeploymentError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when agent deployment fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs during agent deployment to .claude/agents directory,</span>
+<span class="sd">    including template building, version checking, and file operations.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Template file not found or invalid</span>
+<span class="sd">    - Permission issues with .claude/agents directory</span>
+<span class="sd">    - Version conflicts or migration failures</span>
+<span class="sd">    - YAML generation errors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AgentDeploymentError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.AgentDeploymentError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize agent deployment error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing deployment failure</span>
+<span class="sd">            context: Optional context with agent_id, template_path, deployment_path, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;agent_id&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Agent: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;agent_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;template_path&#39;</span> <span class="ow">in</span> <span class="n">context</span> <span class="ow">and</span> <span class="s1">&#39;not found&#39;</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Ensure template exists at: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;template_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;permission&#39;</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Check directory permissions for .claude/agents&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ConfigurationError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ConfigurationError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigurationError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when configuration validation fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs when configuration files are invalid, missing required</span>
+<span class="sd">    fields, or contain incompatible values.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Missing required configuration fields</span>
+<span class="sd">    - Invalid data types or formats</span>
+<span class="sd">    - Configuration file not found</span>
+<span class="sd">    - Schema validation failures</span>
+<span class="sd">    - Incompatible configuration versions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ConfigurationError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ConfigurationError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize configuration error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing configuration issue</span>
+<span class="sd">            context: Optional context with config_file, field, expected_type, actual_value, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;config_file&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Config: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;config_file&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;field&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Field: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;field&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">if</span> <span class="s1">&#39;expected_type&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (expected: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;expected_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span>
+                <span class="k">if</span> <span class="s1">&#39;actual_value&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (got: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;actual_value&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">)&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ConnectionError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ConnectionError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConnectionError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when network or SocketIO connection fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs during network operations, including SocketIO server</span>
+<span class="sd">    connections, port binding, and inter-process communication.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Port already in use</span>
+<span class="sd">    - Network interface unavailable</span>
+<span class="sd">    - SocketIO server not responding</span>
+<span class="sd">    - Connection timeout</span>
+<span class="sd">    - Authentication failures</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ConnectionError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ConnectionError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize connection error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing connection failure</span>
+<span class="sd">            context: Optional context with host, port, timeout, retry_count, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;host&#39;</span> <span class="ow">in</span> <span class="n">context</span> <span class="ow">and</span> <span class="s1">&#39;port&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;host&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;port&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;timeout&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Connection timeout: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;timeout&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">s&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;retry_count&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Retry attempts: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;retry_count&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ValidationError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ValidationError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ValidationError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when input validation fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs when user input, agent definitions, or data structures</span>
+<span class="sd">    fail validation against expected schemas or constraints.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Invalid agent schema</span>
+<span class="sd">    - Missing required fields</span>
+<span class="sd">    - Type mismatches</span>
+<span class="sd">    - Value out of allowed range</span>
+<span class="sd">    - Format violations (e.g., invalid JSON/YAML)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ValidationError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ValidationError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize validation error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing validation failure</span>
+<span class="sd">            context: Optional context with field, value, constraint, schema_path, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;field&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Field: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;field&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;constraint&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Constraint: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;constraint&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;value&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Provided value: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;value&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;schema_path&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Schema: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;schema_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ServiceNotFoundError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ServiceNotFoundError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceNotFoundError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when DI container cannot find requested service.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs when the dependency injection container cannot locate</span>
+<span class="sd">    or instantiate a requested service.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Service not registered in container</span>
+<span class="sd">    - Circular dependencies</span>
+<span class="sd">    - Missing service dependencies</span>
+<span class="sd">    - Service initialization failure</span>
+<span class="sd">    - Incorrect service name or type</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ServiceNotFoundError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.ServiceNotFoundError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize service not found error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing missing service</span>
+<span class="sd">            context: Optional context with service_name, service_type, available_services, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;service_name&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Service: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;service_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;available_services&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="n">services</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;available_services&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">services</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="n">services</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Available services: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">services</span><span class="p">[:</span><span class="mi">5</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">services</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">5</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; (and </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">services</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">5</span><span class="si">}</span><span class="s2"> more)&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MemoryError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MemoryError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when memory service operations fail.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs during agent memory operations including storage,</span>
+<span class="sd">    retrieval, optimization, and routing.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Memory storage failure</span>
+<span class="sd">    - Corrupted memory data</span>
+<span class="sd">    - Memory quota exceeded</span>
+<span class="sd">    - Routing configuration errors</span>
+<span class="sd">    - Serialization/deserialization failures</span>
+<span class="sd">    </span>
+<span class="sd">    Note: This shadows Python&#39;s built-in MemoryError but is scoped to</span>
+<span class="sd">    claude_mpm.core.exceptions.MemoryError for clarity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MemoryError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.MemoryError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize memory error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing memory operation failure</span>
+<span class="sd">            context: Optional context with agent_id, memory_type, operation, storage_path, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;agent_id&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Agent: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;agent_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;memory_type&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Memory type: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;memory_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;operation&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Operation: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;operation&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;storage_path&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Storage: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;storage_path&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="HookError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.HookError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HookError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when hook execution fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs during pre/post hook execution in the hook system,</span>
+<span class="sd">    including hook registration, invocation, and cleanup.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Hook handler exceptions</span>
+<span class="sd">    - Hook timeout</span>
+<span class="sd">    - Missing hook dependencies</span>
+<span class="sd">    - Hook configuration errors</span>
+<span class="sd">    - Incompatible hook versions</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="HookError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.HookError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize hook error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing hook failure</span>
+<span class="sd">            context: Optional context with hook_name, hook_type, event, error_details, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;hook_name&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Hook: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;hook_name&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;hook_type&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Type: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;hook_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;event&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Event: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;event&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;error_details&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Details: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;error_details&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="SessionError">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.SessionError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionError</span><span class="p">(</span><span class="n">MPMError</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Exception raised when session management fails.</span>
+<span class="sd">    </span>
+<span class="sd">    This error occurs during Claude session lifecycle management including</span>
+<span class="sd">    session creation, state management, and cleanup.</span>
+<span class="sd">    </span>
+<span class="sd">    Common causes:</span>
+<span class="sd">    - Session initialization failure</span>
+<span class="sd">    - Invalid session state</span>
+<span class="sd">    - Session timeout</span>
+<span class="sd">    - Resource allocation failure</span>
+<span class="sd">    - Session persistence errors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SessionError.__init__">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.SessionError.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize session error.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            message: Error message describing session failure</span>
+<span class="sd">            context: Optional context with session_id, session_type, state, operation, etc.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+        
+        <span class="c1"># Add helpful guidance based on context</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;session_id&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;[Session: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;session_id&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">] </span><span class="si">{</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;session_type&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Type: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;session_type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;state&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">State: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;state&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="k">if</span> <span class="s1">&#39;operation&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Operation: </span><span class="si">{</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;operation&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<span class="c1"># Backward compatibility imports</span>
+<span class="c1"># These allow existing code to continue working while migrating to new exceptions</span>
+<div class="viewcode-block" id="create_agent_deployment_error">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.create_agent_deployment_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_agent_deployment_error</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentDeploymentError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for creating agent deployment errors with context.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">AgentDeploymentError</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">kwargs</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_configuration_error">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.create_configuration_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_configuration_error</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ConfigurationError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for creating configuration errors with context.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ConfigurationError</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">kwargs</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_connection_error">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.create_connection_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_connection_error</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="ne">ConnectionError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for creating connection errors with context.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="ne">ConnectionError</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">kwargs</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="create_validation_error">
+<a class="viewcode-back" href="../../../core/exceptions.html#claude_mpm.core.exceptions.create_validation_error">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_validation_error</span><span class="p">(</span><span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationError</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Factory function for creating validation errors with context.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">ValidationError</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">kwargs</span> <span class="k">if</span> <span class="n">kwargs</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Exception groups for catch-all handling</span>
+<span class="n">DEPLOYMENT_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="n">AgentDeploymentError</span><span class="p">,)</span>
+<span class="n">CONFIGURATION_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="n">ConfigurationError</span><span class="p">,</span> <span class="n">ValidationError</span><span class="p">)</span>
+<span class="n">NETWORK_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="ne">ConnectionError</span><span class="p">,)</span>
+<span class="n">SERVICE_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="n">ServiceNotFoundError</span><span class="p">,</span> <span class="ne">MemoryError</span><span class="p">,</span> <span class="n">HookError</span><span class="p">,</span> <span class="n">SessionError</span><span class="p">)</span>
+<span class="n">ALL_MPM_ERRORS</span> <span class="o">=</span> <span class="p">(</span><span class="n">MPMError</span><span class="p">,)</span>  <span class="c1"># Catches all MPM-specific exceptions</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,344 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.cli.commands.tickets module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.cli.parser module" href="claude_mpm.cli.parser.html" />
+    <link rel="prev" title="claude_mpm.cli.commands.run module" href="claude_mpm.cli.commands.run.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.cli.commands.html">claude_mpm.cli.commands package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.cli.commands.tickets module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.cli.commands.tickets.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.cli.commands.tickets">
+<span id="claude-mpm-cli-commands-tickets-module"></span><h1>claude_mpm.cli.commands.tickets module<a class="headerlink" href="#module-claude_mpm.cli.commands.tickets" title="Link to this heading"></a></h1>
+<p>Tickets command implementation for claude-mpm.</p>
+<p>WHY: This module provides comprehensive ticket management functionality, allowing users
+to create, view, update, and manage tickets through the CLI. It integrates with
+ai-trackdown-pytools for persistent ticket storage.</p>
+<p>DESIGN DECISION: We implement full CRUD operations plus search and workflow management
+to provide a complete ticket management system within the claude-mpm CLI. The commands
+mirror the scripts/ticket.py interface for consistency.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.manage_tickets">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">manage_tickets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#manage_tickets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.manage_tickets" title="Link to this definition"></a></dt>
+<dd><p>Main ticket command dispatcher.</p>
+<p>WHY: This function routes ticket subcommands to their appropriate handlers,
+providing a single entry point for all ticket-related operations.</p>
+<p>DESIGN DECISION: We use a subcommand pattern similar to git, allowing for
+intuitive command structure like ‘claude-mpm tickets create “title”’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Parsed command line arguments with ‘tickets_command’ attribute</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.create_ticket">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">create_ticket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#create_ticket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.create_ticket" title="Link to this definition"></a></dt>
+<dd><p>Create a new ticket.</p>
+<p>WHY: Users need to create tickets to track work items, bugs, and features.
+This command provides a streamlined interface for ticket creation.</p>
+<p>DESIGN DECISION: We parse description from remaining args to allow natural
+command line usage like: tickets create “title” -d This is a description</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with title, type, priority, description, tags, etc.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.list_tickets">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">list_tickets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#list_tickets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.list_tickets" title="Link to this definition"></a></dt>
+<dd><p>List recent tickets with optional filtering.</p>
+<p>WHY: Users need to review tickets created during Claude sessions. This command
+provides a quick way to see recent tickets with their status and metadata.</p>
+<p>DESIGN DECISION: We show tickets in a compact format with emoji status indicators
+for better visual scanning. Filters allow focusing on specific ticket types/statuses.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with limit, type filter, status filter, verbose flag</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.view_ticket">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">view_ticket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#view_ticket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.view_ticket" title="Link to this definition"></a></dt>
+<dd><p>View a specific ticket in detail.</p>
+<p>WHY: Users need to see full ticket details including description, metadata,
+and all associated information for understanding context and status.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id and verbose flag</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.update_ticket">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">update_ticket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#update_ticket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.update_ticket" title="Link to this definition"></a></dt>
+<dd><p>Update a ticket’s properties.</p>
+<p>WHY: Tickets need to be updated as work progresses, priorities change,
+or additional information becomes available.</p>
+<p>DESIGN DECISION: For complex updates, we delegate to aitrackdown CLI
+for operations not directly supported by our TicketManager interface.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id and update fields</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.close_ticket">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">close_ticket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#close_ticket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.close_ticket" title="Link to this definition"></a></dt>
+<dd><p>Close a ticket.</p>
+<p>WHY: Tickets need to be closed when work is completed or no longer relevant.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id and optional resolution</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.delete_ticket">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">delete_ticket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#delete_ticket"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.delete_ticket" title="Link to this definition"></a></dt>
+<dd><p>Delete a ticket.</p>
+<p>WHY: Sometimes tickets are created in error or are no longer needed
+and should be removed from the system.</p>
+<p>DESIGN DECISION: We delegate to aitrackdown CLI as deletion is a
+destructive operation that should use the official tool.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id and force flag</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.search_tickets">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">search_tickets</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#search_tickets"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.search_tickets" title="Link to this definition"></a></dt>
+<dd><p>Search tickets by query string.</p>
+<p>WHY: Users need to find specific tickets based on content, tags, or other criteria.</p>
+<p>DESIGN DECISION: We perform simple text matching on ticket data. For more advanced
+search, users should use the aitrackdown CLI directly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with search query and filters</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.add_comment">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">add_comment</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#add_comment"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.add_comment" title="Link to this definition"></a></dt>
+<dd><p>Add a comment to a ticket.</p>
+<p>WHY: Comments allow tracking progress, decisions, and additional context
+on tickets over time.</p>
+<p>DESIGN DECISION: We delegate to aitrackdown CLI as it has proper comment
+tracking infrastructure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id and comment text</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.update_workflow">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">update_workflow</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#update_workflow"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.update_workflow" title="Link to this definition"></a></dt>
+<dd><p>Update ticket workflow state.</p>
+<p>WHY: Workflow states track the progress of tickets through defined stages
+like todo, in_progress, ready, tested, done.</p>
+<p>DESIGN DECISION: We use aitrackdown’s transition command for workflow updates
+as it maintains proper state machine transitions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Arguments with ticket id, new state, and optional comment</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Exit code (0 for success, non-zero for errors)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.cli.commands.tickets.list_tickets_legacy">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.cli.commands.tickets.</span></span><span class="sig-name descname"><span class="pre">list_tickets_legacy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/cli/commands/tickets.html#list_tickets_legacy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.cli.commands.tickets.list_tickets_legacy" title="Link to this definition"></a></dt>
+<dd><p>Legacy list_tickets function for backward compatibility.</p>
+<p>WHY: The old CLI interface expected a simple list_tickets function.
+This wrapper maintains that interface while using the new implementation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>args</strong> – Parsed command line arguments with ‘limit’ attribute</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.cli.commands.run.html" class="btn btn-neutral float-left" title="claude_mpm.cli.commands.run module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.cli.parser.html" class="btn btn-neutral float-right" title="claude_mpm.cli.parser module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,256 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.project_registry module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.recovery_manager module" href="claude_mpm.services.recovery_manager.html" />
+    <link rel="prev" title="claude_mpm.services.project_analyzer module" href="claude_mpm.services.project_analyzer.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.project_registry module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.project_registry.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.project_registry">
+<span id="claude-mpm-services-project-registry-module"></span><h1>claude_mpm.services.project_registry module<a class="headerlink" href="#module-claude_mpm.services.project_registry" title="Link to this heading"></a></h1>
+<p>Project Registry Service.</p>
+<p>WHY: This service manages a persistent registry of claude-mpm projects to enable
+project identification, tracking, and metadata management. The registry stores
+comprehensive project information including git status, environment details,
+runtime information, and project characteristics.</p>
+<p>DESIGN DECISION: Uses YAML for human-readable registry files stored in the
+user’s home directory (~/.claude-mpm/registry/). Each project
+gets a unique UUID-based registry file to avoid conflicts and enable easy project
+identification. Registry is user-specific for better isolation and persistence.</p>
+<p>The registry captures both static project information (paths, git info) and
+dynamic runtime information (startup times, process IDs, command line args)
+to provide complete project lifecycle tracking.</p>
+<dl class="py exception">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistryError">
+<em class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.project_registry.</span></span><span class="sig-name descname"><span class="pre">ProjectRegistryError</span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistryError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistryError" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/exceptions.html#Exception" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Exception</span></code></a></p>
+<p>Base exception for project registry operations.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.project_registry.</span></span><span class="sig-name descname"><span class="pre">ProjectRegistry</span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages the project registry for claude-mpm installations.</p>
+<p>WHY: The project registry provides persistent project tracking across sessions,
+enabling project identification, metadata collection, and usage analytics.
+This is crucial for multi-project environments where users switch between
+different codebases.</p>
+<p>DESIGN DECISION: Registry files are stored in ~/.claude-mpm/registry/
+with UUID-based filenames to ensure uniqueness and avoid conflicts. The registry
+uses YAML for human readability and ease of manual inspection/editing.
+Registry is stored in the user’s home directory for persistence across projects.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the project registry.</p>
+<p>WHY: Sets up the registry directory and logger. The registry directory
+is created in the user’s home directory to keep registry data user-specific
+and persistent across different projects and sessions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry.get_or_create_project_entry">
+<span class="sig-name descname"><span class="pre">get_or_create_project_entry</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry.get_or_create_project_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry.get_or_create_project_entry" title="Link to this definition"></a></dt>
+<dd><p>Get existing project registry entry or create a new one.</p>
+<p>WHY: This is the main entry point for project registration. It handles
+both new project registration and existing project updates, ensuring
+that every claude-mpm session is properly tracked.</p>
+<p>DESIGN DECISION: Matching is done by normalized absolute path to handle
+symbolic links and different path representations consistently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary containing the project registry data</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="services/project_services.html#claude_mpm.services.project_registry.ProjectRegistryError" title="claude_mpm.services.project_registry.ProjectRegistryError"><strong>ProjectRegistryError</strong></a> – If registry operations fail</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry.list_projects">
+<span class="sig-name descname"><span class="pre">list_projects</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry.list_projects"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry.list_projects" title="Link to this definition"></a></dt>
+<dd><p>List all registered projects.</p>
+<p>WHY: Provides visibility into all projects managed by claude-mpm,
+useful for project management and analytics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of project registry data dictionaries</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry.cleanup_old_entries">
+<span class="sig-name descname"><span class="pre">cleanup_old_entries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_age_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">90</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry.cleanup_old_entries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry.cleanup_old_entries" title="Link to this definition"></a></dt>
+<dd><p>Clean up old registry entries that haven’t been accessed recently.</p>
+<p>WHY: Prevents registry directory from growing indefinitely with old
+project entries. Keeps the registry focused on active projects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>max_age_days</strong> – Maximum age in days for keeping entries</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Number of entries cleaned up</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.project_registry.ProjectRegistry.update_session_info">
+<span class="sig-name descname"><span class="pre">update_session_info</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">session_updates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/project_registry.html#ProjectRegistry.update_session_info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.project_registry.ProjectRegistry.update_session_info" title="Link to this definition"></a></dt>
+<dd><p>Update session information for the current project.</p>
+<p>WHY: Allows other components (session manager, ticket manager, etc.)
+to update the registry with current session state information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>session_updates</strong> – Dictionary of session updates to apply</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if update was successful, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.project_analyzer.html" class="btn btn-neutral float-left" title="claude_mpm.services.project_analyzer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.recovery_manager.html" class="btn btn-neutral float-right" title="claude_mpm.services.recovery_manager module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

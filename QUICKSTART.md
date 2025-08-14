@@ -1,156 +1,118 @@
-# Claude MPM Quick Start Guide
+# 5-Minute Quick Start
 
-Get up and running with Claude Multi-agent Project Manager in 5 minutes!
+Get Claude MPM running in 5 minutes or less!
 
-## Prerequisites
-
-- Python 3.8+
-- Claude API access (via Claude CLI)
-
-## Installation
+## 1. Install (30 seconds)
 
 ```bash
-# Install from PyPI
+# Quick install
 pip install claude-mpm
-
-# Install with development dependencies
-pip install "claude-mpm[dev]"
 ```
 
-## Basic Usage
+**Requirements**: Python 3.8+, Claude Code (for Claude Desktop integration)
 
-### 1. Interactive Mode (Default)
-Start an interactive session with Claude:
+## 2. Start Claude MPM (10 seconds)
 
 ```bash
+# Interactive mode (recommended for first time)
 claude-mpm
 ```
 
-### 2. Non-Interactive Mode
-Run a single command:
+This opens a Claude session with multi-agent orchestration enabled.
+
+## 3. Try Your First Task (2 minutes)
+
+Type any of these commands:
 
 ```bash
-claude-mpm run -i "analyze this codebase and suggest improvements"
+# In interactive mode:
+"Analyze this project structure"
+"Help me improve this code"
+"Create tests for this function"
 ```
 
-### 3. Resume Previous Session
-Continue where you left off:
+Watch as specialized agents (Research, Engineer, QA) work together!
 
-```bash
-# Resume last session
-claude-mpm run --resume
+## 4. Advanced Features (2 minutes)
 
-# Resume specific session
-claude-mpm run --resume SESSION_ID
-```
-
-## Key Features
-
-### Multi-Agent System
-Claude MPM automatically delegates tasks to specialized agents:
-- **PM Agent**: Orchestrates and manages tasks
-- **Research Agent**: Analyzes codebases and gathers information
-- **Engineer Agent**: Implements code changes
-- **QA Agent**: Tests and validates changes
-- **Documentation Agent**: Creates and updates documentation
-- **Security Agent**: Security analysis and compliance
-- **Ops Agent**: Deployment and infrastructure
-- **Data Engineer Agent**: Data pipelines and AI integrations
-- **Test Integration Agent**: E2E testing and cross-system validation
-- **Version Control Agent**: Git workflows and release management
-
-### Session Management
-- All work is tracked in sessions
-- Resume sessions anytime with `--resume`
-- View session history with `claude-mpm sessions`
-
-### Monitoring Dashboard (Optional)
-View real-time activity with the monitoring dashboard:
-
+### Monitor Real-Time Activity
 ```bash
 claude-mpm run --monitor
 ```
+Opens dashboard at http://localhost:8765 showing agent activity.
 
-This opens a web dashboard showing:
-- Live agent activity
-- File operations
-- Tool usage
-- Session management
-
-## Common Commands
-
+### Initialize Project Memory
 ```bash
-# Start with monitoring
-claude-mpm run --monitor
-
-# Non-interactive with input
-claude-mpm run -i "your task here" --non-interactive
-
-# Show system information
-claude-mpm info
-
-# Show version
-claude-mpm --version
-
-# Get help
-claude-mpm --help
-```
-
-## Working with Multiple Projects
-
-The monitoring dashboard supports per-session working directories:
-1. Start with `--monitor`
-2. Select a session from the dropdown
-3. Click the 📁 icon to change working directory
-4. Git operations will use the session's directory
-
-## Agent Memory System
-
-Claude MPM agents learn and improve over time with persistent memory:
-
-```bash
-# Initialize project-specific memories
 claude-mpm memory init
+```
+Agents learn your project patterns and conventions.
 
-# View memory status
-claude-mpm memory status
+### Resume Sessions
+```bash
+claude-mpm run --resume
+```
+Continue where you left off.
 
-# Add specific learning
-claude-mpm memory add engineer pattern "Use src/ layout for Python packages"
+## What Just Happened?
+
+✅ **Multi-Agent Orchestration**: PM agent automatically delegates to specialists:  
+   Research → Engineer → QA → Documentation
+
+✅ **Session Persistence**: Everything saved, resume anytime
+
+✅ **Project Learning**: Agents remember your patterns and preferences
+
+✅ **Real-Time Monitoring**: See agent collaboration live
+
+## Essential Commands
+
+```bash
+# Interactive (recommended)
+claude-mpm
+
+# With monitoring dashboard
+claude-mpm run --monitor
+
+# One-time task
+claude-mpm run -i "your task" --non-interactive
+
+# Resume work
+claude-mpm run --resume
 ```
 
-See [docs/MEMORY.md](docs/MEMORY.md) for comprehensive memory documentation.
+## 🎯 You're Ready!
+
+That's it! You now have:
+- Multi-agent task delegation
+- Persistent sessions
+- Project-aware agents
+- Real-time monitoring
+
+### Quick Tips
+- Use `--monitor` for complex tasks to see agent collaboration
+- Run `claude-mpm memory init` in new projects
+- Agents learn your patterns over time
+- Resume sessions with `--resume`
 
 ## Next Steps
 
-- Read the full [README](README.md) for detailed documentation
-- Explore [Agent Memory System](docs/MEMORY.md) for persistent learning
-- Check out [monitoring guide](docs/developer/11-dashboard/README.md) for dashboard features
-- See [architecture docs](docs/STRUCTURE.md) for project structure
-- Review [deployment guide](docs/DEPLOY.md) for publishing
+**New Users**:
+- [Basic Usage Guide](docs/user/basic-usage.md) - Essential commands and workflows
+- [Memory System](docs/user/memory-system.md) - How agents learn
 
-## Troubleshooting
+**Full Documentation**:
+- [Complete README](README.md) - All features and capabilities  
+- [Installation Guide](docs/user/installation.md) - Advanced installation options
+- [Troubleshooting](docs/user/troubleshooting.md) - Common issues and solutions
 
-### Connection Issues
-If you see connection errors with `--monitor`:
-- Check if port 8765 is available
-- Try a different port: `--websocket-port 8080`
-- Socket.IO dependencies are included by default
+## Need Help?
 
-### Session Issues
-If sessions aren't resuming properly:
-- Use full session ID: `claude-mpm run --resume <session-id>`
-- Check that the session directory exists
-- Sessions are stored in working directory
+**Common Issues**:
+- **"Agent not found"**: Run `claude-mpm agents fix --all`
+- **Dashboard won't load**: Try `--websocket-port 8080`
+- **Session won't resume**: Use full session ID
 
-### Git Diff Not Working
-If git diff viewer shows "No git history":
-- Ensure you're in a git repository
-- Check the working directory is set correctly
-- Verify the file is tracked by git
-
-## Getting Help
-
-- Report issues: [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
-- Read docs: [Documentation](docs/)
-- Check examples: [Examples](examples/)
+**Get Support**:
+- [Troubleshooting Guide](docs/user/troubleshooting.md)
+- [GitHub Issues](https://github.com/bobmatnyc/claude-mpm/issues)
+- [Full Documentation](docs/)

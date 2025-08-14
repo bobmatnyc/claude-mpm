@@ -1,0 +1,427 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.loading.base_agent_manager module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.agents.loading.framework_agent_loader module" href="claude_mpm.services.agents.loading.framework_agent_loader.html" />
+    <link rel="prev" title="claude_mpm.services.agents.loading.agent_profile_loader module" href="claude_mpm.services.agents.loading.agent_profile_loader.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.html">claude_mpm.services.agents package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.loading.html">claude_mpm.services.agents.loading package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.loading.base_agent_manager module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.agents.loading.base_agent_manager.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.agents.loading.base_agent_manager">
+<span id="claude-mpm-services-agents-loading-base-agent-manager-module"></span><h1>claude_mpm.services.agents.loading.base_agent_manager module<a class="headerlink" href="#module-claude_mpm.services.agents.loading.base_agent_manager" title="Link to this heading"></a></h1>
+<section id="base-agent-manager">
+<h2>Base Agent Manager<a class="headerlink" href="#base-agent-manager" title="Link to this heading"></a></h2>
+<p>Specialized manager for base_agent.md with structured update capabilities.
+Enforces template structure and provides section-specific update methods.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">BaseAgentSection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentSection"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Base agent markdown sections.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.FRAMEWORK_CONTEXT">
+<span class="sig-name descname"><span class="pre">FRAMEWORK_CONTEXT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Agent</span> <span class="pre">Framework</span> <span class="pre">Context'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.FRAMEWORK_CONTEXT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.BEHAVIORAL_RULES">
+<span class="sig-name descname"><span class="pre">BEHAVIORAL_RULES</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Common</span> <span class="pre">Behavioral</span> <span class="pre">Rules'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.BEHAVIORAL_RULES" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.TEMPORAL_CONTEXT">
+<span class="sig-name descname"><span class="pre">TEMPORAL_CONTEXT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Temporal</span> <span class="pre">Context</span> <span class="pre">Integration'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.TEMPORAL_CONTEXT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.QUALITY_STANDARDS">
+<span class="sig-name descname"><span class="pre">QUALITY_STANDARDS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Quality</span> <span class="pre">Standards'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.QUALITY_STANDARDS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.TOOL_USAGE">
+<span class="sig-name descname"><span class="pre">TOOL_USAGE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Tool</span> <span class="pre">Usage</span> <span class="pre">Guidelines'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.TOOL_USAGE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.COLLABORATION">
+<span class="sig-name descname"><span class="pre">COLLABORATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Collaboration</span> <span class="pre">Protocols'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.COLLABORATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.PERFORMANCE">
+<span class="sig-name descname"><span class="pre">PERFORMANCE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Performance</span> <span class="pre">Optimization'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.PERFORMANCE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.ESCALATION">
+<span class="sig-name descname"><span class="pre">ESCALATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Escalation</span> <span class="pre">Triggers'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.ESCALATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.OUTPUT_FORMATS">
+<span class="sig-name descname"><span class="pre">OUTPUT_FORMATS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Output</span> <span class="pre">Formatting</span> <span class="pre">Standards'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.OUTPUT_FORMATS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.FRAMEWORK_INTEGRATION">
+<span class="sig-name descname"><span class="pre">FRAMEWORK_INTEGRATION</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Framework</span> <span class="pre">Integration'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.FRAMEWORK_INTEGRATION" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.CONSTRAINTS">
+<span class="sig-name descname"><span class="pre">CONSTRAINTS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Universal</span> <span class="pre">Constraints'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.CONSTRAINTS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.SUCCESS_CRITERIA">
+<span class="sig-name descname"><span class="pre">SUCCESS_CRITERIA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Success</span> <span class="pre">Criteria'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection.SUCCESS_CRITERIA" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">BaseAgentStructure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'Base</span> <span class="pre">Agent</span> <span class="pre">Instructions'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'These</span> <span class="pre">instructions</span> <span class="pre">are</span> <span class="pre">prepended</span> <span class="pre">to</span> <span class="pre">EVERY</span> <span class="pre">agent</span> <span class="pre">prompt.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framework_context:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">behavioral_rules:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_context:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quality_standards:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tool_usage:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collaboration_protocols:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">performance_optimization:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">escalation_triggers:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_formats:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framework_integration:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_constraints:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_criteria:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_sections:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentStructure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Structured representation of base_agent.md content.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.title">
+<span class="sig-name descname"><span class="pre">title</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'Base</span> <span class="pre">Agent</span> <span class="pre">Instructions'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.title" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.description">
+<span class="sig-name descname"><span class="pre">description</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'These</span> <span class="pre">instructions</span> <span class="pre">are</span> <span class="pre">prepended</span> <span class="pre">to</span> <span class="pre">EVERY</span> <span class="pre">agent</span> <span class="pre">prompt.'</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.description" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.framework_context">
+<span class="sig-name descname"><span class="pre">framework_context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.framework_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.behavioral_rules">
+<span class="sig-name descname"><span class="pre">behavioral_rules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.behavioral_rules" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.temporal_context">
+<span class="sig-name descname"><span class="pre">temporal_context</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">''</span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.temporal_context" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.quality_standards">
+<span class="sig-name descname"><span class="pre">quality_standards</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.quality_standards" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.tool_usage">
+<span class="sig-name descname"><span class="pre">tool_usage</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.tool_usage" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.collaboration_protocols">
+<span class="sig-name descname"><span class="pre">collaboration_protocols</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.collaboration_protocols" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.performance_optimization">
+<span class="sig-name descname"><span class="pre">performance_optimization</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.performance_optimization" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.escalation_triggers">
+<span class="sig-name descname"><span class="pre">escalation_triggers</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.escalation_triggers" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.output_formats">
+<span class="sig-name descname"><span class="pre">output_formats</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.output_formats" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.framework_integration">
+<span class="sig-name descname"><span class="pre">framework_integration</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.framework_integration" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.universal_constraints">
+<span class="sig-name descname"><span class="pre">universal_constraints</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.universal_constraints" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.success_criteria">
+<span class="sig-name descname"><span class="pre">success_criteria</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.success_criteria" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.raw_sections">
+<span class="sig-name descname"><span class="pre">raw_sections</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.raw_sections" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'Base</span> <span class="pre">Agent</span> <span class="pre">Instructions'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'These</span> <span class="pre">instructions</span> <span class="pre">are</span> <span class="pre">prepended</span> <span class="pre">to</span> <span class="pre">EVERY</span> <span class="pre">agent</span> <span class="pre">prompt.'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framework_context:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">behavioral_rules:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temporal_context:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quality_standards:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tool_usage:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">collaboration_protocols:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">performance_optimization:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">escalation_triggers:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_formats:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">framework_integration:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.List[str]]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">universal_constraints:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success_criteria:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raw_sections:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">BaseAgentManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages base_agent.md with structured updates and validation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agents_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize BaseAgentManager.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.read_base_agent">
+<span class="sig-name descname"><span class="pre">read_base_agent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure"><span class="pre">BaseAgentStructure</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.read_base_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.read_base_agent" title="Link to this definition"></a></dt>
+<dd><p>Read and parse base_agent.md into structured format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>BaseAgentStructure or None if file doesn’t exist</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.update_base_agent">
+<span class="sig-name descname"><span class="pre">update_base_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">updates</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure"><span class="pre">BaseAgentStructure</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.update_base_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.update_base_agent" title="Link to this definition"></a></dt>
+<dd><p>Update base_agent.md with structured updates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>updates</strong> – Dictionary of updates to apply</p></li>
+<li><p><strong>backup</strong> – Whether to create backup before updating</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated BaseAgentStructure or None if failed</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.update_section">
+<span class="sig-name descname"><span class="pre">update_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">section</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection"><span class="pre">BaseAgentSection</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentStructure"><span class="pre">BaseAgentStructure</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.update_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.update_section" title="Link to this definition"></a></dt>
+<dd><p>Update a specific section of base_agent.md.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>section</strong> – Section to update</p></li>
+<li><p><strong>content</strong> – New section content</p></li>
+<li><p><strong>backup</strong> – Whether to create backup</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Updated BaseAgentStructure or None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_behavioral_rule">
+<span class="sig-name descname"><span class="pre">add_behavioral_rule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">rule</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.add_behavioral_rule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_behavioral_rule" title="Link to this definition"></a></dt>
+<dd><p>Add a new behavioral rule to a specific category.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_quality_standard">
+<span class="sig-name descname"><span class="pre">add_quality_standard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">category</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">standard</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.add_quality_standard"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_quality_standard" title="Link to this definition"></a></dt>
+<dd><p>Add a new quality standard to a specific category.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_escalation_trigger">
+<span class="sig-name descname"><span class="pre">add_escalation_trigger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trigger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.add_escalation_trigger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.add_escalation_trigger" title="Link to this definition"></a></dt>
+<dd><p>Add a new escalation trigger.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.validate_structure">
+<span class="sig-name descname"><span class="pre">validate_structure</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#BaseAgentManager.validate_structure"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager.validate_structure" title="Link to this definition"></a></dt>
+<dd><p>Validate that base_agent.md has all required sections.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dictionary of section names to validation status</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.get_base_agent_manager">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">get_base_agent_manager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentManager"><span class="pre">BaseAgentManager</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#get_base_agent_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.get_base_agent_manager" title="Link to this definition"></a></dt>
+<dd><p>Get a configured BaseAgentManager instance.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.update_base_agent_section">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">update_base_agent_section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">section</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection" title="claude_mpm.services.agents.loading.base_agent_manager.BaseAgentSection"><span class="pre">BaseAgentSection</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#update_base_agent_section"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.update_base_agent_section" title="Link to this definition"></a></dt>
+<dd><p>Quick function to update a base agent section.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>section</strong> – Section to update</p></li>
+<li><p><strong>content</strong> – New content for the section</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if successful, False otherwise</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.loading.base_agent_manager.validate_base_agent">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.loading.base_agent_manager.</span></span><span class="sig-name descname"><span class="pre">validate_base_agent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/loading/base_agent_manager.html#validate_base_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.loading.base_agent_manager.validate_base_agent" title="Link to this definition"></a></dt>
+<dd><p>Quick function to validate base agent structure.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.agents.loading.agent_profile_loader.html" class="btn btn-neutral float-left" title="claude_mpm.services.agents.loading.agent_profile_loader module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.agents.loading.framework_agent_loader.html" class="btn btn-neutral float-right" title="claude_mpm.services.agents.loading.framework_agent_loader module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

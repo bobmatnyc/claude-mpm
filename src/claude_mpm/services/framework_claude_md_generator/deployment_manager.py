@@ -6,7 +6,7 @@ Handles deployment operations to parent directories.
 
 from pathlib import Path
 from typing import Tuple, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from .version_manager import VersionManager
 from .content_validator import ContentValidator
 
@@ -17,16 +17,20 @@ from ...utils.framework_detection import is_framework_source_directory
 class DeploymentManager:
     """Manages deployment of framework CLAUDE.md to parent directories."""
     
-    def __init__(self, version_manager: VersionManager, validator: ContentValidator):
+    def __init__(self, version_manager: VersionManager, validator: ContentValidator, 
+                 target_filename: str = "INSTRUCTIONS.md"):
         """
         Initialize deployment manager.
         
         Args:
             version_manager: Version management instance
             validator: Content validator instance
+            target_filename: Target filename for deployment (default: "INSTRUCTIONS.md")
+                           Can be set to "CLAUDE.md" for legacy compatibility
         """
         self.version_manager = version_manager
         self.validator = validator
+        self.target_filename = target_filename
     
     def deploy_to_parent(self, 
                         content: str,
@@ -53,9 +57,8 @@ class DeploymentManager:
         if is_framework:
             return True, f"Skipping deployment - detected framework source directory (markers: {', '.join(markers)})"
         
-        # Use INSTRUCTIONS.md as primary, with CLAUDE.md as fallback
-        target_file = parent_path / "INSTRUCTIONS.md"
-        # TODO: Make this configurable via parameter
+        # Use configured target filename
+        target_file = parent_path / self.target_filename
         
         # Check if content contains template variables that need processing
         if '{{capabilities-list}}' in content:
@@ -115,10 +118,10 @@ class DeploymentManager:
         Returns:
             Tuple of (needed, reason)
         """
-        target_file = parent_path / "CLAUDE.md"
+        target_file = parent_path / self.target_filename
         
         if not target_file.exists():
-            return True, "CLAUDE.md does not exist"
+            return True, f"{self.target_filename} does not exist"
         
         try:
             with open(target_file, 'r') as f:
@@ -134,7 +137,7 @@ class DeploymentManager:
     
     def backup_existing(self, parent_path: Path) -> Optional[Path]:
         """
-        Create a backup of existing CLAUDE.md before deployment.
+        Create a backup of existing target file before deployment.
         
         Args:
             parent_path: Path to parent directory
@@ -142,14 +145,14 @@ class DeploymentManager:
         Returns:
             Path to backup file if created, None otherwise
         """
-        target_file = parent_path / "CLAUDE.md"
+        target_file = parent_path / self.target_filename
         
         if not target_file.exists():
             return None
         
         # Create backup filename with timestamp
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        backup_file = parent_path / f"CLAUDE.md.backup.{timestamp}"
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        backup_file = parent_path / f"{self.target_filename}.backup.{timestamp}"
         
         try:
             import shutil

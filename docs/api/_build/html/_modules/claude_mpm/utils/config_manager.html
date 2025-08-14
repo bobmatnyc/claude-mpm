@@ -1,0 +1,630 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.utils.config_manager &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.utils.config_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.utils.config_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Configuration management utility for Claude MPM.</span>
+
+<span class="sd">This module provides a unified interface for loading, saving, and managing</span>
+<span class="sd">configurations across different file formats (JSON, YAML, TOML).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+
+<span class="c1"># Handle optional imports</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+    <span class="n">HAS_YAML</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">HAS_YAML</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">toml</span>
+    <span class="n">HAS_TOML</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">HAS_TOML</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConfigurationManager">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigurationManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Unified configuration management with support for multiple formats.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ConfigurationManager.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_enabled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the configuration manager.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            cache_enabled: Whether to enable configuration caching</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span> <span class="o">=</span> <span class="n">cache_enabled</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_cache_key</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate a cache key for a configuration file.&quot;&quot;&quot;</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">path</span><span class="o">.</span><span class="n">absolute</span><span class="p">()</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_check_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if configuration is cached and still valid.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">None</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cache_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_key</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+            
+    <span class="k">def</span><span class="w"> </span><span class="nf">_update_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update the configuration cache.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_enabled</span><span class="p">:</span>
+            <span class="k">return</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">cache_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cache_key</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">cache_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">config</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">OSError</span><span class="p">,</span> <span class="ne">IOError</span><span class="p">):</span>
+            <span class="k">pass</span>
+            
+<div class="viewcode-block" id="ConfigurationManager.clear_cache">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.clear_cache">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear the configuration cache.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="ConfigurationManager.load_json">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.load_json">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load JSON configuration file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to JSON file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            FileNotFoundError: If file doesn&#39;t exist</span>
+<span class="sd">            json.JSONDecodeError: If JSON is invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        
+        <span class="c1"># Check cache</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using cached configuration for </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">cached</span>
+            
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration file not found: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading JSON configuration from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">config</span>
+        <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid JSON in </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading JSON from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.load_yaml">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.load_yaml">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load YAML configuration file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to YAML file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ImportError: If PyYAML is not installed</span>
+<span class="sd">            FileNotFoundError: If file doesn&#39;t exist</span>
+<span class="sd">            yaml.YAMLError: If YAML is invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_YAML</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;PyYAML is required for YAML support. Install with: pip install pyyaml&quot;</span><span class="p">)</span>
+            
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        
+        <span class="c1"># Check cache</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using cached configuration for </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">cached</span>
+            
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration file not found: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading YAML configuration from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">config</span>
+        <span class="k">except</span> <span class="n">yaml</span><span class="o">.</span><span class="n">YAMLError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid YAML in </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading YAML from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.load_toml">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.load_toml">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_toml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load TOML configuration file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to TOML file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ImportError: If toml is not installed</span>
+<span class="sd">            FileNotFoundError: If file doesn&#39;t exist</span>
+<span class="sd">            toml.TomlDecodeError: If TOML is invalid</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_TOML</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;toml is required for TOML support. Install with: pip install toml&quot;</span><span class="p">)</span>
+            
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        
+        <span class="c1"># Check cache</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using cached configuration for </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">cached</span>
+            
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration file not found: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loading TOML configuration from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">toml</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_update_cache</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">config</span>
+        <span class="k">except</span> <span class="n">toml</span><span class="o">.</span><span class="n">TomlDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid TOML in </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error loading TOML from </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.load_auto">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.load_auto">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_auto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Auto-detect format and load configuration file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            file_path: Path to configuration file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If file format is not supported</span>
+<span class="sd">            FileNotFoundError: If file doesn&#39;t exist</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.json&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.yaml&#39;</span><span class="p">,</span> <span class="s1">&#39;.yml&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_yaml</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.toml&#39;</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_toml</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported configuration format: </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.save_json">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.save_json">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span> 
+                  <span class="n">indent</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span> <span class="n">sort_keys</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save configuration as JSON.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary</span>
+<span class="sd">            file_path: Path to save JSON file</span>
+<span class="sd">            indent: JSON indentation (default: 2)</span>
+<span class="sd">            sort_keys: Whether to sort keys (default: True)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving JSON configuration to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Create parent directories if needed</span>
+            <span class="n">file_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="n">indent</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="n">sort_keys</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration saved to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving JSON to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.save_yaml">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.save_yaml">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">],</span>
+                  <span class="n">default_flow_style</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">sort_keys</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save configuration as YAML.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary</span>
+<span class="sd">            file_path: Path to save YAML file</span>
+<span class="sd">            default_flow_style: Use flow style (default: False)</span>
+<span class="sd">            sort_keys: Whether to sort keys (default: True)</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ImportError: If PyYAML is not installed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_YAML</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;PyYAML is required for YAML support. Install with: pip install pyyaml&quot;</span><span class="p">)</span>
+            
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving YAML configuration to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Create parent directories if needed</span>
+            <span class="n">file_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="n">default_flow_style</span><span class="p">,</span> 
+                         <span class="n">sort_keys</span><span class="o">=</span><span class="n">sort_keys</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration saved to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving YAML to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.save_toml">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.save_toml">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_toml</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save configuration as TOML.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary</span>
+<span class="sd">            file_path: Path to save TOML file</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ImportError: If toml is not installed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_TOML</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;toml is required for TOML support. Install with: pip install toml&quot;</span><span class="p">)</span>
+            
+        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saving TOML configuration to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Create parent directories if needed</span>
+            <span class="n">file_path</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">toml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Configuration saved to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error saving TOML to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span></div>
+
+            
+<div class="viewcode-block" id="ConfigurationManager.merge_configs">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.merge_configs">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">merge_configs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">configs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge multiple configurations.</span>
+<span class="sd">        </span>
+<span class="sd">        Later configurations override earlier ones. Nested dictionaries</span>
+<span class="sd">        are merged recursively.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            *configs: Configuration dictionaries to merge</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Merged configuration dictionary</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">config</span> <span class="ow">in</span> <span class="n">configs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_deep_merge</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="n">result</span></div>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_deep_merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">source</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deep merge source into target dictionary.&quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">source</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">target</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_deep_merge</span><span class="p">(</span><span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">value</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">target</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                
+<div class="viewcode-block" id="ConfigurationManager.validate_schema">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.validate_schema">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate configuration against a schema.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration to validate</span>
+<span class="sd">            schema: Schema dictionary defining required fields and types</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of validation errors (empty if valid)</span>
+<span class="sd">            </span>
+<span class="sd">        Example schema:</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;required&quot;: [&quot;field1&quot;, &quot;field2&quot;],</span>
+<span class="sd">                &quot;types&quot;: {</span>
+<span class="sd">                    &quot;field1&quot;: str,</span>
+<span class="sd">                    &quot;field2&quot;: int,</span>
+<span class="sd">                    &quot;field3&quot;: list</span>
+<span class="sd">                }</span>
+<span class="sd">            }</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Check required fields</span>
+        <span class="n">required</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">required</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+                <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Required field missing: </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+        <span class="c1"># Check types</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;types&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">expected_type</span> <span class="ow">in</span> <span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">config</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="n">field</span><span class="p">],</span> <span class="n">expected_type</span><span class="p">):</span>
+                    <span class="n">actual_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="n">field</span><span class="p">])</span><span class="o">.</span><span class="vm">__name__</span>
+                    <span class="n">expected_name</span> <span class="o">=</span> <span class="n">expected_type</span><span class="o">.</span><span class="vm">__name__</span>
+                    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid type for </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s2">: expected </span><span class="si">{</span><span class="n">expected_name</span><span class="si">}</span><span class="s2">, got </span><span class="si">{</span><span class="n">actual_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    
+        <span class="k">return</span> <span class="n">errors</span></div>
+
+        
+<div class="viewcode-block" id="ConfigurationManager.get_with_default">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.get_with_default">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_with_default</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                        <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">separator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get configuration value with default fallback.</span>
+<span class="sd">        </span>
+<span class="sd">        Supports nested keys using dot notation.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary</span>
+<span class="sd">            key: Key to retrieve (supports dot notation for nested keys)</span>
+<span class="sd">            default: Default value if key not found</span>
+<span class="sd">            separator: Key separator for nested access (default: &quot;.&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration value or default</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            get_with_default(config, &quot;database.host&quot;, &quot;localhost&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">separator</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">config</span>
+        
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">default</span>
+                
+        <span class="k">return</span> <span class="n">value</span></div>
+
+        
+<div class="viewcode-block" id="ConfigurationManager.interpolate_env">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.ConfigurationManager.interpolate_env">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">interpolate_env</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
+                       <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;${</span><span class="si">%s</span><span class="s2">}&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Interpolate environment variables in configuration.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Configuration dictionary</span>
+<span class="sd">            pattern: Pattern for environment variables (default: &quot;${VAR}&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configuration with environment variables interpolated</span>
+<span class="sd">            </span>
+<span class="sd">        Example:</span>
+<span class="sd">            Input: {&quot;host&quot;: &quot;${DB_HOST}&quot;, &quot;port&quot;: &quot;${DB_PORT}&quot;}</span>
+<span class="sd">            Output: {&quot;host&quot;: &quot;localhost&quot;, &quot;port&quot;: &quot;5432&quot;}</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+        
+        <span class="k">def</span><span class="w"> </span><span class="nf">_interpolate_value</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="c1"># Find all environment variable references</span>
+                <span class="n">env_pattern</span> <span class="o">=</span> <span class="n">pattern</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;([A-Z_][A-Z0-9_]*)&quot;</span><span class="p">)</span>
+                <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="n">env_pattern</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+                
+                <span class="n">result</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">for</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+                    <span class="n">env_value</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                    <span class="n">placeholder</span> <span class="o">=</span> <span class="n">pattern</span> <span class="o">%</span> <span class="n">var_name</span>
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="n">env_value</span><span class="p">)</span>
+                    
+                <span class="k">return</span> <span class="n">result</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">_interpolate_value</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">[</span><span class="n">_interpolate_value</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">value</span>
+                
+        <span class="k">return</span> <span class="n">_interpolate_value</span><span class="p">(</span><span class="n">config</span><span class="p">)</span></div>
+</div>
+
+
+
+<span class="c1"># Convenience functions</span>
+<span class="n">_default_manager</span> <span class="o">=</span> <span class="n">ConfigurationManager</span><span class="p">()</span>
+
+<div class="viewcode-block" id="load_config">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.load_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">load_config</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Load configuration file with auto-detection.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        file_path: Path to configuration file</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Configuration dictionary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_default_manager</span><span class="o">.</span><span class="n">load_auto</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="save_config">
+<a class="viewcode-back" href="../../../claude_mpm.utils.config_manager.html#claude_mpm.utils.config_manager.save_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">save_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Save configuration file with auto-detection.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        config: Configuration dictionary</span>
+<span class="sd">        file_path: Path to save configuration</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+    <span class="n">suffix</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    
+    <span class="k">if</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.json&#39;</span><span class="p">]:</span>
+        <span class="n">_default_manager</span><span class="o">.</span><span class="n">save_json</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.yaml&#39;</span><span class="p">,</span> <span class="s1">&#39;.yml&#39;</span><span class="p">]:</span>
+        <span class="n">_default_manager</span><span class="o">.</span><span class="n">save_yaml</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">suffix</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;.toml&#39;</span><span class="p">]:</span>
+        <span class="n">_default_manager</span><span class="o">.</span><span class="n">save_toml</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported configuration format: </span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -71,11 +71,9 @@ class ResponseTracker:
                 if not base_dir:
                     base_dir = response_logging_config.get('session_directory', '.claude-mpm/responses')
                 
-                # Create session logger with proper configuration
-                self.session_logger = ClaudeSessionLogger(
-                    base_dir=Path(base_dir),
-                    config=config
-                )
+                # Use singleton session logger for proper sharing
+                from claude_mpm.services.claude_session_logger import get_session_logger
+                self.session_logger = get_session_logger(config)
                 logger.info(f"Response tracker initialized with base directory: {base_dir}")
             except Exception as e:
                 logger.error(f"Failed to initialize session logger: {e}")

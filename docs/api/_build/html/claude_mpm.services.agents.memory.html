@@ -1,0 +1,683 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.memory package &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.agents.memory.agent_memory_manager module" href="claude_mpm.services.agents.memory.agent_memory_manager.html" />
+    <link rel="prev" title="claude_mpm.services.agents.management.agent_management_service module" href="claude_mpm.services.agents.management.agent_management_service.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.html">claude_mpm.services.agents package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.memory package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.agents.memory.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.agents.memory">
+<span id="claude-mpm-services-agents-memory-package"></span><h1>claude_mpm.services.agents.memory package<a class="headerlink" href="#module-claude_mpm.services.agents.memory" title="Link to this heading"></a></h1>
+<p>Agent memory and persistence services.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">AgentMemoryManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="claude_mpm.core.interfaces.html#claude_mpm.core.interfaces.MemoryServiceInterface" title="claude_mpm.core.interfaces.MemoryServiceInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">MemoryServiceInterface</span></code></a></p>
+<p>Manages agent memory files with size limits and validation.</p>
+<p>WHY: Agents need to accumulate project-specific knowledge over time to become
+more effective. This service manages persistent memory files that agents can
+read before tasks and update with new learnings.</p>
+<p>DESIGN DECISION: Memory files are stored in .claude-mpm/memories/ (not project root)
+to keep them organized and separate from other project files. Files follow a
+standardized markdown format with enforced size limits to prevent unbounded growth.</p>
+<p>The 8KB limit (~2000 tokens) balances comprehensive knowledge storage with
+reasonable context size for agent prompts.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.DEFAULT_MEMORY_LIMITS">
+<span class="sig-name descname"><span class="pre">DEFAULT_MEMORY_LIMITS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'max_file_size_kb':</span> <span class="pre">8,</span> <span class="pre">'max_items_per_section':</span> <span class="pre">15,</span> <span class="pre">'max_line_length':</span> <span class="pre">120,</span> <span class="pre">'max_sections':</span> <span class="pre">10}</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.DEFAULT_MEMORY_LIMITS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.REQUIRED_SECTIONS">
+<span class="sig-name descname"><span class="pre">REQUIRED_SECTIONS</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">['Project</span> <span class="pre">Architecture',</span> <span class="pre">'Implementation</span> <span class="pre">Guidelines',</span> <span class="pre">'Common</span> <span class="pre">Mistakes</span> <span class="pre">to</span> <span class="pre">Avoid',</span> <span class="pre">'Current</span> <span class="pre">Technical</span> <span class="pre">Context']</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.REQUIRED_SECTIONS" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the memory manager.</p>
+<p>Sets up the memories directory and ensures it exists with proper README.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> – Optional Config object. If not provided, will create default Config.</p></li>
+<li><p><strong>working_directory</strong> – Optional working directory. If not provided, uses current working directory.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.add_learning">
+<span class="sig-name descname"><span class="pre">add_learning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.add_learning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.add_learning" title="Link to this definition"></a></dt>
+<dd><p>Add structured learning to appropriate section.</p>
+<p>WHY: Different types of learnings belong in different sections for better
+organization and retrieval. This method maps learning types to appropriate
+sections automatically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_id</strong> – The agent identifier</p></li>
+<li><p><strong>learning_type</strong> – Type of learning (pattern, architecture, guideline, etc.)</p></li>
+<li><p><strong>content</strong> – The learning content</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if learning was added successfully</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.build_memories_from_docs">
+<span class="sig-name descname"><span class="pre">build_memories_from_docs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force_rebuild</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.build_memories_from_docs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.build_memories_from_docs" title="Link to this definition"></a></dt>
+<dd><p>Build agent memories from project documentation.</p>
+<p>WHY: Project documentation contains valuable knowledge that should be
+extracted and assigned to appropriate agents for better context awareness.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>force_rebuild</strong> – If True, rebuilds even if docs haven’t changed</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing build results and statistics</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.cross_reference_memories">
+<span class="sig-name descname"><span class="pre">cross_reference_memories</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">query</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.cross_reference_memories"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.cross_reference_memories" title="Link to this definition"></a></dt>
+<dd><p>Find common patterns and cross-references across agent memories.</p>
+<p>WHY: Different agents may have learned similar or related information.
+Cross-referencing helps identify knowledge gaps, redundancies, and
+opportunities for knowledge sharing between agents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>query</strong> – Optional query to filter cross-references</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing cross-reference analysis results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.get_all_memories_raw">
+<span class="sig-name descname"><span class="pre">get_all_memories_raw</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.get_all_memories_raw"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.get_all_memories_raw" title="Link to this definition"></a></dt>
+<dd><p>Get all agent memories in structured JSON format.</p>
+<p>WHY: This provides programmatic access to all agent memories, allowing
+external tools, scripts, or APIs to retrieve and process the complete
+memory state of the system.</p>
+<p>DESIGN DECISION: Returns structured data with metadata for each agent
+including file stats, sections, and parsed content. This enables both
+content access and system analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict containing structured memory data for all agents</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.get_memory_metrics">
+<span class="sig-name descname"><span class="pre">get_memory_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.get_memory_metrics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.get_memory_metrics" title="Link to this definition"></a></dt>
+<dd><p>Get memory usage metrics.</p>
+<p>WHY: This adapter method provides interface compliance by gathering
+metrics about memory usage.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_id</strong> – Optional specific agent ID, or None for all</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary with memory metrics</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.get_memory_status">
+<span class="sig-name descname"><span class="pre">get_memory_status</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.get_memory_status"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.get_memory_status" title="Link to this definition"></a></dt>
+<dd><p>Get comprehensive memory system status.</p>
+<p>WHY: Provides detailed overview of memory system health, file sizes,
+optimization opportunities, and agent-specific statistics for monitoring
+and maintenance purposes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict containing comprehensive memory system status</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.load_agent_memory">
+<span class="sig-name descname"><span class="pre">load_agent_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.load_agent_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.load_agent_memory" title="Link to this definition"></a></dt>
+<dd><p>Load agent memory file content.</p>
+<p>WHY: Agents need to read their accumulated knowledge before starting tasks
+to apply learned patterns and avoid repeated mistakes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_id</strong> – The agent identifier (e.g., ‘research’, ‘engineer’)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The memory file content, creating default if doesn’t exist</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.load_memory">
+<span class="sig-name descname"><span class="pre">load_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.load_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.load_memory" title="Link to this definition"></a></dt>
+<dd><p>Load memory for a specific agent.</p>
+<p>WHY: This adapter method provides interface compliance by wrapping
+the existing load_agent_memory method.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_id</strong> – Identifier of the agent</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Memory content as string or None if not found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.logger">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">logger</span></span><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.logger" title="Link to this definition"></a></dt>
+<dd><p>Get or create the logger instance (like LoggerMixin).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.optimize_memory">
+<span class="sig-name descname"><span class="pre">optimize_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.optimize_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.optimize_memory" title="Link to this definition"></a></dt>
+<dd><p>Optimize agent memory by consolidating/cleaning memories.</p>
+<p>WHY: Over time, memory files accumulate redundant or outdated information.
+This method delegates to the memory optimizer service to clean up and
+consolidate memories while preserving important information.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>agent_id</strong> – Optional specific agent ID. If None, optimizes all agents.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing optimization results and statistics</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.route_memory_command">
+<span class="sig-name descname"><span class="pre">route_memory_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">context</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.route_memory_command"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.route_memory_command" title="Link to this definition"></a></dt>
+<dd><p>Route memory command to appropriate agent via PM delegation.</p>
+<p>WHY: Memory commands like “remember this for next time” need to be analyzed
+to determine which agent should store the information. This method provides
+routing logic for PM agent delegation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>content</strong> – The content to be remembered</p></li>
+<li><p><strong>context</strong> – Optional context for routing decisions</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict containing routing decision and reasoning</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.save_memory">
+<span class="sig-name descname"><span class="pre">save_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.save_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.save_memory" title="Link to this definition"></a></dt>
+<dd><p>Save memory for a specific agent.</p>
+<p>WHY: This adapter method provides interface compliance. The existing
+implementation uses update_agent_memory for modifications, so we
+implement a full save by writing directly to the file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_id</strong> – Identifier of the agent</p></li>
+<li><p><strong>content</strong> – Memory content to save</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if save successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.update_agent_memory">
+<span class="sig-name descname"><span class="pre">update_agent_memory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">section</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.update_agent_memory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.update_agent_memory" title="Link to this definition"></a></dt>
+<dd><p>Add new learning item to specified section.</p>
+<p>WHY: Agents discover new patterns and insights during task execution that
+should be preserved for future tasks. This method adds new learnings while
+enforcing size limits to prevent unbounded growth.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>agent_id</strong> – The agent identifier</p></li>
+<li><p><strong>section</strong> – The section name to add the item to</p></li>
+<li><p><strong>new_item</strong> – The learning item to add</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if update succeeded, False otherwise</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentMemoryManager.validate_memory_size">
+<span class="sig-name descname"><span class="pre">validate_memory_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.13)"><span class="pre">tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#AgentMemoryManager.validate_memory_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentMemoryManager.validate_memory_size" title="Link to this definition"></a></dt>
+<dd><p>Validate memory content size and structure.</p>
+<p>WHY: This adapter method provides interface compliance by implementing
+validation based on configured limits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>content</strong> – Memory content to validate</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (is_valid, error_message)</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.get_memory_manager">
+<span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">get_memory_manager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.core.config.html#claude_mpm.core.config.Config" title="claude_mpm.core.config.Config"><span class="pre">Config</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">working_directory</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.13)"><span class="pre">Path</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager" title="claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager"><span class="pre">AgentMemoryManager</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_memory_manager.html#get_memory_manager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.get_memory_manager" title="Link to this definition"></a></dt>
+<dd><p>Get a singleton instance of the memory manager.</p>
+<p>WHY: The memory manager should be shared across the application to ensure
+consistent file access and avoid multiple instances managing the same files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>config</strong> – Optional Config object. Only used on first instantiation.</p></li>
+<li><p><strong>working_directory</strong> – Optional working directory. Only used on first instantiation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The memory manager instance</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#claude_mpm.services.agents.memory.AgentMemoryManager" title="claude_mpm.services.agents.memory.AgentMemoryManager">AgentMemoryManager</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentPersistenceService">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">AgentPersistenceService</span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#AgentPersistenceService"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentPersistenceService" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Stub implementation for agent persistence service.</p>
+<p>WHY: Maintains compatibility with AgentLifecycleManager while
+actual persistence is delegated to AgentManager.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentPersistenceService.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#AgentPersistenceService.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentPersistenceService.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the persistence service.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentPersistenceService.persist_agent">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">persist_agent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_content</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy"><span class="pre">PersistenceStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord"><span class="pre">PersistenceRecord</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#AgentPersistenceService.persist_agent"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentPersistenceService.persist_agent" title="Link to this definition"></a></dt>
+<dd><p>Create a persistence record (actual persistence handled by AgentManager).</p>
+<p>WHY: This method exists for API compatibility but doesn’t perform
+actual file operations since AgentManager handles that.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentPersistenceService.start">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#AgentPersistenceService.start"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentPersistenceService.start" title="Link to this definition"></a></dt>
+<dd><p>Start the persistence service.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.AgentPersistenceService.stop">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#AgentPersistenceService.stop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.AgentPersistenceService.stop" title="Link to this definition"></a></dt>
+<dd><p>Stop the persistence service.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceStrategy">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">PersistenceStrategy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#PersistenceStrategy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceStrategy" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Agent persistence strategies.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceStrategy.USER_OVERRIDE">
+<span class="sig-name descname"><span class="pre">USER_OVERRIDE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'user_override'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceStrategy.USER_OVERRIDE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceStrategy.PROJECT_SPECIFIC">
+<span class="sig-name descname"><span class="pre">PROJECT_SPECIFIC</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'project_specific'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceStrategy.PROJECT_SPECIFIC" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceStrategy.SYSTEM_DEFAULT">
+<span class="sig-name descname"><span class="pre">SYSTEM_DEFAULT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'system_default'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceStrategy.SYSTEM_DEFAULT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">PersistenceOperation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#PersistenceOperation"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Persistence operation types.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation.CREATE">
+<span class="sig-name descname"><span class="pre">CREATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'create'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation.CREATE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation.UPDATE">
+<span class="sig-name descname"><span class="pre">UPDATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'update'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation.UPDATE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation.DELETE">
+<span class="sig-name descname"><span class="pre">DELETE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'delete'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation.DELETE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation.BACKUP">
+<span class="sig-name descname"><span class="pre">BACKUP</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'backup'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation.BACKUP" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceOperation.RESTORE">
+<span class="sig-name descname"><span class="pre">RESTORE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'restore'</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceOperation.RESTORE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.memory.</span></span><span class="sig-name descname"><span class="pre">PersistenceRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">operation_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation"><span class="pre">PersistenceOperation</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy"><span class="pre">PersistenceStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/memory/agent_persistence_service.html#PersistenceRecord"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Record of a persistence operation.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">operation_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">operation_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation"><span class="pre">PersistenceOperation</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">source_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strategy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy"><span class="pre">PersistenceStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">success</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">error_message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.error_message">
+<span class="sig-name descname"><span class="pre">error_message</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.error_message" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.file_path">
+<span class="sig-name descname"><span class="pre">file_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.file_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.metadata" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.strategy">
+<span class="sig-name descname"><span class="pre">strategy</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy"><span class="pre">PersistenceStrategy</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.strategy" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.success">
+<span class="sig-name descname"><span class="pre">success</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.success" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.target_tier">
+<span class="sig-name descname"><span class="pre">target_tier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.target_tier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.timestamp">
+<span class="sig-name descname"><span class="pre">timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.timestamp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.operation_id">
+<span class="sig-name descname"><span class="pre">operation_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.operation_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.operation_type">
+<span class="sig-name descname"><span class="pre">operation_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation" title="claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation"><span class="pre">PersistenceOperation</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.operation_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.agent_name">
+<span class="sig-name descname"><span class="pre">agent_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.agent_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.memory.PersistenceRecord.source_tier">
+<span class="sig-name descname"><span class="pre">source_tier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.memory.PersistenceRecord.source_tier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html">claude_mpm.services.agents.memory.agent_memory_manager module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#agent-memory-manager-service">Agent Memory Manager Service</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.DEFAULT_MEMORY_LIMITS"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.DEFAULT_MEMORY_LIMITS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.REQUIRED_SECTIONS"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.REQUIRED_SECTIONS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.__init__"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.logger"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.logger</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.load_agent_memory"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.load_agent_memory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.update_agent_memory"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.update_agent_memory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.add_learning"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.add_learning()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.optimize_memory"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.optimize_memory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.build_memories_from_docs"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.build_memories_from_docs()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.route_memory_command"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.route_memory_command()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.get_memory_status"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.get_memory_status()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.cross_reference_memories"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.cross_reference_memories()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.get_all_memories_raw"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.get_all_memories_raw()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.load_memory"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.load_memory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.save_memory"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.save_memory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.validate_memory_size"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.validate_memory_size()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.AgentMemoryManager.get_memory_metrics"><code class="docutils literal notranslate"><span class="pre">AgentMemoryManager.get_memory_metrics()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_memory_manager.html#claude_mpm.services.agents.memory.agent_memory_manager.get_memory_manager"><code class="docutils literal notranslate"><span class="pre">get_memory_manager()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html">claude_mpm.services.agents.memory.agent_persistence_service module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#agent-persistence-service-stub">Agent Persistence Service (Stub)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy"><code class="docutils literal notranslate"><span class="pre">PersistenceStrategy</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy.USER_OVERRIDE"><code class="docutils literal notranslate"><span class="pre">PersistenceStrategy.USER_OVERRIDE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy.PROJECT_SPECIFIC"><code class="docutils literal notranslate"><span class="pre">PersistenceStrategy.PROJECT_SPECIFIC</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceStrategy.SYSTEM_DEFAULT"><code class="docutils literal notranslate"><span class="pre">PersistenceStrategy.SYSTEM_DEFAULT</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation.CREATE"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation.CREATE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation.UPDATE"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation.UPDATE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation.DELETE"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation.DELETE</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation.BACKUP"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation.BACKUP</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceOperation.RESTORE"><code class="docutils literal notranslate"><span class="pre">PersistenceOperation.RESTORE</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.operation_id"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.operation_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.operation_type"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.operation_type</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.agent_name"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.agent_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.source_tier"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.source_tier</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.target_tier"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.target_tier</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.strategy"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.strategy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.success"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.success</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.timestamp"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.timestamp</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.file_path"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.file_path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.error_message"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.error_message</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.metadata"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.metadata</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.PersistenceRecord.__init__"><code class="docutils literal notranslate"><span class="pre">PersistenceRecord.__init__()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.AgentPersistenceService"><code class="docutils literal notranslate"><span class="pre">AgentPersistenceService</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.AgentPersistenceService.__init__"><code class="docutils literal notranslate"><span class="pre">AgentPersistenceService.__init__()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.AgentPersistenceService.start"><code class="docutils literal notranslate"><span class="pre">AgentPersistenceService.start()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.AgentPersistenceService.stop"><code class="docutils literal notranslate"><span class="pre">AgentPersistenceService.stop()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.services.agents.memory.agent_persistence_service.html#claude_mpm.services.agents.memory.agent_persistence_service.AgentPersistenceService.persist_agent"><code class="docutils literal notranslate"><span class="pre">AgentPersistenceService.persist_agent()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.agents.management.agent_management_service.html" class="btn btn-neutral float-left" title="claude_mpm.services.agents.management.agent_management_service module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.agents.memory.agent_memory_manager.html" class="btn btn-neutral float-right" title="claude_mpm.services.agents.memory.agent_memory_manager module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

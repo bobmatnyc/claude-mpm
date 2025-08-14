@@ -1,0 +1,381 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.constants &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.constants</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.constants</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Constants for Claude MPM.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+
+
+<div class="viewcode-block" id="CLIPrefix">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLIPrefix">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CLIPrefix</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CLI command prefix constants.&quot;&quot;&quot;</span>
+    <span class="n">MPM</span> <span class="o">=</span> <span class="s2">&quot;--mpm:&quot;</span>
+    
+<div class="viewcode-block" id="CLIPrefix.__add__">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLIPrefix.__add__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__add__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Allow prefix + command concatenation.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="n">other</span></div>
+
+    
+<div class="viewcode-block" id="CLIPrefix.wrap">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLIPrefix.wrap">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">flag</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Wrap a flag with the prefix.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">flag</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;--mpm:</span><span class="si">{</span><span class="n">flag</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">elif</span> <span class="n">flag</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;-&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;-mpm:</span><span class="si">{</span><span class="n">flag</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">+</span> <span class="n">flag</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CLICommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLICommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CLICommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CLI command constants.&quot;&quot;&quot;</span>
+    <span class="n">RUN</span> <span class="o">=</span> <span class="s2">&quot;run&quot;</span>
+    <span class="n">TICKETS</span> <span class="o">=</span> <span class="s2">&quot;tickets&quot;</span>
+    <span class="n">INFO</span> <span class="o">=</span> <span class="s2">&quot;info&quot;</span>
+    <span class="n">AGENTS</span> <span class="o">=</span> <span class="s2">&quot;agents&quot;</span>
+    <span class="n">MEMORY</span> <span class="o">=</span> <span class="s2">&quot;memory&quot;</span>
+    <span class="n">MONITOR</span> <span class="o">=</span> <span class="s2">&quot;monitor&quot;</span>
+    <span class="n">CONFIG</span> <span class="o">=</span> <span class="s2">&quot;config&quot;</span>
+    <span class="n">AGGREGATE</span> <span class="o">=</span> <span class="s2">&quot;aggregate&quot;</span>
+    
+<div class="viewcode-block" id="CLICommands.with_prefix">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLICommands.with_prefix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="n">CLIPrefix</span> <span class="o">=</span> <span class="n">CLIPrefix</span><span class="o">.</span><span class="n">MPM</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get command with prefix.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">prefix</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span></div>
+
+    
+<div class="viewcode-block" id="CLICommands.get_mpm_commands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLICommands.get_mpm_commands">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_mpm_commands</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of MPM-specific commands with prefix.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">cmd</span><span class="o">.</span><span class="n">with_prefix</span><span class="p">()</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="CLICommands.is_mpm_command">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLICommands.is_mpm_command">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_mpm_command</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">command</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if a command is an MPM command.&quot;&quot;&quot;</span>
+        <span class="c1"># Check both with and without prefix</span>
+        <span class="k">if</span> <span class="n">command</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">CLIPrefix</span><span class="o">.</span><span class="n">MPM</span><span class="o">.</span><span class="n">value</span><span class="p">):</span>
+            <span class="n">base_command</span> <span class="o">=</span> <span class="n">command</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">CLIPrefix</span><span class="o">.</span><span class="n">MPM</span><span class="o">.</span><span class="n">value</span><span class="p">):]</span>
+            <span class="k">return</span> <span class="n">base_command</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cmd</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">command</span> <span class="ow">in</span> <span class="p">[</span><span class="n">cmd</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="bp">cls</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="AgentCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.AgentCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">LIST</span> <span class="o">=</span> <span class="s2">&quot;list&quot;</span>
+    <span class="n">VIEW</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span>
+    <span class="n">FIX</span> <span class="o">=</span> <span class="s2">&quot;fix&quot;</span>
+    <span class="n">DEPLOY</span> <span class="o">=</span> <span class="s2">&quot;deploy&quot;</span>
+    <span class="n">FORCE_DEPLOY</span> <span class="o">=</span> <span class="s2">&quot;force-deploy&quot;</span>
+    <span class="n">CLEAN</span> <span class="o">=</span> <span class="s2">&quot;clean&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="MemoryCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.MemoryCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Memory subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">INIT</span> <span class="o">=</span> <span class="s2">&quot;init&quot;</span>
+    <span class="n">STATUS</span> <span class="o">=</span> <span class="s2">&quot;status&quot;</span>
+    <span class="n">VIEW</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span>
+    <span class="n">ADD</span> <span class="o">=</span> <span class="s2">&quot;add&quot;</span>
+    <span class="n">CLEAN</span> <span class="o">=</span> <span class="s2">&quot;clean&quot;</span>
+    <span class="n">OPTIMIZE</span> <span class="o">=</span> <span class="s2">&quot;optimize&quot;</span>
+    <span class="n">BUILD</span> <span class="o">=</span> <span class="s2">&quot;build&quot;</span>
+    <span class="n">CROSS_REF</span> <span class="o">=</span> <span class="s2">&quot;cross-ref&quot;</span>
+    <span class="n">ROUTE</span> <span class="o">=</span> <span class="s2">&quot;route&quot;</span>
+    <span class="n">SHOW</span> <span class="o">=</span> <span class="s2">&quot;show&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="MonitorCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.MonitorCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MonitorCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Monitor subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">START</span> <span class="o">=</span> <span class="s2">&quot;start&quot;</span>
+    <span class="n">STOP</span> <span class="o">=</span> <span class="s2">&quot;stop&quot;</span>
+    <span class="n">RESTART</span> <span class="o">=</span> <span class="s2">&quot;restart&quot;</span>
+    <span class="n">PORT</span> <span class="o">=</span> <span class="s2">&quot;port&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="ConfigCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.ConfigCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Config subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">VALIDATE</span> <span class="o">=</span> <span class="s2">&quot;validate&quot;</span>
+    <span class="n">VIEW</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span>
+    <span class="n">STATUS</span> <span class="o">=</span> <span class="s2">&quot;status&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="AggregateCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.AggregateCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AggregateCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Event aggregator subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">START</span> <span class="o">=</span> <span class="s2">&quot;start&quot;</span>
+    <span class="n">STOP</span> <span class="o">=</span> <span class="s2">&quot;stop&quot;</span>
+    <span class="n">STATUS</span> <span class="o">=</span> <span class="s2">&quot;status&quot;</span>
+    <span class="n">SESSIONS</span> <span class="o">=</span> <span class="s2">&quot;sessions&quot;</span>
+    <span class="n">VIEW</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span>
+    <span class="n">EXPORT</span> <span class="o">=</span> <span class="s2">&quot;export&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="TicketCommands">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.TicketCommands">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TicketCommands</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ticket subcommand constants.&quot;&quot;&quot;</span>
+    <span class="n">CREATE</span> <span class="o">=</span> <span class="s2">&quot;create&quot;</span>
+    <span class="n">LIST</span> <span class="o">=</span> <span class="s2">&quot;list&quot;</span>
+    <span class="n">VIEW</span> <span class="o">=</span> <span class="s2">&quot;view&quot;</span>
+    <span class="n">UPDATE</span> <span class="o">=</span> <span class="s2">&quot;update&quot;</span>
+    <span class="n">DELETE</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span>
+    <span class="n">CLOSE</span> <span class="o">=</span> <span class="s2">&quot;close&quot;</span>
+    <span class="n">SEARCH</span> <span class="o">=</span> <span class="s2">&quot;search&quot;</span>
+    <span class="n">COMMENT</span> <span class="o">=</span> <span class="s2">&quot;comment&quot;</span>
+    <span class="n">WORKFLOW</span> <span class="o">=</span> <span class="s2">&quot;workflow&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="CLIFlags">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLIFlags">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CLIFlags</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;CLI flag constants (without prefix).&quot;&quot;&quot;</span>
+    <span class="c1"># Logging flags</span>
+    <span class="n">DEBUG</span> <span class="o">=</span> <span class="s2">&quot;debug&quot;</span>
+    <span class="n">LOGGING</span> <span class="o">=</span> <span class="s2">&quot;logging&quot;</span>
+    <span class="n">LOG_DIR</span> <span class="o">=</span> <span class="s2">&quot;log-dir&quot;</span>
+    
+    <span class="c1"># Framework flags</span>
+    <span class="n">FRAMEWORK_PATH</span> <span class="o">=</span> <span class="s2">&quot;framework-path&quot;</span>
+    <span class="n">AGENTS_DIR</span> <span class="o">=</span> <span class="s2">&quot;agents-dir&quot;</span>
+    
+    <span class="c1"># Hook flags</span>
+    <span class="n">NO_HOOKS</span> <span class="o">=</span> <span class="s2">&quot;no-hooks&quot;</span>
+    
+    <span class="c1"># Ticket flags</span>
+    <span class="n">NO_TICKETS</span> <span class="o">=</span> <span class="s2">&quot;no-tickets&quot;</span>
+    
+    <span class="c1"># Input/output flags</span>
+    <span class="n">INPUT</span> <span class="o">=</span> <span class="s2">&quot;input&quot;</span>
+    <span class="n">NON_INTERACTIVE</span> <span class="o">=</span> <span class="s2">&quot;non-interactive&quot;</span>
+    
+    <span class="c1"># Orchestration flags</span>
+    <span class="n">SUBPROCESS</span> <span class="o">=</span> <span class="s2">&quot;subprocess&quot;</span>
+    <span class="n">INTERACTIVE_SUBPROCESS</span> <span class="o">=</span> <span class="s2">&quot;interactive-subprocess&quot;</span>
+    <span class="n">TODO_HIJACK</span> <span class="o">=</span> <span class="s2">&quot;todo-hijack&quot;</span>
+    
+    <span class="c1"># Agent flags</span>
+    <span class="n">NO_NATIVE_AGENTS</span> <span class="o">=</span> <span class="s2">&quot;no-native-agents&quot;</span>
+    
+<div class="viewcode-block" id="CLIFlags.with_prefix">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.CLIFlags.with_prefix">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">with_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">short</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get flag with MPM prefix.&quot;&quot;&quot;</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">CLIPrefix</span><span class="o">.</span><span class="n">MPM</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="n">short</span> <span class="ow">and</span> <span class="bp">self</span> <span class="ow">in</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">INPUT</span><span class="p">]:</span>
+            <span class="c1"># Short flags</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;-mpm:</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LogLevel">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.LogLevel">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogLevel</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Logging level constants.&quot;&quot;&quot;</span>
+    <span class="n">OFF</span> <span class="o">=</span> <span class="s2">&quot;OFF&quot;</span>
+    <span class="n">INFO</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span>
+    <span class="n">DEBUG</span> <span class="o">=</span> <span class="s2">&quot;DEBUG&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="OrchestratorMode">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.OrchestratorMode">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrchestratorMode</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Orchestrator mode constants.&quot;&quot;&quot;</span>
+    <span class="n">SYSTEM_PROMPT</span> <span class="o">=</span> <span class="s2">&quot;system_prompt&quot;</span>
+    <span class="n">SUBPROCESS</span> <span class="o">=</span> <span class="s2">&quot;subprocess&quot;</span>
+    <span class="n">INTERACTIVE_SUBPROCESS</span> <span class="o">=</span> <span class="s2">&quot;interactive_subprocess&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="EnvironmentVars">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.EnvironmentVars">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EnvironmentVars</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Environment variable constants.&quot;&quot;&quot;</span>
+    <span class="n">CLAUDE_CONFIG_DIR</span> <span class="o">=</span> <span class="s2">&quot;CLAUDE_CONFIG_DIR&quot;</span>
+    <span class="n">CLAUDE_MAX_PARALLEL_SUBAGENTS</span> <span class="o">=</span> <span class="s2">&quot;CLAUDE_MAX_PARALLEL_SUBAGENTS&quot;</span>
+    <span class="n">CLAUDE_TIMEOUT</span> <span class="o">=</span> <span class="s2">&quot;CLAUDE_TIMEOUT&quot;</span>
+    <span class="n">CLAUDE_MPM_DEBUG</span> <span class="o">=</span> <span class="s2">&quot;CLAUDE_MPM_DEBUG&quot;</span>
+    
+    <span class="c1"># Default values</span>
+    <span class="n">DEFAULT_MAX_AGENTS</span> <span class="o">=</span> <span class="s2">&quot;10&quot;</span>
+    <span class="n">DEFAULT_TIMEOUT</span> <span class="o">=</span> <span class="s2">&quot;600000&quot;</span>  <span class="c1"># 10 minutes in milliseconds</span></div>
+
+
+
+<div class="viewcode-block" id="Paths">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.Paths">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Paths</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Path constants.&quot;&quot;&quot;</span>
+    <span class="n">CLAUDE_AGENTS_DIR</span> <span class="o">=</span> <span class="s2">&quot;.claude/agents&quot;</span>
+    <span class="n">CLAUDE_CONFIG_DIR</span> <span class="o">=</span> <span class="s2">&quot;.claude&quot;</span>
+    <span class="n">MPM_LOG_DIR</span> <span class="o">=</span> <span class="s2">&quot;.claude-mpm/logs&quot;</span>
+    <span class="n">MPM_SESSION_DIR</span> <span class="o">=</span> <span class="s2">&quot;.claude-mpm/session&quot;</span>
+    <span class="n">MPM_PROMPTS_DIR</span> <span class="o">=</span> <span class="s2">&quot;.claude-mpm/prompts&quot;</span></div>
+
+    
+    
+<div class="viewcode-block" id="AgentMetadata">
+<a class="viewcode-back" href="../../claude_mpm.constants.html#claude_mpm.constants.AgentMetadata">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentMetadata</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent metadata field constants.&quot;&quot;&quot;</span>
+    <span class="n">NAME</span> <span class="o">=</span> <span class="s2">&quot;name&quot;</span>
+    <span class="n">DESCRIPTION</span> <span class="o">=</span> <span class="s2">&quot;description&quot;</span>
+    <span class="n">VERSION</span> <span class="o">=</span> <span class="s2">&quot;version&quot;</span>
+    <span class="n">AUTHOR</span> <span class="o">=</span> <span class="s2">&quot;author&quot;</span>
+    <span class="n">TAGS</span> <span class="o">=</span> <span class="s2">&quot;tags&quot;</span>
+    <span class="n">TOOLS</span> <span class="o">=</span> <span class="s2">&quot;tools&quot;</span>
+    <span class="n">PRIORITY</span> <span class="o">=</span> <span class="s2">&quot;priority&quot;</span>
+    <span class="n">TIMEOUT</span> <span class="o">=</span> <span class="s2">&quot;timeout&quot;</span>
+    <span class="n">MAX_TOKENS</span> <span class="o">=</span> <span class="s2">&quot;max_tokens&quot;</span>
+    <span class="n">TEMPERATURE</span> <span class="o">=</span> <span class="s2">&quot;temperature&quot;</span>
+    
+    <span class="c1"># Default values</span>
+    <span class="n">DEFAULT_AUTHOR</span> <span class="o">=</span> <span class="s2">&quot;claude-mpm&quot;</span>
+    <span class="n">DEFAULT_VERSION</span> <span class="o">=</span> <span class="s2">&quot;1.0.0&quot;</span>
+    <span class="n">DEFAULT_PRIORITY</span> <span class="o">=</span> <span class="s2">&quot;medium&quot;</span>
+    <span class="n">DEFAULT_TIMEOUT</span> <span class="o">=</span> <span class="mi">600</span>
+    <span class="n">DEFAULT_MAX_TOKENS</span> <span class="o">=</span> <span class="mi">8192</span>
+    <span class="n">DEFAULT_TEMPERATURE</span> <span class="o">=</span> <span class="mf">0.5</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

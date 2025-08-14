@@ -6,7 +6,7 @@ This document provides development guidelines for the claude-mpm project codebas
 
 Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Desktop with multi-agent orchestration capabilities, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
 
-## Architecture (v3.7.8+)
+## Architecture (v3.8.2+)
 
 Following the TSK-0053 refactoring, Claude MPM features:
 

@@ -40,6 +40,29 @@ class InteractiveSession:
         self.session_id = None
         self.original_cwd = os.getcwd()
         
+        # Initialize response tracking for interactive sessions
+        # WHY: Interactive sessions need response logging just like oneshot sessions.
+        # The hook system captures events, but we need the ResponseTracker to be
+        # initialized to actually store them.
+        self.response_tracker = None
+        
+        # Check if response logging is enabled in configuration
+        try:
+            response_config = self.runner.config.get('response_logging', {})
+            response_logging_enabled = response_config.get('enabled', False)
+        except (AttributeError, TypeError):
+            # Handle mock or missing config gracefully
+            response_logging_enabled = False
+        
+        if response_logging_enabled:
+            try:
+                from claude_mpm.services.response_tracker import ResponseTracker
+                self.response_tracker = ResponseTracker(self.runner.config)
+                self.logger.info("Response tracking initialized for interactive session")
+            except Exception as e:
+                self.logger.warning(f"Failed to initialize response tracker: {e}")
+                # Continue without response tracking - not fatal
+        
     def initialize_interactive_session(self) -> Tuple[bool, Optional[str]]:
         """Initialize the interactive session environment.
         
@@ -70,6 +93,18 @@ class InteractiveSession:
                     level="INFO",
                     component="session"
                 )
+            
+            # Initialize response tracking session if enabled
+            # WHY: The ResponseTracker needs to know about the session to properly
+            # correlate prompts and responses during the interactive session.
+            if self.response_tracker and self.response_tracker.enabled:
+                try:
+                    # Set the session ID in the tracker for correlation
+                    if hasattr(self.response_tracker, 'session_logger') and self.response_tracker.session_logger:
+                        self.response_tracker.session_logger.set_session_id(self.session_id)
+                        self.logger.debug(f"Response tracker session ID set to: {self.session_id}")
+                except Exception as e:
+                    self.logger.debug(f"Could not set session ID in response tracker: {e}")
             
             return True, None
             
@@ -213,6 +248,18 @@ class InteractiveSession:
                     "event": "session_end",
                     "session_id": self.session_id
                 })
+            
+            # Clean up response tracker if initialized
+            # WHY: Ensure proper cleanup of response tracking resources and
+            # finalize any pending response logs.
+            if self.response_tracker:
+                try:
+                    # Clear the session ID to stop tracking this session
+                    if hasattr(self.response_tracker, 'session_logger') and self.response_tracker.session_logger:
+                        self.response_tracker.session_logger.set_session_id(None)
+                        self.logger.debug("Response tracker session cleared")
+                except Exception as e:
+                    self.logger.debug(f"Error clearing response tracker session: {e}")
                 
         except Exception as e:
             self.logger.debug(f"Error during cleanup: {e}")

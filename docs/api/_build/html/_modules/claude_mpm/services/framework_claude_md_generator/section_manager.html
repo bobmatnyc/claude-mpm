@@ -1,0 +1,246 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.framework_claude_md_generator.section_manager &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+          <li class="breadcrumb-item"><a href="../framework_claude_md_generator.html">claude_mpm.services.framework_claude_md_generator</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.framework_claude_md_generator.section_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.framework_claude_md_generator.section_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Section management for framework CLAUDE.md templates.</span>
+
+<span class="sd">Manages section registration, ordering, and updates.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderedDict</span>
+
+
+<div class="viewcode-block" id="SectionManager">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SectionManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages sections for framework CLAUDE.md generation.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SectionManager.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize section manager.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sections</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.register_section">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.register_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                        <span class="n">generator</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">str</span><span class="p">],</span>
+                        <span class="n">data</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a section generator.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            name: Section name</span>
+<span class="sd">            generator: Function that generates section content</span>
+<span class="sd">            data: Optional data to pass to generator</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">generator</span><span class="p">,</span> <span class="n">data</span> <span class="ow">or</span> <span class="p">{})</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.update_section">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.update_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update a specific section&#39;s generator to return custom content.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            section_name: Name of section to update</span>
+<span class="sd">            content: New content for the section</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: Success status</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">section_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="c1"># Create a lambda that returns the custom content</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.add_custom_section">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.add_custom_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_custom_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                          <span class="n">section_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                          <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                          <span class="n">after</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Add a custom section to the generator.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            section_name: Name for the new section</span>
+<span class="sd">            content: Content for the section</span>
+<span class="sd">            after: Section name to insert after (None = append at end)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_section</span> <span class="o">=</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">data</span><span class="p">:</span> <span class="n">content</span><span class="p">,</span> <span class="p">{})</span>
+        
+        <span class="k">if</span> <span class="n">after</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">after</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_section</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Insert after specified section</span>
+            <span class="n">new_sections</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">new_sections</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="n">after</span><span class="p">:</span>
+                    <span class="n">new_sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_section</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sections</span> <span class="o">=</span> <span class="n">new_sections</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.get_section_list">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.get_section_list">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_section_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get list of all section names in order.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of section names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.get_sections">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.get_sections">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">OrderedDict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get all sections.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            OrderedDict of section definitions</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span></div>
+
+    
+<div class="viewcode-block" id="SectionManager.remove_section">
+<a class="viewcode-back" href="../../../../claude_mpm.services.framework_claude_md_generator.section_manager.html#claude_mpm.services.framework_claude_md_generator.section_manager.SectionManager.remove_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Remove a section.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            section_name: Name of section to remove</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: Success status</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">section_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

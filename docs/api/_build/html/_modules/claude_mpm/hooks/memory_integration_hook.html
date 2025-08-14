@@ -1,0 +1,490 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.hooks.memory_integration_hook &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.hooks.memory_integration_hook</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.hooks.memory_integration_hook</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Memory integration hooks for automatic agent memory management.</span>
+
+<span class="sd">WHY: Agents need to accumulate project-specific knowledge over time. These hooks</span>
+<span class="sd">automatically inject agent memory before delegation and extract learnings after,</span>
+<span class="sd">enabling agents to become more effective through experience.</span>
+
+<span class="sd">DESIGN DECISION: We use explicit markers to extract structured learnings from</span>
+<span class="sd">agent outputs because:</span>
+<span class="sd">- It gives agents explicit control over what gets memorized</span>
+<span class="sd">- The format is clear and unambiguous</span>
+<span class="sd">- It&#39;s more reliable than pattern matching</span>
+<span class="sd">- Agents can add multiple learnings in a single response</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.hooks.base_hook</span><span class="w"> </span><span class="kn">import</span> <span class="n">PreDelegationHook</span><span class="p">,</span> <span class="n">PostDelegationHook</span><span class="p">,</span> <span class="n">HookContext</span><span class="p">,</span> <span class="n">HookResult</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="c1"># Try to import memory manager with fallback handling</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.agents.memory</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentMemoryManager</span>
+    <span class="n">MEMORY_MANAGER_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AgentMemoryManager not available: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">MEMORY_MANAGER_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">AgentMemoryManager</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="c1"># Try to import socketio server with fallback handling</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.socketio_server</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_socketio_server</span>
+    <span class="n">SOCKETIO_AVAILABLE</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SocketIO server not available: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">SOCKETIO_AVAILABLE</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">get_socketio_server</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="MemoryPreDelegationHook">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryPreDelegationHook</span><span class="p">(</span><span class="n">PreDelegationHook</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Inject agent memory into delegation context.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Agents perform better when they have access to accumulated project knowledge.</span>
+<span class="sd">    This hook loads agent-specific memory and adds it to the delegation context,</span>
+<span class="sd">    allowing agents to apply learned patterns and avoid known mistakes.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Memory is injected as a clearly formatted section in the context</span>
+<span class="sd">    to ensure agents understand it&#39;s their accumulated knowledge, not current task info.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MemoryPreDelegationHook.__init__">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize with optional config.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Optional Config object. If not provided, will create default Config.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;memory_pre_delegation&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">()</span>
+        
+        <span class="c1"># Initialize memory manager only if available</span>
+        <span class="k">if</span> <span class="n">MEMORY_MANAGER_AVAILABLE</span> <span class="ow">and</span> <span class="n">AgentMemoryManager</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="n">AgentMemoryManager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize AgentMemoryManager: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Memory manager not available - hook will be inactive&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="MemoryPreDelegationHook.execute">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPreDelegationHook.execute">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HookResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add agent memory to delegation context.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: By loading memory before delegation, agents can reference their</span>
+<span class="sd">        accumulated knowledge when performing tasks, leading to better outcomes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If memory manager is not available, skip memory injection</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Memory manager not available - skipping memory injection&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Extract and normalize agent ID from context</span>
+            <span class="n">agent_name</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">agent_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="c1"># Normalize agent ID (e.g., &quot;Engineer Agent&quot; -&gt; &quot;engineer&quot;)</span>
+            <span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">agent_id</span><span class="p">:</span>
+                <span class="c1"># Load agent memory</span>
+                <span class="n">memory_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span><span class="o">.</span><span class="n">load_agent_memory</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">memory_content</span> <span class="ow">and</span> <span class="n">memory_content</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                    <span class="c1"># Get existing context data</span>
+                    <span class="n">delegation_context</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;context&#39;</span><span class="p">,</span> <span class="p">{})</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">delegation_context</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                        <span class="c1"># If context is a string, convert to dict</span>
+                        <span class="n">delegation_context</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;prompt&#39;</span><span class="p">:</span> <span class="n">delegation_context</span><span class="p">}</span>
+                    
+                    <span class="c1"># Add memory with clear formatting</span>
+                    <span class="n">memory_section</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">AGENT MEMORY - PROJECT-SPECIFIC KNOWLEDGE:</span>
+<span class="si">{</span><span class="n">memory_content</span><span class="si">}</span>
+
+<span class="s2">INSTRUCTIONS: Review your memory above before proceeding. Apply learned patterns and avoid known mistakes.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+                    
+                    <span class="c1"># Add to context</span>
+                    <span class="n">delegation_context</span><span class="p">[</span><span class="s1">&#39;agent_memory&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">memory_section</span>
+                    
+                    <span class="c1"># Update the context data</span>
+                    <span class="n">updated_data</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                    <span class="n">updated_data</span><span class="p">[</span><span class="s1">&#39;context&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">delegation_context</span>
+                    
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Injected memory for agent &#39;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                    
+                    <span class="c1"># Emit Socket.IO event for memory injected</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">socketio_server</span> <span class="o">=</span> <span class="n">get_socketio_server</span><span class="p">()</span>
+                        <span class="c1"># Calculate size of injected content</span>
+                        <span class="n">injected_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">memory_section</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
+                        <span class="n">socketio_server</span><span class="o">.</span><span class="n">memory_injected</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="n">injected_size</span><span class="p">)</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ws_error</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Socket.IO notification failed: </span><span class="si">{</span><span class="n">ws_error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    
+                    <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span>
+                        <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">data</span><span class="o">=</span><span class="n">updated_data</span><span class="p">,</span>
+                        <span class="n">modified</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;memory_injected&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;agent_id&#39;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">}</span>
+                    <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Memory injection failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Don&#39;t fail the delegation if memory injection fails</span>
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span>
+                <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Memory injection failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="MemoryPostDelegationHook">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryPostDelegationHook</span><span class="p">(</span><span class="n">PostDelegationHook</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extract learnings from delegation results using explicit markers.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Agents produce valuable insights during task execution. This hook</span>
+<span class="sd">    extracts structured learnings from their outputs using explicit markers,</span>
+<span class="sd">    building up project-specific knowledge over time.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: We use explicit markers to give agents full control over</span>
+<span class="sd">    what gets memorized. This is more reliable than pattern matching and allows</span>
+<span class="sd">    multiple learnings per response. Supports multiple trigger phrases for flexibility.</span>
+<span class="sd">    </span>
+<span class="sd">    Supported formats:</span>
+<span class="sd">    # Add To Memory:</span>
+<span class="sd">    Type: pattern</span>
+<span class="sd">    Content: All services use dependency injection for flexibility</span>
+<span class="sd">    #</span>
+<span class="sd">    </span>
+<span class="sd">    # Memorize:</span>
+<span class="sd">    Type: guideline</span>
+<span class="sd">    Content: Always validate input parameters before processing</span>
+<span class="sd">    #</span>
+<span class="sd">    </span>
+<span class="sd">    # Remember:</span>
+<span class="sd">    Type: mistake</span>
+<span class="sd">    Content: Never hardcode configuration values</span>
+<span class="sd">    #</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MemoryPostDelegationHook.__init__">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Config</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize with optional config.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Optional Config object. If not provided, will create default Config.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s2">&quot;memory_post_delegation&quot;</span><span class="p">,</span> <span class="n">priority</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">()</span>
+        
+        <span class="c1"># Initialize memory manager only if available</span>
+        <span class="k">if</span> <span class="n">MEMORY_MANAGER_AVAILABLE</span> <span class="ow">and</span> <span class="n">AgentMemoryManager</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="n">AgentMemoryManager</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize AgentMemoryManager in PostDelegationHook: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Memory manager not available - post-delegation hook will be inactive&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Map of supported types to memory sections</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_mapping</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;pattern&#39;</span><span class="p">:</span> <span class="s1">&#39;pattern&#39;</span><span class="p">,</span>           <span class="c1"># Coding Patterns Learned</span>
+            <span class="s1">&#39;architecture&#39;</span><span class="p">:</span> <span class="s1">&#39;architecture&#39;</span><span class="p">,</span> <span class="c1"># Project Architecture</span>
+            <span class="s1">&#39;guideline&#39;</span><span class="p">:</span> <span class="s1">&#39;guideline&#39;</span><span class="p">,</span>      <span class="c1"># Implementation Guidelines</span>
+            <span class="s1">&#39;mistake&#39;</span><span class="p">:</span> <span class="s1">&#39;mistake&#39;</span><span class="p">,</span>          <span class="c1"># Common Mistakes to Avoid</span>
+            <span class="s1">&#39;strategy&#39;</span><span class="p">:</span> <span class="s1">&#39;strategy&#39;</span><span class="p">,</span>        <span class="c1"># Effective Strategies</span>
+            <span class="s1">&#39;integration&#39;</span><span class="p">:</span> <span class="s1">&#39;integration&#39;</span><span class="p">,</span>  <span class="c1"># Integration Points</span>
+            <span class="s1">&#39;performance&#39;</span><span class="p">:</span> <span class="s1">&#39;performance&#39;</span><span class="p">,</span>  <span class="c1"># Performance Considerations</span>
+            <span class="s1">&#39;context&#39;</span><span class="p">:</span> <span class="s1">&#39;context&#39;</span>           <span class="c1"># Current Technical Context</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="MemoryPostDelegationHook.execute">
+<a class="viewcode-back" href="../../../hooks/memory.html#claude_mpm.hooks.memory_integration_hook.MemoryPostDelegationHook.execute">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">HookContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HookResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract and store learnings from delegation result.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Capturing learnings immediately after task completion ensures we</span>
+<span class="sd">        don&#39;t lose valuable insights that agents discover during execution.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If memory manager is not available, skip learning extraction</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Memory manager not available - skipping learning extraction&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Check if auto-learning is enabled</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;memory.auto_learning&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>  <span class="c1"># Changed default to True</span>
+                <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="c1"># Extract agent ID</span>
+            <span class="n">agent_name</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">agent_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="c1"># Normalize agent ID</span>
+            <span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+            
+            <span class="c1"># Check if auto-learning is enabled for this specific agent</span>
+            <span class="n">agent_overrides</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;memory.agent_overrides&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="n">agent_config</span> <span class="o">=</span> <span class="n">agent_overrides</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">if</span> <span class="s1">&#39;auto_learning&#39;</span> <span class="ow">in</span> <span class="n">agent_config</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">agent_config</span><span class="p">[</span><span class="s1">&#39;auto_learning&#39;</span><span class="p">]:</span>
+                <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            
+            <span class="c1"># Extract result content</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">result_text</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">result_text</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">agent_id</span> <span class="ow">and</span> <span class="n">result_text</span><span class="p">:</span>
+                <span class="c1"># Extract learnings using patterns</span>
+                <span class="n">learnings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_learnings</span><span class="p">(</span><span class="n">result_text</span><span class="p">)</span>
+                
+                <span class="c1"># Store each learning</span>
+                <span class="n">learnings_stored</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">learning_type</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">learnings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">memory_manager</span><span class="o">.</span><span class="n">add_learning</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="n">learning_type</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+                            <span class="n">learnings_stored</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to store learning: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="n">learnings_stored</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted </span><span class="si">{</span><span class="n">learnings_stored</span><span class="si">}</span><span class="s2"> learnings for agent &#39;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+                    
+                    <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span>
+                        <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                        <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                        <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s1">&#39;learnings_extracted&#39;</span><span class="p">:</span> <span class="n">learnings_stored</span><span class="p">,</span>
+                            <span class="s1">&#39;agent_id&#39;</span><span class="p">:</span> <span class="n">agent_id</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span><span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Learning extraction failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Don&#39;t fail the delegation result if learning extraction fails</span>
+            <span class="k">return</span> <span class="n">HookResult</span><span class="p">(</span>
+                <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">data</span><span class="o">=</span><span class="n">context</span><span class="o">.</span><span class="n">data</span><span class="p">,</span>
+                <span class="n">modified</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">error</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Learning extraction failed: </span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_learnings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract structured learnings from text using explicit markers.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: We limit learnings to 100 characters to keep memory entries</span>
+<span class="sd">        concise and actionable. Longer entries tend to be less useful as</span>
+<span class="sd">        quick reference points.</span>
+<span class="sd">        </span>
+<span class="sd">        DESIGN DECISION: Using explicit markers gives agents full control and makes</span>
+<span class="sd">        extraction reliable. We support multiple memory additions in a single response</span>
+<span class="sd">        and multiple trigger phrases (Add To Memory, Memorize, Remember) for flexibility.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            text: The text to extract learnings from</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping learning types to lists of extracted learnings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">learnings</span> <span class="o">=</span> <span class="p">{</span><span class="n">learning_type</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">learning_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">()}</span>
+        <span class="n">seen_learnings</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># Avoid duplicates</span>
+        
+        <span class="c1"># Pattern to find memory blocks with multiple trigger phrases</span>
+        <span class="c1"># Matches: # Add To Memory: / # Memorize: / # Remember:\n...\n#</span>
+        <span class="c1"># Only matches complete blocks with proper closing markers</span>
+        <span class="n">memory_pattern</span> <span class="o">=</span> <span class="sa">r</span><span class="s1">&#39;#\s*(?:Add\s+To\s+Memory|Memorize|Remember):\s*\n((?:[^#](?:[^#]|#(?!\s*(?:Add\s+To\s+Memory|Memorize|Remember):))*?)?)\n\s*#\s*$&#39;</span>
+        <span class="n">matches</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">memory_pattern</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">MULTILINE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">matches</span><span class="p">:</span>
+            <span class="n">block_content</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found memory block: </span><span class="si">{</span><span class="n">block_content</span><span class="p">[:</span><span class="mi">50</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Extract type and content from the block</span>
+            <span class="n">type_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Type:\s*(\w+)&#39;</span><span class="p">,</span> <span class="n">block_content</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+            <span class="n">content_match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Content:\s*(.+)&#39;</span><span class="p">,</span> <span class="n">block_content</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span> <span class="o">|</span> <span class="n">re</span><span class="o">.</span><span class="n">DOTALL</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">type_match</span> <span class="ow">and</span> <span class="n">content_match</span><span class="p">:</span>
+                <span class="n">learning_type</span> <span class="o">=</span> <span class="n">type_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">content_match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                
+                <span class="c1"># Clean up multi-line content - take first line if multiple</span>
+                <span class="k">if</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                
+                <span class="c1"># Remove trailing punctuation</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s1">&#39;.!?,;&#39;</span><span class="p">)</span>
+                
+                <span class="c1"># Validate type is supported</span>
+                <span class="k">if</span> <span class="n">learning_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_mapping</span><span class="p">:</span>
+                    <span class="c1"># Check content length (between 5 and 100 characters)</span>
+                    <span class="k">if</span> <span class="n">content</span> <span class="ow">and</span> <span class="mi">5</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">100</span><span class="p">:</span>
+                        <span class="c1"># Normalize for duplicate detection</span>
+                        <span class="n">normalized</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">normalized</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_learnings</span><span class="p">:</span>
+                            <span class="n">learnings</span><span class="p">[</span><span class="n">learning_type</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+                            <span class="n">seen_learnings</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">normalized</span><span class="p">)</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted learning - Type: </span><span class="si">{</span><span class="n">learning_type</span><span class="si">}</span><span class="s2">, Content: </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping duplicate learning: </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping learning - invalid length (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span><span class="si">}</span><span class="s2">): </span><span class="si">{</span><span class="n">content</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported learning type: </span><span class="si">{</span><span class="n">learning_type</span><span class="si">}</span><span class="s2">. Supported types: </span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">type_mapping</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid memory block format - missing Type or Content&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Log summary of extracted learnings</span>
+        <span class="n">total_learnings</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span> <span class="k">for</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">learnings</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="k">if</span> <span class="n">total_learnings</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted </span><span class="si">{</span><span class="n">total_learnings</span><span class="si">}</span><span class="s2"> learnings from agent response&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">learning_type</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">learnings</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">items</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">learning_type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span><span class="si">}</span><span class="s2"> items&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">learnings</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

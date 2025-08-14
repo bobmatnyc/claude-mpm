@@ -1,0 +1,495 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.registry.modification_tracker module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.communication package" href="claude_mpm.services.communication.html" />
+    <link rel="prev" title="claude_mpm.services.agents.registry.deployed_agent_discovery module" href="claude_mpm.services.agents.registry.deployed_agent_discovery.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.html">claude_mpm.services.agents package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.agents.registry.html">claude_mpm.services.agents.registry package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.registry.modification_tracker module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.agents.registry.modification_tracker.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.agents.registry.modification_tracker">
+<span id="claude-mpm-services-agents-registry-modification-tracker-module"></span><h1>claude_mpm.services.agents.registry.modification_tracker module<a class="headerlink" href="#module-claude_mpm.services.agents.registry.modification_tracker" title="Link to this heading"></a></h1>
+<section id="agent-modification-tracker-consolidated-service">
+<h2>Agent Modification Tracker - Consolidated Service<a class="headerlink" href="#agent-modification-tracker-consolidated-service" title="Link to this heading"></a></h2>
+<p>Comprehensive agent modification tracking and persistence system for monitoring
+agent changes across the three-tier hierarchy with real-time detection and
+intelligent persistence management.</p>
+<p>Key Features:
+- Real-time file system monitoring for agent changes
+- Modification history and version tracking
+- Agent backup and restore functionality
+- Modification validation and conflict detection
+- SharedPromptCache invalidation integration
+- Persistence storage in hierarchy-appropriate locations
+- Change classification (create, modify, delete, move)</p>
+<p>This is a consolidated version of the agent_modification_tracker service,
+combining all functionality into a single module for better maintainability.</p>
+</section>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">ModificationType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Types of agent modifications.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType.CREATE">
+<span class="sig-name descname"><span class="pre">CREATE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'create'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType.CREATE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType.MODIFY">
+<span class="sig-name descname"><span class="pre">MODIFY</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'modify'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType.MODIFY" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType.DELETE">
+<span class="sig-name descname"><span class="pre">DELETE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'delete'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType.DELETE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType.MOVE">
+<span class="sig-name descname"><span class="pre">MOVE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'move'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType.MOVE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationType.RESTORE">
+<span class="sig-name descname"><span class="pre">RESTORE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'restore'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType.RESTORE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationTier">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">ModificationTier</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationTier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Agent hierarchy tiers for modification tracking.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationTier.PROJECT">
+<span class="sig-name descname"><span class="pre">PROJECT</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'project'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier.PROJECT" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationTier.USER">
+<span class="sig-name descname"><span class="pre">USER</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'user'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier.USER" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationTier.SYSTEM">
+<span class="sig-name descname"><span class="pre">SYSTEM</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'system'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier.SYSTEM" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">AgentModification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modification_id:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modification_type:</span> <span class="pre">~claude_mpm.services.agents.registry.modification_tracker.ModificationType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier:</span> <span class="pre">~claude_mpm.services.agents.registry.modification_tracker.ModificationTier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp:</span> <span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_id:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modification_details:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_hash_before:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_hash_after:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_size_before:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_size_after:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup_path:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_status:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'pending'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_errors:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">related_modifications:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Agent modification record with comprehensive metadata.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_id">
+<span class="sig-name descname"><span class="pre">modification_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.agent_name">
+<span class="sig-name descname"><span class="pre">agent_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.agent_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_type">
+<span class="sig-name descname"><span class="pre">modification_type</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType" title="claude_mpm.services.agents.registry.modification_tracker.ModificationType"><span class="pre">ModificationType</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_type" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.tier">
+<span class="sig-name descname"><span class="pre">tier</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier" title="claude_mpm.services.agents.registry.modification_tracker.ModificationTier"><span class="pre">ModificationTier</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.tier" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_path">
+<span class="sig-name descname"><span class="pre">file_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.timestamp">
+<span class="sig-name descname"><span class="pre">timestamp</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.timestamp" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.user_id">
+<span class="sig-name descname"><span class="pre">user_id</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.user_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_details">
+<span class="sig-name descname"><span class="pre">modification_details</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_details" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_hash_before">
+<span class="sig-name descname"><span class="pre">file_hash_before</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_hash_before" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_hash_after">
+<span class="sig-name descname"><span class="pre">file_hash_after</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_hash_after" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_size_before">
+<span class="sig-name descname"><span class="pre">file_size_before</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_size_before" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_size_after">
+<span class="sig-name descname"><span class="pre">file_size_after</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.file_size_after" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.backup_path">
+<span class="sig-name descname"><span class="pre">backup_path</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.backup_path" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.validation_status">
+<span class="sig-name descname"><span class="pre">validation_status</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'pending'</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.validation_status" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.validation_errors">
+<span class="sig-name descname"><span class="pre">validation_errors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.validation_errors" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.related_modifications">
+<span class="sig-name descname"><span class="pre">related_modifications</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.related_modifications" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.metadata">
+<span class="sig-name descname"><span class="pre">metadata</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.metadata" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_datetime">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">modification_datetime</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><span class="pre">datetime</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.modification_datetime" title="Link to this definition"></a></dt>
+<dd><p>Get modification timestamp as datetime.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.age_seconds">
+<em class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">age_seconds</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.age_seconds" title="Link to this definition"></a></dt>
+<dd><p>Get age of modification in seconds.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.to_dict">
+<span class="sig-name descname"><span class="pre">to_dict</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModification.to_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.to_dict" title="Link to this definition"></a></dt>
+<dd><p>Convert to dictionary for serialization.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.from_dict">
+<em class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_dict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModification.from_dict"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.from_dict" title="Link to this definition"></a></dt>
+<dd><p>Create from dictionary.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModification.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modification_id:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">agent_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modification_type:</span> <span class="pre">~claude_mpm.services.agents.registry.modification_tracker.ModificationType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier:</span> <span class="pre">~claude_mpm.services.agents.registry.modification_tracker.ModificationTier</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timestamp:</span> <span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_id:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modification_details:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_hash_before:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_hash_after:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_size_before:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_size_after:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">backup_path:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_status:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">'pending'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">validation_errors:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">related_modifications:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata:</span> <span class="pre">~typing.Dict[str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">~typing.Any]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">ModificationHistory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modifications:</span> <span class="pre">~typing.List[~claude_mpm.services.agents.registry.modification_tracker.AgentModification]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_version:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_modifications:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_seen:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_modified:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationHistory"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Complete modification history for an agent.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.agent_name">
+<span class="sig-name descname"><span class="pre">agent_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.agent_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.modifications">
+<span class="sig-name descname"><span class="pre">modifications</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.modifications" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.current_version">
+<span class="sig-name descname"><span class="pre">current_version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.current_version" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.total_modifications">
+<span class="sig-name descname"><span class="pre">total_modifications</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.total_modifications" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.first_seen">
+<span class="sig-name descname"><span class="pre">first_seen</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.first_seen" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.last_modified">
+<span class="sig-name descname"><span class="pre">last_modified</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.last_modified" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.add_modification">
+<span class="sig-name descname"><span class="pre">add_modification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modification</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationHistory.add_modification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.add_modification" title="Link to this definition"></a></dt>
+<dd><p>Add a modification to history.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.get_recent_modifications">
+<span class="sig-name descname"><span class="pre">get_recent_modifications</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationHistory.get_recent_modifications"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.get_recent_modifications" title="Link to this definition"></a></dt>
+<dd><p>Get modifications within specified hours.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.get_modifications_by_type">
+<span class="sig-name descname"><span class="pre">get_modifications_by_type</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mod_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType" title="claude_mpm.services.agents.registry.modification_tracker.ModificationType"><span class="pre">ModificationType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#ModificationHistory.get_modifications_by_type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.get_modifications_by_type" title="Link to this definition"></a></dt>
+<dd><p>Get modifications by type.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name:</span> <span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modifications:</span> <span class="pre">~typing.List[~claude_mpm.services.agents.registry.modification_tracker.AgentModification]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_version:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_modifications:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">first_seen:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">last_modified:</span> <span class="pre">float</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">AgentFileSystemHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">FileSystemEventHandler</span></code></p>
+<p>Handles file system events for agent files.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tracker</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker" title="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker"><span class="pre">AgentModificationTracker</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_created">
+<span class="sig-name descname"><span class="pre">on_created</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">watchdog.events.FileSystemEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler.on_created"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_created" title="Link to this definition"></a></dt>
+<dd><p>Handle file creation events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_modified">
+<span class="sig-name descname"><span class="pre">on_modified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">watchdog.events.FileSystemEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler.on_modified"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_modified" title="Link to this definition"></a></dt>
+<dd><p>Handle file modification events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_deleted">
+<span class="sig-name descname"><span class="pre">on_deleted</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">watchdog.events.FileSystemEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler.on_deleted"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_deleted" title="Link to this definition"></a></dt>
+<dd><p>Handle file deletion events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_moved">
+<span class="sig-name descname"><span class="pre">on_moved</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">watchdog.events.FileSystemEvent</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentFileSystemHandler.on_moved"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentFileSystemHandler.on_moved" title="Link to this definition"></a></dt>
+<dd><p>Handle file move events.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.agents.registry.modification_tracker.</span></span><span class="sig-name descname"><span class="pre">AgentModificationTracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="claude_mpm.core.base_service.html#claude_mpm.core.base_service.BaseService" title="claude_mpm.core.base_service.BaseService"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseService</span></code></a></p>
+<p>Agent Modification Tracker - Comprehensive modification tracking and persistence system.</p>
+<p>This consolidated service combines all functionality from the previous multi-file
+implementation into a single, maintainable module.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">config</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize the agent modification tracker.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.track_modification">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">track_modification</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">modification_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationType" title="claude_mpm.services.agents.registry.modification_tracker.ModificationType"><span class="pre">ModificationType</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tier</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationTier" title="claude_mpm.services.agents.registry.modification_tracker.ModificationTier"><span class="pre">ModificationTier</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.track_modification"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.track_modification" title="Link to this definition"></a></dt>
+<dd><p>Track an agent modification with comprehensive metadata collection.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_modification_history">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_modification_history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">agent_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.ModificationHistory" title="claude_mpm.services.agents.registry.modification_tracker.ModificationHistory"><span class="pre">ModificationHistory</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.get_modification_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_modification_history" title="Link to this definition"></a></dt>
+<dd><p>Get modification history for specific agent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_recent_modifications">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_recent_modifications</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hours</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.get_recent_modifications"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_recent_modifications" title="Link to this definition"></a></dt>
+<dd><p>Get all recent modifications across all agents.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.restore_agent_backup">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">restore_agent_backup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modification_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.restore_agent_backup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.restore_agent_backup" title="Link to this definition"></a></dt>
+<dd><p>Restore agent from backup.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_modification_stats">
+<em class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_modification_stats</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.13)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.get_modification_stats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.get_modification_stats" title="Link to this definition"></a></dt>
+<dd><p>Get comprehensive modification statistics.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.register_modification_callback">
+<span class="sig-name descname"><span class="pre">register_modification_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.register_modification_callback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.register_modification_callback" title="Link to this definition"></a></dt>
+<dd><p>Register callback for modification events.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.unregister_modification_callback">
+<span class="sig-name descname"><span class="pre">unregister_modification_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.13)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModification" title="claude_mpm.services.agents.registry.modification_tracker.AgentModification"><span class="pre">AgentModification</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/agents/registry/modification_tracker.html#AgentModificationTracker.unregister_modification_callback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.agents.registry.modification_tracker.AgentModificationTracker.unregister_modification_callback" title="Link to this definition"></a></dt>
+<dd><p>Unregister modification callback.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.agents.registry.deployed_agent_discovery.html" class="btn btn-neutral float-left" title="claude_mpm.services.agents.registry.deployed_agent_discovery module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.communication.html" class="btn btn-neutral float-right" title="claude_mpm.services.communication package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

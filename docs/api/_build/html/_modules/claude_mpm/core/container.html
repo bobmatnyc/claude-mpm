@@ -1,0 +1,1073 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.container &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.container</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.container</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Lightweight Dependency Injection Container for Claude MPM.</span>
+
+<span class="sd">This module provides a simple yet powerful dependency injection container</span>
+<span class="sd">that supports:</span>
+<span class="sd">- Service registration with interfaces</span>
+<span class="sd">- Constructor injection</span>
+<span class="sd">- Singleton and transient lifetimes</span>
+<span class="sd">- Factory functions</span>
+<span class="sd">- Lazy initialization</span>
+<span class="sd">- Circular dependency detection</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.core.interfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">IServiceContainer</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ServiceLifetime">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceLifetime">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceLifetime</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Service lifetime options.&quot;&quot;&quot;</span>
+    <span class="n">SINGLETON</span> <span class="o">=</span> <span class="s2">&quot;singleton&quot;</span>  <span class="c1"># One instance per container</span>
+    <span class="n">TRANSIENT</span> <span class="o">=</span> <span class="s2">&quot;transient&quot;</span>  <span class="c1"># New instance per request</span>
+    <span class="n">SCOPED</span> <span class="o">=</span> <span class="s2">&quot;scoped&quot;</span>       <span class="c1"># One instance per scope</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceRegistration">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceRegistration">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRegistration</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a service registration in the container.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ServiceRegistration.__init__">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceRegistration.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">instance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lifetime</span><span class="p">:</span> <span class="n">ServiceLifetime</span> <span class="o">=</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span><span class="p">,</span>
+        <span class="n">dependencies</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize service registration.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The interface/base type being registered</span>
+<span class="sd">            implementation: The concrete implementation class</span>
+<span class="sd">            factory: Factory function to create instances</span>
+<span class="sd">            instance: Pre-created instance (for singleton registration)</span>
+<span class="sd">            lifetime: Service lifetime management</span>
+<span class="sd">            dependencies: Explicit dependency mapping</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">service_type</span> <span class="o">=</span> <span class="n">service_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">implementation</span> <span class="o">=</span> <span class="n">implementation</span> <span class="ow">or</span> <span class="n">service_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">factory</span> <span class="o">=</span> <span class="n">factory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">instance</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">=</span> <span class="n">lifetime</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span> <span class="o">=</span> <span class="n">dependencies</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="ServiceRegistration.create_instance">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceRegistration.create_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="s1">&#39;DIContainer&#39;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an instance of the service.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instance</span>
+            
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">factory</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="n">container</span><span class="p">)</span>
+            
+        <span class="c1"># Get constructor parameters</span>
+        <span class="k">if</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">implementation</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">container</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">implementation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dependencies</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># It&#39;s already an instance or callable</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">implementation</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CircularDependencyError">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.CircularDependencyError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">CircularDependencyError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when circular dependencies are detected.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceNotFoundError">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceNotFoundError">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceNotFoundError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Raised when a requested service is not registered.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceScope">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceScope</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Represents a service scope for scoped lifetime services.</span>
+<span class="sd">    </span>
+<span class="sd">    Scoped services live for the duration of the scope and are shared</span>
+<span class="sd">    within that scope.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ServiceScope.__init__">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">:</span> <span class="s1">&#39;DIContainer&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize service scope.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container</span> <span class="o">=</span> <span class="n">container</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scoped_instances</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disposed</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span></div>
+
+        
+<div class="viewcode-block" id="ServiceScope.get_scoped_instance">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.get_scoped_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_scoped_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get scoped instance if exists.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scoped_instances</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="ServiceScope.set_scoped_instance">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.set_scoped_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_scoped_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">,</span> <span class="n">instance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Store scoped instance.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disposed</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_scoped_instances</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span></div>
+
+                
+<div class="viewcode-block" id="ServiceScope.dispose">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.dispose">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dispose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dispose of the scope and all scoped instances.</span>
+<span class="sd">        </span>
+<span class="sd">        Calls dispose() on instances that implement IDisposable.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disposed</span><span class="p">:</span>
+                <span class="k">return</span>
+                
+            <span class="k">for</span> <span class="n">service_type</span><span class="p">,</span> <span class="n">instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scoped_instances</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="c1"># Call dispose if available</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s1">&#39;dispose&#39;</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">instance</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error disposing scoped service </span><span class="si">{</span><span class="n">service_type</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scoped_instances</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_disposed</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+            
+<div class="viewcode-block" id="ServiceScope.__enter__">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.__enter__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Context manager entry.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+        
+<div class="viewcode-block" id="ServiceScope.__exit__">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.ServiceScope.__exit__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Context manager exit - dispose scope.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="DIContainer">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DIContainer</span><span class="p">(</span><span class="n">IServiceContainer</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enhanced Dependency Injection Container.</span>
+<span class="sd">    </span>
+<span class="sd">    Implements IServiceContainer interface to provide a complete</span>
+<span class="sd">    dependency injection solution.</span>
+<span class="sd">    </span>
+<span class="sd">    Provides:</span>
+<span class="sd">    - Service registration with multiple lifetime options</span>
+<span class="sd">    - Automatic constructor injection</span>
+<span class="sd">    - Interface to implementation mapping</span>
+<span class="sd">    - Circular dependency detection</span>
+<span class="sd">    - Lazy loading support</span>
+<span class="sd">    - Scoped service support</span>
+<span class="sd">    - Service disposal lifecycle</span>
+<span class="sd">    - Named registrations</span>
+<span class="sd">    - Configuration injection</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="DIContainer.__init__">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the DI container.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">ServiceRegistration</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ServiceRegistration</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_factories</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scopes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ServiceScope</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">RLock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ServiceScope</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.register">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span>
+        <span class="n">singleton</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a service implementation (IServiceContainer interface method).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The interface/base type to register</span>
+<span class="sd">            implementation: The concrete implementation class</span>
+<span class="sd">            singleton: Whether to use singleton lifetime (default True)</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register interface with implementation</span>
+<span class="sd">            container.register(ILogger, ConsoleLogger)</span>
+<span class="sd">            </span>
+<span class="sd">            # Register as transient (new instance each time)</span>
+<span class="sd">            container.register(IService, ServiceImpl, singleton=False)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lifetime</span> <span class="o">=</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span> <span class="k">if</span> <span class="n">singleton</span> <span class="k">else</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">TRANSIENT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span>
+            <span class="n">service_type</span><span class="o">=</span><span class="n">service_type</span><span class="p">,</span>
+            <span class="n">implementation</span><span class="o">=</span><span class="n">implementation</span><span class="p">,</span>
+            <span class="n">lifetime</span><span class="o">=</span><span class="n">lifetime</span>
+        <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_register_internal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">T</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">lifetime</span><span class="p">:</span> <span class="n">ServiceLifetime</span> <span class="o">=</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span><span class="p">,</span>
+        <span class="n">factory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="s1">&#39;DIContainer&#39;</span><span class="p">],</span> <span class="n">T</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">instance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dependencies</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal registration method with full flexibility.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The interface/base type to register</span>
+<span class="sd">            implementation: The concrete implementation (class or factory)</span>
+<span class="sd">            lifetime: Service lifetime (singleton/transient)</span>
+<span class="sd">            factory: Optional factory function</span>
+<span class="sd">            instance: Pre-created instance (for singleton)</span>
+<span class="sd">            dependencies: Explicit dependency mapping for constructor params</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">registration</span> <span class="o">=</span> <span class="n">ServiceRegistration</span><span class="p">(</span>
+                <span class="n">service_type</span><span class="o">=</span><span class="n">service_type</span><span class="p">,</span>
+                <span class="n">implementation</span><span class="o">=</span><span class="n">implementation</span><span class="p">,</span>
+                <span class="n">factory</span><span class="o">=</span><span class="n">factory</span><span class="p">,</span>
+                <span class="n">instance</span><span class="o">=</span><span class="n">instance</span><span class="p">,</span>
+                <span class="n">lifetime</span><span class="o">=</span><span class="n">lifetime</span><span class="p">,</span>
+                <span class="n">dependencies</span><span class="o">=</span><span class="n">dependencies</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">registration</span>
+            
+            <span class="c1"># If instance provided, store as singleton</span>
+            <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+    
+<div class="viewcode-block" id="DIContainer.register_instance">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">instance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a service instance (IServiceContainer interface method).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The interface/base type to register</span>
+<span class="sd">            instance: Pre-created instance to register as singleton</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register a pre-created instance</span>
+<span class="sd">            config = Config()</span>
+<span class="sd">            container.register_instance(IConfig, config)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span>
+            <span class="n">service_type</span><span class="o">=</span><span class="n">service_type</span><span class="p">,</span>
+            <span class="n">instance</span><span class="o">=</span><span class="n">instance</span><span class="p">,</span>
+            <span class="n">lifetime</span><span class="o">=</span><span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="DIContainer.resolve_all">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.resolve_all">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve all implementations of a service type (IServiceContainer interface method).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The type to resolve</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of all registered implementations for the service type</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register multiple implementations</span>
+<span class="sd">            container.register(IPlugin, PluginA)</span>
+<span class="sd">            container.register(IPlugin, PluginB)</span>
+<span class="sd">            </span>
+<span class="sd">            # Get all implementations</span>
+<span class="sd">            plugins = container.resolve_all(IPlugin)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="c1"># For now, return a list with the single registered implementation</span>
+            <span class="c1"># In the future, we could support multiple registrations for the same type</span>
+            <span class="k">if</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_resolve_internal</span><span class="p">(</span><span class="n">service_type</span><span class="p">)]</span>
+            <span class="k">return</span> <span class="p">[]</span></div>
+
+                
+<div class="viewcode-block" id="DIContainer.register_singleton">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register_singleton">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_singleton</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">interface</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">T</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">instance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">dispose_handler</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="n">T</span><span class="p">],</span> <span class="kc">None</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a singleton service.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            interface: The interface/base type to register</span>
+<span class="sd">            implementation: The concrete implementation class</span>
+<span class="sd">            instance: Pre-created instance (alternative to implementation)</span>
+<span class="sd">            name: Optional name for named registration</span>
+<span class="sd">            dispose_handler: Optional handler called when disposing service</span>
+<span class="sd">        </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register with implementation class</span>
+<span class="sd">            container.register_singleton(ILogger, ConsoleLogger)</span>
+<span class="sd">            </span>
+<span class="sd">            # Register with instance</span>
+<span class="sd">            container.register_singleton(IConfig, instance=Config())</span>
+<span class="sd">            </span>
+<span class="sd">            # Register with disposal handler</span>
+<span class="sd">            container.register_singleton(</span>
+<span class="sd">                IDatabase,</span>
+<span class="sd">                DatabaseConnection,</span>
+<span class="sd">                dispose_handler=lambda db: db.close()</span>
+<span class="sd">            )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># For named registrations, create a unique registration</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="c1"># Create named registration directly</span>
+            <span class="n">registration</span> <span class="o">=</span> <span class="n">ServiceRegistration</span><span class="p">(</span>
+                <span class="n">service_type</span><span class="o">=</span><span class="n">interface</span><span class="p">,</span>
+                <span class="n">implementation</span><span class="o">=</span><span class="n">implementation</span><span class="p">,</span>
+                <span class="n">instance</span><span class="o">=</span><span class="n">instance</span><span class="p">,</span>
+                <span class="n">lifetime</span><span class="o">=</span><span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">registration</span>
+            
+            <span class="c1"># Also store the instance if provided</span>
+            <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Store with a composite key for retrieval</span>
+                <span class="n">named_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_named_singletons&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_named_singletons</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_named_singletons</span><span class="p">[</span><span class="n">named_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Normal registration without name</span>
+            <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">instance</span><span class="o">=</span><span class="n">instance</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">implementation</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">isclass</span><span class="p">(</span><span class="n">implementation</span><span class="p">):</span>
+                <span class="c1"># It&#39;s an instance passed as implementation (backward compatibility)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">instance</span><span class="o">=</span><span class="n">implementation</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">implementation</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span><span class="p">)</span>
+                
+        <span class="c1"># Handle disposal handler</span>
+        <span class="k">if</span> <span class="n">dispose_handler</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+                <span class="c1"># Store with composite key for named services</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_named_disposal_handlers&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_named_disposal_handlers</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_named_disposal_handlers</span><span class="p">[(</span><span class="n">interface</span><span class="p">,</span> <span class="n">name</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dispose_handler</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="p">[</span><span class="n">interface</span><span class="p">]</span> <span class="o">=</span> <span class="n">dispose_handler</span>
+            
+        <span class="c1"># Track initialization order for proper disposal</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="k">if</span> <span class="n">name</span> <span class="k">else</span> <span class="n">interface</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span></div>
+
+            
+<div class="viewcode-block" id="DIContainer.register_scoped">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register_scoped">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_scoped</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">interface</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a scoped service.</span>
+<span class="sd">        </span>
+<span class="sd">        Scoped services are created once per scope and shared within that scope.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            interface: The interface/base type to register</span>
+<span class="sd">            implementation: The concrete implementation</span>
+<span class="sd">            name: Optional name for named registration</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register scoped service</span>
+<span class="sd">            container.register_scoped(IRequestContext, RequestContext)</span>
+<span class="sd">            </span>
+<span class="sd">            # Use in scope</span>
+<span class="sd">            with container.create_scope() as scope:</span>
+<span class="sd">                context = container.get(IRequestContext)  # Created</span>
+<span class="sd">                context2 = container.get(IRequestContext)  # Same instance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">implementation</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SCOPED</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">[</span><span class="n">interface</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="DIContainer.register_transient">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register_transient">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_transient</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+        <span class="n">implementation</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a transient service.</span>
+<span class="sd">        </span>
+<span class="sd">        Convenience method for registering transient services.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">service_type</span><span class="p">,</span> <span class="n">implementation</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">TRANSIENT</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.register_factory">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.register_factory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_factory</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">interface</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span>
+        <span class="n">factory</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="s1">&#39;DIContainer&#39;</span><span class="p">],</span> <span class="n">T</span><span class="p">],</span>
+        <span class="n">lifetime</span><span class="p">:</span> <span class="n">ServiceLifetime</span> <span class="o">=</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">TRANSIENT</span><span class="p">,</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Register a service with a factory function.</span>
+<span class="sd">        </span>
+<span class="sd">        The factory receives the container as parameter for resolving dependencies.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            interface: The interface/base type to register</span>
+<span class="sd">            factory: Factory function that creates instances</span>
+<span class="sd">            lifetime: Service lifetime (default: TRANSIENT for factories)</span>
+<span class="sd">            name: Optional name for named registration</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Register with factory</span>
+<span class="sd">            container.register_factory(</span>
+<span class="sd">                IService,</span>
+<span class="sd">                lambda c: Service(c.get(ILogger), c.get(IConfig)),</span>
+<span class="sd">                lifetime=ServiceLifetime.SINGLETON</span>
+<span class="sd">            )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">factory</span><span class="o">=</span><span class="n">factory</span><span class="p">,</span> <span class="n">lifetime</span><span class="o">=</span><span class="n">lifetime</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_factories</span><span class="p">[</span><span class="n">interface</span><span class="p">]</span> <span class="o">=</span> <span class="n">factory</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">[</span><span class="n">interface</span><span class="p">]</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.get">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.get">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get service instance with dependency resolution.</span>
+<span class="sd">        </span>
+<span class="sd">        This is the primary method for retrieving services from the container.</span>
+<span class="sd">        It handles all lifetime management and dependency resolution.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            interface: The type to resolve</span>
+<span class="sd">            name: Optional name for named registration lookup</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Instance of the requested service</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ServiceNotFoundError: If service is not registered</span>
+<span class="sd">            CircularDependencyError: If circular dependencies detected</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Get by interface</span>
+<span class="sd">            logger = container.get(ILogger)</span>
+<span class="sd">            </span>
+<span class="sd">            # Get named service</span>
+<span class="sd">            primary_db = container.get(IDatabase, name=&quot;primary&quot;)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">:</span>
+                <span class="n">suggestions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_similar_names</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">raise</span> <span class="n">ServiceNotFoundError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Named service &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; is not registered. &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;Did you mean: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span><span class="si">}</span><span class="s2">?&quot;</span> <span class="k">if</span> <span class="n">suggestions</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Check if we have a pre-stored instance for this named service</span>
+            <span class="n">named_key</span> <span class="o">=</span> <span class="p">(</span><span class="n">interface</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_named_singletons&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">named_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_singletons</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_singletons</span><span class="p">[</span><span class="n">named_key</span><span class="p">]</span>
+                
+            <span class="c1"># Otherwise resolve from named registration</span>
+            <span class="n">registration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">registration</span><span class="o">.</span><span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">registration</span><span class="o">.</span><span class="n">instance</span>
+            <span class="k">elif</span> <span class="n">registration</span><span class="o">.</span><span class="n">factory</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">registration</span><span class="o">.</span><span class="n">factory</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="n">registration</span><span class="o">.</span><span class="n">implementation</span><span class="p">,</span> <span class="n">registration</span><span class="o">.</span><span class="n">dependencies</span><span class="p">)</span>
+                    
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolve_internal</span><span class="p">(</span><span class="n">interface</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.resolve">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.resolve">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve a service from the container (legacy method).</span>
+<span class="sd">        </span>
+<span class="sd">        This method is maintained for backward compatibility.</span>
+<span class="sd">        New code should use get() instead.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            service_type: The type to resolve</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Instance of the requested service</span>
+<span class="sd">            </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ServiceNotFoundError: If service is not registered</span>
+<span class="sd">            CircularDependencyError: If circular dependencies detected</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span></div>
+
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_resolve_internal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Internal method to resolve a service.</span>
+<span class="sd">        </span>
+<span class="sd">        Handles the actual resolution logic with proper locking and lifecycle management.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="c1"># Check for circular dependencies</span>
+            <span class="k">if</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="p">:</span>
+                <span class="n">cycle</span> <span class="o">=</span> <span class="s2">&quot; -&gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; -&gt; </span><span class="si">{</span><span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="k">raise</span> <span class="n">CircularDependencyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Circular dependency detected: </span><span class="si">{</span><span class="n">cycle</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+            <span class="c1"># Check if registered</span>
+            <span class="k">if</span> <span class="n">service_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span>
+                <span class="n">suggestions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_similar_types</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+                <span class="n">error_msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Service </span><span class="si">{</span><span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> is not registered.&quot;</span>
+                <span class="k">if</span> <span class="n">suggestions</span><span class="p">:</span>
+                    <span class="n">error_msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot; Did you mean: </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">suggestions</span><span class="p">)</span><span class="si">}</span><span class="s2">?&quot;</span>
+                <span class="k">raise</span> <span class="n">ServiceNotFoundError</span><span class="p">(</span><span class="n">error_msg</span><span class="p">)</span>
+                
+            <span class="n">registration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span>
+            
+            <span class="c1"># Handle different lifetimes</span>
+            <span class="k">if</span> <span class="n">registration</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">==</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span><span class="p">:</span>
+                <span class="c1"># Return existing singleton if available</span>
+                <span class="k">if</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span>
+                    
+            <span class="k">elif</span> <span class="n">registration</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">==</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SCOPED</span><span class="p">:</span>
+                <span class="c1"># Check current scope</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span><span class="p">:</span>
+                    <span class="n">instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span><span class="o">.</span><span class="n">get_scoped_instance</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">instance</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">instance</span>
+                        
+            <span class="c1"># Mark as resolving</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Create instance</span>
+                <span class="n">instance</span> <span class="o">=</span> <span class="n">registration</span><span class="o">.</span><span class="n">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                
+                <span class="c1"># Store based on lifetime</span>
+                <span class="k">if</span> <span class="n">registration</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">==</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SINGLETON</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">instance</span>
+                    <span class="k">if</span> <span class="n">service_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+                        
+                <span class="k">elif</span> <span class="n">registration</span><span class="o">.</span><span class="n">lifetime</span> <span class="o">==</span> <span class="n">ServiceLifetime</span><span class="o">.</span><span class="n">SCOPED</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span><span class="o">.</span><span class="n">set_scoped_instance</span><span class="p">(</span><span class="n">service_type</span><span class="p">,</span> <span class="n">instance</span><span class="p">)</span>
+                        
+                <span class="c1"># Call initialization hook if available</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s1">&#39;initialize&#39;</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">instance</span><span class="o">.</span><span class="n">initialize</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize service </span><span class="si">{</span><span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                        <span class="k">raise</span>
+                        
+                <span class="k">return</span> <span class="n">instance</span>
+                
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+                
+<div class="viewcode-block" id="DIContainer.resolve_optional">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.resolve_optional">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_optional</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">default</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">T</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">T</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve a service if registered, otherwise return default.</span>
+<span class="sd">        </span>
+<span class="sd">        Useful for optional dependencies.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">service_type</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ServiceNotFoundError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">default</span></div>
+
+            
+<div class="viewcode-block" id="DIContainer.create_instance">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.create_instance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">T</span><span class="p">],</span> <span class="n">explicit_deps</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Type</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">T</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an instance of a class, resolving constructor dependencies.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            cls: The class to instantiate</span>
+<span class="sd">            explicit_deps: Explicit dependency mapping for constructor params</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            New instance with resolved dependencies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Get constructor signature</span>
+        <span class="n">sig</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">param_name</span> <span class="o">==</span> <span class="s1">&#39;self&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+                
+            <span class="c1"># Check explicit dependencies first</span>
+            <span class="k">if</span> <span class="n">explicit_deps</span> <span class="ow">and</span> <span class="n">param_name</span> <span class="ow">in</span> <span class="n">explicit_deps</span><span class="p">:</span>
+                <span class="n">dep_type</span> <span class="o">=</span> <span class="n">explicit_deps</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span>
+                <span class="n">kwargs</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">dep_type</span><span class="p">)</span>
+                <span class="k">continue</span>
+                
+            <span class="c1"># Try to resolve by type annotation</span>
+            <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">annotation</span> <span class="o">!=</span> <span class="n">param</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                <span class="n">param_type</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">annotation</span>
+                
+                <span class="c1"># Handle string annotations (forward references)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="c1"># Try to resolve forward reference</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="c1"># Get the module where the class is defined</span>
+                        <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+                        <span class="n">frame</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">_getframe</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">module</span> <span class="o">=</span> <span class="n">frame</span><span class="o">.</span><span class="n">f_globals</span>
+                        <span class="k">if</span> <span class="n">param_type</span> <span class="ow">in</span> <span class="n">module</span><span class="p">:</span>
+                            <span class="n">param_type</span> <span class="o">=</span> <span class="n">module</span><span class="p">[</span><span class="n">param_type</span><span class="p">]</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># Try looking in registrations by name</span>
+                            <span class="k">for</span> <span class="n">reg_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">reg_type</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="n">param_type</span><span class="p">:</span>
+                                    <span class="n">param_type</span> <span class="o">=</span> <span class="n">reg_type</span>
+                                    <span class="k">break</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="c1"># If we can&#39;t resolve, skip this parameter</span>
+                        <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">default</span> <span class="o">!=</span> <span class="n">param</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                            <span class="n">kwargs</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">default</span>
+                        <span class="k">continue</span>
+                
+                <span class="c1"># Handle Optional types</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">param_type</span><span class="p">,</span> <span class="s1">&#39;__origin__&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">param_type</span><span class="o">.</span><span class="n">__origin__</span> <span class="ow">is</span> <span class="n">Union</span><span class="p">:</span>
+                    <span class="c1"># Get the non-None type from Optional</span>
+                    <span class="n">args</span> <span class="o">=</span> <span class="n">param_type</span><span class="o">.</span><span class="n">__args__</span>
+                    <span class="n">param_type</span> <span class="o">=</span> <span class="nb">next</span><span class="p">((</span><span class="n">arg</span> <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span> <span class="k">if</span> <span class="n">arg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">type</span><span class="p">(</span><span class="kc">None</span><span class="p">)),</span> <span class="kc">None</span><span class="p">)</span>
+                    
+                <span class="k">if</span> <span class="n">param_type</span> <span class="ow">and</span> <span class="n">param_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span>
+                    <span class="c1"># Check for circular dependency</span>
+                    <span class="k">if</span> <span class="n">param_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="p">:</span>
+                        <span class="c1"># Circular dependency detected</span>
+                        <span class="n">cycle</span> <span class="o">=</span> <span class="s2">&quot; -&gt; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="p">)</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot; -&gt; </span><span class="si">{</span><span class="n">param_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="k">raise</span> <span class="n">CircularDependencyError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Circular dependency detected: </span><span class="si">{</span><span class="n">cycle</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve</span><span class="p">(</span><span class="n">param_type</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">param</span><span class="o">.</span><span class="n">default</span> <span class="o">!=</span> <span class="n">param</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+                    <span class="c1"># Use default value</span>
+                    <span class="n">kwargs</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">param</span><span class="o">.</span><span class="n">default</span>
+                    
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.is_registered">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.is_registered">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_registered</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if a service type is registered.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.get_all_registrations">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.get_all_registrations">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_registrations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">,</span> <span class="n">ServiceRegistration</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all service registrations.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+            
+<div class="viewcode-block" id="DIContainer.create_scope">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.create_scope">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_scope</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ServiceScope</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new service scope.</span>
+<span class="sd">        </span>
+<span class="sd">        Scoped services will be created once per scope and shared within that scope.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            New ServiceScope instance</span>
+<span class="sd">            </span>
+<span class="sd">        Examples:</span>
+<span class="sd">            # Use scope with context manager</span>
+<span class="sd">            with container.create_scope() as scope:</span>
+<span class="sd">                # Services with SCOPED lifetime are shared within this scope</span>
+<span class="sd">                service1 = container.get(IScopedService)</span>
+<span class="sd">                service2 = container.get(IScopedService)</span>
+<span class="sd">                assert service1 is service2  # Same instance</span>
+<span class="sd">                </span>
+<span class="sd">            # Scope is disposed, scoped instances are cleaned up</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scope</span> <span class="o">=</span> <span class="n">ServiceScope</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scopes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+            <span class="c1"># Set as current scope for resolution</span>
+            <span class="n">old_scope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span> <span class="o">=</span> <span class="n">scope</span>
+            
+        <span class="c1"># Return a context manager that restores old scope</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">ScopeContext</span><span class="p">:</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">new_scope</span><span class="p">,</span> <span class="n">old_scope</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">container</span> <span class="o">=</span> <span class="n">container</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">new_scope</span> <span class="o">=</span> <span class="n">new_scope</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">old_scope</span> <span class="o">=</span> <span class="n">old_scope</span>
+                
+            <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_scope</span>
+                
+            <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">_current_scope</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">old_scope</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_scope</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">_scopes</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">container</span><span class="o">.</span><span class="n">_scopes</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_scope</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">new_scope</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+                
+        <span class="k">return</span> <span class="n">ScopeContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">old_scope</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.create_child_container">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.create_child_container">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_child_container</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;DIContainer&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a child container that inherits registrations.</span>
+<span class="sd">        </span>
+<span class="sd">        Useful for isolated scenarios where you want separate singleton instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">child</span> <span class="o">=</span> <span class="n">DIContainer</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="c1"># Copy registrations but not singleton instances</span>
+            <span class="k">for</span> <span class="n">service_type</span><span class="p">,</span> <span class="n">registration</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">child</span><span class="o">.</span><span class="n">_registrations</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span> <span class="o">=</span> <span class="n">registration</span>
+            <span class="c1"># Copy named registrations</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">_named_registrations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="c1"># Copy factories</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">_factories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_factories</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+            <span class="c1"># Copy disposal handlers</span>
+            <span class="n">child</span><span class="o">.</span><span class="n">_disposal_handlers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">child</span></div>
+
+        
+<div class="viewcode-block" id="DIContainer.dispose">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.dispose">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">dispose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Dispose of the container and all managed services.</span>
+<span class="sd">        </span>
+<span class="sd">        Calls disposal handlers for singleton services in reverse initialization order.</span>
+<span class="sd">        Also disposes any active scopes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="c1"># Dispose scopes first</span>
+            <span class="k">for</span> <span class="n">scope</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_scopes</span><span class="p">):</span>
+                <span class="n">scope</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scopes</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            
+            <span class="c1"># Dispose singletons in reverse initialization order</span>
+            <span class="k">for</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">:</span>
+                    <span class="n">instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="p">[</span><span class="n">service_type</span><span class="p">]</span>
+                    
+                    <span class="c1"># Call disposal handler if registered</span>
+                    <span class="k">if</span> <span class="n">service_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="p">:</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="p">[</span><span class="n">service_type</span><span class="p">](</span><span class="n">instance</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in disposal handler for </span><span class="si">{</span><span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            
+                    <span class="c1"># Call dispose method if available</span>
+                    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instance</span><span class="p">,</span> <span class="s1">&#39;dispose&#39;</span><span class="p">):</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">instance</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+                        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error disposing service </span><span class="si">{</span><span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                            
+            <span class="c1"># Clear everything</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_singletons</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_initialization_order</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_current_scope</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+            
+<div class="viewcode-block" id="DIContainer.clear">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.DIContainer.clear">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all registrations and instances.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_factories</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_disposal_handlers</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_resolving</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+            
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_similar_types</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="n">Type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get similar registered type names for better error messages.</span>
+<span class="sd">        </span>
+<span class="sd">        Uses simple string similarity to suggest possible alternatives.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+            
+        <span class="n">type_name</span> <span class="o">=</span> <span class="n">service_type</span><span class="o">.</span><span class="vm">__name__</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">similar</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">registered_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registrations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">registered_name</span> <span class="o">=</span> <span class="n">registered_type</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="n">registered_lower</span> <span class="o">=</span> <span class="n">registered_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            
+            <span class="c1"># Check for substring match</span>
+            <span class="k">if</span> <span class="n">type_name</span> <span class="ow">in</span> <span class="n">registered_lower</span> <span class="ow">or</span> <span class="n">registered_lower</span> <span class="ow">in</span> <span class="n">type_name</span><span class="p">:</span>
+                <span class="n">similar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">registered_name</span><span class="p">)</span>
+                <span class="k">continue</span>
+                
+            <span class="c1"># Check for common prefix</span>
+            <span class="n">common_prefix_len</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">type_name</span><span class="p">,</span> <span class="n">registered_lower</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
+                    <span class="n">common_prefix_len</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+                    
+            <span class="k">if</span> <span class="n">common_prefix_len</span> <span class="o">&gt;=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">type_name</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">similar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">registered_name</span><span class="p">)</span>
+                
+        <span class="k">return</span> <span class="n">similar</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Return top 3 suggestions</span>
+        
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_similar_names</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get similar registered names for better error messages.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+            
+        <span class="n">name_lower</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">similar</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">registered_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_named_registrations</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">registered_lower</span> <span class="o">=</span> <span class="n">registered_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            
+            <span class="c1"># Check for substring match</span>
+            <span class="k">if</span> <span class="n">name_lower</span> <span class="ow">in</span> <span class="n">registered_lower</span> <span class="ow">or</span> <span class="n">registered_lower</span> <span class="ow">in</span> <span class="n">name_lower</span><span class="p">:</span>
+                <span class="n">similar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">registered_name</span><span class="p">)</span>
+                <span class="k">continue</span>
+                
+            <span class="c1"># Check for common prefix</span>
+            <span class="n">common_prefix_len</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">name_lower</span><span class="p">,</span> <span class="n">registered_lower</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="n">b</span><span class="p">:</span>
+                    <span class="n">common_prefix_len</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">break</span>
+                    
+            <span class="k">if</span> <span class="n">common_prefix_len</span> <span class="o">&gt;=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">name_lower</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">):</span>
+                <span class="n">similar</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">registered_name</span><span class="p">)</span>
+                
+        <span class="k">return</span> <span class="n">similar</span><span class="p">[:</span><span class="mi">3</span><span class="p">]</span>  <span class="c1"># Return top 3 suggestions</span></div>
+
+
+
+<span class="c1"># Global container instance (optional, for convenience)</span>
+<span class="n">_global_container</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DIContainer</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">_global_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_container">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.get_container">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_container</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">DIContainer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the global DI container instance.</span>
+<span class="sd">    </span>
+<span class="sd">    Creates one if it doesn&#39;t exist.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_container</span>
+    <span class="k">with</span> <span class="n">_global_lock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_global_container</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">_global_container</span> <span class="o">=</span> <span class="n">DIContainer</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">_global_container</span></div>
+
+
+
+<div class="viewcode-block" id="set_container">
+<a class="viewcode-back" href="../../../core/container.html#claude_mpm.core.set_container">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_container</span><span class="p">(</span><span class="n">container</span><span class="p">:</span> <span class="n">DIContainer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Set the global DI container instance.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_global_container</span>
+    <span class="k">with</span> <span class="n">_global_lock</span><span class="p">:</span>
+        <span class="n">_global_container</span> <span class="o">=</span> <span class="n">container</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

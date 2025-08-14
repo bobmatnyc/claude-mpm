@@ -1,0 +1,617 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.version_control.semantic_versioning module &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="claude_mpm.services.version_control.version_parser module" href="claude_mpm.services.version_control.version_parser.html" />
+    <link rel="prev" title="claude_mpm.services.version_control.git_operations module" href="claude_mpm.services.version_control.git_operations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">claude_mpm</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="claude_mpm.html">claude_mpm package</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.ClaudeRunner"><code class="docutils literal notranslate"><span class="pre">ClaudeRunner</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.MPMOrchestrator"><code class="docutils literal notranslate"><span class="pre">MPMOrchestrator</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#claude_mpm.TicketManager"><code class="docutils literal notranslate"><span class="pre">TicketManager</span></code></a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="claude_mpm.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.agents.html">claude_mpm.agents package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli.html">claude_mpm.cli package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.cli_module.html">claude_mpm.cli_module package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.config.html">claude_mpm.config package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.core.html">claude_mpm.core package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.generators.html">claude_mpm.generators package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.hooks.html">claude_mpm.hooks package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.models.html">claude_mpm.models package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.scripts.html">claude_mpm.scripts package</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="claude_mpm.services.html">claude_mpm.services package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.utils.html">claude_mpm.utils package</a></li>
+<li class="toctree-l4"><a class="reference internal" href="claude_mpm.validation.html">claude_mpm.validation package</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="claude_mpm.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">claude_mpm</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.html">claude_mpm package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.html">claude_mpm.services package</a></li>
+          <li class="breadcrumb-item"><a href="claude_mpm.services.version_control.html">claude_mpm.services.version_control package</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.version_control.semantic_versioning module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/claude_mpm.services.version_control.semantic_versioning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-claude_mpm.services.version_control.semantic_versioning">
+<span id="claude-mpm-services-version-control-semantic-versioning-module"></span><h1>claude_mpm.services.version_control.semantic_versioning module<a class="headerlink" href="#module-claude_mpm.services.version_control.semantic_versioning" title="Link to this heading"></a></h1>
+<p>Semantic Versioning Manager - Version management logic for Version Control Agent.</p>
+<p>This module provides comprehensive semantic versioning management including:
+1. Version parsing and validation
+2. Automatic version bumping based on changes
+3. Changelog generation and management
+4. Tag creation and management
+5. Version metadata handling</p>
+<p>Semantic Versioning Strategy:
+- Follows semver.org specification 2.0.0
+- Format: MAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]
+- MAJOR: Incompatible API changes
+- MINOR: Backwards-compatible functionality additions
+- PATCH: Backwards-compatible bug fixes
+- PRERELEASE: Optional pre-release identifiers (alpha, beta, rc)
+- BUILD: Optional build metadata</p>
+<p>Agent Version Management:
+- Agents use semantic versioning for consistency
+- Version stored in agent template JSON files
+- Automatic migration from old formats (serial, integer)
+- Version comparison for deployment decisions
+- Base and agent version tracking</p>
+<p>Version Detection:
+- Multiple file format support (package.json, pyproject.toml, etc.)
+- Git tag integration for version history
+- Changelog parsing for version tracking
+- Fallback mechanisms for missing version info</p>
+<p>Change Analysis:
+- Conventional commit pattern matching
+- Breaking change detection
+- Feature and bug fix classification
+- Confidence scoring for version bump suggestions</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionBumpType">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.version_control.semantic_versioning.</span></span><span class="sig-name descname"><span class="pre">VersionBumpType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#VersionBumpType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a></p>
+<p>Types of version bumps.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionBumpType.MAJOR">
+<span class="sig-name descname"><span class="pre">MAJOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'major'</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType.MAJOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionBumpType.MINOR">
+<span class="sig-name descname"><span class="pre">MINOR</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'minor'</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType.MINOR" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionBumpType.PATCH">
+<span class="sig-name descname"><span class="pre">PATCH</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'patch'</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType.PATCH" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionBumpType.PRERELEASE">
+<span class="sig-name descname"><span class="pre">PRERELEASE</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'prerelease'</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType.PRERELEASE" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.version_control.semantic_versioning.</span></span><span class="sig-name descname"><span class="pre">SemanticVersion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">major</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">minor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prerelease</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Represents a semantic version following semver.org specification.</p>
+<p>This class encapsulates a semantic version with support for:
+- Major, minor, and patch version numbers
+- Pre-release identifiers (alpha, beta, rc, etc.)
+- Build metadata
+- Version comparison and sorting
+- Version bumping operations</p>
+<p>The comparison logic follows semver precedence rules:
+1. Compare major, minor, patch numerically
+2. Pre-release versions have lower precedence than normal versions
+3. Pre-release identifiers are compared alphanumerically
+4. Build metadata is ignored in comparisons</p>
+<p>This is used for both project versioning and agent version management.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.major">
+<span class="sig-name descname"><span class="pre">major</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.major" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.minor">
+<span class="sig-name descname"><span class="pre">minor</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.minor" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.patch">
+<span class="sig-name descname"><span class="pre">patch</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.patch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.prerelease">
+<span class="sig-name descname"><span class="pre">prerelease</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.prerelease" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.build">
+<span class="sig-name descname"><span class="pre">build</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.build" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__str__">
+<span class="sig-name descname"><span class="pre">__str__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersion.__str__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__str__" title="Link to this definition"></a></dt>
+<dd><p>String representation of version in semver format.</p>
+<p>Examples:
+- 1.2.3
+- 1.2.3-alpha.1
+- 1.2.3-beta.2+build.123
+- 1.2.3+20230615</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__lt__">
+<span class="sig-name descname"><span class="pre">__lt__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersion.__lt__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__lt__" title="Link to this definition"></a></dt>
+<dd><p>Compare versions for sorting according to semver precedence.</p>
+<p>Comparison Rules:
+1. Version core (major.minor.patch) compared numerically
+2. Version with pre-release &lt; same version without pre-release
+3. Pre-release versions compared alphanumerically
+4. Build metadata ignored (1.0.0+build1 == 1.0.0+build2)</p>
+<p>This enables proper version sorting for:
+- Determining latest version
+- Agent deployment decisions
+- Version history display</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.bump">
+<span class="sig-name descname"><span class="pre">bump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bump_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType" title="claude_mpm.services.version_control.semantic_versioning.VersionBumpType"><span class="pre">VersionBumpType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersion.bump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.bump" title="Link to this definition"></a></dt>
+<dd><p>Create a new version with the specified bump applied.</p>
+<p>Version Bump Rules:
+- MAJOR: Increment major, reset minor and patch to 0
+- MINOR: Increment minor, reset patch to 0
+- PATCH: Increment patch only
+- PRERELEASE: Handle pre-release progression</p>
+<p>Pre-release Progression:
+- No prerelease -&gt; alpha.1
+- alpha.1 -&gt; alpha.2
+- beta.1 -&gt; beta.2
+- rc.1 -&gt; rc.2
+- custom -&gt; custom.1</p>
+<p>Examples:
+- 1.2.3 + MAJOR -&gt; 2.0.0
+- 1.2.3 + MINOR -&gt; 1.3.0
+- 1.2.3 + PATCH -&gt; 1.2.4
+- 1.2.3 + PRERELEASE -&gt; 1.2.3-alpha.1
+- 1.2.3-alpha.1 + PRERELEASE -&gt; 1.2.3-alpha.2</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>bump_type</strong> – Type of version bump to apply</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>New SemanticVersion instance with bump applied</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">major</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">minor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.13)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prerelease</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.version_control.semantic_versioning.</span></span><span class="sig-name descname"><span class="pre">VersionMetadata</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version:</span> <span class="pre">~claude_mpm.services.version_control.semantic_versioning.SemanticVersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_date:</span> <span class="pre">~datetime.datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commit_hash:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_name:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changes:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breaking_changes:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contributors:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#VersionMetadata"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Metadata associated with a version.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.version">
+<span class="sig-name descname"><span class="pre">version</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.version" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.release_date">
+<span class="sig-name descname"><span class="pre">release_date</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/datetime.html#datetime.datetime" title="(in Python v3.13)"><span class="pre">datetime</span></a></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.release_date" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.commit_hash">
+<span class="sig-name descname"><span class="pre">commit_hash</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.commit_hash" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.tag_name">
+<span class="sig-name descname"><span class="pre">tag_name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.tag_name" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.changes">
+<span class="sig-name descname"><span class="pre">changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.changes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.breaking_changes">
+<span class="sig-name descname"><span class="pre">breaking_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.breaking_changes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.contributors">
+<span class="sig-name descname"><span class="pre">contributors</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.contributors" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.notes">
+<span class="sig-name descname"><span class="pre">notes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.notes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.VersionMetadata.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version:</span> <span class="pre">~claude_mpm.services.version_control.semantic_versioning.SemanticVersion</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">release_date:</span> <span class="pre">~datetime.datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commit_hash:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tag_name:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changes:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breaking_changes:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contributors:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">notes:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">None</span> <span class="pre">=</span> <span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.version_control.semantic_versioning.</span></span><span class="sig-name descname"><span class="pre">ChangeAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">has_breaking_changes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_new_features:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_bug_fixes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_descriptions:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggested_bump:</span> <span class="pre">~claude_mpm.services.version_control.semantic_versioning.VersionBumpType</span> <span class="pre">=</span> <span class="pre">VersionBumpType.PATCH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#ChangeAnalysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Analysis of changes for version bumping.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_breaking_changes">
+<span class="sig-name descname"><span class="pre">has_breaking_changes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_breaking_changes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_new_features">
+<span class="sig-name descname"><span class="pre">has_new_features</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_new_features" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_bug_fixes">
+<span class="sig-name descname"><span class="pre">has_bug_fixes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">False</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.has_bug_fixes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.change_descriptions">
+<span class="sig-name descname"><span class="pre">change_descriptions</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.change_descriptions" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.suggested_bump">
+<span class="sig-name descname"><span class="pre">suggested_bump</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType" title="claude_mpm.services.version_control.semantic_versioning.VersionBumpType"><span class="pre">VersionBumpType</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'patch'</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.suggested_bump" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.confidence">
+<span class="sig-name descname"><span class="pre">confidence</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0.0</span></em><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.confidence" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">has_breaking_changes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_new_features:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_bug_fixes:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">change_descriptions:</span> <span class="pre">~typing.List[str]</span> <span class="pre">=</span> <span class="pre">&lt;factory&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suggested_bump:</span> <span class="pre">~claude_mpm.services.version_control.semantic_versioning.VersionBumpType</span> <span class="pre">=</span> <span class="pre">VersionBumpType.PATCH</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">confidence:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis.__init__" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">claude_mpm.services.version_control.semantic_versioning.</span></span><span class="sig-name descname"><span class="pre">SemanticVersionManager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.13)"><span class="pre">Logger</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.13)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Manages semantic versioning for the Version Control Agent.</p>
+<p>Provides comprehensive version management including parsing, bumping,
+changelog generation, and integration with Git tags.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_root</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">logger</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.13)"><span class="pre">Logger</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.__init__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.__init__" title="Link to this definition"></a></dt>
+<dd><p>Initialize Semantic Version Manager.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>project_root</strong> – Root directory of the project</p></li>
+<li><p><strong>logger</strong> – Logger instance</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.parse_version">
+<span class="sig-name descname"><span class="pre">parse_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_string</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.parse_version"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.parse_version" title="Link to this definition"></a></dt>
+<dd><p>Parse a version string into a SemanticVersion object.</p>
+<p>Version String Formats Supported:
+- 1.2.3 (basic semantic version)
+- v1.2.3 (with ‘v’ prefix - common in git tags)
+- 1.2.3-alpha (with prerelease)
+- 1.2.3-alpha.1 (with prerelease and number)
+- 1.2.3-beta.2+build.123 (full format)
+- 1.2.3+20230615 (with build metadata only)</p>
+<p>The parser is flexible and handles:
+- Optional ‘v’ prefix (stripped automatically)
+- Whitespace trimming
+- Full semver specification compliance
+- Graceful failure for invalid formats</p>
+<p>This is used for:
+- Parsing versions from files (package.json, etc.)
+- Converting git tags to versions
+- Agent version parsing and migration
+- User input validation</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>version_string</strong> – Version string to parse</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SemanticVersion object or None if parsing fails</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.get_current_version">
+<span class="sig-name descname"><span class="pre">get_current_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.get_current_version"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.get_current_version" title="Link to this definition"></a></dt>
+<dd><p>Get the current version from multiple sources with intelligent fallback.</p>
+<p>Uses the enhanced version parser to check:
+1. Git tags (most recent)
+2. VERSION file
+3. package.json
+4. pyproject.toml
+5. Other configured version files</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Current SemanticVersion or None if not found</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.analyze_changes">
+<span class="sig-name descname"><span class="pre">analyze_changes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">changes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis" title="claude_mpm.services.version_control.semantic_versioning.ChangeAnalysis"><span class="pre">ChangeAnalysis</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.analyze_changes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.analyze_changes" title="Link to this definition"></a></dt>
+<dd><p>Analyze changes to suggest version bump type.</p>
+<p>Change Analysis Process:
+1. Scan each change description for patterns
+2. Categorize changes (breaking, feature, fix)
+3. Determine highest priority change type
+4. Suggest appropriate version bump
+5. Calculate confidence score</p>
+<p>Pattern Matching:
+- Breaking: “breaking”, “breaking change”, “remove api”, etc.
+- Features: “add”, “new feature”, “implement”, “enhance”
+- Fixes: “fix”, “bug fix”, “resolve”, “correct”</p>
+<p>Version Bump Priority:
+1. Breaking changes -&gt; MAJOR (highest priority)
+2. New features -&gt; MINOR
+3. Bug fixes -&gt; PATCH
+4. Other changes -&gt; PATCH (default)</p>
+<p>Confidence Scoring:
+- 0.9: Clear breaking changes detected
+- 0.8: Clear new features detected
+- 0.7: Clear bug fixes detected
+- 0.5: No clear patterns (default to patch)</p>
+<p>This analysis is used for:
+- Conventional commit integration
+- Automated version bumping
+- Release note generation
+- Agent version updates</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>changes</strong> – List of change descriptions (e.g., commit messages)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>ChangeAnalysis with suggested version bump and confidence</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.bump_version">
+<span class="sig-name descname"><span class="pre">bump_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">bump_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType" title="claude_mpm.services.version_control.semantic_versioning.VersionBumpType"><span class="pre">VersionBumpType</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.bump_version"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.bump_version" title="Link to this definition"></a></dt>
+<dd><p>Bump version according to semantic versioning rules.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>current_version</strong> – Current version</p></li>
+<li><p><strong>bump_type</strong> – Type of bump to apply</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>New version</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.suggest_version_bump">
+<span class="sig-name descname"><span class="pre">suggest_version_bump</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">commit_messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.13)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.VersionBumpType" title="claude_mpm.services.version_control.semantic_versioning.VersionBumpType"><span class="pre">VersionBumpType</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.13)"><span class="pre">float</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.suggest_version_bump"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.suggest_version_bump" title="Link to this definition"></a></dt>
+<dd><p>Suggest version bump based on commit messages.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>commit_messages</strong> – List of commit messages since last version</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple of (suggested_bump_type, confidence_score)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.update_version_files">
+<span class="sig-name descname"><span class="pre">update_version_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">files_to_update</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.13)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.update_version_files"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.update_version_files" title="Link to this definition"></a></dt>
+<dd><p>Update version in project files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>new_version</strong> – New version to set</p></li>
+<li><p><strong>files_to_update</strong> – Specific files to update (defaults to all found)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dictionary mapping filenames to success status</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.generate_changelog_entry">
+<span class="sig-name descname"><span class="pre">generate_changelog_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">changes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">metadata</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.VersionMetadata" title="claude_mpm.services.version_control.semantic_versioning.VersionMetadata"><span class="pre">VersionMetadata</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.13)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.generate_changelog_entry"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.generate_changelog_entry" title="Link to this definition"></a></dt>
+<dd><p>Generate changelog entry for a version.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> – Version for the changelog entry</p></li>
+<li><p><strong>changes</strong> – List of changes</p></li>
+<li><p><strong>metadata</strong> – Optional version metadata</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Formatted changelog entry</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.update_changelog">
+<span class="sig-name descname"><span class="pre">update_changelog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">changes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">changelog_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'docs/CHANGELOG.md'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><span class="pre">bool</span></a></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.update_changelog"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.update_changelog" title="Link to this definition"></a></dt>
+<dd><p>Update CHANGELOG.md with new version entry.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>version</strong> – Version for the changelog entry</p></li>
+<li><p><strong>changes</strong> – List of changes</p></li>
+<li><p><strong>changelog_file</strong> – Changelog file name</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if update was successful</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.get_version_history">
+<span class="sig-name descname"><span class="pre">get_version_history</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.13)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersion" title="claude_mpm.services.version_control.semantic_versioning.SemanticVersion"><span class="pre">SemanticVersion</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/claude_mpm/services/version_control/semantic_versioning.html#SemanticVersionManager.get_version_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#claude_mpm.services.version_control.semantic_versioning.SemanticVersionManager.get_version_history" title="Link to this definition"></a></dt>
+<dd><p>Get version history from multiple sources with intelligent fallback.</p>
+<p>Uses the enhanced version parser to retrieve version history from:
+1. Git tags (primary source)
+2. CHANGELOG.md (fallback)
+3. VERSION files (current version only)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of versions in descending order</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="claude_mpm.services.version_control.git_operations.html" class="btn btn-neutral float-left" title="claude_mpm.services.version_control.git_operations module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="claude_mpm.services.version_control.version_parser.html" class="btn btn-neutral float-right" title="claude_mpm.services.version_control.version_parser module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,407 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.cli.commands.config &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../cli.html">claude_mpm.cli</a></li>
+      <li class="breadcrumb-item active">claude_mpm.cli.commands.config</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.cli.commands.config</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Configuration management commands for claude-mpm CLI.</span>
+
+<span class="sd">WHY: Users need a simple way to validate and manage their configuration from</span>
+<span class="sd">the command line. This module provides commands for configuration validation,</span>
+<span class="sd">viewing, and troubleshooting.</span>
+
+<span class="sd">DESIGN DECISIONS:</span>
+<span class="sd">- Integrate with existing CLI structure</span>
+<span class="sd">- Provide clear, actionable output</span>
+<span class="sd">- Support both validation and viewing operations</span>
+<span class="sd">- Use consistent error codes for CI/CD integration</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils.console</span><span class="w"> </span><span class="kn">import</span> <span class="n">console</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.table</span><span class="w"> </span><span class="kn">import</span> <span class="n">Table</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.syntax</span><span class="w"> </span><span class="kn">import</span> <span class="n">Syntax</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">rich.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">Panel</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="manage_config">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.manage_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">manage_config</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Main entry point for configuration management commands.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: This dispatcher handles different configuration subcommands,</span>
+<span class="sd">    routing to the appropriate handler based on user input.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Parsed command line arguments</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success, non-zero for failure)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">config_command</span> <span class="o">==</span> <span class="s1">&#39;validate&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">validate_config</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">config_command</span> <span class="o">==</span> <span class="s1">&#39;view&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">view_config</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">config_command</span> <span class="o">==</span> <span class="s1">&#39;status&#39;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">show_config_status</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]Unknown config command: </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">config_command</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="validate_config">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.validate_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_config</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate configuration file.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need immediate feedback on configuration validity with</span>
+<span class="sd">    clear guidance on how to fix any issues found.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Command line arguments including config file path</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0=valid, 1=errors, 2=warnings in strict mode)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">config_file</span> <span class="ow">or</span> <span class="n">Path</span><span class="p">(</span><span class="s2">&quot;.claude-mpm/configuration.yaml&quot;</span><span class="p">)</span>
+    
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold blue]Validating configuration: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">[/bold blue]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Check if file exists</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">config_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]✗ Configuration file not found: </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[yellow]→ Create with: mkdir -p </span><span class="si">{</span><span class="n">config_file</span><span class="o">.</span><span class="n">parent</span><span class="si">}</span><span class="s2"> &amp;&amp; touch </span><span class="si">{</span><span class="n">config_file</span><span class="si">}</span><span class="s2">[/yellow]&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span>
+        
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Try to load configuration</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+        
+        <span class="c1"># Validate configuration</span>
+        <span class="n">is_valid</span><span class="p">,</span> <span class="n">errors</span><span class="p">,</span> <span class="n">warnings</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">validate_configuration</span><span class="p">()</span>
+        
+        <span class="c1"># Display results</span>
+        <span class="k">if</span> <span class="n">errors</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;[bold red]ERRORS:[/bold red]&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">errors</span><span class="p">:</span>
+                <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [red]✗ </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+                
+        <span class="k">if</span> <span class="n">warnings</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold yellow]WARNINGS:[/bold yellow]&quot;</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">warnings</span><span class="p">:</span>
+                <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [yellow]⚠ </span><span class="si">{</span><span class="n">warning</span><span class="si">}</span><span class="s2">[/yellow]&quot;</span><span class="p">)</span>
+                
+        <span class="c1"># Show summary</span>
+        <span class="k">if</span> <span class="n">is_valid</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">warnings</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]✓ Configuration is valid[/green]&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">is_valid</span> <span class="ow">and</span> <span class="n">warnings</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[green]✓ Configuration is valid with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">warnings</span><span class="p">)</span><span class="si">}</span><span class="s2"> warning(s)[/green]&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">2</span> <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">strict</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[red]✗ Configuration validation failed with </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">errors</span><span class="p">)</span><span class="si">}</span><span class="s2"> error(s)[/red]&quot;</span><span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[yellow]Run &#39;python scripts/validate_configuration.py&#39; for detailed analysis[/yellow]&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+            
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]Failed to validate configuration: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Configuration validation error&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="view_config">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.view_config">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">view_config</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;View current configuration.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need to see their effective configuration including</span>
+<span class="sd">    defaults and environment variable overrides.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Command line arguments</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Load configuration</span>
+        <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">config_file</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="n">config_file</span><span class="p">)</span>
+        
+        <span class="c1"># Get configuration as dictionary</span>
+        <span class="n">config_dict</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span>
+        
+        <span class="c1"># Filter by section if specified</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">section</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">section</span> <span class="ow">in</span> <span class="n">config_dict</span><span class="p">:</span>
+                <span class="n">config_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">args</span><span class="o">.</span><span class="n">section</span><span class="p">:</span> <span class="n">config_dict</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">section</span><span class="p">]}</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]Section &#39;</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">section</span><span class="si">}</span><span class="s2">&#39; not found in configuration[/red]&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">1</span>
+                
+        <span class="c1"># Format output</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;json&#39;</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">config_dict</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">syntax</span> <span class="o">=</span> <span class="n">Syntax</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;json&quot;</span><span class="p">,</span> <span class="n">theme</span><span class="o">=</span><span class="s2">&quot;monokai&quot;</span><span class="p">,</span> <span class="n">line_numbers</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">syntax</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">format</span> <span class="o">==</span> <span class="s1">&#39;yaml&#39;</span><span class="p">:</span>
+            <span class="n">output</span> <span class="o">=</span> <span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">config_dict</span><span class="p">,</span> <span class="n">default_flow_style</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">syntax</span> <span class="o">=</span> <span class="n">Syntax</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;yaml&quot;</span><span class="p">,</span> <span class="n">theme</span><span class="o">=</span><span class="s2">&quot;monokai&quot;</span><span class="p">,</span> <span class="n">line_numbers</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">syntax</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># table format</span>
+            <span class="n">display_config_table</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="mi">0</span>
+        
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]Failed to view configuration: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Configuration view error&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="show_config_status">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.show_config_status">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_config_status</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Show configuration status and health.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Users need a quick way to check if their configuration is</span>
+<span class="sd">    working correctly, especially for response logging.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        args: Command line arguments</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Exit code (0 for success)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Load configuration</span>
+        <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">(</span><span class="n">config_file</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">config_file</span><span class="p">)</span>
+        
+        <span class="c1"># Get status</span>
+        <span class="n">status</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get_configuration_status</span><span class="p">()</span>
+        
+        <span class="c1"># Create status panel</span>
+        <span class="n">panel_content</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Basic info</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[bold]Configuration Status[/bold]&quot;</span><span class="p">)</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Valid: </span><span class="si">{</span><span class="s1">&#39;✓&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;valid&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;✗&#39;</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded from: </span><span class="si">{</span><span class="n">status</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;loaded_from&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;defaults&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Total keys: </span><span class="si">{</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;key_count&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Feature status</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold]Features:[/bold]&quot;</span><span class="p">)</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Response Logging: </span><span class="si">{</span><span class="s1">&#39;✓ Enabled&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;response_logging_enabled&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;✗ Disabled&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Memory System: </span><span class="si">{</span><span class="s1">&#39;✓ Enabled&#39;</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;memory_enabled&#39;</span><span class="p">]</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="s1">&#39;✗ Disabled&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Errors and warnings</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]:</span>
+            <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[red]Errors: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;warnings&#39;</span><span class="p">]:</span>
+            <span class="n">panel_content</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[yellow]Warnings: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">status</span><span class="p">[</span><span class="s1">&#39;warnings&#39;</span><span class="p">])</span><span class="si">}</span><span class="s2">[/yellow]&quot;</span><span class="p">)</span>
+            
+        <span class="c1"># Display panel</span>
+        <span class="n">panel</span> <span class="o">=</span> <span class="n">Panel</span><span class="p">(</span>
+            <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">panel_content</span><span class="p">),</span>
+            <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Configuration Status&quot;</span><span class="p">,</span>
+            <span class="n">border_style</span><span class="o">=</span><span class="s2">&quot;green&quot;</span> <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;valid&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;red&quot;</span>
+        <span class="p">)</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">panel</span><span class="p">)</span>
+        
+        <span class="c1"># Show detailed errors/warnings if verbose</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]:</span>
+                <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold red]Errors:[/bold red]&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;errors&#39;</span><span class="p">]:</span>
+                    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [red]• </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+                    
+            <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;warnings&#39;</span><span class="p">]:</span>
+                <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold yellow]Warnings:[/bold yellow]&quot;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">warning</span> <span class="ow">in</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;warnings&#39;</span><span class="p">]:</span>
+                    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  [yellow]• </span><span class="si">{</span><span class="n">warning</span><span class="si">}</span><span class="s2">[/yellow]&quot;</span><span class="p">)</span>
+                    
+        <span class="c1"># Check response logging specifically</span>
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">check_response_logging</span><span class="p">:</span>
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[bold]Response Logging Configuration:[/bold]&quot;</span><span class="p">)</span>
+            <span class="n">rl_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;response_logging&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            
+            <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">show_header</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Setting&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;cyan&quot;</span><span class="p">)</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">)</span>
+            
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="s2">&quot;Enabled&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">rl_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enabled&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="s2">&quot;Format&quot;</span><span class="p">,</span> <span class="n">rl_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="s2">&quot;Use Async&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">rl_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;use_async&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="s2">&quot;Session Directory&quot;</span><span class="p">,</span> <span class="n">rl_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_directory&#39;</span><span class="p">,</span> <span class="s1">&#39;.claude-mpm/responses&#39;</span><span class="p">))</span>
+            <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="s2">&quot;Compression&quot;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">rl_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enable_compression&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)))</span>
+            
+            <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">status</span><span class="p">[</span><span class="s1">&#39;valid&#39;</span><span class="p">]</span> <span class="k">else</span> <span class="mi">1</span>
+        
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[red]Failed to get configuration status: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">[/red]&quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">&quot;Configuration status error&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="mi">1</span></div>
+
+
+
+<div class="viewcode-block" id="display_config_table">
+<a class="viewcode-back" href="../../../../cli/commands.html#claude_mpm.cli.commands.display_config_table">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">display_config_table</span><span class="p">(</span><span class="n">config_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Display configuration as a formatted table.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        config_dict: Configuration dictionary</span>
+<span class="sd">        prefix: Key prefix for nested values</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">show_header</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Configuration&quot;</span><span class="p">)</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Key&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;cyan&quot;</span><span class="p">,</span> <span class="n">no_wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Value&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;white&quot;</span><span class="p">)</span>
+    <span class="n">table</span><span class="o">.</span><span class="n">add_column</span><span class="p">(</span><span class="s2">&quot;Type&quot;</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s2">&quot;dim&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_items</span><span class="p">(</span><span class="n">d</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">d</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">full_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">prefix</span> <span class="k">else</span> <span class="n">key</span>
+            
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span><span class="p">:</span>
+                <span class="c1"># Add nested items</span>
+                <span class="n">add_items</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">full_key</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Add leaf value</span>
+                <span class="n">value_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">value_str</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">50</span><span class="p">:</span>
+                    <span class="n">value_str</span> <span class="o">=</span> <span class="n">value_str</span><span class="p">[:</span><span class="mi">47</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span>
+                    
+                <span class="n">type_str</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="n">table</span><span class="o">.</span><span class="n">add_row</span><span class="p">(</span><span class="n">full_key</span><span class="p">,</span> <span class="n">value_str</span><span class="p">,</span> <span class="n">type_str</span><span class="p">)</span>
+                
+    <span class="n">add_items</span><span class="p">(</span><span class="n">config_dict</span><span class="p">)</span>
+    <span class="n">console</span><span class="o">.</span><span class="n">print</span><span class="p">(</span><span class="n">table</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

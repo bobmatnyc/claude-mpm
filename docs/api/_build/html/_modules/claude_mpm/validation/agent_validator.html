@@ -1,0 +1,649 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.validation.agent_validator &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.validation.agent_validator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.validation.agent_validator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Agent validation framework using JSON Schema validation.</span>
+
+<span class="sd">This module provides comprehensive validation for agent configurations</span>
+<span class="sd">using the standardized JSON schema with direct validation approach.</span>
+
+<span class="sd">Security Features:</span>
+<span class="sd">- Input validation using JSON Schema to prevent malformed data</span>
+<span class="sd">- Path traversal protection in file operations</span>
+<span class="sd">- Resource limit validation to prevent resource exhaustion</span>
+<span class="sd">- Strict schema validation with no additional properties allowed</span>
+<span class="sd">- Character limit enforcement to prevent memory exhaustion</span>
+<span class="sd">- Safe JSON parsing with error handling</span>
+
+<span class="sd">Security Considerations:</span>
+<span class="sd">- All file paths should be validated and sanitized</span>
+<span class="sd">- Agent IDs must follow strict naming conventions</span>
+<span class="sd">- Resource limits prevent denial of service attacks</span>
+<span class="sd">- Schema validation prevents injection of unexpected fields</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">jsonschema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jsonschema</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate</span><span class="p">,</span> <span class="n">ValidationError</span><span class="p">,</span> <span class="n">Draft7Validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.config.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">paths</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SystemLimits</span><span class="p">,</span>
+    <span class="n">ResourceLimits</span><span class="p">,</span>
+    <span class="n">TimeoutConfig</span><span class="p">,</span>
+    <span class="n">ComplexityMetrics</span><span class="p">,</span>
+    <span class="n">ErrorMessages</span><span class="p">,</span>
+    <span class="n">ValidationRules</span>
+<span class="p">)</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ValidationResult">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.ValidationResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ValidationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result of agent validation.&quot;&quot;&quot;</span>
+    <span class="n">is_valid</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">warnings</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="AgentValidator">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentValidator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validates agent configurations against JSON schema.</span>
+<span class="sd">    </span>
+<span class="sd">    SECURITY CRITICAL: This class is the primary defense against malicious agent</span>
+<span class="sd">    configurations. All agent data must pass through this validator before being</span>
+<span class="sd">    used by the system. Bypassing this validator could lead to:</span>
+<span class="sd">    - Arbitrary code execution (via tool access)</span>
+<span class="sd">    - Resource exhaustion (via resource limits)</span>
+<span class="sd">    - Data exfiltration (via file/network access)</span>
+<span class="sd">    - Privilege escalation (via tool combinations)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Model name mappings for normalization to tier names</span>
+    <span class="n">MODEL_MAPPINGS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="c1"># Sonnet variations</span>
+        <span class="s2">&quot;claude-3-5-sonnet-20241022&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-5-sonnet-20240620&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-sonnet-4-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-4-sonnet-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-sonnet-20240229&quot;</span><span class="p">:</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span>
+        <span class="c1"># Opus variations</span>
+        <span class="s2">&quot;claude-3-opus-20240229&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-opus-4-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-4-opus-20250514&quot;</span><span class="p">:</span> <span class="s2">&quot;opus&quot;</span><span class="p">,</span>
+        <span class="c1"># Haiku variations</span>
+        <span class="s2">&quot;claude-3-haiku-20240307&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;claude-3-5-haiku-20241022&quot;</span><span class="p">:</span> <span class="s2">&quot;haiku&quot;</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+<div class="viewcode-block" id="AgentValidator.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the validator with the agent schema.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">schema_path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">schema_path</span> <span class="o">=</span> <span class="n">paths</span><span class="o">.</span><span class="n">schemas_dir</span> <span class="o">/</span> <span class="s2">&quot;agent_schema.json&quot;</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span> <span class="o">=</span> <span class="n">schema_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_schema</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">validator</span> <span class="o">=</span> <span class="n">Draft7Validator</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the JSON schema from file.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Considerations:</span>
+<span class="sd">        - Schema file path is validated to exist and be a file</span>
+<span class="sd">        - JSON parsing errors are caught and logged</span>
+<span class="sd">        - Schema tampering would be detected by validation failures</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># SECURITY: Validate schema path exists and is a file</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Schema file not found: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Schema path is not a file: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load schema from </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalize model name to standard tier (opus, sonnet, haiku).</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            model: Original model name</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Normalized model tier name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Direct mapping check</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODEL_MAPPINGS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">MODEL_MAPPINGS</span><span class="p">[</span><span class="n">model</span><span class="p">]</span>
+        
+        <span class="c1"># Already normalized</span>
+        <span class="k">if</span> <span class="n">model</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;opus&quot;</span><span class="p">,</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span> <span class="s2">&quot;haiku&quot;</span><span class="p">}:</span>
+            <span class="k">return</span> <span class="n">model</span>
+        
+        <span class="c1"># Check if model contains tier name</span>
+        <span class="n">model_lower</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">tier</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;opus&quot;</span><span class="p">,</span> <span class="s2">&quot;sonnet&quot;</span><span class="p">,</span> <span class="s2">&quot;haiku&quot;</span><span class="p">}:</span>
+            <span class="k">if</span> <span class="n">tier</span> <span class="ow">in</span> <span class="n">model_lower</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">tier</span>
+        
+        <span class="c1"># Default to sonnet if unrecognized</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unrecognized model &#39;</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&#39;, defaulting to &#39;sonnet&#39;&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;sonnet&quot;</span>
+    
+<div class="viewcode-block" id="AgentValidator.validate_agent">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator.validate_agent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate a single agent configuration against the schema.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Features:</span>
+<span class="sd">        - Strict JSON Schema validation prevents unexpected fields</span>
+<span class="sd">        - Business rule validation adds additional security checks</span>
+<span class="sd">        - Input size limits prevent memory exhaustion</span>
+<span class="sd">        - Agent ID format validation prevents injection attacks</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_data: Agent configuration dictionary</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ValidationResult with validation status and any errors/warnings</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Normalize model name before validation</span>
+        <span class="k">if</span> <span class="s2">&quot;capabilities&quot;</span> <span class="ow">in</span> <span class="n">agent_data</span> <span class="ow">and</span> <span class="s2">&quot;model&quot;</span> <span class="ow">in</span> <span class="n">agent_data</span><span class="p">[</span><span class="s2">&quot;capabilities&quot;</span><span class="p">]:</span>
+            <span class="n">original_model</span> <span class="o">=</span> <span class="n">agent_data</span><span class="p">[</span><span class="s2">&quot;capabilities&quot;</span><span class="p">][</span><span class="s2">&quot;model&quot;</span><span class="p">]</span>
+            <span class="n">normalized_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_model</span><span class="p">(</span><span class="n">original_model</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">original_model</span> <span class="o">!=</span> <span class="n">normalized_model</span><span class="p">:</span>
+                <span class="n">agent_data</span><span class="p">[</span><span class="s2">&quot;capabilities&quot;</span><span class="p">][</span><span class="s2">&quot;model&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">normalized_model</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Normalized model from &#39;</span><span class="si">{</span><span class="n">original_model</span><span class="si">}</span><span class="s2">&#39; to &#39;</span><span class="si">{</span><span class="n">normalized_model</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Perform JSON schema validation</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">validate</span><span class="p">(</span><span class="n">instance</span><span class="o">=</span><span class="n">agent_data</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">ValidationError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Schema validation error: </span><span class="si">{</span><span class="n">e</span><span class="o">.</span><span class="n">message</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Add path information if available</span>
+            <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">path</span><span class="p">:</span>
+                <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">p</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">e</span><span class="o">.</span><span class="n">path</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error at path: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Additional business rule validations beyond schema</span>
+        <span class="c1"># These provide defense-in-depth security checks</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_business_rules</span><span class="p">(</span><span class="n">agent_data</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        
+        <span class="c1"># Add metadata</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;validated_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">&quot;schema_version&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">,</span> <span class="s2">&quot;1.1.0&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;unknown&quot;</span><span class="p">)</span>
+        <span class="p">}</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_business_rules</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">ValidationResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply additional business rule validations beyond schema.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Validations:</span>
+<span class="sd">        - Resource limits to prevent DoS attacks</span>
+<span class="sd">        - Instruction length limits to prevent memory exhaustion</span>
+<span class="sd">        - Agent ID format to prevent injection attacks</span>
+<span class="sd">        - Tool compatibility to prevent privilege escalation</span>
+<span class="sd">        - Self-reference prevention in handoff agents</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="c1"># Validate resource tier consistency</span>
+        <span class="n">resource_tier</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;resource_tier&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">resource_tier</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_validate_resource_tier_limits</span><span class="p">(</span><span class="n">agent_data</span><span class="p">,</span> <span class="n">resource_tier</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Validate instruction length to prevent memory exhaustion</span>
+        <span class="c1"># Double-check even though schema enforces this - defense in depth</span>
+        <span class="n">instructions</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instructions&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">instructions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">SystemLimits</span><span class="o">.</span><span class="n">MAX_INSTRUCTION_LENGTH</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ErrorMessages</span><span class="o">.</span><span class="n">INSTRUCTION_TOO_LONG</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                <span class="n">limit</span><span class="o">=</span><span class="n">SystemLimits</span><span class="o">.</span><span class="n">MAX_INSTRUCTION_LENGTH</span><span class="p">,</span>
+                <span class="n">actual</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">instructions</span><span class="p">)</span>
+            <span class="p">))</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># Validate model compatibility with tools</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_model_tool_compatibility</span><span class="p">(</span><span class="n">agent_data</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Validate agent ID format to prevent injection attacks</span>
+        <span class="c1"># Pattern enforced: ^[a-z][a-z0-9_]*$ prevents special characters</span>
+        <span class="n">agent_id</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;id&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">agent_id</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_agent&quot;</span><span class="p">):</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agent ID &#39;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&#39; contains deprecated &#39;_agent&#39; suffix&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Additional ID validation for defense in depth</span>
+        <span class="k">if</span> <span class="n">agent_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">agent_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">isalnum</span><span class="p">():</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agent ID &#39;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&#39; contains invalid characters&quot;</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="c1"># SECURITY: Validate handoff agents to prevent circular references and privilege escalation</span>
+        <span class="n">handoff_agents</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;interactions&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;handoff_agents&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">handoff_id</span> <span class="ow">in</span> <span class="n">handoff_agents</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">handoff_id</span> <span class="o">==</span> <span class="n">agent_id</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Agent &#39;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&#39; references itself in handoff_agents&quot;</span><span class="p">)</span>
+            <span class="c1"># SECURITY: Ensure handoff IDs follow same pattern as agent IDs</span>
+            <span class="k">if</span> <span class="n">handoff_id</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">handoff_id</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">isalnum</span><span class="p">():</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Handoff agent ID &#39;</span><span class="si">{</span><span class="n">handoff_id</span><span class="si">}</span><span class="s2">&#39; contains invalid characters&quot;</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_resource_tier_limits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">tier</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">ValidationResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate resource limits match the tier constraints.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Purpose:</span>
+<span class="sd">        - Prevents resource exhaustion attacks</span>
+<span class="sd">        - Ensures agents can&#39;t request excessive resources</span>
+<span class="sd">        - Enforces fair resource allocation</span>
+<span class="sd">        - Prevents denial of service through resource hogging</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tier_limits</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;intensive&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;memory_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">INTENSIVE_MEMORY_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;cpu_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">INTENSIVE_CPU_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">TimeoutConfig</span><span class="o">.</span><span class="n">INTENSIVE_TIMEOUT_RANGE</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;standard&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;memory_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">STANDARD_MEMORY_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;cpu_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">STANDARD_CPU_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">TimeoutConfig</span><span class="o">.</span><span class="n">STANDARD_TIMEOUT_RANGE</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;lightweight&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">&quot;memory_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">LIGHTWEIGHT_MEMORY_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;cpu_limit&quot;</span><span class="p">:</span> <span class="n">ResourceLimits</span><span class="o">.</span><span class="n">LIGHTWEIGHT_CPU_RANGE</span><span class="p">,</span>
+                <span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">TimeoutConfig</span><span class="o">.</span><span class="n">LIGHTWEIGHT_TIMEOUT_RANGE</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+        
+        <span class="k">if</span> <span class="n">tier</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tier_limits</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="n">limits</span> <span class="o">=</span> <span class="n">tier_limits</span><span class="p">[</span><span class="n">tier</span><span class="p">]</span>
+        <span class="n">capabilities</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span>
+        
+        <span class="c1"># Check memory limit</span>
+        <span class="n">memory</span> <span class="o">=</span> <span class="n">capabilities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;memory_limit&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">memory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_mem</span><span class="p">,</span> <span class="n">max_mem</span> <span class="o">=</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;memory_limit&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">min_mem</span> <span class="o">&lt;=</span> <span class="n">memory</span> <span class="o">&lt;=</span> <span class="n">max_mem</span><span class="p">):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Memory limit </span><span class="si">{</span><span class="n">memory</span><span class="si">}</span><span class="s2">MB outside recommended range &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">min_mem</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">max_mem</span><span class="si">}</span><span class="s2">MB for tier &#39;</span><span class="si">{</span><span class="n">tier</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="p">)</span>
+        
+        <span class="c1"># Check CPU limit</span>
+        <span class="n">cpu</span> <span class="o">=</span> <span class="n">capabilities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;cpu_limit&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cpu</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_cpu</span><span class="p">,</span> <span class="n">max_cpu</span> <span class="o">=</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;cpu_limit&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">min_cpu</span> <span class="o">&lt;=</span> <span class="n">cpu</span> <span class="o">&lt;=</span> <span class="n">max_cpu</span><span class="p">):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;CPU limit </span><span class="si">{</span><span class="n">cpu</span><span class="si">}</span><span class="s2">% outside recommended range &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">min_cpu</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">max_cpu</span><span class="si">}</span><span class="s2">% for tier &#39;</span><span class="si">{</span><span class="n">tier</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="p">)</span>
+        
+        <span class="c1"># Check timeout</span>
+        <span class="n">timeout</span> <span class="o">=</span> <span class="n">capabilities</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;timeout&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">timeout</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_timeout</span><span class="p">,</span> <span class="n">max_timeout</span> <span class="o">=</span> <span class="n">limits</span><span class="p">[</span><span class="s2">&quot;timeout&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">min_timeout</span> <span class="o">&lt;=</span> <span class="n">timeout</span> <span class="o">&lt;=</span> <span class="n">max_timeout</span><span class="p">):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Timeout </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">s outside recommended range &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">min_timeout</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">max_timeout</span><span class="si">}</span><span class="s2">s for tier &#39;</span><span class="si">{</span><span class="n">tier</span><span class="si">}</span><span class="s2">&#39;&quot;</span>
+                <span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_validate_model_tool_compatibility</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">result</span><span class="p">:</span> <span class="n">ValidationResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate that model and tools are compatible.&quot;&quot;&quot;</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">tools</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tools&quot;</span><span class="p">,</span> <span class="p">[])</span>
+        
+        <span class="c1"># Normalize model name for comparison</span>
+        <span class="n">normalized_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_model</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+        
+        <span class="c1"># Haiku models shouldn&#39;t use resource-intensive tools</span>
+        <span class="k">if</span> <span class="n">normalized_model</span> <span class="o">==</span> <span class="s2">&quot;haiku&quot;</span><span class="p">:</span>
+            <span class="n">intensive_tools</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;kubectl&quot;</span><span class="p">,</span> <span class="s2">&quot;terraform&quot;</span><span class="p">,</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;azure&quot;</span><span class="p">}</span>
+            <span class="n">used_intensive</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">intensive_tools</span>
+            <span class="k">if</span> <span class="n">used_intensive</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Haiku model &#39;</span><span class="si">{</span><span class="n">model</span><span class="si">}</span><span class="s2">&#39; using resource-intensive tools: </span><span class="si">{</span><span class="n">used_intensive</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Network access requirement validation</span>
+        <span class="c1"># Ensures agents can&#39;t use network tools without explicit permission</span>
+        <span class="n">network_tools</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;WebSearch&quot;</span><span class="p">,</span> <span class="s2">&quot;WebFetch&quot;</span><span class="p">,</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;azure&quot;</span><span class="p">}</span>
+        <span class="n">needs_network</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">network_tools</span><span class="p">)</span>
+        <span class="n">has_network</span> <span class="o">=</span> <span class="n">agent_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;network_access&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">needs_network</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">has_network</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Agent uses network tools </span><span class="si">{</span><span class="nb">set</span><span class="p">(</span><span class="n">tools</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n">network_tools</span><span class="si">}</span><span class="s2"> but network_access is False&quot;</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Check for potentially dangerous tool combinations</span>
+        <span class="n">dangerous_combos</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">({</span><span class="s2">&quot;Bash&quot;</span><span class="p">,</span> <span class="s2">&quot;Write&quot;</span><span class="p">},</span> <span class="s2">&quot;Can execute arbitrary code by writing and running scripts&quot;</span><span class="p">),</span>
+            <span class="p">({</span><span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;kubectl&quot;</span><span class="p">},</span> <span class="s2">&quot;Container escape potential with both tools&quot;</span><span class="p">),</span>
+            <span class="p">({</span><span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;azure&quot;</span><span class="p">},</span> <span class="s2">&quot;Multiple cloud access increases attack surface&quot;</span><span class="p">)</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">combo</span><span class="p">,</span> <span class="n">risk</span> <span class="ow">in</span> <span class="n">dangerous_combos</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">combo</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">tools</span><span class="p">)):</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Potentially dangerous tool combination: </span><span class="si">{</span><span class="n">combo</span><span class="si">}</span><span class="s2"> - </span><span class="si">{</span><span class="n">risk</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AgentValidator.validate_file">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator.validate_file">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate an agent configuration file.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Measures:</span>
+<span class="sd">        - Path traversal protection through Path object</span>
+<span class="sd">        - Safe JSON parsing with error handling</span>
+<span class="sd">        - File size limits should be enforced by caller</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># SECURITY: Validate file path</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">file_path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path is not a file: </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># SECURITY: Check file size to prevent memory exhaustion</span>
+            <span class="n">file_size</span> <span class="o">=</span> <span class="n">file_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span>
+            <span class="n">max_size</span> <span class="o">=</span> <span class="n">SystemLimits</span><span class="o">.</span><span class="n">MAX_AGENT_CONFIG_SIZE</span>
+            <span class="k">if</span> <span class="n">file_size</span> <span class="o">&gt;</span> <span class="n">max_size</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">ErrorMessages</span><span class="o">.</span><span class="n">FILE_TOO_LARGE</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="n">limit</span><span class="o">=</span><span class="n">max_size</span>
+                <span class="p">))</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">agent_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_agent</span><span class="p">(</span><span class="n">agent_data</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;file_path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+            
+        <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid JSON in </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">is_valid</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error reading </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span></div>
+
+    
+<div class="viewcode-block" id="AgentValidator.validate_directory">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator.validate_directory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ValidationResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate all agent files in a directory.</span>
+<span class="sd">        </span>
+<span class="sd">        Security Considerations:</span>
+<span class="sd">        - Directory traversal prevention through Path.glob</span>
+<span class="sd">        - Symlink following should be disabled in production</span>
+<span class="sd">        - Large directory DoS prevention through file count limits</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># SECURITY: Validate directory exists and is accessible</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">directory</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Directory not found: </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">directory</span><span class="o">.</span><span class="n">is_dir</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Path is not a directory: </span><span class="si">{</span><span class="n">directory</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># SECURITY: Limit number of files to prevent DoS</span>
+        <span class="n">max_files</span> <span class="o">=</span> <span class="n">SystemLimits</span><span class="o">.</span><span class="n">MAX_FILES_TO_VALIDATE</span>
+        <span class="n">file_count</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">json_file</span> <span class="ow">in</span> <span class="n">directory</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.json&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">json_file</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;agent_schema.json&quot;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># SECURITY: Skip symlinks to prevent directory traversal</span>
+            <span class="k">if</span> <span class="n">json_file</span><span class="o">.</span><span class="n">is_symlink</span><span class="p">():</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Skipping symlink: </span><span class="si">{</span><span class="n">json_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">continue</span>
+            
+            <span class="n">file_count</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">file_count</span> <span class="o">&gt;</span> <span class="n">max_files</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reached maximum file limit (</span><span class="si">{</span><span class="n">max_files</span><span class="si">}</span><span class="s2">), stopping validation&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+            
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Validating </span><span class="si">{</span><span class="n">json_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">results</span><span class="p">[</span><span class="n">json_file</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">validate_file</span><span class="p">(</span><span class="n">json_file</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">results</span></div>
+
+    
+<div class="viewcode-block" id="AgentValidator.get_schema_info">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.AgentValidator.get_schema_info">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_schema_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get information about the loaded schema.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;schema_path&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema_path</span><span class="p">),</span>
+            <span class="s2">&quot;schema_title&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;title&quot;</span><span class="p">,</span> <span class="s2">&quot;Unknown&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;schema_description&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;description&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">),</span>
+            <span class="s2">&quot;required_fields&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;required&quot;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;properties&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="validate_agent_migration">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.validate_agent_migration">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_agent_migration</span><span class="p">(</span><span class="n">old_agent</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">new_agent</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate that a migrated agent maintains compatibility.</span>
+<span class="sd">    </span>
+<span class="sd">    Security Importance:</span>
+<span class="sd">    - Ensures privilege escalation doesn&#39;t occur during migration</span>
+<span class="sd">    - Validates that security constraints are preserved</span>
+<span class="sd">    - Prevents addition of dangerous tools without review</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        old_agent: Original agent configuration</span>
+<span class="sd">        new_agent: Migrated agent configuration</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        ValidationResult with migration validation results</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">ValidationResult</span><span class="p">(</span><span class="n">is_valid</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    
+    <span class="c1"># SECURITY: Check that core functionality is preserved without privilege escalation</span>
+    <span class="n">old_tools</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">old_agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;configuration_fields&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tools&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+    <span class="n">new_tools</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">new_agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;capabilities&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;tools&quot;</span><span class="p">,</span> <span class="p">[]))</span>
+    
+    <span class="k">if</span> <span class="n">old_tools</span> <span class="o">!=</span> <span class="n">new_tools</span><span class="p">:</span>
+        <span class="n">missing</span> <span class="o">=</span> <span class="n">old_tools</span> <span class="o">-</span> <span class="n">new_tools</span>
+        <span class="n">added</span> <span class="o">=</span> <span class="n">new_tools</span> <span class="o">-</span> <span class="n">old_tools</span>
+        <span class="k">if</span> <span class="n">missing</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tools removed in migration: </span><span class="si">{</span><span class="n">missing</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">added</span><span class="p">:</span>
+            <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Tools added in migration: </span><span class="si">{</span><span class="n">added</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># SECURITY: Flag addition of dangerous tools</span>
+            <span class="n">dangerous_tools</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;Bash&quot;</span><span class="p">,</span> <span class="s2">&quot;docker&quot;</span><span class="p">,</span> <span class="s2">&quot;kubectl&quot;</span><span class="p">,</span> <span class="s2">&quot;aws&quot;</span><span class="p">,</span> <span class="s2">&quot;gcloud&quot;</span><span class="p">,</span> <span class="s2">&quot;azure&quot;</span><span class="p">}</span>
+            <span class="n">dangerous_added</span> <span class="o">=</span> <span class="n">added</span> <span class="o">&amp;</span> <span class="n">dangerous_tools</span>
+            <span class="k">if</span> <span class="n">dangerous_added</span><span class="p">:</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;SECURITY: Dangerous tools added in migration: </span><span class="si">{</span><span class="n">dangerous_added</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="c1"># Check instruction preservation</span>
+    <span class="n">old_instructions</span> <span class="o">=</span> <span class="n">old_agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;narrative_fields&quot;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instructions&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    <span class="n">new_instructions</span> <span class="o">=</span> <span class="n">new_agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;instructions&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">old_instructions</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">new_instructions</span><span class="p">:</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Instructions lost in migration&quot;</span><span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">old_instructions</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_instructions</span><span class="p">)</span> <span class="o">*</span> <span class="mf">1.1</span><span class="p">:</span>  <span class="c1"># Allow 10% reduction</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">warnings</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Significant instruction content reduction in migration&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<span class="c1"># Convenience functions</span>
+<div class="viewcode-block" id="validate_agent_file">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.validate_agent_file">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_agent_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ValidationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Validate a single agent file.&quot;&quot;&quot;</span>
+    <span class="n">validator</span> <span class="o">=</span> <span class="n">AgentValidator</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="validate_all_agents">
+<a class="viewcode-back" href="../../../claude_mpm.validation.agent_validator.html#claude_mpm.validation.agent_validator.validate_all_agents">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_all_agents</span><span class="p">(</span><span class="n">directory</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Validate all agents in a directory and return summary.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple of (valid_count, invalid_count, error_messages)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">validator</span> <span class="o">=</span> <span class="n">AgentValidator</span><span class="p">()</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="n">validator</span><span class="o">.</span><span class="n">validate_directory</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
+    
+    <span class="n">valid_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">values</span><span class="p">()</span> <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">is_valid</span><span class="p">)</span>
+    <span class="n">invalid_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">results</span><span class="p">)</span> <span class="o">-</span> <span class="n">valid_count</span>
+    
+    <span class="n">error_messages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">filename</span><span class="p">,</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">result</span><span class="o">.</span><span class="n">is_valid</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">errors</span><span class="p">:</span>
+                <span class="n">error_messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">return</span> <span class="n">valid_count</span><span class="p">,</span> <span class="n">invalid_count</span><span class="p">,</span> <span class="n">error_messages</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

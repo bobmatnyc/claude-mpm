@@ -1,0 +1,1444 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.core.interfaces &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.core.interfaces</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.core.interfaces</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Core Service Interfaces for Claude PM Framework</span>
+<span class="sd">==============================================</span>
+
+<span class="sd">This module defines the core service interfaces that establish contracts for </span>
+<span class="sd">dependency injection, service discovery, and framework orchestration.</span>
+
+<span class="sd">Phase 1 Refactoring: Interface extraction and dependency injection foundation</span>
+<span class="sd">- IServiceContainer: Dependency injection container</span>
+<span class="sd">- IAgentRegistry: Agent discovery and management</span>
+<span class="sd">- IPromptCache: Performance-critical caching </span>
+<span class="sd">- IHealthMonitor: Service health monitoring</span>
+<span class="sd">- IConfigurationManager: Configuration management</span>
+<span class="sd">- ITemplateManager: Template processing and rendering</span>
+<span class="sd">- IServiceFactory: Service creation patterns</span>
+
+<span class="sd">These interfaces reduce cyclomatic complexity and establish clean separation of concerns.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Generic</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+
+<span class="c1"># Type variables for generic interfaces</span>
+<span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;T&#39;</span><span class="p">)</span>
+<span class="n">ServiceType</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s1">&#39;ServiceType&#39;</span><span class="p">)</span>
+
+
+<span class="c1"># Core dependency injection interfaces</span>
+<div class="viewcode-block" id="IServiceContainer">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IServiceContainer</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Service container interface for dependency injection&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IServiceContainer.register">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer.register">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">implementation</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">singleton</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a service implementation&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceContainer.register_instance">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer.register_instance">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_instance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">instance</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a service instance&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceContainer.resolve">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer.resolve">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve a service by type&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceContainer.resolve_all">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer.resolve_all">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_all</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Resolve all implementations of a service type&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceContainer.is_registered">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceContainer.is_registered">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_registered</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if a service type is registered&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Configuration management interfaces</span>
+<div class="viewcode-block" id="IConfigurationService">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationService">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IConfigurationService</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for configuration service (legacy compatibility)&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IConfigurationService.get">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationService.get">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get configuration value by key&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationService.set">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationService.set">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set configuration value&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationService.initialize">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationService.initialize">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize configuration service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationService.shutdown">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationService.shutdown">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Shutdown configuration service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+<div class="viewcode-block" id="IConfigurationManager">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IConfigurationManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for configuration management and validation&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IConfigurationManager.get">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.get">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get configuration value by key&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationManager.set">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.set">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set configuration value&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationManager.get_section">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.get_section">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get entire configuration section&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationManager.validate_schema">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.validate_schema">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_schema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate configuration against schema&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationManager.reload">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.reload">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reload</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reload configuration from sources&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IConfigurationManager.watch_changes">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IConfigurationManager.watch_changes">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">watch_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Watch for configuration changes&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Cache service interface</span>
+<div class="viewcode-block" id="ICacheService">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ICacheService</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for cache service operations&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ICacheService.get">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.get">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get value from cache&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ICacheService.set">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.set">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ttl</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set value in cache with optional TTL&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ICacheService.delete">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.delete">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete key from cache&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ICacheService.invalidate">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.invalidate">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Invalidate keys matching pattern&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ICacheService.clear">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.clear">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all cache entries&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ICacheService.get_cache_metrics">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ICacheService.get_cache_metrics">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_cache_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get cache performance metrics&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Health monitoring interface</span>
+<div class="viewcode-block" id="HealthStatus">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HealthStatus">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthStatus</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Health status data structure&quot;&quot;&quot;</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># healthy, degraded, unhealthy, unknown</span>
+    <span class="n">message</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">checks</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span>
+    <span class="n">metrics</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="IHealthMonitor">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IHealthMonitor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for service health monitoring&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IHealthMonitor.check_health">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor.check_health">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">check_health</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HealthStatus</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check health of a specific service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IHealthMonitor.get_system_health">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor.get_system_health">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_system_health</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">HealthStatus</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get overall system health&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IHealthMonitor.register_health_check">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor.register_health_check">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_health_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">check_func</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a health check function&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IHealthMonitor.start_monitoring">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor.start_monitoring">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start_monitoring</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start health monitoring&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IHealthMonitor.stop_monitoring">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IHealthMonitor.stop_monitoring">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop_monitoring</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop health monitoring&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Agent registry interface</span>
+<div class="viewcode-block" id="AgentMetadata">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentMetadata">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentMetadata</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enhanced agent metadata with specialization and model configuration support&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">tier</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">version</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">capabilities</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">specializations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">frameworks</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">domains</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">roles</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">is_hybrid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">validation_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">last_modified</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Model configuration fields</span>
+    <span class="n">preferred_model</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">model_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    
+<div class="viewcode-block" id="AgentMetadata.__post_init__">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentMetadata.__post_init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize default values for list fields&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capabilities</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">capabilities</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specializations</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">specializations</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">frameworks</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">frameworks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">domains</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">domains</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">roles</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">roles</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_config</span> <span class="o">=</span> <span class="p">{}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="IAgentRegistry">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IAgentRegistry</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for agent discovery and management&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IAgentRegistry.discover_agents">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.discover_agents">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">discover_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force_refresh</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AgentMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Discover all available agents&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IAgentRegistry.get_agent">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.get_agent">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get specific agent metadata&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IAgentRegistry.list_agents">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.list_agents">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List agents with optional filtering&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IAgentRegistry.get_specialized_agents">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.get_specialized_agents">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_specialized_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get agents of a specific specialized type&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IAgentRegistry.search_by_capability">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.search_by_capability">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">search_by_capability</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">capability</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search agents by capability&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IAgentRegistry.get_registry_stats">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IAgentRegistry.get_registry_stats">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_registry_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get registry statistics&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Prompt cache interface</span>
+<div class="viewcode-block" id="CacheEntry">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.CacheEntry">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">CacheEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cache entry with metadata&quot;&quot;&quot;</span>
+    <span class="n">key</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">value</span><span class="p">:</span> <span class="n">Any</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">ttl</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">access_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">last_accessed</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">size_bytes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">__post_init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+
+<div class="viewcode-block" id="IPromptCache">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IPromptCache</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for high-performance prompt caching&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IPromptCache.get">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.get">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get cached value by key&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPromptCache.set">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.set">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">ttl</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set cached value with optional TTL&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPromptCache.delete">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.delete">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">delete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Delete cached value&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPromptCache.invalidate">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.invalidate">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">invalidate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Invalidate cached values matching pattern&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPromptCache.clear">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.clear">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear all cached values&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPromptCache.get_metrics">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPromptCache.get_metrics">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get cache performance metrics&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Template management interface</span>
+<div class="viewcode-block" id="TemplateRenderContext">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TemplateRenderContext">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">TemplateRenderContext</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Context for template rendering&quot;&quot;&quot;</span>
+    <span class="n">variables</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">target_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">template_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="ITemplateManager">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ITemplateManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ITemplateManager</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for template processing and rendering&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ITemplateManager.render_template">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ITemplateManager.render_template">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">render_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">TemplateRenderContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Render template with given context&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ITemplateManager.load_template">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ITemplateManager.load_template">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">load_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load template by ID&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ITemplateManager.validate_template">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ITemplateManager.validate_template">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">validate_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">template_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate template syntax and variables&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ITemplateManager.register_template_function">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ITemplateManager.register_template_function">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_template_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register custom template function&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Service factory interface</span>
+<div class="viewcode-block" id="IServiceFactory">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceFactory">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IServiceFactory</span><span class="p">(</span><span class="n">Generic</span><span class="p">[</span><span class="n">ServiceType</span><span class="p">],</span> <span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic interface for service factories&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IServiceFactory.create">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceFactory.create">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ServiceType</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create service instance&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceFactory.create_with_config">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceFactory.create_with_config">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_with_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ServiceType</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create service instance with configuration&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceFactory.supports_type">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceFactory.supports_type">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">supports_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">service_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if factory supports service type&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Logging interface</span>
+<div class="viewcode-block" id="IStructuredLogger">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IStructuredLogger</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for structured logging&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IStructuredLogger.debug">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.debug">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">debug</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log debug message with structured data&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IStructuredLogger.info">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.info">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">info</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log info message with structured data&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IStructuredLogger.warning">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.warning">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">warning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log warning message with structured data&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IStructuredLogger.error">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.error">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log error message with structured data&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IStructuredLogger.critical">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.critical">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">critical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Log critical message with structured data&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IStructuredLogger.set_context">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IStructuredLogger.set_context">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_context</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set logging context for all subsequent messages&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Service lifecycle interface</span>
+<div class="viewcode-block" id="IServiceLifecycle">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IServiceLifecycle</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for service lifecycle management&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IServiceLifecycle.initialize">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle.initialize">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceLifecycle.start">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle.start">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceLifecycle.stop">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle.stop">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop the service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceLifecycle.restart">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle.restart">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">restart</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restart the service&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IServiceLifecycle.is_running">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IServiceLifecycle.is_running">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if service is running&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Error handling interface</span>
+<div class="viewcode-block" id="IErrorHandler">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IErrorHandler">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IErrorHandler</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for centralized error handling&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IErrorHandler.handle_error">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IErrorHandler.handle_error">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">handle_error</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="ne">Exception</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle error with context&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IErrorHandler.register_error_handler">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IErrorHandler.register_error_handler">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_error_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">error_type</span><span class="p">:</span> <span class="nb">type</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register error handler for specific error type&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IErrorHandler.get_error_stats">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IErrorHandler.get_error_stats">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_error_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get error statistics&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Performance monitoring interface</span>
+<div class="viewcode-block" id="IPerformanceMonitor">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPerformanceMonitor">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IPerformanceMonitor</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for performance monitoring&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IPerformanceMonitor.start_timer">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPerformanceMonitor.start_timer">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">start_timer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">operation</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start timing an operation&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPerformanceMonitor.stop_timer">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPerformanceMonitor.stop_timer">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">stop_timer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timer_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop timing and return duration&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPerformanceMonitor.record_metric">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPerformanceMonitor.record_metric">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">record_metric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record a performance metric&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IPerformanceMonitor.get_metrics">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IPerformanceMonitor.get_metrics">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get performance metrics&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Event system interface</span>
+<div class="viewcode-block" id="IEventBus">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IEventBus">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IEventBus</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for event-driven communication&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IEventBus.publish">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IEventBus.publish">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">publish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Publish an event&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IEventBus.subscribe">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IEventBus.subscribe">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">subscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">handler</span><span class="p">:</span> <span class="nb">callable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Subscribe to events&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IEventBus.unsubscribe">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IEventBus.unsubscribe">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">unsubscribe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subscription_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Unsubscribe from events&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="IEventBus.publish_async">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.IEventBus.publish_async">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">publish_async</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Publish an event asynchronously&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Agent deployment interface</span>
+<div class="viewcode-block" id="AgentDeploymentInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentDeploymentInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentDeploymentInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for agent deployment operations.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Agent deployment needs to be decoupled from concrete implementations</span>
+<span class="sd">    to enable different deployment strategies (local, remote, containerized).</span>
+<span class="sd">    This interface ensures consistency across different deployment backends.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Methods return deployment status/results to enable</span>
+<span class="sd">    proper error handling and rollback operations when deployments fail.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AgentDeploymentInterface.deploy_agents">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentDeploymentInterface.deploy_agents">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">deploy_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">force</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">include_all</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Deploy agents to target environment.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            force: Force deployment even if agents already exist</span>
+<span class="sd">            include_all: Include all agents, ignoring exclusion lists</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with deployment results and status</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="AgentDeploymentInterface.validate_agent">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentDeploymentInterface.validate_agent">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate agent configuration and structure.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_path: Path to agent configuration file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (is_valid, list_of_errors)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="AgentDeploymentInterface.clean_deployment">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentDeploymentInterface.clean_deployment">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clean_deployment</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">preserve_user_agents</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up deployed agents.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            preserve_user_agents: Whether to keep user-created agents</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if cleanup successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="AgentDeploymentInterface.get_deployment_status">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.AgentDeploymentInterface.get_deployment_status">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_deployment_status</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get current deployment status and metrics.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with deployment status information</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Memory service interface</span>
+<div class="viewcode-block" id="MemoryServiceInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryServiceInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for memory management operations.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Memory management is crucial for agent learning and context retention.</span>
+<span class="sd">    This interface abstracts memory storage, retrieval, and optimization to</span>
+<span class="sd">    enable different backends (file-based, database, distributed cache).</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Memory operations return success/failure status to enable</span>
+<span class="sd">    proper error handling and fallback strategies when memory is unavailable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="MemoryServiceInterface.load_memory">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface.load_memory">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load memory for a specific agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Identifier of the agent</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Memory content as string or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceInterface.save_memory">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface.save_memory">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save memory for a specific agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Identifier of the agent</span>
+<span class="sd">            content: Memory content to save</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if save successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceInterface.validate_memory_size">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface.validate_memory_size">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_memory_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate memory content size and structure.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: Memory content to validate</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (is_valid, error_message)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceInterface.optimize_memory">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface.optimize_memory">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">optimize_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimize memory by removing duplicates and consolidating entries.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Identifier of the agent</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if optimization successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="MemoryServiceInterface.get_memory_metrics">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.MemoryServiceInterface.get_memory_metrics">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_memory_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get memory usage metrics.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Optional specific agent ID, or None for all</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary with memory metrics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Hook service interface</span>
+<div class="viewcode-block" id="HookServiceInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HookServiceInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for hook execution operations.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Hooks provide extensibility points for the framework, allowing plugins</span>
+<span class="sd">    and extensions to modify behavior. This interface ensures consistent hook</span>
+<span class="sd">    registration, priority handling, and execution across different hook systems.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Separate pre/post delegation methods for clarity and</span>
+<span class="sd">    performance - no runtime type checking needed during execution.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="HookServiceInterface.register_hook">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface.register_hook">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_hook</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hook</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a hook with the service.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            hook: Hook instance to register</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if registration successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="HookServiceInterface.execute_pre_delegation_hooks">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface.execute_pre_delegation_hooks">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_pre_delegation_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute all pre-delegation hooks.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            context: Hook execution context</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Hook execution result</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="HookServiceInterface.execute_post_delegation_hooks">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface.execute_post_delegation_hooks">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute_post_delegation_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Execute all post-delegation hooks.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            context: Hook execution context</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Hook execution result</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="HookServiceInterface.get_registered_hooks">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface.get_registered_hooks">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_registered_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all registered hooks by type.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping hook types to lists of hooks</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="HookServiceInterface.clear_hooks">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.HookServiceInterface.clear_hooks">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clear_hooks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hook_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clear registered hooks.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            hook_type: Optional specific hook type to clear, or None for all</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># WebSocket/SocketIO service interface</span>
+<div class="viewcode-block" id="SocketIOServiceInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SocketIOServiceInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for WebSocket communication.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Real-time communication is essential for monitoring and interactive</span>
+<span class="sd">    features. This interface abstracts WebSocket/SocketIO implementation to</span>
+<span class="sd">    enable different transport mechanisms and fallback strategies.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Async methods for non-blocking I/O operations, with</span>
+<span class="sd">    support for both broadcast and targeted messaging.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.start">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.start">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="n">port</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8765</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the WebSocket server.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            host: Host to bind to</span>
+<span class="sd">            port: Port to listen on</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.stop">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.stop">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Stop the WebSocket server.&quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.emit">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.emit">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">emit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">room</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Emit an event to connected clients.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            event: Event name</span>
+<span class="sd">            data: Event data</span>
+<span class="sd">            room: Optional room to target</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.broadcast">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.broadcast">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">broadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Broadcast event to all connected clients.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            event: Event name</span>
+<span class="sd">            data: Event data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.get_connection_count">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.get_connection_count">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_connection_count</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get number of connected clients.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Number of active connections</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="SocketIOServiceInterface.is_running">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.SocketIOServiceInterface.is_running">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_running</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if server is running.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if server is active</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Project analyzer interface</span>
+<div class="viewcode-block" id="ProjectAnalyzerInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ProjectAnalyzerInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for project analysis operations.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Understanding project structure and characteristics is essential for</span>
+<span class="sd">    context-aware agent behavior. This interface abstracts project analysis</span>
+<span class="sd">    to support different project types and structures.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Returns structured data classes for type safety and</span>
+<span class="sd">    clear contracts between analysis and consumption components.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="ProjectAnalyzerInterface.analyze_project">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface.analyze_project">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_project</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze project characteristics.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_path: Optional path to project, defaults to current</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            ProjectCharacteristics or similar structured data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzerInterface.detect_technology_stack">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface.detect_technology_stack">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">detect_technology_stack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Detect technologies used in the project.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of detected technologies</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzerInterface.analyze_code_patterns">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface.analyze_code_patterns">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_code_patterns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze code patterns and conventions.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary of pattern analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzerInterface.get_project_structure">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface.get_project_structure">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_project_structure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get project directory structure analysis.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary representing project structure</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="ProjectAnalyzerInterface.identify_entry_points">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.ProjectAnalyzerInterface.identify_entry_points">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">identify_entry_points</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Identify project entry points.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of entry point paths</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Ticket manager interface</span>
+<div class="viewcode-block" id="TicketManagerInterface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TicketManagerInterface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface for ticket management operations.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Ticket management provides work tracking and organization. This</span>
+<span class="sd">    interface abstracts ticket operations to support different backend</span>
+<span class="sd">    systems (file-based, API-based, database).</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Uses string IDs for flexibility across different</span>
+<span class="sd">    ticketing systems, with structured data returns for consistency.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="TicketManagerInterface.create_task">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface.create_task">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new task ticket.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            title: Task title</span>
+<span class="sd">            description: Task description</span>
+<span class="sd">            **kwargs: Additional task properties</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Task ID if created successfully, None otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="TicketManagerInterface.update_task">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface.update_task">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">update_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">updates</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update an existing task.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            task_id: ID of task to update</span>
+<span class="sd">            **updates: Fields to update</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if update successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="TicketManagerInterface.get_task">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface.get_task">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get task details.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            task_id: ID of task to retrieve</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Task data dictionary or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="TicketManagerInterface.list_tasks">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface.list_tasks">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">list_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">filters</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List tasks with optional filtering.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            status: Optional status filter</span>
+<span class="sd">            **filters: Additional filter criteria</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of task dictionaries</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+    
+<div class="viewcode-block" id="TicketManagerInterface.close_task">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.TicketManagerInterface.close_task">[docs]</a>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">close_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">resolution</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Close a task.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            task_id: ID of task to close</span>
+<span class="sd">            resolution: Optional resolution description</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if close successful</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Interface registry for dependency injection discovery</span>
+<div class="viewcode-block" id="InterfaceRegistry">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.InterfaceRegistry">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InterfaceRegistry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Registry of all core interfaces for dependency injection&quot;&quot;&quot;</span>
+    
+    <span class="n">_interfaces</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;service_container&#39;</span><span class="p">:</span> <span class="n">IServiceContainer</span><span class="p">,</span>
+        <span class="s1">&#39;configuration_manager&#39;</span><span class="p">:</span> <span class="n">IConfigurationManager</span><span class="p">,</span>
+        <span class="s1">&#39;health_monitor&#39;</span><span class="p">:</span> <span class="n">IHealthMonitor</span><span class="p">,</span>
+        <span class="s1">&#39;agent_registry&#39;</span><span class="p">:</span> <span class="n">IAgentRegistry</span><span class="p">,</span>
+        <span class="s1">&#39;prompt_cache&#39;</span><span class="p">:</span> <span class="n">IPromptCache</span><span class="p">,</span>
+        <span class="s1">&#39;template_manager&#39;</span><span class="p">:</span> <span class="n">ITemplateManager</span><span class="p">,</span>
+        <span class="s1">&#39;structured_logger&#39;</span><span class="p">:</span> <span class="n">IStructuredLogger</span><span class="p">,</span>
+        <span class="s1">&#39;service_lifecycle&#39;</span><span class="p">:</span> <span class="n">IServiceLifecycle</span><span class="p">,</span>
+        <span class="s1">&#39;error_handler&#39;</span><span class="p">:</span> <span class="n">IErrorHandler</span><span class="p">,</span>
+        <span class="s1">&#39;performance_monitor&#39;</span><span class="p">:</span> <span class="n">IPerformanceMonitor</span><span class="p">,</span>
+        <span class="s1">&#39;event_bus&#39;</span><span class="p">:</span> <span class="n">IEventBus</span><span class="p">,</span>
+        <span class="s1">&#39;agent_deployment&#39;</span><span class="p">:</span> <span class="n">AgentDeploymentInterface</span><span class="p">,</span>
+        <span class="s1">&#39;memory_service&#39;</span><span class="p">:</span> <span class="n">MemoryServiceInterface</span><span class="p">,</span>
+        <span class="s1">&#39;hook_service&#39;</span><span class="p">:</span> <span class="n">HookServiceInterface</span><span class="p">,</span>
+        <span class="s1">&#39;socketio_service&#39;</span><span class="p">:</span> <span class="n">SocketIOServiceInterface</span><span class="p">,</span>
+        <span class="s1">&#39;project_analyzer&#39;</span><span class="p">:</span> <span class="n">ProjectAnalyzerInterface</span><span class="p">,</span>
+        <span class="s1">&#39;ticket_manager&#39;</span><span class="p">:</span> <span class="n">TicketManagerInterface</span><span class="p">,</span>
+    <span class="p">}</span>
+    
+<div class="viewcode-block" id="InterfaceRegistry.get_interface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.InterfaceRegistry.get_interface">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_interface</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">type</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get interface by name&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_interfaces</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="InterfaceRegistry.get_all_interfaces">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.InterfaceRegistry.get_all_interfaces">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_all_interfaces</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all registered interfaces&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_interfaces</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="InterfaceRegistry.register_interface">
+<a class="viewcode-back" href="../../../../core/interfaces.html#claude_mpm.services.core.InterfaceRegistry.register_interface">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">register_interface</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Register a new interface&quot;&quot;&quot;</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">_interfaces</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">interface</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

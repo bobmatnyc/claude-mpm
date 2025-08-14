@@ -1,0 +1,676 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.version_control.version_parser &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.version_control.version_parser</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.version_control.version_parser</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Enhanced version parsing system with multiple source support and fallback mechanisms.</span>
+
+<span class="sd">This module provides a robust version parsing system that can retrieve version information</span>
+<span class="sd">from multiple sources with intelligent fallback logic:</span>
+
+<span class="sd">1. Git tags (primary source - most reliable)</span>
+<span class="sd">2. CHANGELOG.md (for release notes and history)</span>
+<span class="sd">3. VERSION file (for current version)</span>
+<span class="sd">4. package.json (for npm packages)</span>
+<span class="sd">5. pyproject.toml (for Python packages)</span>
+
+<span class="sd">The system includes caching for performance and validation for data integrity.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.version_control.semantic_versioning</span><span class="w"> </span><span class="kn">import</span> <span class="n">SemanticVersion</span>
+
+
+<div class="viewcode-block" id="VersionSource">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.VersionSource">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VersionSource</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enumeration of version sources with priority ordering.&quot;&quot;&quot;</span>
+    <span class="n">GIT_TAGS</span> <span class="o">=</span> <span class="s2">&quot;git_tags&quot;</span>
+    <span class="n">CHANGELOG</span> <span class="o">=</span> <span class="s2">&quot;changelog&quot;</span>
+    <span class="n">VERSION_FILE</span> <span class="o">=</span> <span class="s2">&quot;version_file&quot;</span>
+    <span class="n">PACKAGE_JSON</span> <span class="o">=</span> <span class="s2">&quot;package_json&quot;</span>
+    <span class="n">PYPROJECT_TOML</span> <span class="o">=</span> <span class="s2">&quot;pyproject_toml&quot;</span>
+    <span class="n">SETUP_PY</span> <span class="o">=</span> <span class="s2">&quot;setup_py&quot;</span>
+    
+    <span class="c1"># Priority order for fallback mechanism</span>
+    <span class="n">PRIORITY_ORDER</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">GIT_TAGS</span><span class="p">,</span>
+        <span class="n">CHANGELOG</span><span class="p">,</span>
+        <span class="n">VERSION_FILE</span><span class="p">,</span>
+        <span class="n">PACKAGE_JSON</span><span class="p">,</span>
+        <span class="n">PYPROJECT_TOML</span><span class="p">,</span>
+        <span class="n">SETUP_PY</span>
+    <span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="VersionMetadata">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.VersionMetadata">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">VersionMetadata</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Extended metadata for version information.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="VersionMetadata.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.VersionMetadata.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">version</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">release_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">commit_hash</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">author</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">changes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">source</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">release_date</span> <span class="o">=</span> <span class="n">release_date</span> <span class="ow">or</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commit_hash</span> <span class="o">=</span> <span class="n">commit_hash</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">author</span> <span class="o">=</span> <span class="n">author</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">message</span> <span class="o">=</span> <span class="n">message</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">changes</span> <span class="o">=</span> <span class="n">changes</span> <span class="ow">or</span> <span class="p">[]</span></div>
+
+    
+<div class="viewcode-block" id="VersionMetadata.to_dict">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.VersionMetadata.to_dict">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">to_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert metadata to dictionary format.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+            <span class="s2">&quot;source&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="p">,</span>
+            <span class="s2">&quot;release_date&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">release_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">release_date</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;commit_hash&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">commit_hash</span><span class="p">,</span>
+            <span class="s2">&quot;author&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">author</span><span class="p">,</span>
+            <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">message</span><span class="p">,</span>
+            <span class="s2">&quot;changes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">changes</span>
+        <span class="p">}</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="EnhancedVersionParser">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EnhancedVersionParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Enhanced version parser with multiple source support and intelligent fallback.</span>
+<span class="sd">    </span>
+<span class="sd">    This parser provides:</span>
+<span class="sd">    - Multiple version source support</span>
+<span class="sd">    - Intelligent fallback mechanisms</span>
+<span class="sd">    - Caching for performance</span>
+<span class="sd">    - Validation and error handling</span>
+<span class="sd">    - Comprehensive version history retrieval</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="EnhancedVersionParser.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cache_ttl</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">300</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the enhanced version parser.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            project_root: Root directory of the project (defaults to current directory)</span>
+<span class="sd">            cache_ttl: Cache time-to-live in seconds (default: 5 minutes)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">=</span> <span class="n">project_root</span> <span class="ow">or</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache_ttl</span> <span class="o">=</span> <span class="n">cache_ttl</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">datetime</span><span class="p">,</span> <span class="nb">any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Compile regex patterns once for efficiency</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z0-9\-\.]+))?(?:\+([a-zA-Z0-9\-\.]+))?&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_changelog_version_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;##\s*\[?([0-9]+\.[0-9]+\.[0-9]+[^\]]*)\]?\s*[-–]\s*(\d</span><span class="si">{4}</span><span class="s1">-\d</span><span class="si">{2}</span><span class="s1">-\d</span><span class="si">{2}</span><span class="s1">)?&#39;</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_cached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get cached value if still valid.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
+            <span class="n">timestamp</span><span class="p">,</span> <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">timestamp</span> <span class="o">&lt;</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">seconds</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cache_ttl</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">value</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_set_cached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">:</span> <span class="nb">any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">any</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set cached value with timestamp.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span> <span class="n">value</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">value</span>
+    
+<div class="viewcode-block" id="EnhancedVersionParser.get_current_version">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser.get_current_version">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_current_version</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefer_source</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the current version from the most reliable available source.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            prefer_source: Preferred source to check first (optional)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            VersionMetadata with current version information, or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;current_version_</span><span class="si">{</span><span class="n">prefer_source</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">&#39;auto&#39;</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cached</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        
+        <span class="n">sources</span> <span class="o">=</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PRIORITY_ORDER</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">prefer_source</span> <span class="ow">and</span> <span class="n">prefer_source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+            <span class="n">sources</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">prefer_source</span><span class="p">)</span>
+            <span class="n">sources</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">prefer_source</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">sources</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">latest_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cached</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">version</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get version from </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="EnhancedVersionParser.get_version_history">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser.get_version_history">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_version_history</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">include_prereleases</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get complete version history from all available sources.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            include_prereleases: Include pre-release versions (alpha, beta, rc)</span>
+<span class="sd">            limit: Maximum number of versions to return</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of VersionMetadata objects sorted by version (descending)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cache_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;version_history_</span><span class="si">{</span><span class="n">include_prereleases</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_cached</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">cached</span>
+        
+        <span class="n">all_versions</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">VersionMetadata</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Try each source and merge results</span>
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PRIORITY_ORDER</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">versions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_versions_from_source</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">version</span> <span class="ow">in</span> <span class="n">versions</span><span class="p">:</span>
+                    <span class="c1"># Use the first occurrence of each version (highest priority source)</span>
+                    <span class="k">if</span> <span class="n">version</span><span class="o">.</span><span class="n">version</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_versions</span><span class="p">:</span>
+                        <span class="n">all_versions</span><span class="p">[</span><span class="n">version</span><span class="o">.</span><span class="n">version</span><span class="p">]</span> <span class="o">=</span> <span class="n">version</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get versions from </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Filter and sort versions</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">all_versions</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">include_prereleases</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">result</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_prerelease</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">version</span><span class="p">)]</span>
+        
+        <span class="c1"># Sort by semantic version</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_semver</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">version</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_set_cached</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_version_from_source</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">latest_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get version(s) from a specific source.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">GIT_TAGS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_git</span><span class="p">(</span><span class="n">latest_only</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">VERSION_FILE</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_file</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PACKAGE_JSON</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_package_json</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PYPROJECT_TOML</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_pyproject</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">CHANGELOG</span><span class="p">:</span>
+            <span class="n">versions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_versions_from_changelog</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">versions</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">versions</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_versions_from_source</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all versions from a specific source.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">GIT_TAGS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_all_versions_from_git</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="o">==</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">CHANGELOG</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_versions_from_changelog</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">source</span> <span class="ow">in</span> <span class="p">[</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">VERSION_FILE</span><span class="p">,</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PACKAGE_JSON</span><span class="p">,</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PYPROJECT_TOML</span><span class="p">]:</span>
+            <span class="c1"># These sources only provide current version</span>
+            <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">latest_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">version</span><span class="p">]</span> <span class="k">if</span> <span class="n">version</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_version_from_git</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">latest_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get version information from git tags.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">latest_only</span><span class="p">:</span>
+                <span class="c1"># Get the latest tag</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                    <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;describe&quot;</span><span class="p">,</span> <span class="s2">&quot;--tags&quot;</span><span class="p">,</span> <span class="s2">&quot;--abbrev=0&quot;</span><span class="p">],</span>
+                    <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="p">,</span>
+                    <span class="n">check</span><span class="o">=</span><span class="kc">False</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">tag</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_git_tag</span><span class="p">(</span><span class="n">tag</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_all_versions_from_git</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_all_versions_from_git</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get git version: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_all_versions_from_git</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all versions from git tags with metadata.&quot;&quot;&quot;</span>
+        <span class="n">versions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Get all tags with dates and messages</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;for-each-ref&quot;</span><span class="p">,</span> <span class="s2">&quot;--sort=-version:refname&quot;</span><span class="p">,</span> <span class="s2">&quot;--format=%(refname:short)|%(creatordate:iso)|%(subject)&quot;</span><span class="p">,</span> <span class="s2">&quot;refs/tags&quot;</span><span class="p">],</span>
+                <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="p">,</span>
+                <span class="n">check</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">line</span><span class="p">:</span>
+                        <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">tag</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                            <span class="n">date_str</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span>
+                            <span class="n">message</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="kc">None</span>
+                            
+                            <span class="c1"># Parse the tag</span>
+                            <span class="n">metadata</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_git_tag</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">date_str</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="n">metadata</span><span class="p">:</span>
+                                <span class="n">versions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metadata</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to get git versions: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">versions</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_git_tag</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">date_str</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse a git tag into VersionMetadata.&quot;&quot;&quot;</span>
+        <span class="c1"># Remove &#39;v&#39; prefix if present</span>
+        <span class="n">version</span> <span class="o">=</span> <span class="n">tag</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">tag</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="n">tag</span>
+        
+        <span class="c1"># Validate version format</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+            <span class="k">return</span> <span class="kc">None</span>
+        
+        <span class="c1"># Parse date if provided</span>
+        <span class="n">release_date</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">date_str</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">release_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">date_str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;T&#39;</span><span class="p">))</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+        
+        <span class="c1"># Get commit hash for this tag</span>
+        <span class="n">commit_hash</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+                <span class="p">[</span><span class="s2">&quot;git&quot;</span><span class="p">,</span> <span class="s2">&quot;rev-list&quot;</span><span class="p">,</span> <span class="s2">&quot;-n&quot;</span><span class="p">,</span> <span class="s2">&quot;1&quot;</span><span class="p">,</span> <span class="n">tag</span><span class="p">],</span>
+                <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">cwd</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">project_root</span><span class="p">,</span>
+                <span class="n">check</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">returncode</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">commit_hash</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">strip</span><span class="p">()[:</span><span class="mi">7</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        
+        <span class="k">return</span> <span class="n">VersionMetadata</span><span class="p">(</span>
+            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+            <span class="n">source</span><span class="o">=</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">GIT_TAGS</span><span class="p">,</span>
+            <span class="n">release_date</span><span class="o">=</span><span class="n">release_date</span><span class="p">,</span>
+            <span class="n">commit_hash</span><span class="o">=</span><span class="n">commit_hash</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="n">message</span>
+        <span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_version_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get version from VERSION file.&quot;&quot;&quot;</span>
+        <span class="n">version_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;VERSION&quot;</span>
+        <span class="k">if</span> <span class="n">version_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="n">version_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">VersionMetadata</span><span class="p">(</span>
+                        <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+                        <span class="n">source</span><span class="o">=</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">VERSION_FILE</span>
+                    <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to read VERSION file: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_version_from_package_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get version from package.json.&quot;&quot;&quot;</span>
+        <span class="n">package_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;package.json&quot;</span>
+        <span class="k">if</span> <span class="n">package_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">package_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    <span class="n">version</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;version&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">version</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="n">VersionMetadata</span><span class="p">(</span>
+                            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+                            <span class="n">source</span><span class="o">=</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">PACKAGE_JSON</span>
+                        <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to read package.json: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_version_from_pyproject</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get version from pyproject.toml.&quot;&quot;&quot;</span>
+        <span class="n">pyproject_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;pyproject.toml&quot;</span>
+        <span class="k">if</span> <span class="n">pyproject_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">content</span> <span class="o">=</span> <span class="n">pyproject_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+                <span class="c1"># Look for version in [tool.poetry] or [project] sections</span>
+                <span class="n">patterns</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="sa">r</span><span class="s1">&#39;version\s*=\s*[&quot;</span><span class="se">\&#39;</span><span class="s1">]([^&quot;</span><span class="se">\&#39;</span><span class="s1">]+)[&quot;</span><span class="se">\&#39;</span><span class="s1">]&#39;</span><span class="p">,</span>
+                    <span class="sa">r</span><span class="s1">&#39;version\s*=\s*\{[^}]*\}&#39;</span><span class="p">,</span>  <span class="c1"># Dynamic version</span>
+                <span class="p">]</span>
+                
+                <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+                    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+                        <span class="n">version</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">lastindex</span> <span class="k">else</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="n">version</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">):</span>
+                            <span class="k">return</span> <span class="n">VersionMetadata</span><span class="p">(</span>
+                                <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+                                <span class="n">source</span><span class="o">=</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">PYPROJECT_TOML</span>
+                            <span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to read pyproject.toml: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_versions_from_changelog</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">VersionMetadata</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse version history from CHANGELOG.md.&quot;&quot;&quot;</span>
+        <span class="n">versions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">changelog_paths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;CHANGELOG.md&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;docs&quot;</span> <span class="o">/</span> <span class="s2">&quot;CHANGELOG.md&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;HISTORY.md&quot;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">changelog_path</span> <span class="ow">in</span> <span class="n">changelog_paths</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">changelog_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">content</span> <span class="o">=</span> <span class="n">changelog_path</span><span class="o">.</span><span class="n">read_text</span><span class="p">()</span>
+                    
+                    <span class="c1"># Find all version entries</span>
+                    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_changelog_version_pattern</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">content</span><span class="p">):</span>
+                        <span class="n">version</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                        <span class="n">date_str</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">lastindex</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="k">else</span> <span class="kc">None</span>
+                        
+                        <span class="c1"># Parse release date</span>
+                        <span class="n">release_date</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">if</span> <span class="n">date_str</span><span class="p">:</span>
+                            <span class="k">try</span><span class="p">:</span>
+                                <span class="n">release_date</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">strptime</span><span class="p">(</span><span class="n">date_str</span><span class="p">,</span> <span class="s2">&quot;%Y-%m-</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
+                            <span class="k">except</span><span class="p">:</span>
+                                <span class="k">pass</span>
+                        
+                        <span class="c1"># Extract changes for this version</span>
+                        <span class="n">changes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_changelog_changes</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">match</span><span class="o">.</span><span class="n">start</span><span class="p">())</span>
+                        
+                        <span class="n">versions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">VersionMetadata</span><span class="p">(</span>
+                            <span class="n">version</span><span class="o">=</span><span class="n">version</span><span class="p">,</span>
+                            <span class="n">source</span><span class="o">=</span><span class="n">VersionSource</span><span class="o">.</span><span class="n">CHANGELOG</span><span class="p">,</span>
+                            <span class="n">release_date</span><span class="o">=</span><span class="n">release_date</span><span class="p">,</span>
+                            <span class="n">changes</span><span class="o">=</span><span class="n">changes</span>
+                        <span class="p">))</span>
+                    
+                    <span class="k">if</span> <span class="n">versions</span><span class="p">:</span>
+                        <span class="k">break</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to parse changelog: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">versions</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_changelog_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_pos</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract change entries for a specific version from changelog.&quot;&quot;&quot;</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">content</span><span class="p">[</span><span class="n">start_pos</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        
+        <span class="n">in_changes</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>  <span class="c1"># Skip the version header line</span>
+            <span class="c1"># Stop at next version header</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;##&#39;</span><span class="p">):</span>
+                <span class="k">break</span>
+            
+            <span class="c1"># Collect change lines (usually start with -, *, or +)</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">((</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">)):</span>
+                <span class="n">changes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="n">in_changes</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">elif</span> <span class="n">in_changes</span> <span class="ow">and</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;#&#39;</span><span class="p">):</span>
+                <span class="c1"># Continuation of previous change</span>
+                <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+                    <span class="n">changes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">changes</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_prerelease</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if a version is a pre-release.&quot;&quot;&quot;</span>
+        <span class="n">prerelease_patterns</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="sa">r</span><span class="s1">&#39;-(?:alpha|beta|rc|dev|pre)&#39;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s1">&#39;\.(?:alpha|beta|rc|dev|pre)&#39;</span><span class="p">,</span>
+            <span class="sa">r</span><span class="s1">&#39;(?:a|b|rc)\d+$&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">prerelease_patterns</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_semver</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Parse semantic version for sorting.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns tuple of (major, minor, patch, prerelease, build)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_version_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">version</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">major</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">minor</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+            <span class="n">patch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+            <span class="n">prerelease</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+            <span class="n">build</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span> <span class="ow">or</span> <span class="s1">&#39;&#39;</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">major</span><span class="p">,</span> <span class="n">minor</span><span class="p">,</span> <span class="n">patch</span><span class="p">,</span> <span class="n">prerelease</span><span class="p">,</span> <span class="n">build</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="EnhancedVersionParser.validate_version_consistency">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser.validate_version_consistency">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_version_consistency</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Validate version consistency across all sources.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping source names to versions found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">versions</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">source</span> <span class="ow">in</span> <span class="n">VersionSource</span><span class="o">.</span><span class="n">PRIORITY_ORDER</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_source</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">latest_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">version</span><span class="p">:</span>
+                    <span class="n">versions</span><span class="p">[</span><span class="n">source</span><span class="p">]</span> <span class="o">=</span> <span class="n">version</span><span class="o">.</span><span class="n">version</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to check </span><span class="si">{</span><span class="n">source</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">versions</span></div>
+
+    
+<div class="viewcode-block" id="EnhancedVersionParser.get_version_for_release">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.EnhancedVersionParser.get_version_for_release">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_version_for_release</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the version that should be used for the next release.</span>
+<span class="sd">        </span>
+<span class="sd">        This prioritizes git tags as the source of truth, falling back</span>
+<span class="sd">        to VERSION file if no git tags exist.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Version string for release, or None if no version found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Try git first</span>
+        <span class="n">git_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_git</span><span class="p">(</span><span class="n">latest_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">git_version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">git_version</span><span class="o">.</span><span class="n">version</span>
+        
+        <span class="c1"># Fall back to VERSION file</span>
+        <span class="n">file_version</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_version_from_file</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">file_version</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">file_version</span><span class="o">.</span><span class="n">version</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+</div>
+
+
+
+<span class="c1"># Convenience function for backward compatibility</span>
+<div class="viewcode-block" id="get_version_parser">
+<a class="viewcode-back" href="../../../../claude_mpm.services.version_control.version_parser.html#claude_mpm.services.version_control.version_parser.get_version_parser">[docs]</a>
+<span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_version_parser</span><span class="p">(</span><span class="n">project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EnhancedVersionParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get a singleton instance of the version parser.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">EnhancedVersionParser</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
