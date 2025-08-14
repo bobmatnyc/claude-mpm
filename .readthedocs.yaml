@@ -42,8 +42,8 @@ build:
       - cp VERSION docs/api/VERSION 2>/dev/null || true
     
     post_install:
-      # Install the project in development mode for better autodoc
-      - pip install -e .
+      # Additional setup after Python dependencies are installed
+      - echo "Python dependencies installed successfully"
       
     pre_build:
       # Generate any dynamic documentation files if needed
@@ -64,11 +64,6 @@ python:
     
     # Install documentation-specific requirements
     - requirements: docs/api/requirements.txt
-    
-    # Additional packages that might be needed for building docs
-    - method: pip
-      extra_requirements:
-        - docs
 
 # VCS configuration
 submodules:
