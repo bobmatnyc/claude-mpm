@@ -28,15 +28,13 @@ build:
     - libgraphviz-dev
     - pkg-config
   
-  # Environment variables for the build
-  environment:
-    READTHEDOCS: "True"
-    CLAUDE_MPM_DOCS_BUILD: "True"
-  
-  # Commands to run before installing Python dependencies
-  # Useful for any pre-build setup
+  # Commands to run at different stages of the build
+  # Note: Environment variables are automatically set by Read the Docs
+  # READTHEDOCS environment variable is set to True by default
   jobs:
     pre_install:
+      # Set custom environment variables if needed
+      - export CLAUDE_MPM_DOCS_BUILD=True
       # Ensure the VERSION file is available for version detection
       - echo "Preparing build environment..."
       - cp VERSION docs/api/VERSION 2>/dev/null || true
