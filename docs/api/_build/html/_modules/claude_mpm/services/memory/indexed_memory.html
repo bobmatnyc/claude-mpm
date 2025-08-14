@@ -1,0 +1,841 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.memory.indexed_memory &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.memory.indexed_memory</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.memory.indexed_memory</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;Indexed memory service for high-performance memory queries.</span>
+
+<span class="sd">This module provides optimized memory querying with:</span>
+<span class="sd">- Inverted index for fast text searches</span>
+<span class="sd">- B-tree indexing for sorted queries</span>
+<span class="sd">- Memory-mapped files for large datasets</span>
+<span class="sd">- Incremental index updates</span>
+
+<span class="sd">WHY indexed memory:</span>
+<span class="sd">- Reduces query time from O(n) to O(log n) or O(1)</span>
+<span class="sd">- Supports 10k+ memory entries with &lt;100ms query time</span>
+<span class="sd">- Enables complex queries (AND, OR, NOT operations)</span>
+<span class="sd">- Provides ranked results by relevance</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">bisect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mmap</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">pickle</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...core.cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileSystemCache</span><span class="p">,</span> <span class="n">get_file_cache</span>
+
+
+<div class="viewcode-block" id="MemoryEntry">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.MemoryEntry">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Single memory entry with metadata.&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">content</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">category</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">tags</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    <span class="n">relevance_score</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span></div>
+
+
+
+<div class="viewcode-block" id="QueryResult">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.QueryResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">QueryResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result from a memory query.&quot;&quot;&quot;</span>
+    <span class="n">entries</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">MemoryEntry</span><span class="p">]</span>
+    <span class="n">total_count</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">query_time</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">index_used</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">cache_hit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+
+<div class="viewcode-block" id="InvertedIndex">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InvertedIndex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Inverted index for fast text searches.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY inverted index:</span>
+<span class="sd">    - Maps words to document IDs for O(1) lookups</span>
+<span class="sd">    - Supports boolean queries (AND, OR, NOT)</span>
+<span class="sd">    - Enables relevance scoring with TF-IDF</span>
+<span class="sd">    - Efficient for full-text search</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="InvertedIndex.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># Word -&gt; Set of memory IDs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="c1"># Memory ID -&gt; word frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Counter</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># Total documents</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;inverted_index&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="InvertedIndex.add_entry">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.add_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add entry to inverted index.&quot;&quot;&quot;</span>
+        <span class="c1"># Tokenize text</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        
+        <span class="c1"># Update word frequencies</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">Counter</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
+        
+        <span class="c1"># Update inverted index</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">words</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">word</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry_id</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+    
+<div class="viewcode-block" id="InvertedIndex.remove_entry">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.remove_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove entry from index.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entry_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">:</span>
+            <span class="k">return</span>
+        
+        <span class="c1"># Remove from inverted index</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">word</span><span class="p">]</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">entry_id</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">word</span><span class="p">]:</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">word</span><span class="p">]</span>
+        
+        <span class="c1"># Remove document frequency</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span> <span class="o">-=</span> <span class="mi">1</span></div>
+
+    
+<div class="viewcode-block" id="InvertedIndex.search">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;AND&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search index for matching entries.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            query: Search query</span>
+<span class="sd">            operator: Boolean operator (AND, OR, NOT)</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Set of matching entry IDs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">words</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="c1"># Get entry sets for each word</span>
+        <span class="n">entry_sets</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">words</span><span class="p">]</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">entry_sets</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="c1"># Apply boolean operator</span>
+        <span class="k">if</span> <span class="n">operator</span> <span class="o">==</span> <span class="s1">&#39;AND&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">entry_sets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">entry_sets</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="s1">&#39;OR&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">entry_sets</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">operator</span> <span class="o">==</span> <span class="s1">&#39;NOT&#39;</span><span class="p">:</span>
+            <span class="c1"># Return entries that don&#39;t contain any query words</span>
+            <span class="n">all_entries</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="n">excluded</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">entry_sets</span><span class="p">:</span>
+                <span class="n">excluded</span> <span class="o">=</span> <span class="n">excluded</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">all_entries</span> <span class="o">-</span> <span class="n">excluded</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">entry_sets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">result</span></div>
+
+    
+<div class="viewcode-block" id="InvertedIndex.calculate_relevance">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.calculate_relevance">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">calculate_relevance</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate TF-IDF relevance score.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            entry_id: Memory entry ID</span>
+<span class="sd">            query: Search query</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Relevance score (0.0 to 1.0)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">entry_id</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        
+        <span class="n">query_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenize</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">query_words</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        
+        <span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="n">doc_freq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">query_words</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">word</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">doc_freq</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="c1"># Term frequency</span>
+            <span class="n">tf</span> <span class="o">=</span> <span class="n">doc_freq</span><span class="p">[</span><span class="n">word</span><span class="p">]</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">doc_freq</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            
+            <span class="c1"># Inverse document frequency</span>
+            <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">:</span>
+                <span class="n">idf</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">word</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idf</span> <span class="o">=</span> <span class="mf">1.0</span>
+            
+            <span class="n">score</span> <span class="o">+=</span> <span class="n">tf</span> <span class="o">*</span> <span class="n">idf</span>
+        
+        <span class="c1"># Normalize score</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">query_words</span><span class="p">))</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_tokenize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Tokenize text into words.&quot;&quot;&quot;</span>
+        <span class="c1"># Convert to lowercase and split on non-alphanumeric</span>
+        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\b[a-z0-9]+\b&#39;</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+        
+        <span class="c1"># Remove stop words (simplified list)</span>
+        <span class="n">stop_words</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;the&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;an&#39;</span><span class="p">,</span> <span class="s1">&#39;and&#39;</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">,</span> <span class="s1">&#39;but&#39;</span><span class="p">,</span> <span class="s1">&#39;in&#39;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">,</span> <span class="s1">&#39;at&#39;</span><span class="p">,</span> <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="s1">&#39;for&#39;</span><span class="p">}</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span> <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">stop_words</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">]</span>
+    
+<div class="viewcode-block" id="InvertedIndex.save">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.save">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Persist index to disk.&quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;index&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+            <span class="s1">&#39;doc_freqs&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span><span class="p">),</span>
+            <span class="s1">&#39;doc_count&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span>
+        <span class="p">}</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="InvertedIndex.load">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.InvertedIndex.load">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load index from disk.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span>
+        
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;index&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_freqs</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;doc_freqs&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">doc_count</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;doc_count&#39;</span><span class="p">]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="BTreeIndex">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">BTreeIndex</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;B-tree index for sorted queries.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY B-tree index:</span>
+<span class="sd">    - Maintains sorted order for range queries</span>
+<span class="sd">    - O(log n) search, insert, delete</span>
+<span class="sd">    - Efficient for timestamp-based queries</span>
+<span class="sd">    - Supports pagination</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="BTreeIndex.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key_func</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># Sorted list of (key, entry_id) tuples</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key_func</span> <span class="o">=</span> <span class="n">key_func</span> <span class="ow">or</span> <span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;btree_index&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="BTreeIndex.add_entry">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.add_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Any</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add entry to B-tree index.&quot;&quot;&quot;</span>
+        <span class="n">bisect</span><span class="o">.</span><span class="n">insort</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">key_func</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">entry_id</span><span class="p">))</span></div>
+
+    
+<div class="viewcode-block" id="BTreeIndex.remove_entry">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.remove_entry">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">remove_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove entry from index.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="p">[(</span><span class="n">k</span><span class="p">,</span> <span class="nb">id</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="k">if</span> <span class="nb">id</span> <span class="o">!=</span> <span class="n">entry_id</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="BTreeIndex.range_search">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.range_search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">range_search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">min_key</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_key</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search for entries in key range.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            min_key: Minimum key value (inclusive)</span>
+<span class="sd">            max_key: Maximum key value (inclusive)</span>
+<span class="sd">            limit: Maximum results to return</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of matching entry IDs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Find range boundaries</span>
+        <span class="k">if</span> <span class="n">min_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">min_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_func</span><span class="p">(</span><span class="n">min_key</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">min_key</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">if</span> <span class="n">max_key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">key_func</span><span class="p">(</span><span class="n">max_key</span><span class="p">)</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_right</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="p">(</span><span class="n">max_key</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\xff</span><span class="s1">&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+        
+        <span class="c1"># Extract entry IDs</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">entry_id</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">entry_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]]</span>
+        
+        <span class="k">if</span> <span class="n">limit</span><span class="p">:</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">results</span></div>
+
+    
+<div class="viewcode-block" id="BTreeIndex.get_recent">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.get_recent">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_recent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get n most recent entries.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">entry_id</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">entry_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:]]</span></div>
+
+    
+<div class="viewcode-block" id="BTreeIndex.get_oldest">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.BTreeIndex.get_oldest">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_oldest</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get n oldest entries.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">entry_id</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">entry_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">[:</span><span class="n">n</span><span class="p">]]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="IndexedMemoryService">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">IndexedMemoryService</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;High-performance memory service with multiple indexes.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY this design:</span>
+<span class="sd">    - Multiple specialized indexes for different query types</span>
+<span class="sd">    - LRU cache for frequent queries</span>
+<span class="sd">    - Incremental index updates for efficiency</span>
+<span class="sd">    - Memory-mapped files for large datasets</span>
+<span class="sd">    </span>
+<span class="sd">    Example:</span>
+<span class="sd">        memory = IndexedMemoryService()</span>
+<span class="sd">        </span>
+<span class="sd">        # Add memory entry</span>
+<span class="sd">        memory.add_memory(</span>
+<span class="sd">            agent_id=&#39;engineer&#39;,</span>
+<span class="sd">            content=&#39;Use dependency injection for testability&#39;,</span>
+<span class="sd">            category=&#39;pattern&#39;</span>
+<span class="sd">        )</span>
+<span class="sd">        </span>
+<span class="sd">        # Fast text search</span>
+<span class="sd">        results = memory.search(&#39;dependency injection&#39;)</span>
+<span class="sd">        </span>
+<span class="sd">        # Range query by timestamp</span>
+<span class="sd">        recent = memory.get_recent_memories(hours=24)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="IndexedMemoryService.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cache_size_mb</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">enable_mmap</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize indexed memory service.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            data_dir: Directory for persisting indexes</span>
+<span class="sd">            cache_size_mb: Cache size for query results</span>
+<span class="sd">            enable_mmap: Use memory-mapped files for large datasets</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">=</span> <span class="n">data_dir</span> <span class="ow">or</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;memory&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_mmap</span> <span class="o">=</span> <span class="n">enable_mmap</span>
+        
+        <span class="c1"># Memory storage</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">MemoryEntry</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Indexes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span> <span class="o">=</span> <span class="n">InvertedIndex</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_index</span> <span class="o">=</span> <span class="n">BTreeIndex</span><span class="p">(</span><span class="n">key_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">dt</span><span class="p">:</span> <span class="n">dt</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">)</span>
+        
+        <span class="c1"># Query cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="n">get_file_cache</span><span class="p">(</span><span class="n">max_size_mb</span><span class="o">=</span><span class="n">cache_size_mb</span><span class="p">,</span> <span class="n">default_ttl</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+        
+        <span class="c1"># Logger</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;indexed_memory&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Load existing data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_indexes</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="IndexedMemoryService.add_memory">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.add_memory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">add_memory</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">category</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;general&#39;</span><span class="p">,</span>
+        <span class="n">tags</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Add a new memory entry.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Agent that owns this memory</span>
+<span class="sd">            content: Memory content</span>
+<span class="sd">            category: Memory category</span>
+<span class="sd">            tags: Optional tags</span>
+<span class="sd">            metadata: Optional metadata</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Memory entry ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Generate ID</span>
+        <span class="n">entry_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_id</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        
+        <span class="c1"># Create entry</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">MemoryEntry</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="n">entry_id</span><span class="p">,</span>
+            <span class="n">agent_id</span><span class="o">=</span><span class="n">agent_id</span><span class="p">,</span>
+            <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+            <span class="n">category</span><span class="o">=</span><span class="n">category</span><span class="p">,</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(),</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[],</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{}</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Store entry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
+        
+        <span class="c1"># Update indexes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">add_entry</span><span class="p">(</span><span class="n">entry_id</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_index</span><span class="o">.</span><span class="n">add_entry</span><span class="p">(</span><span class="n">entry_id</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">timestamp</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry_id</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="p">[</span><span class="n">category</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry_id</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">entry</span><span class="o">.</span><span class="n">tags</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry_id</span><span class="p">)</span>
+        
+        <span class="c1"># Invalidate cache</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">invalidate_pattern</span><span class="p">(</span><span class="s2">&quot;query:*&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Added memory </span><span class="si">{</span><span class="n">entry_id</span><span class="si">}</span><span class="s2"> for agent </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">entry_id</span></div>
+
+    
+<div class="viewcode-block" id="IndexedMemoryService.search">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.search">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">query</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">agent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">category</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">tags</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+        <span class="n">operator</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;AND&#39;</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QueryResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Search memories with multiple filters.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            query: Text search query</span>
+<span class="sd">            agent_id: Filter by agent</span>
+<span class="sd">            category: Filter by category</span>
+<span class="sd">            tags: Filter by tags</span>
+<span class="sd">            limit: Maximum results</span>
+<span class="sd">            operator: Boolean operator for text search</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Query results with metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Generate cache key</span>
+        <span class="n">cache_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;query:</span><span class="si">{</span><span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">query</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">category</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">tags</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">limit</span><span class="si">}</span><span class="s1">:</span><span class="si">{</span><span class="n">operator</span><span class="si">}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        
+        <span class="c1"># Check cache</span>
+        <span class="n">cached</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cache_key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cached</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">QueryResult</span><span class="p">(</span>
+                <span class="n">entries</span><span class="o">=</span><span class="n">cached</span><span class="p">[</span><span class="s1">&#39;entries&#39;</span><span class="p">],</span>
+                <span class="n">total_count</span><span class="o">=</span><span class="n">cached</span><span class="p">[</span><span class="s1">&#39;total_count&#39;</span><span class="p">],</span>
+                <span class="n">query_time</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+                <span class="n">index_used</span><span class="o">=</span><span class="s1">&#39;cache&#39;</span><span class="p">,</span>
+                <span class="n">cache_hit</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        
+        <span class="c1"># Text search</span>
+        <span class="k">if</span> <span class="n">query</span><span class="p">:</span>
+            <span class="n">matching_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">operator</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">matching_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        
+        <span class="c1"># Apply filters</span>
+        <span class="k">if</span> <span class="n">agent_id</span><span class="p">:</span>
+            <span class="n">matching_ids</span> <span class="o">&amp;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="n">category</span><span class="p">:</span>
+            <span class="n">matching_ids</span> <span class="o">&amp;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">category</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="n">tags</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">tags</span><span class="p">:</span>
+                <span class="n">matching_ids</span> <span class="o">&amp;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+        
+        <span class="c1"># Get entries and calculate relevance</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">entry_id</span> <span class="ow">in</span> <span class="n">matching_ids</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">:</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">[</span><span class="n">entry_id</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">query</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">relevance_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">calculate_relevance</span><span class="p">(</span><span class="n">entry_id</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+                <span class="n">entries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        
+        <span class="c1"># Sort by relevance and timestamp</span>
+        <span class="n">entries</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="n">e</span><span class="o">.</span><span class="n">relevance_score</span><span class="p">,</span> <span class="o">-</span><span class="n">e</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">timestamp</span><span class="p">()))</span>
+        
+        <span class="c1"># Apply limit</span>
+        <span class="n">limited_entries</span> <span class="o">=</span> <span class="n">entries</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="c1"># Cache result</span>
+        <span class="n">cache_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;entries&#39;</span><span class="p">:</span> <span class="n">limited_entries</span><span class="p">,</span>
+            <span class="s1">&#39;total_count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cache_key</span><span class="p">,</span> <span class="n">cache_data</span><span class="p">,</span> <span class="n">ttl</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+        
+        <span class="c1"># Return result</span>
+        <span class="k">return</span> <span class="n">QueryResult</span><span class="p">(</span>
+            <span class="n">entries</span><span class="o">=</span><span class="n">limited_entries</span><span class="p">,</span>
+            <span class="n">total_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">),</span>
+            <span class="n">query_time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+            <span class="n">index_used</span><span class="o">=</span><span class="s1">&#39;text_index&#39;</span> <span class="k">if</span> <span class="n">query</span> <span class="k">else</span> <span class="s1">&#39;full_scan&#39;</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="IndexedMemoryService.get_recent_memories">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.get_recent_memories">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_recent_memories</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hours</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">days</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QueryResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get recent memories within time range.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            hours: Hours to look back</span>
+<span class="sd">            days: Days to look back</span>
+<span class="sd">            limit: Maximum results</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Recent memories</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Calculate time range</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">hours</span><span class="p">:</span>
+            <span class="n">min_time</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">hours</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">days</span><span class="p">:</span>
+            <span class="n">min_time</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">days</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">min_time</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Use time index for range search</span>
+        <span class="n">entry_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_index</span><span class="o">.</span><span class="n">range_search</span><span class="p">(</span>
+            <span class="n">min_key</span><span class="o">=</span><span class="n">min_time</span><span class="p">,</span>
+            <span class="n">max_key</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+            <span class="n">limit</span><span class="o">=</span><span class="n">limit</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Get entries</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">entry_ids</span> <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="n">QueryResult</span><span class="p">(</span>
+            <span class="n">entries</span><span class="o">=</span><span class="n">entries</span><span class="p">,</span>
+            <span class="n">total_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">entries</span><span class="p">),</span>
+            <span class="n">query_time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+            <span class="n">index_used</span><span class="o">=</span><span class="s1">&#39;time_index&#39;</span>
+        <span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="IndexedMemoryService.get_agent_memories">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.get_agent_memories">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_agent_memories</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QueryResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get all memories for a specific agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Agent ID</span>
+<span class="sd">            limit: Maximum results</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Agent&#39;s memories</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="c1"># Use agent index</span>
+        <span class="n">entry_ids</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="nb">set</span><span class="p">()))[:</span><span class="n">limit</span><span class="p">]</span>
+        
+        <span class="c1"># Get entries</span>
+        <span class="n">entries</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">[</span><span class="nb">id</span><span class="p">]</span> <span class="k">for</span> <span class="nb">id</span> <span class="ow">in</span> <span class="n">entry_ids</span> <span class="k">if</span> <span class="nb">id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">]</span>
+        
+        <span class="c1"># Sort by timestamp</span>
+        <span class="n">entries</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="o">-</span><span class="n">e</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">timestamp</span><span class="p">())</span>
+        
+        <span class="k">return</span> <span class="n">QueryResult</span><span class="p">(</span>
+            <span class="n">entries</span><span class="o">=</span><span class="n">entries</span><span class="p">,</span>
+            <span class="n">total_count</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_id</span><span class="p">,</span> <span class="nb">set</span><span class="p">())),</span>
+            <span class="n">query_time</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">,</span>
+            <span class="n">index_used</span><span class="o">=</span><span class="s1">&#39;agent_index&#39;</span>
+        <span class="p">)</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate unique ID for memory entry.&quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">hash_input</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">content</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">return</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">(</span><span class="n">hash_input</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()[:</span><span class="mi">12</span><span class="p">]</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Persist all indexes to disk.&quot;&quot;&quot;</span>
+        <span class="c1"># Save text index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">&quot;text_index.pkl&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Save other indexes</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">&quot;indexes.pkl&quot;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">({</span>
+                <span class="s1">&#39;memories&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">,</span>
+                <span class="s1">&#39;time_index&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_index</span><span class="o">.</span><span class="n">index</span><span class="p">,</span>
+                <span class="s1">&#39;agent_index&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="p">),</span>
+                <span class="s1">&#39;category_index&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="p">),</span>
+                <span class="s1">&#39;tag_index&#39;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="p">)</span>
+            <span class="p">},</span> <span class="n">f</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">)</span><span class="si">}</span><span class="s2"> memories to disk&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_indexes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load indexes from disk.&quot;&quot;&quot;</span>
+        <span class="c1"># Load text index</span>
+        <span class="n">text_index_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">&quot;text_index.pkl&quot;</span>
+        <span class="k">if</span> <span class="n">text_index_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">text_index_path</span><span class="p">)</span>
+        
+        <span class="c1"># Load other indexes</span>
+        <span class="n">indexes_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_dir</span> <span class="o">/</span> <span class="s2">&quot;indexes.pkl&quot;</span>
+        <span class="k">if</span> <span class="n">indexes_path</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">indexes_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">memories</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;memories&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">time_index</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;time_index&#39;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;agent_index&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">category_index</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;category_index&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">set</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tag_index&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">)</span><span class="si">}</span><span class="s2"> memories from disk&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="IndexedMemoryService.get_stats">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.get_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get memory service statistics.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;total_memories&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories</span><span class="p">),</span>
+            <span class="s1">&#39;agents&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="p">),</span>
+            <span class="s1">&#39;categories&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="p">),</span>
+            <span class="s1">&#39;tags&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="p">),</span>
+            <span class="s1">&#39;index_size&#39;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text_index</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+                <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">time_index</span><span class="o">.</span><span class="n">index</span><span class="p">),</span>
+                <span class="s1">&#39;agent&#39;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_index</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                <span class="s1">&#39;category&#39;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">category_index</span><span class="o">.</span><span class="n">values</span><span class="p">()),</span>
+                <span class="s1">&#39;tag&#39;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag_index</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+            <span class="p">},</span>
+            <span class="s1">&#39;cache_stats&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="o">.</span><span class="n">get_stats</span><span class="p">()</span>
+        <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="IndexedMemoryService.cleanup">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.IndexedMemoryService.cleanup">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save indexes and cleanup resources.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_indexes</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="c1"># Global memory service instance</span>
+<span class="n">_memory_service</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">IndexedMemoryService</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="get_indexed_memory">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.indexed_memory.html#claude_mpm.services.memory.indexed_memory.get_indexed_memory">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_indexed_memory</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">IndexedMemoryService</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get or create global indexed memory service.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_memory_service</span>
+    <span class="k">if</span> <span class="n">_memory_service</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">_memory_service</span> <span class="o">=</span> <span class="n">IndexedMemoryService</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">_memory_service</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

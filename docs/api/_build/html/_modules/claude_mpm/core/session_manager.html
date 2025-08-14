@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.session_manager &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.session_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.session_manager</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Session ID management for Claude subprocess optimization.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">uuid</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.logger</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="SessionManager">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">SessionManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages session IDs for Claude subprocess reuse.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="SessionManager.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize session manager.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            session_dir: Directory to store session metadata</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_dir</span> <span class="o">=</span> <span class="n">session_dir</span> <span class="ow">or</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;sessions&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_sessions</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.create_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.create_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">create_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create a new session ID.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            context: Context identifier (e.g., &quot;pm_orchestration&quot;, &quot;agent_delegation&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            UUID session ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">())</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">session_id</span><span class="p">,</span>
+            <span class="s2">&quot;context&quot;</span><span class="p">:</span> <span class="n">context</span><span class="p">,</span>
+            <span class="s2">&quot;created_at&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">&quot;last_used&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">&quot;use_count&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;agents_run&quot;</span><span class="p">:</span> <span class="p">[]</span>
+        <span class="p">}</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">_save_sessions</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> for context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">session_id</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.get_or_create_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.get_or_create_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_or_create_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="n">max_age_minutes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get existing session or create new one.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            context: Context identifier</span>
+<span class="sd">            max_age_minutes: Maximum age of session to reuse</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Session ID</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Look for existing session in context</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">max_age</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">max_age_minutes</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">session_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;context&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">context</span><span class="p">:</span>
+                <span class="n">last_used</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;last_used&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">last_used</span> <span class="o">&lt;</span> <span class="n">max_age</span><span class="p">:</span>
+                    <span class="c1"># Reuse this session</span>
+                    <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;last_used&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+                    <span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;use_count&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_save_sessions</span><span class="p">()</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Reusing session </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> for context: </span><span class="si">{</span><span class="n">context</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">return</span> <span class="n">session_id</span>
+        
+        <span class="c1"># No valid session found, create new one</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_session</span><span class="p">(</span><span class="n">context</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.record_agent_use">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.record_agent_use">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">record_agent_use</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">agent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Record that an agent used this session.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Session ID</span>
+<span class="sd">            agent: Agent name</span>
+<span class="sd">            task: Task description</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">][</span><span class="s2">&quot;agents_run&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s2">&quot;agent&quot;</span><span class="p">:</span> <span class="n">agent</span><span class="p">,</span>
+                <span class="s2">&quot;task&quot;</span><span class="p">:</span> <span class="n">task</span><span class="p">[:</span><span class="mi">100</span><span class="p">],</span>  <span class="c1"># Truncate long tasks</span>
+                <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">][</span><span class="s2">&quot;last_used&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_sessions</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.cleanup_old_sessions">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.cleanup_old_sessions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">cleanup_old_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_age_hours</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">24</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove sessions older than max_age_hours.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            max_age_hours: Maximum age in hours</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">max_age</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="n">max_age_hours</span><span class="p">)</span>
+        
+        <span class="n">expired</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">session_id</span><span class="p">,</span> <span class="n">session_data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">created</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">session_data</span><span class="p">[</span><span class="s2">&quot;created_at&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">now</span> <span class="o">-</span> <span class="n">created</span> <span class="o">&gt;</span> <span class="n">max_age</span><span class="p">:</span>
+                <span class="n">expired</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span>
+        
+        <span class="k">for</span> <span class="n">session_id</span> <span class="ow">in</span> <span class="n">expired</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">]</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cleaned up expired session: </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">expired</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_save_sessions</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.get_recent_sessions">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.get_recent_sessions">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_recent_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get recent sessions sorted by last used time.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            limit: Maximum number of sessions to return</span>
+<span class="sd">            context: Filter by context (optional)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of session data dictionaries sorted by last_used descending</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sessions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        
+        <span class="c1"># Filter by context if specified</span>
+        <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+            <span class="n">sessions</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sessions</span> <span class="k">if</span> <span class="n">s</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;context&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="n">context</span><span class="p">]</span>
+        
+        <span class="c1"># Sort by last_used descending (most recent first)</span>
+        <span class="n">sessions</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromisoformat</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="s2">&quot;last_used&quot;</span><span class="p">]),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">sessions</span><span class="p">[:</span><span class="n">limit</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.get_session_by_id">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.get_session_by_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_session_by_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get session data by ID.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            session_id: Session ID to look up</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Session data dictionary or None if not found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">session_id</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="SessionManager.get_last_interactive_session">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.SessionManager.get_last_interactive_session">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_last_interactive_session</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the most recently used interactive session ID.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: For --resume without arguments, we want to resume the last</span>
+<span class="sd">        interactive session (context=&quot;default&quot; for regular Claude runs).</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Session ID of most recent interactive session, or None if none found</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">recent_sessions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_recent_sessions</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="s2">&quot;default&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">recent_sessions</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">recent_sessions</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s2">&quot;id&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_save_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save sessions to disk.&quot;&quot;&quot;</span>
+        <span class="n">session_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_dir</span> <span class="o">/</span> <span class="s2">&quot;active_sessions.json&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">session_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save sessions: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_sessions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load sessions from disk.&quot;&quot;&quot;</span>
+        <span class="n">session_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_dir</span> <span class="o">/</span> <span class="s2">&quot;active_sessions.json&quot;</span>
+        <span class="k">if</span> <span class="n">session_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">session_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                    
+                <span class="c1"># Clean up old sessions on load</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cleanup_old_sessions</span><span class="p">()</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load sessions: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">active_sessions</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+
+<div class="viewcode-block" id="OrchestrationSession">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.OrchestrationSession">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">OrchestrationSession</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Context manager for orchestration sessions.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="OrchestrationSession.__init__">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.OrchestrationSession.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_manager</span><span class="p">:</span> <span class="n">SessionManager</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;orchestration&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize orchestration session.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            session_manager: SessionManager instance</span>
+<span class="sd">            context: Session context</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span> <span class="o">=</span> <span class="n">session_manager</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">context</span> <span class="o">=</span> <span class="n">context</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="OrchestrationSession.__enter__">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.OrchestrationSession.__enter__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Enter session context, return session ID.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_manager</span><span class="o">.</span><span class="n">get_or_create_session</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">context</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span></div>
+
+    
+<div class="viewcode-block" id="OrchestrationSession.__exit__">
+<a class="viewcode-back" href="../../../claude_mpm.core.session_manager.html#claude_mpm.core.session_manager.OrchestrationSession.__exit__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">exc_type</span><span class="p">,</span> <span class="n">exc_val</span><span class="p">,</span> <span class="n">exc_tb</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Exit session context.&quot;&quot;&quot;</span>
+        <span class="c1"># Could add cleanup here if needed</span>
+        <span class="k">pass</span></div>
+</div>
+
+
+
+<span class="c1"># Example usage in subprocess orchestrator:</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">session_manager = SessionManager()</span>
+
+<span class="sd"># In run_non_interactive:</span>
+<span class="sd">with OrchestrationSession(session_manager, &quot;pm_delegation&quot;) as session_id:</span>
+<span class="sd">    # Run PM with session</span>
+<span class="sd">    stdout, stderr, returncode = self.launcher.launch_oneshot(</span>
+<span class="sd">        message=pm_prompt,</span>
+<span class="sd">        session_id=session_id,  # First call creates context</span>
+<span class="sd">        timeout=30</span>
+<span class="sd">    )</span>
+<span class="sd">    </span>
+<span class="sd">    # Run agents with same session (reuses context)</span>
+<span class="sd">    for agent, task in delegations:</span>
+<span class="sd">        stdout, stderr, returncode = self.launcher.launch_oneshot(</span>
+<span class="sd">            message=agent_prompt,</span>
+<span class="sd">            session_id=session_id,  # Reuses PM context!</span>
+<span class="sd">            timeout=60</span>
+<span class="sd">        )</span>
+<span class="sd">        session_manager.record_agent_use(session_id, agent, task)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,674 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.memory.router &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.memory.router</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.memory.router</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Memory Router Service</span>
+<span class="sd">====================</span>
+
+<span class="sd">Routes memory commands to appropriate agents based on content analysis.</span>
+
+<span class="sd">This service provides:</span>
+<span class="sd">- Content analysis to determine target agent</span>
+<span class="sd">- Support for &quot;remember&quot;, &quot;memorize&quot;, &quot;add to memory&quot; commands</span>
+<span class="sd">- Routing decision with reasoning</span>
+<span class="sd">- Context-aware agent selection</span>
+
+<span class="sd">WHY: When users say &quot;remember this for next time&quot;, the system needs to determine</span>
+<span class="sd">which agent should store the information. This service analyzes content to make</span>
+<span class="sd">intelligent routing decisions for PM delegation.</span>
+
+<span class="sd">DESIGN DECISION: Uses keyword matching and context analysis rather than ML models</span>
+<span class="sd">for simplicity and transparency. Routing decisions include reasoning to help</span>
+<span class="sd">users understand why content was assigned to specific agents.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoggerMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+
+
+<div class="viewcode-block" id="MemoryRouter">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryRouter</span><span class="p">(</span><span class="n">LoggerMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Routes memory commands to appropriate agents based on content analysis.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Different types of learnings belong to different agents. Engineering</span>
+<span class="sd">    insights should go to the engineer agent, while research findings should</span>
+<span class="sd">    go to the research agent. This service provides intelligent routing.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Uses explicit keyword patterns and rules rather than ML</span>
+<span class="sd">    to ensure predictable, transparent routing decisions that users can understand.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Agent routing patterns - keywords that indicate agent specialization</span>
+    <span class="n">AGENT_PATTERNS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;engineer&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;implementation&#39;</span><span class="p">,</span> <span class="s1">&#39;code&#39;</span><span class="p">,</span> <span class="s1">&#39;coding&#39;</span><span class="p">,</span> <span class="s1">&#39;programming&#39;</span><span class="p">,</span> <span class="s1">&#39;function&#39;</span><span class="p">,</span> <span class="s1">&#39;method&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="s1">&#39;module&#39;</span><span class="p">,</span> <span class="s1">&#39;import&#39;</span><span class="p">,</span> <span class="s1">&#39;dependency&#39;</span><span class="p">,</span> <span class="s1">&#39;build&#39;</span><span class="p">,</span> <span class="s1">&#39;compile&#39;</span><span class="p">,</span> <span class="s1">&#39;deploy&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;refactor&#39;</span><span class="p">,</span> <span class="s1">&#39;optimize&#39;</span><span class="p">,</span> <span class="s1">&#39;performance&#39;</span><span class="p">,</span> <span class="s1">&#39;algorithm&#39;</span><span class="p">,</span> <span class="s1">&#39;data structure&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;design pattern&#39;</span><span class="p">,</span> <span class="s1">&#39;architecture&#39;</span><span class="p">,</span> <span class="s1">&#39;api&#39;</span><span class="p">,</span> <span class="s1">&#39;interface&#39;</span><span class="p">,</span> <span class="s1">&#39;library&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;framework&#39;</span><span class="p">,</span> <span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="s1">&#39;unit test&#39;</span><span class="p">,</span> <span class="s1">&#39;integration test&#39;</span><span class="p">,</span> <span class="s1">&#39;debug&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;error handling&#39;</span><span class="p">,</span> <span class="s1">&#39;exception&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Coding Patterns Learned&#39;</span><span class="p">,</span> <span class="s1">&#39;Implementation Guidelines&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;Performance Considerations&#39;</span><span class="p">,</span> <span class="s1">&#39;Integration Points&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;research&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;research&#39;</span><span class="p">,</span> <span class="s1">&#39;analysis&#39;</span><span class="p">,</span> <span class="s1">&#39;investigate&#39;</span><span class="p">,</span> <span class="s1">&#39;explore&#39;</span><span class="p">,</span> <span class="s1">&#39;study&#39;</span><span class="p">,</span> <span class="s1">&#39;examine&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;findings&#39;</span><span class="p">,</span> <span class="s1">&#39;discovery&#39;</span><span class="p">,</span> <span class="s1">&#39;insights&#39;</span><span class="p">,</span> <span class="s1">&#39;documentation&#39;</span><span class="p">,</span> <span class="s1">&#39;specification&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;requirements&#39;</span><span class="p">,</span> <span class="s1">&#39;use case&#39;</span><span class="p">,</span> <span class="s1">&#39;user story&#39;</span><span class="p">,</span> <span class="s1">&#39;business logic&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;domain knowledge&#39;</span><span class="p">,</span> <span class="s1">&#39;best practices&#39;</span><span class="p">,</span> <span class="s1">&#39;standards&#39;</span><span class="p">,</span> <span class="s1">&#39;compliance&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;security&#39;</span><span class="p">,</span> <span class="s1">&#39;vulnerability&#39;</span><span class="p">,</span> <span class="s1">&#39;threat&#39;</span><span class="p">,</span> <span class="s1">&#39;risk&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Domain-Specific Knowledge&#39;</span><span class="p">,</span> <span class="s1">&#39;Research Findings&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;Security Considerations&#39;</span><span class="p">,</span> <span class="s1">&#39;Compliance Requirements&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;qa&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="s1">&#39;testing&#39;</span><span class="p">,</span> <span class="s1">&#39;quality&#39;</span><span class="p">,</span> <span class="s1">&#39;bug&#39;</span><span class="p">,</span> <span class="s1">&#39;defect&#39;</span><span class="p">,</span> <span class="s1">&#39;issue&#39;</span><span class="p">,</span> <span class="s1">&#39;validation&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;verification&#39;</span><span class="p">,</span> <span class="s1">&#39;quality assurance&#39;</span><span class="p">,</span> <span class="s1">&#39;test case&#39;</span><span class="p">,</span> <span class="s1">&#39;test plan&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;coverage&#39;</span><span class="p">,</span> <span class="s1">&#39;automation&#39;</span><span class="p">,</span> <span class="s1">&#39;regression&#39;</span><span class="p">,</span> <span class="s1">&#39;smoke test&#39;</span><span class="p">,</span> <span class="s1">&#39;acceptance&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;criteria&#39;</span><span class="p">,</span> <span class="s1">&#39;checklist&#39;</span><span class="p">,</span> <span class="s1">&#39;review&#39;</span><span class="p">,</span> <span class="s1">&#39;audit&#39;</span><span class="p">,</span> <span class="s1">&#39;compliance&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;standards&#39;</span><span class="p">,</span> <span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="s1">&#39;measurement&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Quality Standards&#39;</span><span class="p">,</span> <span class="s1">&#39;Testing Strategies&#39;</span><span class="p">,</span> 
+                <span class="s1">&#39;Common Issues Found&#39;</span><span class="p">,</span> <span class="s1">&#39;Verification Patterns&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;documentation&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;document&#39;</span><span class="p">,</span> <span class="s1">&#39;documentation&#39;</span><span class="p">,</span> <span class="s1">&#39;readme&#39;</span><span class="p">,</span> <span class="s1">&#39;guide&#39;</span><span class="p">,</span> <span class="s1">&#39;manual&#39;</span><span class="p">,</span> <span class="s1">&#39;help&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;instructions&#39;</span><span class="p">,</span> <span class="s1">&#39;tutorial&#39;</span><span class="p">,</span> <span class="s1">&#39;explanation&#39;</span><span class="p">,</span> <span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;overview&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;summary&#39;</span><span class="p">,</span> <span class="s1">&#39;specification&#39;</span><span class="p">,</span> <span class="s1">&#39;reference&#39;</span><span class="p">,</span> <span class="s1">&#39;glossary&#39;</span><span class="p">,</span> <span class="s1">&#39;faq&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;examples&#39;</span><span class="p">,</span> <span class="s1">&#39;usage&#39;</span><span class="p">,</span> <span class="s1">&#39;howto&#39;</span><span class="p">,</span> <span class="s1">&#39;walkthrough&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Documentation Patterns&#39;</span><span class="p">,</span> <span class="s1">&#39;User Guide Standards&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Content Organization&#39;</span><span class="p">,</span> <span class="s1">&#39;Writing Guidelines&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;security&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;security&#39;</span><span class="p">,</span> <span class="s1">&#39;authentication&#39;</span><span class="p">,</span> <span class="s1">&#39;authorization&#39;</span><span class="p">,</span> <span class="s1">&#39;encryption&#39;</span><span class="p">,</span> <span class="s1">&#39;decrypt&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;password&#39;</span><span class="p">,</span> <span class="s1">&#39;token&#39;</span><span class="p">,</span> <span class="s1">&#39;certificate&#39;</span><span class="p">,</span> <span class="s1">&#39;ssl&#39;</span><span class="p">,</span> <span class="s1">&#39;tls&#39;</span><span class="p">,</span> <span class="s1">&#39;vulnerability&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;exploit&#39;</span><span class="p">,</span> <span class="s1">&#39;attack&#39;</span><span class="p">,</span> <span class="s1">&#39;malware&#39;</span><span class="p">,</span> <span class="s1">&#39;virus&#39;</span><span class="p">,</span> <span class="s1">&#39;firewall&#39;</span><span class="p">,</span> <span class="s1">&#39;access control&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;permissions&#39;</span><span class="p">,</span> <span class="s1">&#39;privilege&#39;</span><span class="p">,</span> <span class="s1">&#39;audit&#39;</span><span class="p">,</span> <span class="s1">&#39;compliance&#39;</span><span class="p">,</span> <span class="s1">&#39;privacy&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;data protection&#39;</span><span class="p">,</span> <span class="s1">&#39;gdpr&#39;</span><span class="p">,</span> <span class="s1">&#39;sensitive data&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Security Patterns&#39;</span><span class="p">,</span> <span class="s1">&#39;Threat Analysis&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Compliance Requirements&#39;</span><span class="p">,</span> <span class="s1">&#39;Access Control Patterns&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;pm&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;project&#39;</span><span class="p">,</span> <span class="s1">&#39;management&#39;</span><span class="p">,</span> <span class="s1">&#39;coordination&#39;</span><span class="p">,</span> <span class="s1">&#39;planning&#39;</span><span class="p">,</span> <span class="s1">&#39;schedule&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;timeline&#39;</span><span class="p">,</span> <span class="s1">&#39;milestone&#39;</span><span class="p">,</span> <span class="s1">&#39;deliverable&#39;</span><span class="p">,</span> <span class="s1">&#39;stakeholder&#39;</span><span class="p">,</span> <span class="s1">&#39;requirement&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;priority&#39;</span><span class="p">,</span> <span class="s1">&#39;resource&#39;</span><span class="p">,</span> <span class="s1">&#39;allocation&#39;</span><span class="p">,</span> <span class="s1">&#39;budget&#39;</span><span class="p">,</span> <span class="s1">&#39;scope&#39;</span><span class="p">,</span> <span class="s1">&#39;risk&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;communication&#39;</span><span class="p">,</span> <span class="s1">&#39;meeting&#39;</span><span class="p">,</span> <span class="s1">&#39;status&#39;</span><span class="p">,</span> <span class="s1">&#39;progress&#39;</span><span class="p">,</span> <span class="s1">&#39;workflow&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;process&#39;</span><span class="p">,</span> <span class="s1">&#39;methodology&#39;</span><span class="p">,</span> <span class="s1">&#39;agile&#39;</span><span class="p">,</span> <span class="s1">&#39;scrum&#39;</span><span class="p">,</span> <span class="s1">&#39;kanban&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Project Coordination&#39;</span><span class="p">,</span> <span class="s1">&#39;Team Communication&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Process Improvements&#39;</span><span class="p">,</span> <span class="s1">&#39;Risk Management&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;data_engineer&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="s1">&#39;database&#39;</span><span class="p">,</span> <span class="s1">&#39;sql&#39;</span><span class="p">,</span> <span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="s1">&#39;etl&#39;</span><span class="p">,</span> <span class="s1">&#39;elt&#39;</span><span class="p">,</span> <span class="s1">&#39;extract&#39;</span><span class="p">,</span> <span class="s1">&#39;transform&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;load&#39;</span><span class="p">,</span> <span class="s1">&#39;analytics&#39;</span><span class="p">,</span> <span class="s1">&#39;warehouse&#39;</span><span class="p">,</span> <span class="s1">&#39;lake&#39;</span><span class="p">,</span> <span class="s1">&#39;schema&#39;</span><span class="p">,</span> <span class="s1">&#39;migration&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;replication&#39;</span><span class="p">,</span> <span class="s1">&#39;streaming&#39;</span><span class="p">,</span> <span class="s1">&#39;batch&#39;</span><span class="p">,</span> <span class="s1">&#39;kafka&#39;</span><span class="p">,</span> <span class="s1">&#39;spark&#39;</span><span class="p">,</span> <span class="s1">&#39;hadoop&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;mongodb&#39;</span><span class="p">,</span> <span class="s1">&#39;postgres&#39;</span><span class="p">,</span> <span class="s1">&#39;mysql&#39;</span><span class="p">,</span> <span class="s1">&#39;redis&#39;</span><span class="p">,</span> <span class="s1">&#39;elasticsearch&#39;</span><span class="p">,</span> <span class="s1">&#39;index&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="s1">&#39;optimization&#39;</span><span class="p">,</span> <span class="s1">&#39;performance&#39;</span><span class="p">,</span> <span class="s1">&#39;partitioning&#39;</span><span class="p">,</span> <span class="s1">&#39;sharding&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;normalization&#39;</span><span class="p">,</span> <span class="s1">&#39;denormalization&#39;</span><span class="p">,</span> <span class="s1">&#39;aggregation&#39;</span><span class="p">,</span> <span class="s1">&#39;cleansing&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;validation&#39;</span><span class="p">,</span> <span class="s1">&#39;quality&#39;</span><span class="p">,</span> <span class="s1">&#39;lineage&#39;</span><span class="p">,</span> <span class="s1">&#39;governance&#39;</span><span class="p">,</span> <span class="s1">&#39;backup&#39;</span><span class="p">,</span> <span class="s1">&#39;restore&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;ai api&#39;</span><span class="p">,</span> <span class="s1">&#39;openai&#39;</span><span class="p">,</span> <span class="s1">&#39;claude&#39;</span><span class="p">,</span> <span class="s1">&#39;llm&#39;</span><span class="p">,</span> <span class="s1">&#39;embedding&#39;</span><span class="p">,</span> <span class="s1">&#39;vector database&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Database Architecture Patterns&#39;</span><span class="p">,</span> <span class="s1">&#39;Pipeline Design Strategies&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Data Quality Standards&#39;</span><span class="p">,</span> <span class="s1">&#39;Performance Optimization Techniques&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;test_integration&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;integration&#39;</span><span class="p">,</span> <span class="s1">&#39;e2e&#39;</span><span class="p">,</span> <span class="s1">&#39;end-to-end&#39;</span><span class="p">,</span> <span class="s1">&#39;system test&#39;</span><span class="p">,</span> <span class="s1">&#39;workflow test&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;cross-system&#39;</span><span class="p">,</span> <span class="s1">&#39;api test&#39;</span><span class="p">,</span> <span class="s1">&#39;contract test&#39;</span><span class="p">,</span> <span class="s1">&#39;service test&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;boundary test&#39;</span><span class="p">,</span> <span class="s1">&#39;interface test&#39;</span><span class="p">,</span> <span class="s1">&#39;component test&#39;</span><span class="p">,</span> <span class="s1">&#39;smoke test&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;acceptance test&#39;</span><span class="p">,</span> <span class="s1">&#39;scenario test&#39;</span><span class="p">,</span> <span class="s1">&#39;user journey&#39;</span><span class="p">,</span> <span class="s1">&#39;flow test&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;regression&#39;</span><span class="p">,</span> <span class="s1">&#39;compatibility&#39;</span><span class="p">,</span> <span class="s1">&#39;interoperability&#39;</span><span class="p">,</span> <span class="s1">&#39;validation&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;verification&#39;</span><span class="p">,</span> <span class="s1">&#39;mock&#39;</span><span class="p">,</span> <span class="s1">&#39;stub&#39;</span><span class="p">,</span> <span class="s1">&#39;test data&#39;</span><span class="p">,</span> <span class="s1">&#39;test environment&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;test setup&#39;</span><span class="p">,</span> <span class="s1">&#39;teardown&#39;</span><span class="p">,</span> <span class="s1">&#39;isolation&#39;</span><span class="p">,</span> <span class="s1">&#39;coordination&#39;</span><span class="p">,</span> <span class="s1">&#39;synchronization&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;selenium&#39;</span><span class="p">,</span> <span class="s1">&#39;cypress&#39;</span><span class="p">,</span> <span class="s1">&#39;playwright&#39;</span><span class="p">,</span> <span class="s1">&#39;postman&#39;</span><span class="p">,</span> <span class="s1">&#39;newman&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Integration Test Patterns&#39;</span><span class="p">,</span> <span class="s1">&#39;Cross-System Validation&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Test Environment Management&#39;</span><span class="p">,</span> <span class="s1">&#39;End-to-End Workflow Testing&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;ops&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;deployment&#39;</span><span class="p">,</span> <span class="s1">&#39;infrastructure&#39;</span><span class="p">,</span> <span class="s1">&#39;devops&#39;</span><span class="p">,</span> <span class="s1">&#39;cicd&#39;</span><span class="p">,</span> <span class="s1">&#39;ci/cd&#39;</span><span class="p">,</span> <span class="s1">&#39;docker&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;container&#39;</span><span class="p">,</span> <span class="s1">&#39;kubernetes&#39;</span><span class="p">,</span> <span class="s1">&#39;helm&#39;</span><span class="p">,</span> <span class="s1">&#39;terraform&#39;</span><span class="p">,</span> <span class="s1">&#39;ansible&#39;</span><span class="p">,</span> <span class="s1">&#39;jenkins&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;pipeline&#39;</span><span class="p">,</span> <span class="s1">&#39;build&#39;</span><span class="p">,</span> <span class="s1">&#39;release&#39;</span><span class="p">,</span> <span class="s1">&#39;staging&#39;</span><span class="p">,</span> <span class="s1">&#39;production&#39;</span><span class="p">,</span> <span class="s1">&#39;environment&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;monitoring&#39;</span><span class="p">,</span> <span class="s1">&#39;logging&#39;</span><span class="p">,</span> <span class="s1">&#39;metrics&#39;</span><span class="p">,</span> <span class="s1">&#39;alerts&#39;</span><span class="p">,</span> <span class="s1">&#39;observability&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;scaling&#39;</span><span class="p">,</span> <span class="s1">&#39;load balancer&#39;</span><span class="p">,</span> <span class="s1">&#39;proxy&#39;</span><span class="p">,</span> <span class="s1">&#39;nginx&#39;</span><span class="p">,</span> <span class="s1">&#39;apache&#39;</span><span class="p">,</span> <span class="s1">&#39;server&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;network&#39;</span><span class="p">,</span> <span class="s1">&#39;firewall&#39;</span><span class="p">,</span> <span class="s1">&#39;vpc&#39;</span><span class="p">,</span> <span class="s1">&#39;aws&#39;</span><span class="p">,</span> <span class="s1">&#39;azure&#39;</span><span class="p">,</span> <span class="s1">&#39;gcp&#39;</span><span class="p">,</span> <span class="s1">&#39;cloud&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;backup&#39;</span><span class="p">,</span> <span class="s1">&#39;disaster recovery&#39;</span><span class="p">,</span> <span class="s1">&#39;failover&#39;</span><span class="p">,</span> <span class="s1">&#39;redundancy&#39;</span><span class="p">,</span> <span class="s1">&#39;uptime&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;prometheus&#39;</span><span class="p">,</span> <span class="s1">&#39;grafana&#39;</span><span class="p">,</span> <span class="s1">&#39;splunk&#39;</span><span class="p">,</span> <span class="s1">&#39;datadog&#39;</span><span class="p">,</span> <span class="s1">&#39;newrelic&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Deployment Strategies&#39;</span><span class="p">,</span> <span class="s1">&#39;Infrastructure Patterns&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Monitoring and Observability&#39;</span><span class="p">,</span> <span class="s1">&#39;Scaling and Performance&#39;</span>
+            <span class="p">]</span>
+        <span class="p">},</span>
+        <span class="s1">&#39;version_control&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;keywords&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;git&#39;</span><span class="p">,</span> <span class="s1">&#39;github&#39;</span><span class="p">,</span> <span class="s1">&#39;gitlab&#39;</span><span class="p">,</span> <span class="s1">&#39;bitbucket&#39;</span><span class="p">,</span> <span class="s1">&#39;branch&#39;</span><span class="p">,</span> <span class="s1">&#39;merge&#39;</span><span class="p">,</span> <span class="s1">&#39;commit&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;pull request&#39;</span><span class="p">,</span> <span class="s1">&#39;merge request&#39;</span><span class="p">,</span> <span class="s1">&#39;tag&#39;</span><span class="p">,</span> <span class="s1">&#39;release&#39;</span><span class="p">,</span> <span class="s1">&#39;version&#39;</span><span class="p">,</span> <span class="s1">&#39;changelog&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;semantic versioning&#39;</span><span class="p">,</span> <span class="s1">&#39;semver&#39;</span><span class="p">,</span> <span class="s1">&#39;workflow&#39;</span><span class="p">,</span> <span class="s1">&#39;gitflow&#39;</span><span class="p">,</span> <span class="s1">&#39;conflict&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;resolution&#39;</span><span class="p">,</span> <span class="s1">&#39;rebase&#39;</span><span class="p">,</span> <span class="s1">&#39;cherry-pick&#39;</span><span class="p">,</span> <span class="s1">&#39;stash&#39;</span><span class="p">,</span> <span class="s1">&#39;bisect&#39;</span><span class="p">,</span> <span class="s1">&#39;blame&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;diff&#39;</span><span class="p">,</span> <span class="s1">&#39;patch&#39;</span><span class="p">,</span> <span class="s1">&#39;submodule&#39;</span><span class="p">,</span> <span class="s1">&#39;hook&#39;</span><span class="p">,</span> <span class="s1">&#39;pre-commit&#39;</span><span class="p">,</span> <span class="s1">&#39;post-commit&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;repository&#39;</span><span class="p">,</span> <span class="s1">&#39;remote&#39;</span><span class="p">,</span> <span class="s1">&#39;origin&#39;</span><span class="p">,</span> <span class="s1">&#39;upstream&#39;</span><span class="p">,</span> <span class="s1">&#39;fork&#39;</span><span class="p">,</span> <span class="s1">&#39;clone&#39;</span>
+            <span class="p">],</span>
+            <span class="s1">&#39;sections&#39;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="s1">&#39;Branching Strategies&#39;</span><span class="p">,</span> <span class="s1">&#39;Release Management&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;Version Control Workflows&#39;</span><span class="p">,</span> <span class="s1">&#39;Collaboration Patterns&#39;</span>
+            <span class="p">]</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+    
+    <span class="c1"># Default agent for unmatched content</span>
+    <span class="n">DEFAULT_AGENT</span> <span class="o">=</span> <span class="s1">&#39;pm&#39;</span>
+    
+<div class="viewcode-block" id="MemoryRouter.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the memory router.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Optional Config object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="MemoryRouter.get_supported_agents">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.get_supported_agents">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_supported_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get list of supported agent types.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Other components need to know which agent types are supported</span>
+<span class="sd">        for validation and UI display purposes.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of supported agent type names</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+    
+<div class="viewcode-block" id="MemoryRouter.is_agent_supported">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.is_agent_supported">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_agent_supported</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if an agent type is supported by the memory router.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Provides validation for agent types before attempting routing.</span>
+<span class="sd">        This prevents errors and provides clear feedback about unsupported types.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_type: Agent type to check</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if agent type is supported, False otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">agent_type</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span></div>
+
+    
+<div class="viewcode-block" id="MemoryRouter.analyze_and_route">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.analyze_and_route">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_and_route</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze content and determine target agent for memory storage.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Different types of information belong to different agents. This method</span>
+<span class="sd">        analyzes content using keyword patterns and context to make intelligent</span>
+<span class="sd">        routing decisions.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: The content to be remembered</span>
+<span class="sd">            context: Optional context for routing decisions</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing routing decision and reasoning</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Clean and normalize content for analysis</span>
+            <span class="n">normalized_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_normalize_content</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            
+            <span class="c1"># Analyze content for agent patterns</span>
+            <span class="n">agent_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calculate_agent_scores</span><span class="p">(</span><span class="n">normalized_content</span><span class="p">)</span>
+            
+            <span class="c1"># Apply context-based adjustments</span>
+            <span class="k">if</span> <span class="n">context</span><span class="p">:</span>
+                <span class="n">agent_scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_context_adjustments</span><span class="p">(</span><span class="n">agent_scores</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+            
+            <span class="c1"># Select target agent</span>
+            <span class="n">target_agent</span><span class="p">,</span> <span class="n">confidence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_select_target_agent</span><span class="p">(</span><span class="n">agent_scores</span><span class="p">)</span>
+            
+            <span class="c1"># Determine appropriate section</span>
+            <span class="n">section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_section</span><span class="p">(</span><span class="n">target_agent</span><span class="p">,</span> <span class="n">normalized_content</span><span class="p">)</span>
+            
+            <span class="c1"># Build reasoning</span>
+            <span class="n">reasoning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_reasoning</span><span class="p">(</span><span class="n">target_agent</span><span class="p">,</span> <span class="n">agent_scores</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;target_agent&quot;</span><span class="p">:</span> <span class="n">target_agent</span><span class="p">,</span>
+                <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="n">section</span><span class="p">,</span>
+                <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">confidence</span><span class="p">,</span>
+                <span class="s2">&quot;reasoning&quot;</span><span class="p">:</span> <span class="n">reasoning</span><span class="p">,</span>
+                <span class="s2">&quot;agent_scores&quot;</span><span class="p">:</span> <span class="n">agent_scores</span><span class="p">,</span>
+                <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="s2">&quot;content_length&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="p">}</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Routed content to </span><span class="si">{</span><span class="n">target_agent</span><span class="si">}</span><span class="s2"> with confidence </span><span class="si">{</span><span class="n">confidence</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error analyzing content for routing: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;target_agent&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_AGENT</span><span class="p">,</span>
+                <span class="s2">&quot;section&quot;</span><span class="p">:</span> <span class="s2">&quot;Recent Learnings&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
+                <span class="s2">&quot;reasoning&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Error during analysis, defaulting to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_AGENT</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span>
+                <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="s2">&quot;content_length&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="k">if</span> <span class="n">content</span> <span class="k">else</span> <span class="mi">0</span>
+            <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="MemoryRouter.test_routing_patterns">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.test_routing_patterns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">test_routing_patterns</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_cases</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test routing logic with provided test cases.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Routing patterns need validation to ensure they work correctly.</span>
+<span class="sd">        This method allows testing of routing logic with known inputs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            test_cases: List of test cases with &#39;content&#39; and optional &#39;expected_agent&#39;</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of routing results for each test case</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">test_case</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">test_cases</span><span class="p">):</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">test_case</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;content&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">expected</span> <span class="o">=</span> <span class="n">test_case</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;expected_agent&#39;</span><span class="p">)</span>
+            
+            <span class="n">routing_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">analyze_and_route</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            
+            <span class="n">test_result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;test_case&quot;</span><span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">content</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;...&quot;</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span> <span class="k">else</span> <span class="n">content</span><span class="p">,</span>
+                <span class="s2">&quot;expected_agent&quot;</span><span class="p">:</span> <span class="n">expected</span><span class="p">,</span>
+                <span class="s2">&quot;actual_agent&quot;</span><span class="p">:</span> <span class="n">routing_result</span><span class="p">[</span><span class="s1">&#39;target_agent&#39;</span><span class="p">],</span>
+                <span class="s2">&quot;confidence&quot;</span><span class="p">:</span> <span class="n">routing_result</span><span class="p">[</span><span class="s1">&#39;confidence&#39;</span><span class="p">],</span>
+                <span class="s2">&quot;correct&quot;</span><span class="p">:</span> <span class="n">expected</span> <span class="o">==</span> <span class="n">routing_result</span><span class="p">[</span><span class="s1">&#39;target_agent&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="n">expected</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="s2">&quot;reasoning&quot;</span><span class="p">:</span> <span class="n">routing_result</span><span class="p">[</span><span class="s1">&#39;reasoning&#39;</span><span class="p">]</span>
+            <span class="p">}</span>
+            
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_result</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">results</span></div>
+
+    
+<div class="viewcode-block" id="MemoryRouter.get_routing_patterns">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.router.html#claude_mpm.services.memory.MemoryRouter.get_routing_patterns">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_routing_patterns</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get current routing patterns and statistics.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Users and developers need to understand how routing works and</span>
+<span class="sd">        potentially customize patterns for their specific use cases.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing routing patterns and statistics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;agents&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span>
+            <span class="s2">&quot;default_agent&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_AGENT</span><span class="p">,</span>
+            <span class="s2">&quot;patterns&quot;</span><span class="p">:</span> <span class="p">{</span>
+                <span class="n">agent</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="s2">&quot;keyword_count&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">]),</span>
+                    <span class="s2">&quot;section_count&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;sections&#39;</span><span class="p">]),</span>
+                    <span class="s2">&quot;keywords&quot;</span><span class="p">:</span> <span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">][:</span><span class="mi">10</span><span class="p">],</span>  <span class="c1"># Show first 10</span>
+                    <span class="s2">&quot;sections&quot;</span><span class="p">:</span> <span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;sections&#39;</span><span class="p">]</span>
+                <span class="p">}</span>
+                <span class="k">for</span> <span class="n">agent</span><span class="p">,</span> <span class="n">patterns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="p">},</span>
+            <span class="s2">&quot;total_keywords&quot;</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        <span class="p">}</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_normalize_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Normalize content for analysis.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: Raw content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Normalized content string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Convert to lowercase and remove extra whitespace</span>
+        <span class="n">normalized</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">content</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+        
+        <span class="c1"># Remove common noise words that don&#39;t help with routing</span>
+        <span class="n">noise_words</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;the&#39;</span><span class="p">,</span> <span class="s1">&#39;and&#39;</span><span class="p">,</span> <span class="s1">&#39;or&#39;</span><span class="p">,</span> <span class="s1">&#39;but&#39;</span><span class="p">,</span> <span class="s1">&#39;in&#39;</span><span class="p">,</span> <span class="s1">&#39;on&#39;</span><span class="p">,</span> <span class="s1">&#39;at&#39;</span><span class="p">,</span> <span class="s1">&#39;to&#39;</span><span class="p">,</span> <span class="s1">&#39;for&#39;</span><span class="p">,</span> <span class="s1">&#39;of&#39;</span><span class="p">,</span> <span class="s1">&#39;with&#39;</span><span class="p">,</span> <span class="s1">&#39;by&#39;</span><span class="p">]</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">normalized</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+        <span class="n">filtered_words</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span> <span class="k">if</span> <span class="n">w</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">noise_words</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">filtered_words</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_calculate_agent_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate relevance scores for each agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: Normalized content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict mapping agent names to relevance scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">agent</span><span class="p">,</span> <span class="n">patterns</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">matched_keywords</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">]:</span>
+                <span class="c1"># Exact keyword match gets higher score</span>
+                <span class="k">if</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="c1"># Multi-word keywords get bonus score</span>
+                    <span class="n">bonus</span> <span class="o">=</span> <span class="mf">1.5</span> <span class="k">if</span> <span class="s1">&#39; &#39;</span> <span class="ow">in</span> <span class="n">keyword</span> <span class="k">else</span> <span class="mf">1.0</span>
+                    <span class="n">score</span> <span class="o">+=</span> <span class="n">bonus</span>
+                    <span class="n">matched_keywords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">keyword</span><span class="p">)</span>
+                <span class="c1"># Partial match (word contains keyword)</span>
+                <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">keyword</span> <span class="ow">in</span> <span class="n">word</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">()):</span>
+                    <span class="n">score</span> <span class="o">+=</span> <span class="mf">0.5</span>
+            
+            <span class="c1"># Normalize score by square root to avoid penalizing agents with many keywords</span>
+            <span class="k">if</span> <span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">]:</span>
+                <span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">score</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">patterns</span><span class="p">[</span><span class="s1">&#39;keywords&#39;</span><span class="p">]))</span>
+            
+            <span class="n">scores</span><span class="p">[</span><span class="n">agent</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;score&#39;</span><span class="p">:</span> <span class="n">score</span><span class="p">,</span>
+                <span class="s1">&#39;matched_keywords&#39;</span><span class="p">:</span> <span class="n">matched_keywords</span><span class="p">[:</span><span class="mi">5</span><span class="p">],</span>  <span class="c1"># Limit for readability</span>
+                <span class="s1">&#39;match_count&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">matched_keywords</span><span class="p">)</span>
+            <span class="p">}</span>
+        
+        <span class="k">return</span> <span class="n">scores</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_apply_context_adjustments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">context</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Apply context-based adjustments to agent scores.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_scores: Current agent scores</span>
+<span class="sd">            context: Context information</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Adjusted agent scores</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Context hints for routing</span>
+        <span class="k">if</span> <span class="s1">&#39;agent_hint&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+            <span class="n">hint</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;agent_hint&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">hint</span> <span class="ow">in</span> <span class="n">agent_scores</span><span class="p">:</span>
+                <span class="n">agent_scores</span><span class="p">[</span><span class="n">hint</span><span class="p">][</span><span class="s1">&#39;score&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.3</span>
+                <span class="n">agent_scores</span><span class="p">[</span><span class="n">hint</span><span class="p">][</span><span class="s1">&#39;context_boost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="c1"># Task type hints</span>
+        <span class="k">if</span> <span class="s1">&#39;task_type&#39;</span> <span class="ow">in</span> <span class="n">context</span><span class="p">:</span>
+            <span class="n">task_type</span> <span class="o">=</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;task_type&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">task_mappings</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;implementation&#39;</span><span class="p">:</span> <span class="s1">&#39;engineer&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;coding&#39;</span><span class="p">:</span> <span class="s1">&#39;engineer&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;analysis&#39;</span><span class="p">:</span> <span class="s1">&#39;research&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;testing&#39;</span><span class="p">:</span> <span class="s1">&#39;qa&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;documentation&#39;</span><span class="p">:</span> <span class="s1">&#39;documentation&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;security&#39;</span><span class="p">:</span> <span class="s1">&#39;security&#39;</span><span class="p">,</span>
+                <span class="s1">&#39;planning&#39;</span><span class="p">:</span> <span class="s1">&#39;pm&#39;</span>
+            <span class="p">}</span>
+            
+            <span class="k">if</span> <span class="n">task_type</span> <span class="ow">in</span> <span class="n">task_mappings</span><span class="p">:</span>
+                <span class="n">target_agent</span> <span class="o">=</span> <span class="n">task_mappings</span><span class="p">[</span><span class="n">task_type</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">target_agent</span> <span class="ow">in</span> <span class="n">agent_scores</span><span class="p">:</span>
+                    <span class="n">agent_scores</span><span class="p">[</span><span class="n">target_agent</span><span class="p">][</span><span class="s1">&#39;score&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mf">0.2</span>
+                    <span class="n">agent_scores</span><span class="p">[</span><span class="n">target_agent</span><span class="p">][</span><span class="s1">&#39;task_type_boost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        
+        <span class="k">return</span> <span class="n">agent_scores</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_select_target_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Select target agent based on scores.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_scores: Agent relevance scores</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (target_agent, confidence)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Find agent with highest score</span>
+        <span class="n">best_agent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_AGENT</span>
+        <span class="n">best_score</span> <span class="o">=</span> <span class="mf">0.0</span>
+        
+        <span class="k">for</span> <span class="n">agent</span><span class="p">,</span> <span class="n">score_data</span> <span class="ow">in</span> <span class="n">agent_scores</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">score_data</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="n">best_score</span><span class="p">:</span>
+                <span class="n">best_score</span> <span class="o">=</span> <span class="n">score</span>
+                <span class="n">best_agent</span> <span class="o">=</span> <span class="n">agent</span>
+        
+        <span class="c1"># If no clear winner, use default</span>
+        <span class="c1"># Lowered threshold to handle diverse agent patterns better</span>
+        <span class="k">if</span> <span class="n">best_score</span> <span class="o">&lt;</span> <span class="mf">0.05</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">DEFAULT_AGENT</span><span class="p">,</span> <span class="mf">0.1</span>
+        
+        <span class="c1"># Convert score to confidence (0.0 to 1.0)</span>
+        <span class="n">confidence</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">best_score</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># Scale up for better confidence values</span>
+        
+        <span class="k">return</span> <span class="n">best_agent</span><span class="p">,</span> <span class="n">confidence</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_determine_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine appropriate section for the content.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent: Target agent</span>
+<span class="sd">            content: Normalized content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Section name for memory storage</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">agent</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Recent Learnings&quot;</span>
+        
+        <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AGENT_PATTERNS</span><span class="p">[</span><span class="n">agent</span><span class="p">][</span><span class="s1">&#39;sections&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Simple heuristics for section selection</span>
+        <span class="k">if</span> <span class="s1">&#39;mistake&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;error&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;avoid&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;Common Mistakes to Avoid&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;pattern&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;architecture&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">sections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">sections</span> <span class="k">else</span> <span class="s1">&#39;Recent Learnings&#39;</span>  <span class="c1"># First section is usually patterns</span>
+        <span class="k">elif</span> <span class="s1">&#39;guideline&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;standard&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;Implementation Guidelines&#39;</span>
+        <span class="k">elif</span> <span class="s1">&#39;context&#39;</span> <span class="ow">in</span> <span class="n">content</span> <span class="ow">or</span> <span class="s1">&#39;current&#39;</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;Current Technical Context&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default to first available section or Recent Learnings</span>
+            <span class="k">return</span> <span class="n">sections</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">sections</span> <span class="k">else</span> <span class="s1">&#39;Recent Learnings&#39;</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_reasoning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_agent</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">agent_scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> 
+                        <span class="n">section</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build human-readable reasoning for routing decision.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            target_agent: Selected target agent</span>
+<span class="sd">            agent_scores: All agent scores</span>
+<span class="sd">            section: Selected section</span>
+<span class="sd">            context: Optional context</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Human-readable reasoning string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target_agent</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">agent_scores</span><span class="p">:</span>
+            <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Defaulted to </span><span class="si">{</span><span class="n">target_agent</span><span class="si">}</span><span class="s2"> agent due to analysis error&quot;</span>
+        
+        <span class="n">score_data</span> <span class="o">=</span> <span class="n">agent_scores</span><span class="p">[</span><span class="n">target_agent</span><span class="p">]</span>
+        <span class="n">score</span> <span class="o">=</span> <span class="n">score_data</span><span class="p">[</span><span class="s1">&#39;score&#39;</span><span class="p">]</span>
+        <span class="n">matched_keywords</span> <span class="o">=</span> <span class="n">score_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;matched_keywords&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        
+        <span class="n">reasoning_parts</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Primary reasoning</span>
+        <span class="k">if</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mf">0.3</span><span class="p">:</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Strong match for </span><span class="si">{</span><span class="n">target_agent</span><span class="si">}</span><span class="s2"> agent&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">score</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">:</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Moderate match for </span><span class="si">{</span><span class="n">target_agent</span><span class="si">}</span><span class="s2"> agent&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Weak match, defaulting to </span><span class="si">{</span><span class="n">target_agent</span><span class="si">}</span><span class="s2"> agent&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Keyword evidence</span>
+        <span class="k">if</span> <span class="n">matched_keywords</span><span class="p">:</span>
+            <span class="n">keyword_str</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">matched_keywords</span><span class="p">)</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;matched keywords: </span><span class="si">{</span><span class="n">keyword_str</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Context boosts</span>
+        <span class="k">if</span> <span class="n">score_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;context_boost&#39;</span><span class="p">):</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;boosted by context hint&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">score_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;task_type_boost&#39;</span><span class="p">):</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;boosted by task type&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Section selection</span>
+        <span class="k">if</span> <span class="n">section</span> <span class="o">!=</span> <span class="s2">&quot;Recent Learnings&quot;</span><span class="p">:</span>
+            <span class="n">reasoning_parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;assigned to &#39;</span><span class="si">{</span><span class="n">section</span><span class="si">}</span><span class="s2">&#39; section&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="s2">&quot;; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">reasoning_parts</span><span class="p">)</span><span class="o">.</span><span class="n">capitalize</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1327 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.deployment.agent_lifecycle_manager &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.deployment.agent_lifecycle_manager</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.agents.deployment.agent_lifecycle_manager</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Agent Lifecycle Manager - ISS-0118 Integration Service</span>
+<span class="sd">======================================================</span>
+
+<span class="sd">Comprehensive agent lifecycle management integrating modification tracking,</span>
+<span class="sd">persistence, and registry services for complete agent management across</span>
+<span class="sd">the three-tier hierarchy.</span>
+
+<span class="sd">Key Features:</span>
+<span class="sd">- Unified agent lifecycle management (create, modify, delete, restore)</span>
+<span class="sd">- Integrated modification tracking and persistence</span>
+<span class="sd">- Automatic cache invalidation and registry updates</span>
+<span class="sd">- Comprehensive backup and versioning system</span>
+<span class="sd">- Conflict detection and resolution workflows</span>
+<span class="sd">- Performance monitoring and optimization</span>
+
+<span class="sd">Performance Impact:</span>
+<span class="sd">- &lt;100ms end-to-end agent operations</span>
+<span class="sd">- Automatic cache coherency maintenance</span>
+<span class="sd">- Intelligent persistence routing</span>
+<span class="sd">- Real-time modification detection</span>
+
+<span class="sd">Created for ISS-0118: Agent Registry and Hierarchical Discovery System</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">field</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.memory.cache.shared_prompt_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">SharedPromptCache</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.agents.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentRegistry</span><span class="p">,</span> <span class="n">AgentMetadata</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.agents.registry.modification_tracker</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AgentModificationTracker</span><span class="p">,</span> 
+    <span class="n">AgentModification</span><span class="p">,</span> 
+    <span class="n">ModificationType</span><span class="p">,</span> 
+    <span class="n">ModificationTier</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.agents.memory</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AgentPersistenceService</span><span class="p">,</span>
+    <span class="n">PersistenceStrategy</span><span class="p">,</span>
+    <span class="n">PersistenceRecord</span><span class="p">,</span>
+    <span class="n">PersistenceOperation</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.services.agents.management</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentManager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.models.agent_definition</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentDefinition</span><span class="p">,</span> <span class="n">AgentType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.base_service</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config_paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigPaths</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.utils.path_operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">path_ops</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.utils.config_manager</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConfigurationManager</span>
+
+
+<div class="viewcode-block" id="LifecycleOperation">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.LifecycleOperation">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LifecycleOperation</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent lifecycle operations.&quot;&quot;&quot;</span>
+    <span class="n">CREATE</span> <span class="o">=</span> <span class="s2">&quot;create&quot;</span>
+    <span class="n">UPDATE</span> <span class="o">=</span> <span class="s2">&quot;update&quot;</span>
+    <span class="n">DELETE</span> <span class="o">=</span> <span class="s2">&quot;delete&quot;</span>
+    <span class="n">RESTORE</span> <span class="o">=</span> <span class="s2">&quot;restore&quot;</span>
+    <span class="n">MIGRATE</span> <span class="o">=</span> <span class="s2">&quot;migrate&quot;</span>
+    <span class="n">REPLICATE</span> <span class="o">=</span> <span class="s2">&quot;replicate&quot;</span>
+    <span class="n">VALIDATE</span> <span class="o">=</span> <span class="s2">&quot;validate&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="LifecycleState">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.LifecycleState">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LifecycleState</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Agent lifecycle states.&quot;&quot;&quot;</span>
+    <span class="n">ACTIVE</span> <span class="o">=</span> <span class="s2">&quot;active&quot;</span>
+    <span class="n">MODIFIED</span> <span class="o">=</span> <span class="s2">&quot;modified&quot;</span>
+    <span class="n">DELETED</span> <span class="o">=</span> <span class="s2">&quot;deleted&quot;</span>
+    <span class="n">CONFLICTED</span> <span class="o">=</span> <span class="s2">&quot;conflicted&quot;</span>
+    <span class="n">MIGRATING</span> <span class="o">=</span> <span class="s2">&quot;migrating&quot;</span>
+    <span class="n">VALIDATING</span> <span class="o">=</span> <span class="s2">&quot;validating&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="AgentLifecycleRecord">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleRecord">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentLifecycleRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Complete lifecycle record for an agent.&quot;&quot;&quot;</span>
+    
+    <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">current_state</span><span class="p">:</span> <span class="n">LifecycleState</span>
+    <span class="n">tier</span><span class="p">:</span> <span class="n">ModificationTier</span>
+    <span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">last_modified</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">version</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">modifications</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># Modification IDs</span>
+    <span class="n">persistence_operations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>  <span class="c1"># Operation IDs</span>
+    <span class="n">backup_paths</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">validation_status</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;valid&quot;</span>
+    <span class="n">validation_errors</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">age_days</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get age in days.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">created_at</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">24</span> <span class="o">*</span> <span class="mi">3600</span><span class="p">)</span>
+    
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">last_modified_datetime</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">datetime</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get last modified as datetime.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_modified</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="LifecycleOperationResult">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.LifecycleOperationResult">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LifecycleOperationResult</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Result of a lifecycle operation.&quot;&quot;&quot;</span>
+    
+    <span class="n">operation</span><span class="p">:</span> <span class="n">LifecycleOperation</span>
+    <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">success</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">float</span>
+    <span class="n">error_message</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">modification_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">persistence_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">cache_invalidated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">registry_updated</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">dict</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="AgentLifecycleManager">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentLifecycleManager</span><span class="p">(</span><span class="n">BaseService</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Agent Lifecycle Manager - Unified agent management across hierarchy tiers.</span>
+<span class="sd">    </span>
+<span class="sd">    Features:</span>
+<span class="sd">    - Complete agent lifecycle management (CRUD operations)</span>
+<span class="sd">    - Integrated modification tracking and persistence</span>
+<span class="sd">    - Automatic cache invalidation and registry synchronization</span>
+<span class="sd">    - Comprehensive backup and versioning system</span>
+<span class="sd">    - Real-time conflict detection and resolution</span>
+<span class="sd">    - Performance monitoring and optimization</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AgentLifecycleManager.__init__">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the agent lifecycle manager.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;agent_lifecycle_manager&quot;</span><span class="p">,</span> <span class="n">config</span><span class="p">)</span>
+        
+        <span class="c1"># Configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_auto_backup</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="s2">&quot;enable_auto_backup&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_auto_validation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="s2">&quot;enable_auto_validation&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_cache_invalidation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="s2">&quot;enable_cache_invalidation&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_registry_sync</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="s2">&quot;enable_registry_sync&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">default_persistence_strategy</span> <span class="o">=</span> <span class="n">PersistenceStrategy</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_config</span><span class="p">(</span><span class="s2">&quot;default_persistence_strategy&quot;</span><span class="p">,</span> <span class="n">PersistenceStrategy</span><span class="o">.</span><span class="n">USER_OVERRIDE</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Core services</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">SharedPromptCache</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentRegistry</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentModificationTracker</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentPersistenceService</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentManager</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Lifecycle tracking</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">AgentLifecycleRecord</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LifecycleOperationResult</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">LifecycleOperation</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="c1"># Performance metrics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;total_operations&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;successful_operations&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;failed_operations&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s1">&#39;average_duration_ms&#39;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s1">&#39;cache_hit_rate&#39;</span><span class="p">:</span> <span class="mf">0.0</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Operation lock for thread safety</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_operation_lock</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+        
+        <span class="c1"># Configuration manager</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_mgr</span> <span class="o">=</span> <span class="n">ConfigurationManager</span><span class="p">(</span><span class="n">cache_enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;AgentLifecycleManager initialized&quot;</span><span class="p">)</span></div>
+
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_initialize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the lifecycle manager.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initializing AgentLifecycleManager...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Initialize core services</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_core_services</span><span class="p">()</span>
+        
+        <span class="c1"># Load existing agent records</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_agent_records</span><span class="p">()</span>
+        
+        <span class="c1"># Start service integrations</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_service_integrations</span><span class="p">()</span>
+        
+        <span class="c1"># Perform initial registry sync</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_registry_sync</span><span class="p">:</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sync_with_registry</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;AgentLifecycleManager initialized successfully&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_cleanup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleanup lifecycle manager resources.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Cleaning up AgentLifecycleManager...&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Save agent records</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_agent_records</span><span class="p">()</span>
+        
+        <span class="c1"># Stop core services if we own them</span>
+        <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cleanup_core_services</span><span class="p">()</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;AgentLifecycleManager cleaned up&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_health_check</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform lifecycle manager health checks.&quot;&quot;&quot;</span>
+        <span class="n">checks</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Check core service availability</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;cache_service&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;registry_service&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;tracker_service&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;persistence_service&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            
+            <span class="c1"># Check operation capabilities</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;can_create_agents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_create_capability</span><span class="p">()</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;can_modify_agents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_modify_capability</span><span class="p">()</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;can_delete_agents&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_test_delete_capability</span><span class="p">()</span>
+            
+            <span class="c1"># Check data integrity</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;agent_records_valid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;operation_history_valid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Lifecycle manager health check failed: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">checks</span><span class="p">[</span><span class="s2">&quot;health_check_error&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="k">return</span> <span class="n">checks</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_initialize_core_services</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize core service dependencies.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Initialize SharedPromptCache</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span> <span class="o">=</span> <span class="n">SharedPromptCache</span><span class="o">.</span><span class="n">get_instance</span><span class="p">()</span>
+            
+            <span class="c1"># Initialize AgentRegistry</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span> <span class="o">=</span> <span class="n">AgentRegistry</span><span class="p">(</span><span class="n">cache_service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span><span class="p">)</span>
+            
+            <span class="c1"># Initialize AgentModificationTracker</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span> <span class="o">=</span> <span class="n">AgentModificationTracker</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            
+            <span class="c1"># Initialize AgentPersistenceService</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span> <span class="o">=</span> <span class="n">AgentPersistenceService</span><span class="p">()</span>
+            <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            
+            <span class="c1"># Initialize AgentManager</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span> <span class="o">=</span> <span class="n">AgentManager</span><span class="p">()</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Core services initialized successfully&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to initialize core services: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_setup_service_integrations</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set up integrations between services.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Register modification callback</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">register_modification_callback</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_handle_modification_event</span>
+                <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Service integrations set up successfully&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to setup some service integrations: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_load_agent_records</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load existing agent lifecycle records.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">records_file</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_tracking_dir</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;lifecycle_records.json&#39;</span>
+            <span class="k">if</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">records_file</span><span class="p">):</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config_mgr</span><span class="o">.</span><span class="n">load_json</span><span class="p">(</span><span class="n">records_file</span><span class="p">)</span>
+                
+                <span class="k">for</span> <span class="n">agent_name</span><span class="p">,</span> <span class="n">record_data</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="n">record</span> <span class="o">=</span> <span class="n">AgentLifecycleRecord</span><span class="p">(</span><span class="o">**</span><span class="n">record_data</span><span class="p">)</span>
+                    <span class="c1"># Convert string enum back to enum</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="p">(</span><span class="n">record_data</span><span class="p">[</span><span class="s1">&#39;current_state&#39;</span><span class="p">])</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">tier</span> <span class="o">=</span> <span class="n">ModificationTier</span><span class="p">(</span><span class="n">record_data</span><span class="p">[</span><span class="s1">&#39;tier&#39;</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Loaded </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">)</span><span class="si">}</span><span class="s2"> agent records&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to load agent records: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_save_agent_records</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save agent lifecycle records to disk.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">records_file</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_tracking_dir</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;lifecycle_records.json&#39;</span>
+            <span class="n">path_ops</span><span class="o">.</span><span class="n">ensure_dir</span><span class="p">(</span><span class="n">records_file</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+            
+            <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">agent_name</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">record_dict</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="c1"># Convert enums to strings for JSON serialization</span>
+                <span class="n">record_dict</span><span class="p">[</span><span class="s1">&#39;current_state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">current_state</span><span class="o">.</span><span class="n">value</span>
+                <span class="n">record_dict</span><span class="p">[</span><span class="s1">&#39;tier&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="o">.</span><span class="n">value</span>
+                <span class="n">data</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">record_dict</span>
+            
+            <span class="c1"># Use save_json with custom encoder for datetime serialization</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+            
+            <span class="c1"># First convert to JSON string with custom encoder, then save</span>
+            <span class="n">json_str</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+            <span class="n">records_file</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">records_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">json_str</span><span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">)</span><span class="si">}</span><span class="s2"> agent records&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to save agent records: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_sync_with_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Synchronize with agent registry.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="p">:</span>
+                <span class="k">return</span>
+            
+            <span class="c1"># Discover all agents via registry (sync methods)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="o">.</span><span class="n">discover_agents</span><span class="p">()</span>
+            <span class="n">all_agents</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="o">.</span><span class="n">list_agents</span><span class="p">()</span>
+            
+            <span class="c1"># Update lifecycle records with registry data</span>
+            <span class="k">for</span> <span class="n">agent_metadata</span> <span class="ow">in</span> <span class="n">all_agents</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">agent_metadata</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span>
+                    <span class="c1"># Create new lifecycle record</span>
+                    <span class="n">tier_map</span> <span class="o">=</span> <span class="p">{</span>
+                        <span class="s1">&#39;project&#39;</span><span class="p">:</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">PROJECT</span><span class="p">,</span>
+                        <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">USER</span><span class="p">,</span>
+                        <span class="s1">&#39;system&#39;</span><span class="p">:</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">SYSTEM</span>
+                    <span class="p">}</span>
+                    
+                    <span class="n">record</span> <span class="o">=</span> <span class="n">AgentLifecycleRecord</span><span class="p">(</span>
+                        <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">current_state</span><span class="o">=</span><span class="n">LifecycleState</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">,</span>
+                        <span class="n">tier</span><span class="o">=</span><span class="n">tier_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">USER</span><span class="p">),</span>
+                        <span class="n">file_path</span><span class="o">=</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">path</span><span class="p">,</span>
+                        <span class="n">created_at</span><span class="o">=</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">last_modified</span> <span class="ow">or</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                        <span class="n">last_modified</span><span class="o">=</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">last_modified</span> <span class="ow">or</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                        <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+                        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">agent_metadata</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+                            <span class="s1">&#39;description&#39;</span><span class="p">:</span> <span class="n">agent_metadata</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+                            <span class="s1">&#39;capabilities&#39;</span><span class="p">:</span> <span class="n">agent_metadata</span><span class="o">.</span><span class="n">capabilities</span><span class="p">,</span>
+                            <span class="s1">&#39;validated&#39;</span><span class="p">:</span> <span class="n">agent_metadata</span><span class="o">.</span><span class="n">validated</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
+                    
+                    <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_metadata</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">record</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Synchronized with registry: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_agents</span><span class="p">)</span><span class="si">}</span><span class="s2"> agents&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to sync with registry: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AgentLifecycleManager.create_agent">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.create_agent">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">create_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                          <span class="n">agent_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                          <span class="n">tier</span><span class="p">:</span> <span class="n">ModificationTier</span> <span class="o">=</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">USER</span><span class="p">,</span>
+                          <span class="n">agent_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;custom&quot;</span><span class="p">,</span>
+                          <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LifecycleOperationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new agent with complete lifecycle tracking.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_name: Name of the agent to create</span>
+<span class="sd">            agent_content: Content of the agent file</span>
+<span class="sd">            tier: Target tier for creation</span>
+<span class="sd">            agent_type: Type of agent (for classification)</span>
+<span class="sd">            **kwargs: Additional metadata</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            LifecycleOperationResult with operation details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operation_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">CREATE</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Check if agent already exists</span>
+                <span class="k">if</span> <span class="n">agent_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                        <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span>
+                        <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                        <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                        <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;Agent already exists&quot;</span>
+                    <span class="p">)</span>
+                
+                <span class="c1"># Create agent definition</span>
+                <span class="n">agent_def</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_agent_definition</span><span class="p">(</span>
+                    <span class="n">agent_name</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">,</span> <span class="n">tier</span><span class="p">,</span> <span class="n">agent_type</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Determine location based on tier</span>
+                <span class="n">location</span> <span class="o">=</span> <span class="s2">&quot;project&quot;</span> <span class="k">if</span> <span class="n">tier</span> <span class="o">==</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">PROJECT</span> <span class="k">else</span> <span class="s2">&quot;framework&quot;</span>
+                
+                <span class="c1"># Create agent using AgentManager (sync call in executor)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="p">:</span>
+                        <span class="n">file_path</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sync_in_executor</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="o">.</span><span class="n">create_agent</span><span class="p">,</span>
+                            <span class="n">agent_name</span><span class="p">,</span> <span class="n">agent_def</span><span class="p">,</span> <span class="n">location</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Fallback to direct file creation if AgentManager not available</span>
+                        <span class="n">file_path</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_agent_file_path</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="n">tier</span><span class="p">)</span>
+                        <span class="n">path_ops</span><span class="o">.</span><span class="n">ensure_dir</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+                        <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_write</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AgentManager failed to create agent: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># Fallback to direct file creation</span>
+                    <span class="n">file_path</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_determine_agent_file_path</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="n">tier</span><span class="p">)</span>
+                    <span class="n">path_ops</span><span class="o">.</span><span class="n">ensure_dir</span><span class="p">(</span><span class="n">file_path</span><span class="o">.</span><span class="n">parent</span><span class="p">)</span>
+                    <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_write</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">)</span>
+                
+                <span class="c1"># Track modification</span>
+                <span class="n">modification</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">track_modification</span><span class="p">(</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">modification_type</span><span class="o">=</span><span class="n">ModificationType</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span>
+                    <span class="n">tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">agent_type</span><span class="o">=</span><span class="n">agent_type</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Note: We don&#39;t use persistence_service for the actual write anymore</span>
+                <span class="c1"># since AgentManager handles that. We create a synthetic record for compatibility.</span>
+                <span class="n">persistence_record</span> <span class="o">=</span> <span class="n">PersistenceRecord</span><span class="p">(</span>
+                    <span class="n">operation_id</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;create_</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">operation_type</span><span class="o">=</span><span class="n">PersistenceOperation</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">source_tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">target_tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_persistence_strategy</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">timestamp</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Create lifecycle record</span>
+                <span class="n">lifecycle_record</span> <span class="o">=</span> <span class="n">AgentLifecycleRecord</span><span class="p">(</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">current_state</span><span class="o">=</span><span class="n">LifecycleState</span><span class="o">.</span><span class="n">ACTIVE</span><span class="p">,</span>
+                    <span class="n">tier</span><span class="o">=</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">),</span>
+                    <span class="n">created_at</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                    <span class="n">last_modified</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                    <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+                    <span class="n">modifications</span><span class="o">=</span><span class="p">[</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">],</span>
+                    <span class="n">persistence_operations</span><span class="o">=</span><span class="p">[</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">operation_id</span><span class="p">],</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                        <span class="s1">&#39;agent_type&#39;</span><span class="p">:</span> <span class="n">agent_type</span><span class="p">,</span>
+                        <span class="o">**</span><span class="n">kwargs</span>
+                    <span class="p">}</span>
+                <span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">lifecycle_record</span>
+                
+                <span class="c1"># Invalidate cache and update registry</span>
+                <span class="n">cache_invalidated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_agent_cache</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                <span class="n">registry_updated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_registry</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                
+                <span class="c1"># Create result</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">success</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">modification_id</span><span class="o">=</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">,</span>
+                    <span class="n">persistence_id</span><span class="o">=</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">operation_id</span><span class="p">,</span>
+                    <span class="n">cache_invalidated</span><span class="o">=</span><span class="n">cache_invalidated</span><span class="p">,</span>
+                    <span class="n">registry_updated</span><span class="o">=</span><span class="n">registry_updated</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;file_path&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">file_path</span><span class="p">)}</span>
+                <span class="p">)</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">persistence_record</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">error_message</span> <span class="o">=</span> <span class="n">persistence_record</span><span class="o">.</span><span class="n">error_message</span>
+                    <span class="n">lifecycle_record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">CONFLICTED</span>
+                
+                <span class="c1"># Update performance metrics</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">ms&quot;</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="n">result</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to create agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+            
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AgentLifecycleManager.update_agent">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.update_agent">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                          <span class="n">agent_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                          <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LifecycleOperationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Update an existing agent with lifecycle tracking.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_name: Name of the agent to update</span>
+<span class="sd">            agent_content: New content for the agent</span>
+<span class="sd">            **kwargs: Additional metadata</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            LifecycleOperationResult with operation details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operation_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">UPDATE</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Check if agent exists</span>
+                <span class="k">if</span> <span class="n">agent_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                        <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
+                        <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                        <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                        <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;Agent not found&quot;</span>
+                    <span class="p">)</span>
+                
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span>
+                
+                <span class="c1"># Update agent using AgentManager</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="p">:</span>
+                        <span class="c1"># Read current agent to get full definition</span>
+                        <span class="n">current_def</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sync_in_executor</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="o">.</span><span class="n">read_agent</span><span class="p">,</span> <span class="n">agent_name</span>
+                        <span class="p">)</span>
+                        
+                        <span class="k">if</span> <span class="n">current_def</span><span class="p">:</span>
+                            <span class="c1"># Update raw content</span>
+                            <span class="n">current_def</span><span class="o">.</span><span class="n">raw_content</span> <span class="o">=</span> <span class="n">agent_content</span>
+                            
+                            <span class="c1"># Apply any metadata updates from kwargs</span>
+                            <span class="k">if</span> <span class="s1">&#39;model_preference&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                                <span class="n">current_def</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">model_preference</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;model_preference&#39;</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="s1">&#39;tags&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                                <span class="n">current_def</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">tags</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;tags&#39;</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="s1">&#39;specializations&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+                                <span class="n">current_def</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">specializations</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;specializations&#39;</span><span class="p">]</span>
+                            
+                            <span class="c1"># Update via AgentManager</span>
+                            <span class="n">updated_def</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sync_in_executor</span><span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="o">.</span><span class="n">update_agent</span><span class="p">,</span>
+                                <span class="n">agent_name</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;raw_content&quot;</span><span class="p">:</span> <span class="n">agent_content</span><span class="p">},</span> <span class="kc">True</span>
+                            <span class="p">)</span>
+                            
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">updated_def</span><span class="p">:</span>
+                                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;AgentManager update failed&quot;</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Could not read current agent definition&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Fallback to direct file update</span>
+                        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                            <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_write</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AgentManager failed to update agent: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># Fallback to direct file update</span>
+                    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                        <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_write</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">)</span>
+                
+                <span class="c1"># Track modification</span>
+                <span class="n">modification</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">track_modification</span><span class="p">(</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">modification_type</span><span class="o">=</span><span class="n">ModificationType</span><span class="o">.</span><span class="n">MODIFY</span><span class="p">,</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span>
+                    <span class="n">tier</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Create synthetic persistence record for compatibility</span>
+                <span class="n">persistence_record</span> <span class="o">=</span> <span class="n">PersistenceRecord</span><span class="p">(</span>
+                    <span class="n">operation_id</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;update_</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="n">operation_type</span><span class="o">=</span><span class="n">PersistenceOperation</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">source_tier</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">target_tier</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">default_persistence_strategy</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">timestamp</span><span class="o">=</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Update lifecycle record</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">MODIFIED</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">modifications</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">)</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">persistence_operations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">operation_id</span><span class="p">)</span>
+                
+                <span class="c1"># Increment version</span>
+                <span class="n">current_version</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+                <span class="n">current_version</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">current_version</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">current_version</span><span class="p">)</span>
+                
+                <span class="c1"># Invalidate cache and update registry</span>
+                <span class="n">cache_invalidated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_agent_cache</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                <span class="n">registry_updated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_registry</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                
+                <span class="c1"># Create result</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">success</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">modification_id</span><span class="o">=</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">,</span>
+                    <span class="n">persistence_id</span><span class="o">=</span><span class="n">persistence_record</span><span class="o">.</span><span class="n">operation_id</span><span class="p">,</span>
+                    <span class="n">cache_invalidated</span><span class="o">=</span><span class="n">cache_invalidated</span><span class="p">,</span>
+                    <span class="n">registry_updated</span><span class="o">=</span><span class="n">registry_updated</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;new_version&#39;</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">version</span><span class="p">}</span>
+                <span class="p">)</span>
+                
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">persistence_record</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+                    <span class="n">result</span><span class="o">.</span><span class="n">error_message</span> <span class="o">=</span> <span class="n">persistence_record</span><span class="o">.</span><span class="n">error_message</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">CONFLICTED</span>
+                
+                <span class="c1"># Update performance metrics</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39; to version </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">version</span><span class="si">}</span><span class="s2"> in </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">ms&quot;</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="n">result</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">UPDATE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to update agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+            
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AgentLifecycleManager.delete_agent">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.delete_agent">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">delete_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LifecycleOperationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Delete an agent with lifecycle tracking.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_name: Name of the agent to delete</span>
+<span class="sd">            **kwargs: Additional metadata</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            LifecycleOperationResult with operation details</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">async</span> <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_operation_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">DELETE</span>
+            
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Check if agent exists</span>
+                <span class="k">if</span> <span class="n">agent_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                        <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">DELETE</span><span class="p">,</span>
+                        <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                        <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                        <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;Agent not found&quot;</span>
+                    <span class="p">)</span>
+                
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span>
+                
+                <span class="c1"># Create backup before deletion</span>
+                <span class="n">backup_path</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_auto_backup</span><span class="p">:</span>
+                    <span class="n">backup_path</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_deletion_backup</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="n">record</span><span class="p">)</span>
+                
+                <span class="c1"># Track modification</span>
+                <span class="n">modification</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">track_modification</span><span class="p">(</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">modification_type</span><span class="o">=</span><span class="n">ModificationType</span><span class="o">.</span><span class="n">DELETE</span><span class="p">,</span>
+                    <span class="n">file_path</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">,</span>
+                    <span class="n">tier</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span>
+                    <span class="n">backup_path</span><span class="o">=</span><span class="n">backup_path</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">kwargs</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Delete agent using AgentManager</span>
+                <span class="n">deletion_success</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="p">:</span>
+                        <span class="n">deletion_success</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_sync_in_executor</span><span class="p">(</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">agent_manager</span><span class="o">.</span><span class="n">delete_agent</span><span class="p">,</span> <span class="n">agent_name</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">deletion_success</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;AgentManager delete failed&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Fallback to direct file deletion</span>
+                        <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                            <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_delete</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                            <span class="n">deletion_success</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;AgentManager failed to delete agent: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="c1"># Fallback to direct file deletion</span>
+                    <span class="n">file_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">file_path</span><span class="p">):</span>
+                        <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_delete</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+                        <span class="n">deletion_success</span> <span class="o">=</span> <span class="kc">True</span>
+                
+                <span class="c1"># Update lifecycle record</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">DELETED</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">modifications</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">backup_path</span><span class="p">:</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">backup_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">backup_path</span><span class="p">)</span>
+                
+                <span class="c1"># Invalidate cache and update registry</span>
+                <span class="n">cache_invalidated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_invalidate_agent_cache</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                <span class="n">registry_updated</span> <span class="o">=</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_registry</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+                
+                <span class="c1"># Create result</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">DELETE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">modification_id</span><span class="o">=</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">,</span>
+                    <span class="n">cache_invalidated</span><span class="o">=</span><span class="n">cache_invalidated</span><span class="p">,</span>
+                    <span class="n">registry_updated</span><span class="o">=</span><span class="n">registry_updated</span><span class="p">,</span>
+                    <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;backup_path&#39;</span><span class="p">:</span> <span class="n">backup_path</span><span class="p">}</span>
+                <span class="p">)</span>
+                
+                <span class="c1"># Update performance metrics</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Deleted agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39; in </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">ms&quot;</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="n">result</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">DELETE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                <span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_performance_metrics</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to delete agent &#39;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">&#39;: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">result</span>
+            
+            <span class="k">finally</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">agent_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
+
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_determine_agent_file_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tier</span><span class="p">:</span> <span class="n">ModificationTier</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Determine appropriate file path for agent.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">tier</span> <span class="o">==</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">USER</span><span class="p">:</span>
+            <span class="n">base_path</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_agents_dir</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">tier</span> <span class="o">==</span> <span class="n">ModificationTier</span><span class="o">.</span><span class="n">PROJECT</span><span class="p">:</span>
+            <span class="n">base_path</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_project_agents_dir</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>  <span class="c1"># SYSTEM</span>
+            <span class="n">base_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;claude_pm&#39;</span> <span class="o">/</span> <span class="s1">&#39;agents&#39;</span>
+        
+        <span class="n">path_ops</span><span class="o">.</span><span class="n">ensure_dir</span><span class="p">(</span><span class="n">base_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_path</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">_agent.py&quot;</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_create_deletion_backup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">record</span><span class="p">:</span> <span class="n">AgentLifecycleRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create backup before agent deletion.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">source_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">file_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">source_path</span><span class="p">):</span>
+                <span class="k">return</span> <span class="kc">None</span>
+            
+            <span class="n">backup_dir</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_tracking_dir</span><span class="p">()</span> <span class="o">/</span> <span class="s1">&#39;backups&#39;</span>
+            <span class="n">path_ops</span><span class="o">.</span><span class="n">ensure_dir</span><span class="p">(</span><span class="n">backup_dir</span><span class="p">)</span>
+            
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">_%H%M%S&#39;</span><span class="p">)</span>
+            <span class="n">backup_filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">_deleted_</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}{</span><span class="n">source_path</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">backup_path</span> <span class="o">=</span> <span class="n">backup_dir</span> <span class="o">/</span> <span class="n">backup_filename</span>
+            
+            <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_copy</span><span class="p">(</span><span class="n">source_path</span><span class="p">,</span> <span class="n">backup_path</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">backup_path</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to create deletion backup for </span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">None</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_invalidate_agent_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Invalidate cache entries for agent.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_cache_invalidation</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">patterns</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="sa">f</span><span class="s2">&quot;agent_profile:</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">:*&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;task_prompt:</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">:*&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;agent_registry_discovery&quot;</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;agent_profile_enhanced:</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">:*&quot;</span>
+            <span class="p">]</span>
+            
+            <span class="k">for</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="n">patterns</span><span class="p">:</span>
+                <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span>
+                    <span class="kc">None</span><span class="p">,</span> 
+                    <span class="k">lambda</span> <span class="n">p</span><span class="o">=</span><span class="n">pattern</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">shared_cache</span><span class="o">.</span><span class="n">invalidate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to invalidate cache for </span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_update_registry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update agent registry after modification.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_registry_sync</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Refresh registry (discover_agents is synchronous)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent_registry</span><span class="o">.</span><span class="n">discover_agents</span><span class="p">()</span>
+            <span class="k">return</span> <span class="kc">True</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to update registry for </span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_update_performance_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">result</span><span class="p">:</span> <span class="n">LifecycleOperationResult</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update performance metrics with operation result.</span>
+<span class="sd">        </span>
+<span class="sd">        METRICS COLLECTION:</span>
+<span class="sd">        This method demonstrates a simple ETL pipeline for operational metrics:</span>
+<span class="sd">        </span>
+<span class="sd">        1. EXTRACT: Pull raw data from operation results</span>
+<span class="sd">           - Success/failure status</span>
+<span class="sd">           - Operation duration</span>
+<span class="sd">           - Cache invalidation events</span>
+<span class="sd">           - Operation type and agent tier</span>
+<span class="sd">        </span>
+<span class="sd">        2. TRANSFORM: Calculate derived metrics</span>
+<span class="sd">           - Success rates and failure percentages</span>
+<span class="sd">           - Rolling averages for performance</span>
+<span class="sd">           - Operation distribution by type</span>
+<span class="sd">           - Performance by agent tier</span>
+<span class="sd">        </span>
+<span class="sd">        3. LOAD: Store in metrics structure</span>
+<span class="sd">           - In-memory storage for real-time access</span>
+<span class="sd">           - Could be extended to push to:</span>
+<span class="sd">             * Time-series databases (Prometheus, InfluxDB)</span>
+<span class="sd">             * AI observability platforms (Datadog, New Relic)</span>
+<span class="sd">             * Custom analytics pipelines</span>
+<span class="sd">        </span>
+<span class="sd">        OPTIMIZATION OPPORTUNITIES:</span>
+<span class="sd">        - Add percentile calculations (p50, p95, p99)</span>
+<span class="sd">        - Track operation queuing times</span>
+<span class="sd">        - Monitor resource usage per operation</span>
+<span class="sd">        - Implement sliding window metrics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;total_operations&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">success</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;successful_operations&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;failed_operations&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Update average duration using incremental calculation</span>
+        <span class="c1"># This avoids storing all durations in memory</span>
+        <span class="n">total_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;total_operations&#39;</span><span class="p">]</span>
+        <span class="n">current_avg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;average_duration_ms&#39;</span><span class="p">]</span>
+        <span class="n">new_avg</span> <span class="o">=</span> <span class="p">((</span><span class="n">current_avg</span> <span class="o">*</span> <span class="p">(</span><span class="n">total_ops</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_ops</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;average_duration_ms&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_avg</span>
+        
+        <span class="c1"># METRICS: Track operation type distribution</span>
+        <span class="c1"># This helps identify which operations are most common</span>
+        <span class="n">op_type</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">value</span>
+        <span class="k">if</span> <span class="s1">&#39;operation_distribution&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;operation_distribution&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;operation_distribution&#39;</span><span class="p">][</span><span class="n">op_type</span><span class="p">]</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;operation_distribution&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">op_type</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="c1"># METRICS: Track performance by agent tier</span>
+        <span class="c1"># Useful for identifying tier-specific performance issues</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="s1">&#39;tier&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">tier</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s1">&#39;tier_performance&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;tier_performance&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">tier_name</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">tier</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">tier</span><span class="p">,</span> <span class="s1">&#39;value&#39;</span><span class="p">)</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">tier</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tier_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;tier_performance&#39;</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;tier_performance&#39;</span><span class="p">][</span><span class="n">tier_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;count&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s1">&#39;total_duration_ms&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s1">&#39;average_duration_ms&#39;</span><span class="p">:</span> <span class="mi">0</span>
+                <span class="p">}</span>
+            <span class="n">tier_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;tier_performance&#39;</span><span class="p">][</span><span class="n">tier_name</span><span class="p">]</span>
+            <span class="n">tier_metrics</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">tier_metrics</span><span class="p">[</span><span class="s1">&#39;total_duration_ms&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">duration_ms</span>
+            <span class="n">tier_metrics</span><span class="p">[</span><span class="s1">&#39;average_duration_ms&#39;</span><span class="p">]</span> <span class="o">=</span> \
+                <span class="n">tier_metrics</span><span class="p">[</span><span class="s1">&#39;total_duration_ms&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">tier_metrics</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span>
+        
+        <span class="c1"># Update cache hit rate if cache was involved</span>
+        <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">cache_invalidated</span><span class="p">:</span>
+            <span class="c1"># Track cache invalidation frequency</span>
+            <span class="k">if</span> <span class="s1">&#39;cache_invalidations&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;cache_invalidations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="p">[</span><span class="s1">&#39;cache_invalidations&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_handle_modification_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modification</span><span class="p">:</span> <span class="n">AgentModification</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Handle modification events from tracker.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">agent_name</span> <span class="o">=</span> <span class="n">modification</span><span class="o">.</span><span class="n">agent_name</span>
+            
+            <span class="c1"># Update lifecycle record if exists</span>
+            <span class="k">if</span> <span class="n">agent_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">:</span>
+                <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">[</span><span class="n">agent_name</span><span class="p">]</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">last_modified</span> <span class="o">=</span> <span class="n">modification</span><span class="o">.</span><span class="n">timestamp</span>
+                <span class="n">record</span><span class="o">.</span><span class="n">modifications</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_id</span><span class="p">)</span>
+                
+                <span class="c1"># Update state based on modification type</span>
+                <span class="k">if</span> <span class="n">modification</span><span class="o">.</span><span class="n">modification_type</span> <span class="o">==</span> <span class="n">ModificationType</span><span class="o">.</span><span class="n">DELETE</span><span class="p">:</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">DELETED</span>
+                <span class="k">elif</span> <span class="n">modification</span><span class="o">.</span><span class="n">modification_type</span> <span class="ow">in</span> <span class="p">[</span><span class="n">ModificationType</span><span class="o">.</span><span class="n">CREATE</span><span class="p">,</span> <span class="n">ModificationType</span><span class="o">.</span><span class="n">MODIFY</span><span class="p">]:</span>
+                    <span class="n">record</span><span class="o">.</span><span class="n">current_state</span> <span class="o">=</span> <span class="n">LifecycleState</span><span class="o">.</span><span class="n">MODIFIED</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Updated lifecycle record for </span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2"> due to </span><span class="si">{</span><span class="n">modification</span><span class="o">.</span><span class="n">modification_type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error handling modification event: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_test_create_capability</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test agent creation capability.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># This would test if we can create agents in the configured tiers</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> 
+                   <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_test_modify_capability</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test agent modification capability.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># This would test if we can modify existing agents</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> 
+                   <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_test_delete_capability</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Test agent deletion capability.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># This would test if we can delete agents</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">False</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_cleanup_core_services</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Cleanup core services if we manage their lifecycle.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="p">:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">modification_tracker</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span><span class="p">:</span>
+                <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">persistence_service</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error cleaning up core services: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="c1"># Public API Methods</span>
+    
+<div class="viewcode-block" id="AgentLifecycleManager.get_agent_status">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.get_agent_status">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_agent_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AgentLifecycleRecord</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get current status of an agent.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AgentLifecycleManager.list_agents">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.list_agents">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">list_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LifecycleState</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">AgentLifecycleRecord</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;List agents with optional state filtering.&quot;&quot;&quot;</span>
+        <span class="n">agents</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="n">state_filter</span><span class="p">:</span>
+            <span class="n">agents</span> <span class="o">=</span> <span class="p">[</span><span class="n">agent</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">agents</span> <span class="k">if</span> <span class="n">agent</span><span class="o">.</span><span class="n">current_state</span> <span class="o">==</span> <span class="n">state_filter</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">agents</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">last_modified</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AgentLifecycleManager.get_operation_history">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.get_operation_history">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_operation_history</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">LifecycleOperationResult</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get operation history with optional filtering.&quot;&quot;&quot;</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span>
+        
+        <span class="k">if</span> <span class="n">agent_name</span><span class="p">:</span>
+            <span class="n">history</span> <span class="o">=</span> <span class="p">[</span><span class="n">op</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">history</span> <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">agent_name</span> <span class="o">==</span> <span class="n">agent_name</span><span class="p">]</span>
+        
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">duration_ms</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">limit</span><span class="p">]</span></div>
+
+    
+<div class="viewcode-block" id="AgentLifecycleManager.get_lifecycle_stats">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.get_lifecycle_stats">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_lifecycle_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get comprehensive lifecycle statistics.&quot;&quot;&quot;</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;total_agents&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="p">),</span>
+            <span class="s1">&#39;active_operations&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">active_operations</span><span class="p">),</span>
+            <span class="s1">&#39;performance_metrics&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">performance_metrics</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># State distribution</span>
+        <span class="n">state_counts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">state_counts</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">current_state</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">current_state</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;agents_by_state&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_counts</span>
+        
+        <span class="c1"># Tier distribution</span>
+        <span class="n">tier_counts</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">record</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+            <span class="n">tier_counts</span><span class="p">[</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="o">.</span><span class="n">value</span><span class="p">]</span> <span class="o">=</span> <span class="n">tier_counts</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">tier</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        
+        <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;agents_by_tier&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tier_counts</span>
+        
+        <span class="c1"># Recent activity</span>
+        <span class="n">recent_ops</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">op</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">operation_history</span> 
+            <span class="k">if</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">duration_ms</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mi">3600</span>  <span class="c1"># Last hour</span>
+        <span class="p">]</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s1">&#39;recent_operations&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">recent_ops</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">stats</span></div>
+
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_create_agent_definition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">agent_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> 
+                                      <span class="n">tier</span><span class="p">:</span> <span class="n">ModificationTier</span><span class="p">,</span> <span class="n">agent_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AgentDefinition</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create an AgentDefinition from lifecycle parameters.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: This method bridges the gap between the lifecycle manager&#39;s parameters</span>
+<span class="sd">        and the AgentManager&#39;s expected AgentDefinition model.</span>
+<span class="sd">        </span>
+<span class="sd">        DESIGN DECISION: Creating a minimal AgentDefinition here because:</span>
+<span class="sd">        - The full markdown parsing happens in AgentManager</span>
+<span class="sd">        - We only need to provide the essential metadata</span>
+<span class="sd">        - This keeps the lifecycle manager focused on orchestration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Map tier to AgentType</span>
+        <span class="n">type_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">ModificationTier</span><span class="o">.</span><span class="n">USER</span><span class="p">:</span> <span class="n">AgentType</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">,</span>
+            <span class="n">ModificationTier</span><span class="o">.</span><span class="n">PROJECT</span><span class="p">:</span> <span class="n">AgentType</span><span class="o">.</span><span class="n">PROJECT</span><span class="p">,</span>
+            <span class="n">ModificationTier</span><span class="o">.</span><span class="n">SYSTEM</span><span class="p">:</span> <span class="n">AgentType</span><span class="o">.</span><span class="n">SYSTEM</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Create metadata</span>
+        <span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.models.agent_definition</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentMetadata</span><span class="p">,</span> <span class="n">AgentPermissions</span>
+        <span class="n">metadata</span> <span class="o">=</span> <span class="n">AgentMetadata</span><span class="p">(</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">type_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">tier</span><span class="p">,</span> <span class="n">AgentType</span><span class="o">.</span><span class="n">CUSTOM</span><span class="p">),</span>
+            <span class="n">model_preference</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;model_preference&#39;</span><span class="p">,</span> <span class="s1">&#39;claude-3-sonnet&#39;</span><span class="p">),</span>
+            <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
+            <span class="n">author</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;author&#39;</span><span class="p">,</span> <span class="s1">&#39;claude-mpm&#39;</span><span class="p">),</span>
+            <span class="n">tags</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tags&#39;</span><span class="p">,</span> <span class="p">[]),</span>
+            <span class="n">specializations</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;specializations&#39;</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Create minimal definition</span>
+        <span class="n">definition</span> <span class="o">=</span> <span class="n">AgentDefinition</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="n">agent_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">title</span><span class="p">(),</span>
+            <span class="n">file_path</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>  <span class="c1"># Will be set by AgentManager</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span><span class="p">,</span>
+            <span class="n">primary_role</span><span class="o">=</span><span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;primary_role&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_name</span><span class="si">}</span><span class="s2"> agent&quot;</span><span class="p">),</span>
+            <span class="n">when_to_use</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;select&quot;</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">&quot;do_not_select&quot;</span><span class="p">:</span> <span class="p">[]},</span>
+            <span class="n">capabilities</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">authority</span><span class="o">=</span><span class="n">AgentPermissions</span><span class="p">(),</span>
+            <span class="n">workflows</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">escalation_triggers</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">kpis</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">dependencies</span><span class="o">=</span><span class="p">[],</span>
+            <span class="n">tools_commands</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">raw_content</span><span class="o">=</span><span class="n">agent_content</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">definition</span>
+    
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_run_sync_in_executor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Run a synchronous function in an executor to avoid blocking.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: AgentManager has synchronous methods but AgentLifecycleManager is async.</span>
+<span class="sd">        This allows us to call sync methods without blocking the event loop.</span>
+<span class="sd">        </span>
+<span class="sd">        PERFORMANCE: Uses the default executor which manages a thread pool efficiently.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">loop</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">()</span>
+        <span class="k">return</span> <span class="k">await</span> <span class="n">loop</span><span class="o">.</span><span class="n">run_in_executor</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AgentLifecycleManager.restore_agent">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.deployment.agent_lifecycle_manager.html#claude_mpm.services.agents.AgentLifecycleManager.restore_agent">[docs]</a>
+    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">restore_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">backup_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LifecycleOperationResult</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Restore agent from backup.&quot;&quot;&quot;</span>
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent_records</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">agent_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">record</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">RESTORE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;Agent record not found&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Use latest backup if not specified</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">backup_path</span> <span class="ow">and</span> <span class="n">record</span><span class="o">.</span><span class="n">backup_paths</span><span class="p">:</span>
+                <span class="n">backup_path</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">backup_paths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">backup_path</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">validate_exists</span><span class="p">(</span><span class="n">backup_path</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">RESTORE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;No valid backup found&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Read backup content</span>
+            <span class="n">backup_content</span> <span class="o">=</span> <span class="n">path_ops</span><span class="o">.</span><span class="n">safe_read</span><span class="p">(</span><span class="n">backup_path</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">backup_content</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                    <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">RESTORE</span><span class="p">,</span>
+                    <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                    <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                    <span class="n">error_message</span><span class="o">=</span><span class="s2">&quot;Failed to read backup content&quot;</span>
+                <span class="p">)</span>
+            
+            <span class="c1"># Restore via update operation</span>
+            <span class="k">return</span> <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">update_agent</span><span class="p">(</span>
+                <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                <span class="n">agent_content</span><span class="o">=</span><span class="n">backup_content</span><span class="p">,</span>
+                <span class="n">restored_from</span><span class="o">=</span><span class="n">backup_path</span>
+            <span class="p">)</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">LifecycleOperationResult</span><span class="p">(</span>
+                <span class="n">operation</span><span class="o">=</span><span class="n">LifecycleOperation</span><span class="o">.</span><span class="n">RESTORE</span><span class="p">,</span>
+                <span class="n">agent_name</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>
+                <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">duration_ms</span><span class="o">=</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+                <span class="n">error_message</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="p">)</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

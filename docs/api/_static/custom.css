@@ -1,0 +1,225 @@
+/* Custom CSS for Claude MPM Documentation */
+
+/* Improve readability */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* Better code blocks */
+pre {
+    background-color: #f6f8fa;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 16px;
+    overflow: auto;
+}
+
+/* Improve navigation */
+.wy-nav-content {
+    max-width: 1200px;
+}
+
+/* Better tables */
+table.docutils {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 1em 0;
+}
+
+table.docutils td, table.docutils th {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+table.docutils tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Improve API documentation */
+dl.class, dl.function, dl.method {
+    border-left: 3px solid #2980b9;
+    padding-left: 10px;
+    margin: 20px 0;
+}
+
+/* Better warning and note boxes */
+.admonition {
+    padding: 12px;
+    margin-bottom: 24px;
+    border-left: 4px solid;
+    border-radius: 4px;
+}
+
+.admonition.note {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+}
+
+.admonition.warning {
+    background-color: #fff3e0;
+    border-color: #ff9800;
+}
+
+.admonition.danger {
+    background-color: #ffebee;
+    border-color: #f44336;
+}
+
+.admonition.tip {
+    background-color: #e8f5e9;
+    border-color: #4caf50;
+}
+
+/* Improve search results */
+.search-results {
+    list-style: none;
+    padding: 0;
+}
+
+.search-results li {
+    margin-bottom: 20px;
+    padding: 10px;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+}
+
+/* Better inline code */
+code.literal {
+    background-color: rgba(27, 31, 35, 0.05);
+    border-radius: 3px;
+    font-size: 85%;
+    margin: 0;
+    padding: 0.2em 0.4em;
+}
+
+/* Improve version selector */
+.rst-versions {
+    border-top: solid 1px #2980b9;
+}
+
+.rst-versions .rst-current-version {
+    background-color: #272b2d;
+    color: #27ae60;
+}
+
+/* Better mobile responsiveness */
+@media screen and (max-width: 768px) {
+    .wy-nav-content {
+        padding: 1.618em 1em;
+    }
+    
+    table.docutils {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+/* Syntax highlighting improvements */
+.highlight {
+    background: #f8f8f8;
+}
+
+.highlight .c { color: #999988; font-style: italic } /* Comment */
+.highlight .k { color: #000000; font-weight: bold } /* Keyword */
+.highlight .o { color: #000000; font-weight: bold } /* Operator */
+.highlight .n { color: #333333 } /* Name */
+.highlight .s { color: #d14 } /* String */
+.highlight .nb { color: #0086b3 } /* Name.Builtin */
+.highlight .nc { color: #445588; font-weight: bold } /* Name.Class */
+.highlight .nf { color: #990000; font-weight: bold } /* Name.Function */
+
+/* Claude MPM specific branding */
+.wy-side-nav-search {
+    background-color: #2980b9;
+}
+
+.wy-side-nav-search input[type=text] {
+    border-color: #2472a4;
+}
+
+.wy-side-nav-search > a img.logo {
+    max-width: 200px;
+}
+
+/* Improve parameter documentation */
+.sig-param {
+    font-style: italic;
+    color: #666;
+}
+
+.sig-param .n {
+    color: #333;
+    font-weight: 500;
+}
+
+/* Better return type display */
+.sig-return {
+    color: #2980b9;
+    font-weight: 500;
+}
+
+/* Improve module index */
+.modindex-jumpbox {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.modindex-jumpbox a {
+    padding: 5px 10px;
+    margin: 2px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    text-decoration: none;
+}
+
+.modindex-jumpbox a:hover {
+    background-color: #2980b9;
+    color: white;
+}
+
+/* Better footer */
+footer {
+    border-top: 1px solid #e1e4e8;
+    margin-top: 40px;
+    padding-top: 20px;
+    color: #666;
+}
+
+/* API reference specific styling */
+.api-reference h1 {
+    border-bottom: 2px solid #2980b9;
+    padding-bottom: 10px;
+}
+
+.api-reference .class {
+    background-color: #f9f9f9;
+    border: 1px solid #e1e4e8;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 20px 0;
+}
+
+/* Improve copy button for code blocks */
+.highlight button.copybtn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    padding: 5px 10px;
+    background-color: #2980b9;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.highlight:hover button.copybtn {
+    opacity: 1;
+}
+
+.highlight button.copybtn:hover {
+    background-color: #2472a4;
+}

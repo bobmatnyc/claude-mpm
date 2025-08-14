@@ -1,0 +1,753 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.memory.optimizer &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.memory.optimizer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.memory.optimizer</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Memory Optimizer Service</span>
+<span class="sd">=======================</span>
+
+<span class="sd">Optimizes agent memory files by removing duplicates, consolidating related items,</span>
+<span class="sd">and reorganizing by priority/relevance.</span>
+
+<span class="sd">This service provides:</span>
+<span class="sd">- Duplicate detection and removal</span>
+<span class="sd">- Related item consolidation  </span>
+<span class="sd">- Priority-based reorganization</span>
+<span class="sd">- Per-agent optimization strategies</span>
+<span class="sd">- Size optimization within limits</span>
+
+<span class="sd">WHY: Agent memory files accumulate information over time and can become cluttered</span>
+<span class="sd">with duplicates, outdated information, or poorly organized content. This service</span>
+<span class="sd">maintains memory quality while preserving important learnings.</span>
+
+<span class="sd">DESIGN DECISION: Uses conservative optimization strategies that preserve information</span>
+<span class="sd">rather than aggressively removing content. Better to keep potentially useful</span>
+<span class="sd">information than lose important insights.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">difflib</span><span class="w"> </span><span class="kn">import</span> <span class="n">SequenceMatcher</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.mixins</span><span class="w"> </span><span class="kn">import</span> <span class="n">LoggerMixin</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.utils.paths</span><span class="w"> </span><span class="kn">import</span> <span class="n">PathResolver</span>
+
+
+<div class="viewcode-block" id="MemoryOptimizer">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.optimizer.html#claude_mpm.services.memory.MemoryOptimizer">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MemoryOptimizer</span><span class="p">(</span><span class="n">LoggerMixin</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Optimizes agent memory files through deduplication and reorganization.</span>
+<span class="sd">    </span>
+<span class="sd">    WHY: Memory files need maintenance to stay useful. This service provides</span>
+<span class="sd">    automated cleanup while preserving valuable information and maintaining</span>
+<span class="sd">    the structured format agents expect.</span>
+<span class="sd">    </span>
+<span class="sd">    DESIGN DECISION: Uses similarity thresholds and conservative merging to</span>
+<span class="sd">    avoid losing important nuances in learnings while removing clear duplicates.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="c1"># Similarity threshold for considering items duplicates</span>
+    <span class="n">SIMILARITY_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.85</span>
+    
+    <span class="c1"># Minimum similarity for consolidation</span>
+    <span class="n">CONSOLIDATION_THRESHOLD</span> <span class="o">=</span> <span class="mf">0.70</span>
+    
+    <span class="c1"># Priority keywords for sorting (higher priority items kept/moved up)</span>
+    <span class="n">PRIORITY_KEYWORDS</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;high&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;critical&#39;</span><span class="p">,</span> <span class="s1">&#39;important&#39;</span><span class="p">,</span> <span class="s1">&#39;essential&#39;</span><span class="p">,</span> <span class="s1">&#39;required&#39;</span><span class="p">,</span> <span class="s1">&#39;must&#39;</span><span class="p">,</span> <span class="s1">&#39;always&#39;</span><span class="p">,</span> <span class="s1">&#39;never&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;medium&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;should&#39;</span><span class="p">,</span> <span class="s1">&#39;recommended&#39;</span><span class="p">,</span> <span class="s1">&#39;prefer&#39;</span><span class="p">,</span> <span class="s1">&#39;avoid&#39;</span><span class="p">,</span> <span class="s1">&#39;consider&#39;</span><span class="p">],</span>
+        <span class="s1">&#39;low&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;note&#39;</span><span class="p">,</span> <span class="s1">&#39;tip&#39;</span><span class="p">,</span> <span class="s1">&#39;hint&#39;</span><span class="p">,</span> <span class="s1">&#39;example&#39;</span><span class="p">,</span> <span class="s1">&#39;reference&#39;</span><span class="p">]</span>
+    <span class="p">}</span>
+    
+<div class="viewcode-block" id="MemoryOptimizer.__init__">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.optimizer.html#claude_mpm.services.memory.MemoryOptimizer.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">working_directory</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the memory optimizer.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            config: Optional Config object</span>
+<span class="sd">            working_directory: Optional working directory. If not provided, uses current working directory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span> <span class="ow">or</span> <span class="n">Config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">=</span> <span class="n">PathResolver</span><span class="o">.</span><span class="n">get_project_root</span><span class="p">()</span>
+        <span class="c1"># Use current working directory by default, not project root</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">=</span> <span class="n">working_directory</span> <span class="ow">or</span> <span class="n">Path</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">working_directory</span> <span class="o">/</span> <span class="s2">&quot;.claude-mpm&quot;</span> <span class="o">/</span> <span class="s2">&quot;memories&quot;</span></div>
+
+    
+<div class="viewcode-block" id="MemoryOptimizer.optimize_agent_memory">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.optimizer.html#claude_mpm.services.memory.MemoryOptimizer.optimize_agent_memory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">optimize_agent_memory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimize memory for a specific agent.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Individual agent memories can be optimized independently, allowing</span>
+<span class="sd">        for targeted cleanup of specific agents without affecting others.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: The agent identifier</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing optimization results and statistics</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">memory_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">_agent.md&quot;</span>
+            
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+                    <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Memory file not found&quot;</span>
+                <span class="p">}</span>
+            
+            <span class="c1"># Load original content</span>
+            <span class="n">original_content</span> <span class="o">=</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            <span class="n">original_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">original_content</span><span class="p">)</span>
+            
+            <span class="c1"># Parse memory structure</span>
+            <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_memory_sections</span><span class="p">(</span><span class="n">original_content</span><span class="p">)</span>
+            
+            <span class="c1"># Optimize each section</span>
+            <span class="n">optimized_sections</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">optimization_stats</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;duplicates_removed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;items_consolidated&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;items_reordered&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;sections_optimized&quot;</span><span class="p">:</span> <span class="mi">0</span>
+            <span class="p">}</span>
+            
+            <span class="k">for</span> <span class="n">section_name</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">sections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">section_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">]:</span>
+                    <span class="c1"># Preserve header sections as-is</span>
+                    <span class="n">optimized_sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">items</span>
+                    <span class="k">continue</span>
+                
+                <span class="n">optimized_items</span><span class="p">,</span> <span class="n">section_stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimize_section</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">)</span>
+                <span class="n">optimized_sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">optimized_items</span>
+                
+                <span class="c1"># Aggregate stats</span>
+                <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">optimization_stats</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">section_stats</span><span class="p">:</span>
+                        <span class="n">optimization_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">+=</span> <span class="n">section_stats</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                
+                <span class="k">if</span> <span class="n">section_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;duplicates_removed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">section_stats</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;items_consolidated&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">optimization_stats</span><span class="p">[</span><span class="s2">&quot;sections_optimized&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="c1"># Rebuild memory content</span>
+            <span class="n">optimized_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rebuild_memory_content</span><span class="p">(</span><span class="n">optimized_sections</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">)</span>
+            <span class="n">optimized_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">optimized_content</span><span class="p">)</span>
+            
+            <span class="c1"># Create backup before saving</span>
+            <span class="n">backup_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_backup</span><span class="p">(</span><span class="n">memory_file</span><span class="p">)</span>
+            
+            <span class="c1"># Save optimized content</span>
+            <span class="n">memory_file</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">optimized_content</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+            
+            <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+                <span class="s2">&quot;original_size&quot;</span><span class="p">:</span> <span class="n">original_size</span><span class="p">,</span>
+                <span class="s2">&quot;optimized_size&quot;</span><span class="p">:</span> <span class="n">optimized_size</span><span class="p">,</span>
+                <span class="s2">&quot;size_reduction&quot;</span><span class="p">:</span> <span class="n">original_size</span> <span class="o">-</span> <span class="n">optimized_size</span><span class="p">,</span>
+                <span class="s2">&quot;size_reduction_percent&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(((</span><span class="n">original_size</span> <span class="o">-</span> <span class="n">optimized_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">original_size</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">original_size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;backup_created&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">backup_path</span><span class="p">),</span>
+                <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="o">**</span><span class="n">optimization_stats</span>
+            <span class="p">}</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Optimized memory for </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">optimization_stats</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">result</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error optimizing memory for </span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="MemoryOptimizer.optimize_all_memories">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.optimizer.html#claude_mpm.services.memory.MemoryOptimizer.optimize_all_memories">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">optimize_all_memories</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimize all agent memory files.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Bulk optimization allows maintenance of the entire memory system</span>
+<span class="sd">        in one operation, providing comprehensive cleanup and consistency.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing results for all agents</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="p">{</span>
+                    <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Memory directory not found&quot;</span>
+                <span class="p">}</span>
+            
+            <span class="n">memory_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_agent.md&quot;</span><span class="p">))</span>
+            <span class="n">results</span> <span class="o">=</span> <span class="p">{}</span>
+            
+            <span class="n">total_stats</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;agents_processed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;agents_optimized&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;total_size_before&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;total_size_after&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;total_duplicates_removed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s2">&quot;total_items_consolidated&quot;</span><span class="p">:</span> <span class="mi">0</span>
+            <span class="p">}</span>
+            
+            <span class="k">for</span> <span class="n">memory_file</span> <span class="ow">in</span> <span class="n">memory_files</span><span class="p">:</span>
+                <span class="n">agent_id</span> <span class="o">=</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimize_agent_memory</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+                <span class="n">results</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
+                
+                <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;agents_processed&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+                <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">):</span>
+                    <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;agents_optimized&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_before&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;original_size&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_after&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;optimized_size&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_duplicates_removed&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;duplicates_removed&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                    <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_items_consolidated&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;items_consolidated&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+            
+            <span class="c1"># Calculate overall statistics</span>
+            <span class="n">total_reduction</span> <span class="o">=</span> <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_before&quot;</span><span class="p">]</span> <span class="o">-</span> <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_after&quot;</span><span class="p">]</span>
+            <span class="n">total_reduction_percent</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">total_reduction</span> <span class="o">/</span> <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_before&quot;</span><span class="p">])</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">1</span>
+            <span class="p">)</span> <span class="k">if</span> <span class="n">total_stats</span><span class="p">[</span><span class="s2">&quot;total_size_before&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">0</span>
+            
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+                <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+                <span class="s2">&quot;agents&quot;</span><span class="p">:</span> <span class="n">results</span><span class="p">,</span>
+                <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="p">{</span>
+                    <span class="o">**</span><span class="n">total_stats</span><span class="p">,</span>
+                    <span class="s2">&quot;total_size_reduction&quot;</span><span class="p">:</span> <span class="n">total_reduction</span><span class="p">,</span>
+                    <span class="s2">&quot;total_size_reduction_percent&quot;</span><span class="p">:</span> <span class="n">total_reduction_percent</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error optimizing all memories: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+            <span class="p">}</span></div>
+
+    
+<div class="viewcode-block" id="MemoryOptimizer.analyze_optimization_opportunities">
+<a class="viewcode-back" href="../../../../claude_mpm.services.memory.optimizer.html#claude_mpm.services.memory.MemoryOptimizer.analyze_optimization_opportunities">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">analyze_optimization_opportunities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze potential optimization opportunities without making changes.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Users may want to understand what optimizations would be performed</span>
+<span class="sd">        before actually running them, allowing for informed decisions.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Optional specific agent to analyze</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict containing analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">agent_id</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_single_agent</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_all_agents</span><span class="p">()</span>
+                
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error analyzing optimization opportunities: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_parse_memory_sections</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">content</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse memory content into sections and items.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            content: Memory file content</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict mapping section names to lists of items</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lines</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">current_section</span> <span class="o">=</span> <span class="s1">&#39;header&#39;</span>
+        <span class="n">current_items</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;## &#39;</span><span class="p">):</span>
+                <span class="c1"># Save previous section</span>
+                <span class="k">if</span> <span class="n">current_section</span><span class="p">:</span>
+                    <span class="n">sections</span><span class="p">[</span><span class="n">current_section</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_items</span>
+                
+                <span class="c1"># Start new section</span>
+                <span class="n">section_name</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="n">current_section</span> <span class="o">=</span> <span class="n">section_name</span>
+                <span class="n">current_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span><span class="p">]</span>  <span class="c1"># Include the header</span>
+                
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">current_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        
+        <span class="c1"># Save last section</span>
+        <span class="k">if</span> <span class="n">current_section</span><span class="p">:</span>
+            <span class="n">sections</span><span class="p">[</span><span class="n">current_section</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_items</span>
+        
+        <span class="k">return</span> <span class="n">sections</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_optimize_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Optimize a single section by removing duplicates and consolidating.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            items: List of section content lines</span>
+<span class="sd">            agent_id: Agent identifier for context</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (optimized_items, stats)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;duplicates_removed&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;items_consolidated&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;items_reordered&quot;</span><span class="p">:</span> <span class="mi">0</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Separate header and bullet points</span>
+        <span class="n">header_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">bullet_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">other_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">items</span><span class="p">:</span>
+            <span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">):</span>
+                <span class="n">bullet_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;## &#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">stripped</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;&lt;!--&#39;</span><span class="p">):</span>
+                <span class="n">header_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">other_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">bullet_points</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">items</span><span class="p">,</span> <span class="n">stats</span>
+        
+        <span class="c1"># Remove duplicates</span>
+        <span class="n">deduplicated_points</span><span class="p">,</span> <span class="n">duplicates_removed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_duplicates</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;duplicates_removed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duplicates_removed</span>
+        
+        <span class="c1"># Consolidate similar items</span>
+        <span class="n">consolidated_points</span><span class="p">,</span> <span class="n">items_consolidated</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consolidate_similar_items</span><span class="p">(</span><span class="n">deduplicated_points</span><span class="p">)</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;items_consolidated&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">items_consolidated</span>
+        
+        <span class="c1"># Reorder by priority</span>
+        <span class="n">reordered_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_reorder_by_priority</span><span class="p">(</span><span class="n">consolidated_points</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">reordered_points</span> <span class="o">!=</span> <span class="n">consolidated_points</span><span class="p">:</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;items_reordered&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        
+        <span class="c1"># Rebuild section</span>
+        <span class="n">optimized_items</span> <span class="o">=</span> <span class="n">header_lines</span> <span class="o">+</span> <span class="n">other_lines</span> <span class="o">+</span> <span class="n">reordered_points</span>
+        
+        <span class="k">return</span> <span class="n">optimized_items</span><span class="p">,</span> <span class="n">stats</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_remove_duplicates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bullet_points</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove duplicate bullet points.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            bullet_points: List of bullet point lines</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (deduplicated_points, count_removed)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seen_content</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">unique_points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">duplicates_removed</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">bullet_points</span><span class="p">:</span>
+            <span class="c1"># Normalize content for comparison</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">content_normalized</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;\s+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="n">content_normalized</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">seen_content</span><span class="p">:</span>
+                <span class="n">seen_content</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">content_normalized</span><span class="p">)</span>
+                <span class="n">unique_points</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">duplicates_removed</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Removed duplicate: </span><span class="si">{</span><span class="n">point</span><span class="o">.</span><span class="n">strip</span><span class="p">()[:</span><span class="mi">50</span><span class="p">]</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">unique_points</span><span class="p">,</span> <span class="n">duplicates_removed</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_consolidate_similar_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bullet_points</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Consolidate similar bullet points.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            bullet_points: List of bullet point lines</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple of (consolidated_points, count_consolidated)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">bullet_points</span><span class="p">,</span> <span class="mi">0</span>
+        
+        <span class="n">consolidated</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">items_consolidated</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">used_indices</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">point_a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">used_indices</span><span class="p">:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">content_a</span> <span class="o">=</span> <span class="n">point_a</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">similar_items</span> <span class="o">=</span> <span class="p">[</span><span class="n">point_a</span><span class="p">]</span>
+            <span class="n">similar_indices</span> <span class="o">=</span> <span class="p">{</span><span class="n">i</span><span class="p">}</span>
+            
+            <span class="c1"># Find similar items</span>
+            <span class="k">for</span> <span class="n">j</span><span class="p">,</span> <span class="n">point_b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">:],</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">used_indices</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                
+                <span class="n">content_b</span> <span class="o">=</span> <span class="n">point_b</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">similarity</span> <span class="o">=</span> <span class="n">SequenceMatcher</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">content_a</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">content_b</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="o">.</span><span class="n">ratio</span><span class="p">()</span>
+                
+                <span class="k">if</span> <span class="n">similarity</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CONSOLIDATION_THRESHOLD</span><span class="p">:</span>
+                    <span class="n">similar_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point_b</span><span class="p">)</span>
+                    <span class="n">similar_indices</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">j</span><span class="p">)</span>
+            
+            <span class="c1"># Consolidate if we found similar items</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">similar_items</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">consolidated_content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_similar_items</span><span class="p">(</span><span class="n">similar_items</span><span class="p">)</span>
+                <span class="n">consolidated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;- </span><span class="si">{</span><span class="n">consolidated_content</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">items_consolidated</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">similar_items</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Consolidated </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">similar_items</span><span class="p">)</span><span class="si">}</span><span class="s2"> similar items&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">consolidated</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">point_a</span><span class="p">)</span>
+            
+            <span class="n">used_indices</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">similar_indices</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">consolidated</span><span class="p">,</span> <span class="n">items_consolidated</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_merge_similar_items</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similar_items</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Merge similar items into a single consolidated item.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            similar_items: List of similar bullet points</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Consolidated content string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Take the longest/most detailed item as base</span>
+        <span class="n">contents</span> <span class="o">=</span> <span class="p">[</span><span class="n">item</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">similar_items</span><span class="p">]</span>
+        <span class="n">base_content</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">contents</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="nb">len</span><span class="p">)</span>
+        
+        <span class="c1"># Look for additional details in other items</span>
+        <span class="n">all_words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">content</span> <span class="ow">in</span> <span class="n">contents</span><span class="p">:</span>
+            <span class="n">all_words</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">content</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+        
+        <span class="n">base_words</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">base_content</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">())</span>
+        <span class="n">additional_words</span> <span class="o">=</span> <span class="n">all_words</span> <span class="o">-</span> <span class="n">base_words</span>
+        
+        <span class="c1"># If there are meaningful additional words, add them</span>
+        <span class="k">if</span> <span class="n">additional_words</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">additional_words</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>  <span class="c1"># Don&#39;t add too much</span>
+            <span class="n">additional_text</span> <span class="o">=</span> <span class="s2">&quot; (&quot;</span> <span class="o">+</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">additional_words</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span>
+            <span class="k">return</span> <span class="n">base_content</span> <span class="o">+</span> <span class="n">additional_text</span>
+        
+        <span class="k">return</span> <span class="n">base_content</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_reorder_by_priority</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bullet_points</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reorder bullet points by priority/importance.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            bullet_points: List of bullet point lines</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Reordered list of bullet points</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_priority_score</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="mi">0</span>
+            
+            <span class="c1"># High priority keywords</span>
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PRIORITY_KEYWORDS</span><span class="p">[</span><span class="s1">&#39;high&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">score</span> <span class="o">+=</span> <span class="mi">3</span>
+            
+            <span class="c1"># Medium priority keywords</span>
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PRIORITY_KEYWORDS</span><span class="p">[</span><span class="s1">&#39;medium&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">score</span> <span class="o">+=</span> <span class="mi">2</span>
+            
+            <span class="c1"># Low priority keywords</span>
+            <span class="k">for</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PRIORITY_KEYWORDS</span><span class="p">[</span><span class="s1">&#39;low&#39;</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="n">keyword</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+                    <span class="n">score</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="c1"># Length-based priority (more detailed items are often more important)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="n">score</span> <span class="o">+=</span> <span class="mi">1</span>
+            
+            <span class="k">return</span> <span class="n">score</span>
+        
+        <span class="c1"># Sort by priority score (descending) then alphabetically</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="o">-</span><span class="n">get_priority_score</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">lower</span><span class="p">()))</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_rebuild_memory_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sections</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Rebuild memory content from optimized sections.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            sections: Dict of section names to content lines</span>
+<span class="sd">            agent_id: Agent identifier</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Rebuilt memory content string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">content_lines</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Add header if it exists</span>
+        <span class="k">if</span> <span class="s1">&#39;header&#39;</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">:</span>
+            <span class="n">content_lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sections</span><span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">])</span>
+        
+        <span class="c1"># Add sections in a logical order</span>
+        <span class="n">section_order</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;Project Architecture&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Coding Patterns Learned&#39;</span><span class="p">,</span> 
+            <span class="s1">&#39;Implementation Guidelines&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Domain-Specific Knowledge&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Effective Strategies&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Common Mistakes to Avoid&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Integration Points&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Performance Considerations&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Current Technical Context&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;Recent Learnings&#39;</span>
+        <span class="p">]</span>
+        
+        <span class="c1"># Add ordered sections</span>
+        <span class="k">for</span> <span class="n">section_name</span> <span class="ow">in</span> <span class="n">section_order</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">section_name</span> <span class="ow">in</span> <span class="n">sections</span> <span class="ow">and</span> <span class="n">section_name</span> <span class="o">!=</span> <span class="s1">&#39;header&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">content_lines</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">content_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">content_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>  <span class="c1"># Add spacing</span>
+                <span class="n">content_lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">sections</span><span class="p">[</span><span class="n">section_name</span><span class="p">])</span>
+        
+        <span class="c1"># Add any remaining sections not in the order</span>
+        <span class="k">for</span> <span class="n">section_name</span><span class="p">,</span> <span class="n">section_content</span> <span class="ow">in</span> <span class="n">sections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">section_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">section_order</span> <span class="ow">and</span> <span class="n">section_name</span> <span class="o">!=</span> <span class="s1">&#39;header&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">content_lines</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">content_lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+                    <span class="n">content_lines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span>
+                <span class="n">content_lines</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">section_content</span><span class="p">)</span>
+        
+        <span class="c1"># Update timestamp</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">content_lines</span><span class="p">)</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1"> %H:%M:%S&#39;</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
+            <span class="sa">r</span><span class="s1">&#39;&lt;!-- Last Updated: .+ \| Auto-updated by: .+ --&gt;&#39;</span><span class="p">,</span>
+            <span class="sa">f</span><span class="s1">&#39;&lt;!-- Last Updated: </span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s1"> | Auto-updated by: optimizer --&gt;&#39;</span><span class="p">,</span>
+            <span class="n">content</span>
+        <span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">content</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_create_backup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memory_file</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create backup of memory file before optimization.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            memory_file: Path to memory file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to backup file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">_%H%M%S&#39;</span><span class="p">)</span>
+        <span class="n">backup_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">memory_file</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_backup_</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}{</span><span class="n">memory_file</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="n">backup_path</span> <span class="o">=</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="n">backup_name</span>
+        
+        <span class="n">backup_path</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">memory_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">),</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Created backup: </span><span class="si">{</span><span class="n">backup_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">backup_path</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_single_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agent_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze optimization opportunities for a single agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agent_id: Agent identifier</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Analysis results</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">memory_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">agent_id</span><span class="si">}</span><span class="s2">_agent.md&quot;</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Memory file not found&quot;</span>
+            <span class="p">}</span>
+        
+        <span class="n">content</span> <span class="o">=</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parse_memory_sections</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        
+        <span class="n">analysis</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;agent_id&quot;</span><span class="p">:</span> <span class="n">agent_id</span><span class="p">,</span>
+            <span class="s2">&quot;file_size&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">content</span><span class="p">),</span>
+            <span class="s2">&quot;sections&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">([</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">sections</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">s</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">]]),</span>
+            <span class="s2">&quot;opportunities&quot;</span><span class="p">:</span> <span class="p">[]</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Analyze each section for opportunities</span>
+        <span class="k">for</span> <span class="n">section_name</span><span class="p">,</span> <span class="n">items</span> <span class="ow">in</span> <span class="n">sections</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">section_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;header&#39;</span><span class="p">,</span> <span class="s1">&#39;metadata&#39;</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            
+            <span class="n">bullet_points</span> <span class="o">=</span> <span class="p">[</span><span class="n">line</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">items</span> <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;- &#39;</span><span class="p">)]</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Check for duplicates</span>
+                <span class="n">unique_points</span><span class="p">,</span> <span class="n">duplicates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_remove_duplicates</span><span class="p">(</span><span class="n">bullet_points</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">duplicates</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">analysis</span><span class="p">[</span><span class="s2">&quot;opportunities&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">section_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">duplicates</span><span class="si">}</span><span class="s2"> duplicate items&quot;</span><span class="p">)</span>
+                
+                <span class="c1"># Check for similar items</span>
+                <span class="n">consolidated</span><span class="p">,</span> <span class="n">consolidated_count</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_consolidate_similar_items</span><span class="p">(</span><span class="n">unique_points</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">consolidated_count</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">analysis</span><span class="p">[</span><span class="s2">&quot;opportunities&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">section_name</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">consolidated_count</span><span class="si">}</span><span class="s2"> items can be consolidated&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">analysis</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_analyze_all_agents</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Analyze optimization opportunities for all agents.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Analysis results for all agents</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="k">return</span> <span class="p">{</span>
+                <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+                <span class="s2">&quot;error&quot;</span><span class="p">:</span> <span class="s2">&quot;Memory directory not found&quot;</span>
+            <span class="p">}</span>
+        
+        <span class="n">memory_files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">memories_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*_agent.md&quot;</span><span class="p">))</span>
+        <span class="n">agents_analysis</span> <span class="o">=</span> <span class="p">{}</span>
+        
+        <span class="k">for</span> <span class="n">memory_file</span> <span class="ow">in</span> <span class="n">memory_files</span><span class="p">:</span>
+            <span class="n">agent_id</span> <span class="o">=</span> <span class="n">memory_file</span><span class="o">.</span><span class="n">stem</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+            <span class="n">agents_analysis</span><span class="p">[</span><span class="n">agent_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_analyze_single_agent</span><span class="p">(</span><span class="n">agent_id</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;success&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">&quot;timestamp&quot;</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">&quot;agents_analyzed&quot;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">agents_analysis</span><span class="p">),</span>
+            <span class="s2">&quot;agents&quot;</span><span class="p">:</span> <span class="n">agents_analysis</span>
+        <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

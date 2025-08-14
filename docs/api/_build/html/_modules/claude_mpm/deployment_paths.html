@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.deployment_paths &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.deployment_paths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.deployment_paths</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Deployment path management for Claude MPM.</span>
+
+<span class="sd">WHY: Using relative parent traversal (e.g., Path(__file__).parent.parent.parent) is fragile</span>
+<span class="sd">and breaks when files are moved or during different deployment scenarios (pip install,</span>
+<span class="sd">development, packaged distribution). This module provides centralized path resolution</span>
+<span class="sd">that works across all deployment scenarios.</span>
+
+<span class="sd">DESIGN DECISION: We detect the deployment context and provide consistent paths regardless</span>
+<span class="sd">of how the package is installed or run. This includes:</span>
+<span class="sd">- Development mode (running from source)</span>
+<span class="sd">- Pip installed packages</span>
+<span class="sd">- Packaged distributions</span>
+<span class="sd">- Test environments</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">functools</span><span class="w"> </span><span class="kn">import</span> <span class="n">lru_cache</span>
+
+
+<div class="viewcode-block" id="DeploymentPaths">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">DeploymentPaths</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Manages paths for different deployment scenarios.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="DeploymentPaths.__init__">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_templates_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_static_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+        
+    <span class="nd">@property</span>
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">package_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the claude_mpm package root directory.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: We need to reliably find the package root regardless of which</span>
+<span class="sd">        module is calling this function.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the claude_mpm package directory (src/claude_mpm)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span>
+            
+        <span class="c1"># Try to find the package root by looking for __init__.py</span>
+        <span class="n">current_file</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+        
+        <span class="c1"># Walk up until we find the claude_mpm package root</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">current_file</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">while</span> <span class="n">current</span> <span class="o">!=</span> <span class="n">current</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;claude_mpm&quot;</span> <span class="ow">and</span> 
+                <span class="p">(</span><span class="n">current</span> <span class="o">/</span> <span class="s2">&quot;__init__.py&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span> <span class="o">=</span> <span class="n">current</span>
+                <span class="k">return</span> <span class="n">current</span>
+            <span class="n">current</span> <span class="o">=</span> <span class="n">current</span><span class="o">.</span><span class="n">parent</span>
+            
+        <span class="c1"># Fallback: assume we&#39;re in claude_mpm already</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span> <span class="o">=</span> <span class="n">current_file</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_package_root</span>
+        
+    <span class="nd">@property</span>
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">project_root</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the project root directory.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: The project root contains configuration files, scripts directory,</span>
+<span class="sd">        and other project-level resources that aren&#39;t part of the package.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the project root directory</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span>
+            
+        <span class="c1"># Check if we&#39;re in a development environment</span>
+        <span class="c1"># In development, project root is typically 2 levels up from package root</span>
+        <span class="n">package</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span>
+        
+        <span class="c1"># Look for indicators of project root</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>  <span class="c1"># src/claude_mpm -&gt; src -&gt; project_root</span>
+            <span class="n">package</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>         <span class="c1"># claude_mpm -&gt; project_root (if no src/)</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="c1"># Check for project indicators</span>
+            <span class="k">if</span> <span class="nb">any</span><span class="p">((</span><span class="n">candidate</span> <span class="o">/</span> <span class="n">marker</span><span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="p">[</span>
+                <span class="s2">&quot;pyproject.toml&quot;</span><span class="p">,</span> <span class="s2">&quot;setup.py&quot;</span><span class="p">,</span> <span class="s2">&quot;setup.cfg&quot;</span><span class="p">,</span> 
+                <span class="s2">&quot;.git&quot;</span><span class="p">,</span> <span class="s2">&quot;README.md&quot;</span><span class="p">,</span> <span class="s2">&quot;scripts/claude-mpm&quot;</span>
+            <span class="p">]):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">candidate</span>
+                <span class="k">return</span> <span class="n">candidate</span>
+                
+        <span class="c1"># Fallback to package parent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span> <span class="o">=</span> <span class="n">package</span><span class="o">.</span><span class="n">parent</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_project_root</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">scripts_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the scripts directory path.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: Scripts can be in different locations depending on deployment:</span>
+<span class="sd">        - Development: project_root/scripts</span>
+<span class="sd">        - Package: claude_mpm/scripts</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the scripts directory</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span>
+            
+        <span class="c1"># First try package scripts (for deployed packages)</span>
+        <span class="n">package_scripts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;scripts&quot;</span>
+        <span class="k">if</span> <span class="n">package_scripts</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span> <span class="o">=</span> <span class="n">package_scripts</span>
+            <span class="k">return</span> <span class="n">package_scripts</span>
+            
+        <span class="c1"># Then try project scripts (for development)</span>
+        <span class="n">project_scripts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;scripts&quot;</span>
+        <span class="k">if</span> <span class="n">project_scripts</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span> <span class="o">=</span> <span class="n">project_scripts</span>
+            <span class="k">return</span> <span class="n">project_scripts</span>
+            
+        <span class="c1"># Default to package scripts even if it doesn&#39;t exist yet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_scripts_dir</span> <span class="o">=</span> <span class="n">package_scripts</span>
+        <span class="k">return</span> <span class="n">package_scripts</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">templates_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the agent templates directory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_templates_dir</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_templates_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span> <span class="o">/</span> <span class="s2">&quot;templates&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_templates_dir</span>
+        
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">static_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the static files directory (HTML, CSS, etc).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_dir</span><span class="p">:</span>
+            <span class="c1"># Static files are in package scripts directory</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_static_dir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;scripts&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_static_dir</span>
+        
+<div class="viewcode-block" id="DeploymentPaths.get_monitor_html_path">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.get_monitor_html_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_monitor_html_path</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the path to the monitor HTML file.</span>
+<span class="sd">        </span>
+<span class="sd">        WHY: The monitor HTML can be in different locations depending on</span>
+<span class="sd">        deployment context. We now prioritize the new modular web structure.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the monitor HTML file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Try multiple locations in order of preference</span>
+        <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="c1"># New modular structure (preferred)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;web&quot;</span> <span class="o">/</span> <span class="s2">&quot;templates&quot;</span> <span class="o">/</span> <span class="s2">&quot;index.html&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;web&quot;</span> <span class="o">/</span> <span class="s2">&quot;templates&quot;</span> <span class="o">/</span> <span class="s2">&quot;dashboard.html&quot;</span><span class="p">,</span>  <span class="c1"># fallback</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;web&quot;</span> <span class="o">/</span> <span class="s2">&quot;index.html&quot;</span><span class="p">,</span>  <span class="c1"># root web index</span>
+            <span class="c1"># Legacy locations (for backward compatibility)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">static_dir</span> <span class="o">/</span> <span class="s2">&quot;claude_mpm_monitor.html&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">scripts_dir</span> <span class="o">/</span> <span class="s2">&quot;claude_mpm_monitor.html&quot;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">project_root</span> <span class="o">/</span> <span class="s2">&quot;scripts&quot;</span> <span class="o">/</span> <span class="s2">&quot;claude_mpm_monitor.html&quot;</span><span class="p">,</span>
+        <span class="p">]</span>
+        
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">candidate</span>
+                
+        <span class="c1"># Return the preferred new location even if it doesn&#39;t exist</span>
+        <span class="c1"># This allows better error messages and encourages proper structure</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;web&quot;</span> <span class="o">/</span> <span class="s2">&quot;templates&quot;</span> <span class="o">/</span> <span class="s2">&quot;index.html&quot;</span></div>
+
+        
+<div class="viewcode-block" id="DeploymentPaths.get_resource_path">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.get_resource_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_resource_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">resource_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get path to a resource file.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            resource_type: Type of resource (scripts, templates, static, etc)</span>
+<span class="sd">            filename: Name of the file</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the resource</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">resource_dirs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;scripts&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scripts_dir</span><span class="p">,</span>
+            <span class="s2">&quot;templates&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">templates_dir</span><span class="p">,</span>
+            <span class="s2">&quot;static&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">static_dir</span><span class="p">,</span>
+            <span class="s2">&quot;agents&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span> <span class="o">/</span> <span class="s2">&quot;agents&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        
+        <span class="n">base_dir</span> <span class="o">=</span> <span class="n">resource_dirs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">resource_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_dir</span> <span class="o">/</span> <span class="n">filename</span></div>
+
+        
+<div class="viewcode-block" id="DeploymentPaths.resolve_import_path">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.resolve_import_path">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">resolve_import_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">module_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resolve a module import path to a file path.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            module_path: Dot-separated module path (e.g., &quot;claude_mpm.cli.commands.run&quot;)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the module file</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">parts</span> <span class="o">=</span> <span class="n">module_path</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;claude_mpm&quot;</span><span class="p">:</span>
+            <span class="n">parts</span> <span class="o">=</span> <span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># Remove package name</span>
+            
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">package_root</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="o">*</span><span class="n">parts</span><span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.py&quot;</span><span class="p">)</span></div>
+
+        
+<div class="viewcode-block" id="DeploymentPaths.ensure_directory">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.ensure_directory">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ensure_directory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Ensure a directory exists, creating it if necessary.&quot;&quot;&quot;</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span></div>
+
+        
+<div class="viewcode-block" id="DeploymentPaths.get_instance">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.DeploymentPaths.get_instance">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="nd">@lru_cache</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_instance</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;DeploymentPaths&quot;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get singleton instance of DeploymentPaths.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="c1"># Convenience functions</span>
+<div class="viewcode-block" id="get_deployment_paths">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_deployment_paths">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_deployment_paths</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">DeploymentPaths</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the deployment paths instance.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">DeploymentPaths</span><span class="o">.</span><span class="n">get_instance</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_package_root">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_package_root">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_package_root</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the claude_mpm package root directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">package_root</span></div>
+
+
+
+<div class="viewcode-block" id="get_project_root">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_project_root">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_project_root</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the project root directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">project_root</span></div>
+
+
+
+<div class="viewcode-block" id="get_scripts_dir">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_scripts_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_scripts_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the scripts directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">scripts_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_monitor_html_path">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_monitor_html_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_monitor_html_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the monitor HTML file path.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">get_monitor_html_path</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="get_templates_dir">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_templates_dir">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_templates_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the agent templates directory.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">templates_dir</span></div>
+
+
+
+<div class="viewcode-block" id="get_resource_path">
+<a class="viewcode-back" href="../../claude_mpm.deployment_paths.html#claude_mpm.deployment_paths.get_resource_path">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_resource_path</span><span class="p">(</span><span class="n">resource_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get path to a resource file.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">get_deployment_paths</span><span class="p">()</span><span class="o">.</span><span class="n">get_resource_path</span><span class="p">(</span><span class="n">resource_type</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

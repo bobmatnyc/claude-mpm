@@ -3,7 +3,7 @@
 This guide documents the testing strategies, patterns, structure, and best practices for Claude MPM. It covers unit tests, integration tests, end-to-end tests, performance testing, and security testing.
 
 **Last Updated**: 2025-08-14  
-**Architecture Version**: 3.7.8  
+**Architecture Version**: 3.8.2  
 **Related Documents**: [ARCHITECTURE.md](ARCHITECTURE.md), [SERVICES.md](developer/SERVICES.md), [QA.md](QA.md)
 
 ## Table of Contents

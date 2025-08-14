@@ -1,0 +1,740 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.async_session_logger &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.async_session_logger</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.async_session_logger</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Async Claude Session Response Logger with Optimized Performance</span>
+
+<span class="sd">High-performance async logging system with timestamp-based filenames to eliminate</span>
+<span class="sd">concurrency issues and achieve near-zero performance overhead.</span>
+
+<span class="sd">Key Features:</span>
+<span class="sd">- Timestamp-based filenames with microsecond precision</span>
+<span class="sd">- Async I/O with fire-and-forget pattern</span>
+<span class="sd">- Queue-based background writing</span>
+<span class="sd">- Optional OS-native logging format</span>
+<span class="sd">- Zero blocking on main thread</span>
+<span class="sd">- Configuration via .claude-mpm/configuration.yaml</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Callable</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">queue</span><span class="w"> </span><span class="kn">import</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">Full</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">threading</span><span class="w"> </span><span class="kn">import</span> <span class="n">Thread</span><span class="p">,</span> <span class="n">Lock</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging.handlers</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span><span class="p">,</span> <span class="n">asdict</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">claude_mpm.core.constants</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">SystemLimits</span><span class="p">,</span>
+    <span class="n">TimeoutConfig</span><span class="p">,</span>
+    <span class="n">PerformanceConfig</span>
+<span class="p">)</span>
+
+<span class="c1"># Import configuration manager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">..core.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">Config</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="LogFormat">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.LogFormat">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogFormat</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Supported log formats for response storage.&quot;&quot;&quot;</span>
+    <span class="n">JSON</span> <span class="o">=</span> <span class="s2">&quot;json&quot;</span>
+    <span class="n">SYSLOG</span> <span class="o">=</span> <span class="s2">&quot;syslog&quot;</span>
+    <span class="n">JOURNALD</span> <span class="o">=</span> <span class="s2">&quot;journald&quot;</span></div>
+
+
+
+<div class="viewcode-block" id="LogEntry">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.LogEntry">[docs]</a>
+<span class="nd">@dataclass</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">LogEntry</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Represents a log entry to be written.&quot;&quot;&quot;</span>
+    <span class="n">timestamp</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">agent</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Standardized field name</span>
+    <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">request</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Standardized field name</span>
+    <span class="n">response</span><span class="p">:</span> <span class="nb">str</span>  <span class="c1"># Standardized field name</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+    <span class="n">microseconds</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+
+<div class="viewcode-block" id="AsyncSessionLogger">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AsyncSessionLogger</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    High-performance async logger with timestamp-based filenames.</span>
+<span class="sd">    </span>
+<span class="sd">    Features:</span>
+<span class="sd">    - Non-blocking async writes with background queue processing</span>
+<span class="sd">    - Timestamp-based filenames to eliminate lookup overhead</span>
+<span class="sd">    - Configurable log formats (JSON, syslog, journald)</span>
+<span class="sd">    - Fire-and-forget pattern for zero latency impact</span>
+<span class="sd">    - Graceful degradation on errors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AsyncSessionLogger.__init__">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">base_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LogFormat</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_queue_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">enable_async</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">enable_compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the async session logger.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            base_dir: Base directory for responses (overrides config)</span>
+<span class="sd">            log_format: Format to use for logging (overrides config)</span>
+<span class="sd">            max_queue_size: Maximum queue size for async writes (overrides config)</span>
+<span class="sd">            enable_async: Enable async writing (overrides config)</span>
+<span class="sd">            enable_compression: Enable gzip compression for JSON logs (overrides config)</span>
+<span class="sd">            config: Configuration instance to use (creates new if not provided)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Load configuration from YAML file or use provided config</span>
+        <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">config</span>
+        
+        <span class="c1"># Get response logging configuration section</span>
+        <span class="n">response_config</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;response_logging&#39;</span><span class="p">,</span> <span class="p">{})</span>
+        
+        <span class="c1"># Apply configuration with parameter overrides</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">base_dir</span> <span class="ow">or</span> 
+                           <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;session_directory&#39;</span><span class="p">,</span> <span class="s1">&#39;.claude-mpm/responses&#39;</span><span class="p">))</span>
+        
+        <span class="c1"># Convert log format string to enum</span>
+        <span class="n">format_str</span> <span class="o">=</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">log_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">log_format</span>
+        <span class="k">elif</span> <span class="n">format_str</span> <span class="o">==</span> <span class="s1">&#39;syslog&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">SYSLOG</span>
+        <span class="k">elif</span> <span class="n">format_str</span> <span class="o">==</span> <span class="s1">&#39;journald&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JOURNALD</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JSON</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_queue_size</span> <span class="o">=</span> <span class="n">max_queue_size</span> <span class="k">if</span> <span class="n">max_queue_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;max_queue_size&#39;</span><span class="p">,</span> <span class="n">SystemLimits</span><span class="o">.</span><span class="n">MAX_QUEUE_SIZE</span><span class="p">)</span>
+        
+        <span class="c1"># Handle async configuration with backward compatibility</span>
+        <span class="k">if</span> <span class="n">enable_async</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span> <span class="o">=</span> <span class="n">enable_async</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Check configuration first, then environment variables for backward compatibility</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span> <span class="o">=</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;use_async&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            <span class="c1"># Override with environment variable if set (backward compatibility)</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_USE_ASYNC_LOG&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_USE_ASYNC_LOG&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span>
+        
+        <span class="c1"># Check debug sync mode (forces synchronous for debugging)</span>
+        <span class="k">if</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;debug_sync&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_LOG_SYNC&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Debug sync mode enabled - forcing synchronous logging&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">enable_compression</span> <span class="o">=</span> <span class="n">enable_compression</span> <span class="k">if</span> <span class="n">enable_compression</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;enable_compression&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        
+        <span class="c1"># Create base directory</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Session management</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_claude_session_id</span><span class="p">()</span>
+        
+        <span class="c1"># Async infrastructure</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_queue</span><span class="p">:</span> <span class="n">Queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="p">(</span><span class="n">maxsize</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_queue_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Thread</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+        
+        <span class="c1"># Statistics</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;logged&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;queued&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;dropped&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;errors&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+            <span class="s2">&quot;avg_write_time_ms&quot;</span><span class="p">:</span> <span class="mf">0.0</span>
+        <span class="p">}</span>
+        
+        <span class="c1"># Initialize format-specific handlers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_init_format_handler</span><span class="p">()</span>
+        
+        <span class="c1"># Start background worker if async enabled</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_start_worker</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_claude_session_id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get or generate a Claude session ID.&quot;&quot;&quot;</span>
+        <span class="c1"># Check environment variables in order of preference</span>
+        <span class="k">for</span> <span class="n">env_var</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;CLAUDE_SESSION_ID&#39;</span><span class="p">,</span> <span class="s1">&#39;ANTHROPIC_SESSION_ID&#39;</span><span class="p">,</span> <span class="s1">&#39;SESSION_ID&#39;</span><span class="p">]:</span>
+            <span class="n">session_id</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">env_var</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">session_id</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using session ID from </span><span class="si">{</span><span class="n">env_var</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">session_id</span>
+        
+        <span class="c1"># Generate timestamp-based session ID</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y%m</span><span class="si">%d</span><span class="s1">_%H%M%S&#39;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Generated session ID: </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">session_id</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_init_format_handler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize format-specific logging handlers.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">==</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">SYSLOG</span><span class="p">:</span>
+            <span class="c1"># Setup syslog handler for ultra-fast OS-level logging</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span> <span class="o">==</span> <span class="s2">&quot;darwin&quot;</span><span class="p">:</span>
+                    <span class="n">address</span> <span class="o">=</span> <span class="s2">&quot;/var/run/syslog&quot;</span>
+                <span class="k">elif</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;linux&quot;</span><span class="p">):</span>
+                    <span class="n">address</span> <span class="o">=</span> <span class="s2">&quot;/dev/log&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">address</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;localhost&quot;</span><span class="p">,</span> <span class="mi">514</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">syslog_handler</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">handlers</span><span class="o">.</span><span class="n">SysLogHandler</span><span class="p">(</span><span class="n">address</span><span class="o">=</span><span class="n">address</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syslog_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;claude-mpm[</span><span class="si">%(process)d</span><span class="s1">]: </span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initialized syslog handler&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to init syslog, falling back to JSON: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JSON</span>
+        
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">==</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JOURNALD</span><span class="p">:</span>
+            <span class="c1"># Use systemd journal for Linux systems</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span><span class="w"> </span><span class="nn">systemd.journal</span><span class="w"> </span><span class="kn">import</span> <span class="n">JournalHandler</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">journal_handler</span> <span class="o">=</span> <span class="n">JournalHandler</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">journal_handler</span><span class="o">.</span><span class="n">setFormatter</span><span class="p">(</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">Formatter</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%(message)s</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Initialized journald handler&quot;</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;systemd not available, falling back to JSON&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JSON</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_start_worker</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Start the background worker thread for async writes.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span>
+                    <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_process_queue</span><span class="p">,</span>
+                    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;AsyncLoggerWorker&quot;</span><span class="p">,</span>
+                    <span class="n">daemon</span><span class="o">=</span><span class="kc">True</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Started async logger worker thread&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_process_queue</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Background worker to process the log queue.&quot;&quot;&quot;</span>
+        <span class="n">write_times</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Get entry with timeout to allow shutdown checks</span>
+                <span class="n">entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">TimeoutConfig</span><span class="o">.</span><span class="n">QUEUE_GET_TIMEOUT</span><span class="p">)</span>
+                
+                <span class="c1"># Time the write operation</span>
+                <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+                <span class="n">write_time</span> <span class="o">=</span> <span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span><span class="p">)</span> <span class="o">*</span> <span class="n">PerformanceConfig</span><span class="o">.</span><span class="n">SECONDS_TO_MS</span>
+                
+                <span class="c1"># Update statistics</span>
+                <span class="n">write_times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">write_time</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">write_times</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+                    <span class="n">write_times</span> <span class="o">=</span> <span class="n">write_times</span><span class="p">[</span><span class="o">-</span><span class="mi">100</span><span class="p">:]</span>  <span class="c1"># Keep last 100</span>
+                
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;logged&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;avg_write_time_ms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">write_times</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">write_times</span><span class="p">)</span>
+                
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="c1"># Check if it&#39;s a timeout (queue.Empty) or real error</span>
+                <span class="k">if</span> <span class="s2">&quot;Empty&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">):</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error in async worker: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># Otherwise it&#39;s just a timeout, continue to check shutdown</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write a log entry to disk or system log.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">==</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JSON</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_json_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">==</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">SYSLOG</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_syslog_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_format</span> <span class="o">==</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JOURNALD</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_write_journald_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to write log entry: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">exc_info</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;errors&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_filename</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generate a flat filename with session ID, agent, and timestamp.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            entry: Log entry with session, agent, and timestamp info</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Filename in format: [session_id]-[agent]-timestamp.json</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Format timestamp for filename (remove special chars)</span>
+        <span class="n">timestamp_str</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">timestamp</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+        
+        <span class="c1"># Create filename: session_id-agent-timestamp.json</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s2">-</span><span class="si">{</span><span class="n">timestamp_str</span><span class="si">}</span><span class="s2">.json&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_compression</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">+=</span> <span class="s2">&quot;.gz&quot;</span>
+        <span class="k">return</span> <span class="n">filename</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_json_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write entry as JSON file with timestamp-based filename.&quot;&quot;&quot;</span>
+        <span class="c1"># Ensure base directory exists (flat structure, no subdirs)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        
+        <span class="c1"># Generate flat filename</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_filename</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="n">file_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_dir</span> <span class="o">/</span> <span class="n">filename</span>
+        
+        <span class="c1"># Prepare data (exclude microseconds field which is internal only)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">asdict</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+        <span class="c1"># Remove internal-only field</span>
+        <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;microseconds&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        
+        <span class="c1"># Write file</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_compression</span><span class="p">:</span>
+            <span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span>
+            <span class="k">with</span> <span class="n">gzip</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;wt&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Wrote log entry to </span><span class="si">{</span><span class="n">file_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_syslog_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write entry to syslog for OS-level performance.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;syslog_handler&#39;</span><span class="p">):</span>
+            <span class="c1"># Format as structured log message with standardized field names</span>
+            <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;agent=</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">agent</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;session=</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">session_id</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;request=</span><span class="se">\&quot;</span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">request</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="se">\&quot;</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;response_len=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">response</span><span class="p">)</span><span class="si">}</span><span class="s2"> &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;metadata=</span><span class="si">{</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+            
+            <span class="n">record</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;claude-mpm&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                <span class="n">pathname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">lineno</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(),</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">None</span>
+            <span class="p">)</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">syslog_handler</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_write_journald_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">:</span> <span class="n">LogEntry</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Write entry to systemd journal.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;journal_handler&#39;</span><span class="p">):</span>
+            <span class="c1"># Create structured journal entry with standardized field names</span>
+            <span class="n">record</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">LogRecord</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="s2">&quot;claude-mpm&quot;</span><span class="p">,</span>
+                <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span>
+                <span class="n">pathname</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+                <span class="n">lineno</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                <span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Claude MPM Response: </span><span class="si">{</span><span class="n">entry</span><span class="o">.</span><span class="n">request</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">args</span><span class="o">=</span><span class="p">(),</span>
+                <span class="n">exc_info</span><span class="o">=</span><span class="kc">None</span>
+            <span class="p">)</span>
+            
+            <span class="c1"># Add structured fields with standardized names</span>
+            <span class="n">record</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+                <span class="s1">&#39;AGENT&#39;</span><span class="p">:</span> <span class="n">entry</span><span class="o">.</span><span class="n">agent</span><span class="p">,</span>
+                <span class="s1">&#39;SESSION_ID&#39;</span><span class="p">:</span> <span class="n">entry</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+                <span class="s1">&#39;REQUEST&#39;</span><span class="p">:</span> <span class="n">entry</span><span class="o">.</span><span class="n">request</span><span class="p">,</span>
+                <span class="s1">&#39;RESPONSE_LENGTH&#39;</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">response</span><span class="p">),</span>
+                <span class="s1">&#39;METADATA&#39;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+            <span class="p">})</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">journal_handler</span><span class="o">.</span><span class="n">emit</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="AsyncSessionLogger.log_response">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.log_response">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">log_response</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">request_summary</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">response_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">agent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Log a response with fire-and-forget async pattern.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            request_summary: Brief summary of the request</span>
+<span class="sd">            response_content: The full response content</span>
+<span class="sd">            metadata: Optional metadata (agent name, model, etc.)</span>
+<span class="sd">            agent: Optional agent name (overrides metadata)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if queued successfully, False if dropped</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Extract agent name from parameter, metadata, or use default</span>
+        <span class="n">agent_name</span> <span class="o">=</span> <span class="s2">&quot;unknown&quot;</span>
+        <span class="k">if</span> <span class="n">agent</span><span class="p">:</span>
+            <span class="n">agent_name</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">metadata</span> <span class="ow">and</span> <span class="s2">&quot;agent&quot;</span> <span class="ow">in</span> <span class="n">metadata</span><span class="p">:</span>
+            <span class="n">agent_name</span> <span class="o">=</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;agent&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+        
+        <span class="c1"># Create timestamp with microsecond precision</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">timestamp</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+        <span class="n">microseconds</span> <span class="o">=</span> <span class="n">now</span><span class="o">.</span><span class="n">microsecond</span>
+        
+        <span class="c1"># Create log entry with standardized field names</span>
+        <span class="n">entry</span> <span class="o">=</span> <span class="n">LogEntry</span><span class="p">(</span>
+            <span class="n">timestamp</span><span class="o">=</span><span class="n">timestamp</span><span class="p">,</span>
+            <span class="n">agent</span><span class="o">=</span><span class="n">agent_name</span><span class="p">,</span>  <span class="c1"># Standardized field name</span>
+            <span class="n">session_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">,</span>
+            <span class="n">request</span><span class="o">=</span><span class="n">request_summary</span><span class="p">,</span>  <span class="c1"># Standardized field name</span>
+            <span class="n">response</span><span class="o">=</span><span class="n">response_content</span><span class="p">,</span>  <span class="c1"># Standardized field name</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="n">metadata</span> <span class="ow">or</span> <span class="p">{},</span>
+            <span class="n">microseconds</span><span class="o">=</span><span class="n">microseconds</span>
+        <span class="p">)</span>
+        
+        <span class="c1"># Queue for async processing or write directly</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_queue</span><span class="o">.</span><span class="n">put_nowait</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;queued&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">except</span> <span class="n">Full</span><span class="p">:</span>
+                <span class="c1"># Queue is full, drop the entry (fire-and-forget)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Log queue full, dropping entry&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="p">[</span><span class="s2">&quot;dropped&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Synchronous write for debugging</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_entry</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="AsyncSessionLogger.flush">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.flush">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">flush</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Flush pending log entries with timeout.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            timeout: Maximum time to wait for flush</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if all entries flushed, False if timeout</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        
+        <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span> <span class="o">&gt;</span> <span class="n">timeout</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flush timeout with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_queue</span><span class="o">.</span><span class="n">qsize</span><span class="p">()</span><span class="si">}</span><span class="s2"> entries remaining&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.01</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+    
+<div class="viewcode-block" id="AsyncSessionLogger.shutdown">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.shutdown">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">5.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gracefully shutdown the logger.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            timeout: Maximum time to wait for shutdown</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enable_async</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Shutting down async logger&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Signal shutdown</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_shutdown</span> <span class="o">=</span> <span class="kc">True</span>
+            
+            <span class="c1"># Wait for worker to finish</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">timeout</span><span class="p">)</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_worker_thread</span><span class="o">.</span><span class="n">is_alive</span><span class="p">():</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Worker thread did not shutdown cleanly&quot;</span><span class="p">)</span>
+            
+            <span class="c1"># Log final statistics</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Logger stats: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AsyncSessionLogger.get_stats">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.get_stats">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_stats</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get logger statistics.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+    
+<div class="viewcode-block" id="AsyncSessionLogger.set_session_id">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.set_session_id">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_session_id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">session_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Set a new session ID.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">session_id</span> <span class="o">=</span> <span class="n">session_id</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Session ID updated to: </span><span class="si">{</span><span class="n">session_id</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AsyncSessionLogger.is_enabled">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.AsyncSessionLogger.is_enabled">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">is_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if logging is enabled.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span>  <span class="c1"># Always enabled in this implementation</span></div>
+</div>
+
+
+
+<span class="c1"># Singleton instance with lazy initialization</span>
+<span class="n">_logger_instance</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AsyncSessionLogger</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">_logger_lock</span> <span class="o">=</span> <span class="n">Lock</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_async_logger">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.get_async_logger">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_async_logger</span><span class="p">(</span>
+    <span class="n">log_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">LogFormat</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">enable_async</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Config</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AsyncSessionLogger</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the singleton async logger instance.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        log_format: Optional log format override</span>
+<span class="sd">        enable_async: Enable async mode override</span>
+<span class="sd">        config: Optional configuration instance to use</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The shared AsyncSessionLogger instance</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_logger_instance</span>
+    
+    <span class="k">with</span> <span class="n">_logger_lock</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">_logger_instance</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Load configuration if not provided</span>
+            <span class="k">if</span> <span class="n">config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">config</span> <span class="o">=</span> <span class="n">Config</span><span class="p">()</span>
+            
+            <span class="c1"># Get response logging configuration</span>
+            <span class="n">response_config</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;response_logging&#39;</span><span class="p">,</span> <span class="p">{})</span>
+            
+            <span class="c1"># Determine log format</span>
+            <span class="k">if</span> <span class="n">log_format</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Check configuration first</span>
+                <span class="n">format_str</span> <span class="o">=</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;format&#39;</span><span class="p">,</span> <span class="s1">&#39;json&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                
+                <span class="c1"># Check environment for backward compatibility</span>
+                <span class="n">format_env</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_LOG_FORMAT&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">format_env</span><span class="p">:</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using CLAUDE_LOG_FORMAT environment variable (deprecated): </span><span class="si">{</span><span class="n">format_env</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">format_str</span> <span class="o">=</span> <span class="n">format_env</span>
+                
+                <span class="k">if</span> <span class="n">format_str</span> <span class="o">==</span> <span class="s1">&#39;syslog&#39;</span><span class="p">:</span>
+                    <span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">SYSLOG</span>
+                <span class="k">elif</span> <span class="n">format_str</span> <span class="o">==</span> <span class="s1">&#39;journald&#39;</span><span class="p">:</span>
+                    <span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JOURNALD</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">log_format</span> <span class="o">=</span> <span class="n">LogFormat</span><span class="o">.</span><span class="n">JSON</span>
+            
+            <span class="c1"># Determine async mode if not specified</span>
+            <span class="k">if</span> <span class="n">enable_async</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Configuration takes precedence</span>
+                <span class="n">enable_async</span> <span class="o">=</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;use_async&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+                
+                <span class="c1"># Check environment for backward compatibility</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_USE_ASYNC_LOG&#39;</span><span class="p">):</span>
+                    <span class="n">env_async</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_USE_ASYNC_LOG&#39;</span><span class="p">,</span> <span class="s1">&#39;true&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span>
+                    <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Using CLAUDE_USE_ASYNC_LOG environment variable (deprecated): </span><span class="si">{</span><span class="n">env_async</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="n">enable_async</span> <span class="o">=</span> <span class="n">env_async</span>
+                
+                <span class="c1"># Debug sync mode overrides everything</span>
+                <span class="k">if</span> <span class="n">response_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;debug_sync&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="ow">or</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_LOG_SYNC&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s1">&#39;true&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;CLAUDE_LOG_SYNC&#39;</span><span class="p">):</span>
+                        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Using CLAUDE_LOG_SYNC environment variable (deprecated)&quot;</span><span class="p">)</span>
+                    <span class="n">enable_async</span> <span class="o">=</span> <span class="kc">False</span>
+            
+            <span class="n">_logger_instance</span> <span class="o">=</span> <span class="n">AsyncSessionLogger</span><span class="p">(</span>
+                <span class="n">log_format</span><span class="o">=</span><span class="n">log_format</span><span class="p">,</span>
+                <span class="n">enable_async</span><span class="o">=</span><span class="n">enable_async</span><span class="p">,</span>
+                <span class="n">config</span><span class="o">=</span><span class="n">config</span>
+            <span class="p">)</span>
+            
+        <span class="k">return</span> <span class="n">_logger_instance</span></div>
+
+
+
+<div class="viewcode-block" id="log_response_async">
+<a class="viewcode-back" href="../../../services/communication.html#claude_mpm.services.async_session_logger.log_response_async">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_response_async</span><span class="p">(</span>
+    <span class="n">request_summary</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">response_content</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">metadata</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">agent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convenience function for async response logging.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        request_summary: Brief summary of the request</span>
+<span class="sd">        response_content: The full response content</span>
+<span class="sd">        metadata: Optional metadata</span>
+<span class="sd">        agent: Optional agent name</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        True if logged/queued successfully</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logger</span> <span class="o">=</span> <span class="n">get_async_logger</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">logger</span><span class="o">.</span><span class="n">log_response</span><span class="p">(</span><span class="n">request_summary</span><span class="p">,</span> <span class="n">response_content</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">agent</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># Cleanup on module unload</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">atexit</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_cleanup</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cleanup function called on exit.&quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">_logger_instance</span>
+    <span class="k">if</span> <span class="n">_logger_instance</span><span class="p">:</span>
+        <span class="n">_logger_instance</span><span class="o">.</span><span class="n">shutdown</span><span class="p">()</span>
+
+<span class="n">atexit</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">_cleanup</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

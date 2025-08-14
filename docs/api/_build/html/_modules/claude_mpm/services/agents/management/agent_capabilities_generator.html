@@ -1,0 +1,315 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.services.agents.management.agent_capabilities_generator &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../../../services.html">claude_mpm.services</a></li>
+      <li class="breadcrumb-item active">claude_mpm.services.agents.management.agent_capabilities_generator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.services.agents.management.agent_capabilities_generator</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Agent Capabilities Content Generator.</span>
+
+<span class="sd">This service generates markdown content for agent capabilities section</span>
+<span class="sd">from discovered deployed agents.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">jinja2</span><span class="w"> </span><span class="kn">import</span> <span class="n">Template</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="AgentCapabilitiesGenerator">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.management.agent_capabilities_generator.html#claude_mpm.services.agents.AgentCapabilitiesGenerator">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AgentCapabilitiesGenerator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generates markdown content for agent capabilities section.&quot;&quot;&quot;</span>
+    
+<div class="viewcode-block" id="AgentCapabilitiesGenerator.__init__">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.management.agent_capabilities_generator.html#claude_mpm.services.agents.AgentCapabilitiesGenerator.__init__">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the generator with default template.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_template</span><span class="p">()</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Initialized AgentCapabilitiesGenerator&quot;</span><span class="p">)</span></div>
+
+    
+<div class="viewcode-block" id="AgentCapabilitiesGenerator.generate_capabilities_section">
+<a class="viewcode-back" href="../../../../../claude_mpm.services.agents.management.agent_capabilities_generator.html#claude_mpm.services.agents.AgentCapabilitiesGenerator.generate_capabilities_section">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">generate_capabilities_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deployed_agents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the complete agent capabilities markdown section.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            deployed_agents: List of agent information dictionaries</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Generated markdown content for agent capabilities</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Group agents by source tier for organized display</span>
+            <span class="n">agents_by_tier</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_by_tier</span><span class="p">(</span><span class="n">deployed_agents</span><span class="p">)</span>
+            
+            <span class="c1"># Generate core agent list</span>
+            <span class="n">core_agent_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_core_agent_list</span><span class="p">(</span><span class="n">deployed_agents</span><span class="p">)</span>
+            
+            <span class="c1"># Generate detailed capabilities</span>
+            <span class="n">detailed_capabilities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_detailed_capabilities</span><span class="p">(</span><span class="n">deployed_agents</span><span class="p">)</span>
+            
+            <span class="c1"># Render template</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+                <span class="n">core_agents</span><span class="o">=</span><span class="n">core_agent_list</span><span class="p">,</span>
+                <span class="n">detailed_capabilities</span><span class="o">=</span><span class="n">detailed_capabilities</span><span class="p">,</span>
+                <span class="n">agents_by_tier</span><span class="o">=</span><span class="n">agents_by_tier</span><span class="p">,</span>
+                <span class="n">total_agents</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">deployed_agents</span><span class="p">)</span>
+            <span class="p">)</span>
+            
+            <span class="k">return</span> <span class="n">content</span>
+            
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Failed to generate capabilities section: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># Return fallback content on error</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_fallback_content</span><span class="p">()</span></div>
+
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_group_by_tier</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Group agents by their source tier.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agents: List of agent information dictionaries</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Dictionary mapping tiers to lists of agents</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tiers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;system&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;user&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;project&#39;</span><span class="p">:</span> <span class="p">[]}</span>
+        
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">agents</span><span class="p">:</span>
+            <span class="n">tier</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;source_tier&#39;</span><span class="p">,</span> <span class="s1">&#39;system&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tier</span> <span class="ow">in</span> <span class="n">tiers</span><span class="p">:</span>
+                <span class="n">tiers</span><span class="p">[</span><span class="n">tier</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">agent</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># Handle unknown tiers gracefully</span>
+                <span class="n">tiers</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">agent</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown source tier &#39;</span><span class="si">{</span><span class="n">tier</span><span class="si">}</span><span class="s2">&#39; for agent </span><span class="si">{</span><span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">, defaulting to system&quot;</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">tiers</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_core_agent_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate comma-separated list of core agent IDs.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agents: List of agent information dictionaries</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Comma-separated string of agent IDs</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">agent_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">agent</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="n">agents</span><span class="p">]</span>
+        <span class="k">return</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">agent_ids</span><span class="p">))</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_detailed_capabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">agents</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate detailed capability descriptions for each agent.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            agents: List of agent information dictionaries</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            List of capability dictionaries for template rendering</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">capabilities</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">for</span> <span class="n">agent</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">agents</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">:</span> <span class="n">a</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]):</span>
+            <span class="c1"># Extract key capabilities</span>
+            <span class="n">specializations</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;specializations&#39;</span><span class="p">,</span> <span class="p">[])</span>
+            <span class="n">when_to_use</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;capabilities&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;when_to_use&#39;</span><span class="p">,</span> <span class="p">[])</span>
+            
+            <span class="c1"># Create capability summary</span>
+            <span class="k">if</span> <span class="n">when_to_use</span><span class="p">:</span>
+                <span class="n">capability_text</span> <span class="o">=</span> <span class="s1">&#39;; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">when_to_use</span><span class="p">[:</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># First 2 items</span>
+            <span class="k">elif</span> <span class="n">specializations</span><span class="p">:</span>
+                <span class="n">capability_text</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">specializations</span><span class="p">[:</span><span class="mi">3</span><span class="p">])</span>  <span class="c1"># First 3 specializations</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">capability_text</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;General purpose agent&#39;</span><span class="p">)</span>
+            
+            <span class="c1"># Truncate long capability text</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">capability_text</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">100</span><span class="p">:</span>
+                <span class="n">capability_text</span> <span class="o">=</span> <span class="n">capability_text</span><span class="p">[:</span><span class="mi">97</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;...&#39;</span>
+            
+            <span class="c1"># Clean up the agent name for TodoWrite usage</span>
+            <span class="n">clean_name</span> <span class="o">=</span> <span class="n">agent</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; Agent&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+            
+            <span class="n">capabilities</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">clean_name</span><span class="p">,</span>  <span class="c1"># Clean name for TodoWrite</span>
+                <span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">agent</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">],</span>    <span class="c1"># Agent ID for Task tool</span>
+                <span class="s1">&#39;capability_text&#39;</span><span class="p">:</span> <span class="n">capability_text</span><span class="p">,</span>
+                <span class="s1">&#39;tools&#39;</span><span class="p">:</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;tools&#39;</span><span class="p">,</span> <span class="p">[])[:</span><span class="mi">5</span><span class="p">])</span>  <span class="c1"># First 5 tools</span>
+            <span class="p">})</span>
+        
+        <span class="k">return</span> <span class="n">capabilities</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_template</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Template</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Load the Jinja2 template for agent capabilities.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Configured Jinja2 template</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">template_content</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">## Available Agent Capabilities</span>
+
+<span class="s2">You have the following specialized agents available for delegation:</span>
+
+<span class="s2">{</span><span class="si">% i</span><span class="s2">f agents_by_tier.project %}</span>
+<span class="s2">### Project-Specific Agents</span>
+<span class="s2">{</span><span class="si">% f</span><span class="s2">or agent in agents_by_tier.project %}</span>
+<span class="s2">- **{{ agent.name|replace(&#39; Agent&#39;, &#39;&#39;)|replace(&#39;-&#39;, &#39; &#39;) }}** (`{{ agent.id }}`): {{ agent.description }}</span>
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndfor %}</span>
+
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndif %}</span>
+<span class="s2">### Engineering Agents</span>
+<span class="s2">{</span><span class="si">% f</span><span class="s2">or cap in detailed_capabilities %}</span>
+<span class="s2">{</span><span class="si">% i</span><span class="s2">f cap.id in [&#39;engineer&#39;, &#39;data_engineer&#39;, &#39;documentation&#39;, &#39;ops&#39;, &#39;security&#39;, &#39;ticketing&#39;, &#39;version_control&#39;, &#39;web_ui&#39;] %}</span>
+<span class="s2">- **{{ cap.name }}** (`{{ cap.id }}`): {{ cap.capability_text }}</span>
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndif %}</span>
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndfor %}</span>
+
+<span class="s2">### Research Agents</span>
+<span class="s2">{</span><span class="si">% f</span><span class="s2">or cap in detailed_capabilities %}</span>
+<span class="s2">{</span><span class="si">% i</span><span class="s2">f cap.id in [&#39;code_analyzer&#39;, &#39;qa&#39;, &#39;research&#39;, &#39;web_qa&#39;] %}</span>
+<span class="s2">- **{{ cap.name }}** (`{{ cap.id }}`): {{ cap.capability_text }}</span>
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndif %}</span>
+<span class="s2">{</span><span class="si">% e</span><span class="s2">ndfor %}</span>
+
+<span class="s2">**Total Available Agents**: {{ total_agents }}</span>
+<span class="s2">Use the agent ID in parentheses when delegating tasks via the Task tool.</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        
+        <span class="k">return</span> <span class="n">Template</span><span class="p">(</span><span class="n">template_content</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="nf">_generate_fallback_content</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate fallback content when agent discovery fails.</span>
+<span class="sd">        </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Static fallback markdown content</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Using fallback content due to generation failure&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">## Agent Names &amp; Capabilities</span>
+<span class="s2">**Core Agents**: research, engineer, qa, documentation, security, ops, version_control, data_engineer</span>
+
+<span class="s2">**Agent Capabilities**:</span>
+<span class="s2">- **Research**: Codebase analysis, best practices, technical investigation</span>
+<span class="s2">- **Engineer**: Implementation, refactoring, debugging</span>
+<span class="s2">- **QA**: Quality assurance, testing, code review</span>
+<span class="s2">- **Documentation**: Technical writing, API docs, user guides</span>
+<span class="s2">- **Security**: Security analysis, vulnerability assessment</span>
+<span class="s2">- **Ops**: Operations, deployment, infrastructure</span>
+<span class="s2">- **Version Control**: Git operations, branch management</span>
+<span class="s2">- **Data Engineer**: Data pipelines, ETL, database operations</span>
+
+<span class="s2">*Note: Unable to dynamically generate agent list. Using default agents.*</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

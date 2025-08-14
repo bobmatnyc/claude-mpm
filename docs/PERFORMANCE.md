@@ -3,7 +3,7 @@
 This guide documents the performance optimization strategies, lazy loading system, caching mechanisms, connection pooling, and performance monitoring in Claude MPM.
 
 **Last Updated**: 2025-08-14  
-**Architecture Version**: 3.7.8  
+**Architecture Version**: 3.8.2  
 **Related Documents**: [ARCHITECTURE.md](ARCHITECTURE.md), [SERVICES.md](developer/SERVICES.md)
 
 ## Table of Contents

@@ -3,7 +3,7 @@
 This guide documents the breaking changes from the TSK-0053 architecture refactoring and provides migration paths for existing code, configurations, and integrations.
 
 **Last Updated**: 2025-08-14  
-**Architecture Version**: 3.7.8  
+**Architecture Version**: 3.8.2  
 **Migration Source**: TSK-0053 Service Layer Architecture Reorganization  
 **Related Documents**: [ARCHITECTURE.md](ARCHITECTURE.md), [SERVICES.md](developer/SERVICES.md)
 

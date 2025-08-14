@@ -1,0 +1,303 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>claude_mpm.core.config_paths &mdash; Claude MPM API Reference 3.8.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/custom.css?v=dbb19ff3" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=070f1fcc"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #2980B9" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            Claude MPM API Reference
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Core API</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../core/index.html">Core API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../services/index.html">Services API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../agents/index.html">Agents API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hooks/index.html">Hooks API</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cli/index.html">CLI API</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../modules.html">claude_mpm</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../genindex.html">Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../py-modindex.html">Module Index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../search.html">Search Page</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #2980B9" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Claude MPM API Reference</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">claude_mpm.core.config_paths</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for claude_mpm.core.config_paths</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Centralized configuration paths for claude-mpm.</span>
+
+<span class="sd">This module provides a single source of truth for all configuration-related paths</span>
+<span class="sd">throughout the codebase. All modules should import and use these constants</span>
+<span class="sd">instead of hardcoding directory names.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+
+<div class="viewcode-block" id="ConfigDirName">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigDirName">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigDirName</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Enum for configuration directory names to ensure type safety.&quot;&quot;&quot;</span>
+    <span class="n">CLAUDE_MPM</span> <span class="o">=</span> <span class="s2">&quot;.claude-mpm&quot;</span></div>
+
+
+
+<span class="c1"># Core configuration directory name - MUST be consistent everywhere</span>
+<span class="n">CONFIG_DIR_NAME</span> <span class="o">=</span> <span class="n">ConfigDirName</span><span class="o">.</span><span class="n">CLAUDE_MPM</span><span class="o">.</span><span class="n">value</span>
+
+<span class="c1"># Legacy name that should NOT be used (kept for reference during migration)</span>
+<span class="n">_LEGACY_CONFIG_DIR_NAME</span> <span class="o">=</span> <span class="s2">&quot;.claude-pm&quot;</span>  <span class="c1"># DO NOT USE THIS</span>
+
+
+<div class="viewcode-block" id="ConfigPaths">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConfigPaths</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Centralized configuration path constants.&quot;&quot;&quot;</span>
+    
+    <span class="c1"># Base directory names</span>
+    <span class="n">CONFIG_DIR</span> <span class="o">=</span> <span class="n">ConfigDirName</span><span class="o">.</span><span class="n">CLAUDE_MPM</span><span class="o">.</span><span class="n">value</span>
+    <span class="n">AGENTS_DIR</span> <span class="o">=</span> <span class="s2">&quot;agents&quot;</span>
+    <span class="n">BACKUPS_DIR</span> <span class="o">=</span> <span class="s2">&quot;backups&quot;</span>
+    <span class="n">TRACKING_DIR</span> <span class="o">=</span> <span class="s2">&quot;agent_tracking&quot;</span>
+    <span class="n">MEMORIES_DIR</span> <span class="o">=</span> <span class="s2">&quot;memories&quot;</span>
+    <span class="n">RESPONSES_DIR</span> <span class="o">=</span> <span class="s2">&quot;responses&quot;</span>
+    
+    <span class="c1"># Agent subdirectories</span>
+    <span class="n">AGENT_USER_AGENTS</span> <span class="o">=</span> <span class="s2">&quot;user-agents&quot;</span>
+    <span class="n">AGENT_USER_DEFINED</span> <span class="o">=</span> <span class="s2">&quot;user-defined&quot;</span>
+    <span class="n">AGENT_SYSTEM</span> <span class="o">=</span> <span class="s2">&quot;templates&quot;</span>
+    
+    <span class="c1"># Configuration files</span>
+    <span class="n">CONFIG_FILE</span> <span class="o">=</span> <span class="s2">&quot;config.json&quot;</span>
+    <span class="n">CONFIGURATION_YAML</span> <span class="o">=</span> <span class="s2">&quot;configuration.yaml&quot;</span>
+    <span class="n">LIFECYCLE_RECORDS</span> <span class="o">=</span> <span class="s2">&quot;lifecycle_records.json&quot;</span>
+    <span class="n">VERSION_FILE</span> <span class="o">=</span> <span class="s2">&quot;VERSION&quot;</span>
+    <span class="n">INSTRUCTIONS_FILE</span> <span class="o">=</span> <span class="s2">&quot;INSTRUCTIONS.md&quot;</span>
+    
+<div class="viewcode-block" id="ConfigPaths.get_user_config_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_user_config_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_user_config_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the user-level configuration directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">Path</span><span class="o">.</span><span class="n">home</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_project_config_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_project_config_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_project_config_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the project-level configuration directory.&quot;&quot;&quot;</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">project_root</span> <span class="ow">or</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">root</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_framework_config_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_framework_config_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_framework_config_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">framework_root</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the framework-level configuration directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">framework_root</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_user_agents_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_user_agents_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_user_agents_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the user-level agents directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">AGENTS_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_project_agents_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_project_agents_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_project_agents_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">project_root</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the project-level agents directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_project_config_dir</span><span class="p">(</span><span class="n">project_root</span><span class="p">)</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">AGENTS_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_tracking_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_tracking_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_tracking_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the agent tracking directory.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">TRACKING_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_backups_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_backups_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_backups_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the backups directory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">base_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">base_dir</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">BACKUPS_DIR</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">BACKUPS_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_memories_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_memories_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_memories_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the memories directory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">base_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">base_dir</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MEMORIES_DIR</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_project_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">MEMORIES_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.get_responses_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.get_responses_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_responses_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the responses directory.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">base_dir</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">base_dir</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RESPONSES_DIR</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">get_project_config_dir</span><span class="p">()</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">RESPONSES_DIR</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.find_config_dir">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.find_config_dir">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">find_config_dir</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">start_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the nearest configuration directory by walking up the directory tree.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            start_path: Starting directory (defaults to current working directory)</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Path to the configuration directory if found, None otherwise</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">current</span> <span class="o">=</span> <span class="n">start_path</span> <span class="ow">or</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span>
+        
+        <span class="c1"># Check current directory and parents</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="p">[</span><span class="n">current</span><span class="p">]</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">current</span><span class="o">.</span><span class="n">parents</span><span class="p">):</span>
+            <span class="n">config_dir</span> <span class="o">=</span> <span class="n">path</span> <span class="o">/</span> <span class="bp">cls</span><span class="o">.</span><span class="n">CONFIG_DIR</span>
+            <span class="k">if</span> <span class="n">config_dir</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">return</span> <span class="n">config_dir</span>
+        
+        <span class="k">return</span> <span class="kc">None</span></div>
+
+    
+<div class="viewcode-block" id="ConfigPaths.validate_not_legacy">
+<a class="viewcode-back" href="../../../claude_mpm.core.config_paths.html#claude_mpm.core.config_paths.ConfigPaths.validate_not_legacy">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">validate_not_legacy</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check if a path contains the legacy configuration directory name.</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            path: Path to check</span>
+<span class="sd">            </span>
+<span class="sd">        Returns:</span>
+<span class="sd">            True if path is valid (not legacy), False if it contains legacy name</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">path_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">_LEGACY_CONFIG_DIR_NAME</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path_str</span></div>
+</div>
+
+
+
+<span class="c1"># Export commonly used paths as module-level constants for convenience</span>
+<span class="n">USER_CONFIG_DIR</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_config_dir</span><span class="p">()</span>
+<span class="n">USER_AGENTS_DIR</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_user_agents_dir</span><span class="p">()</span>
+<span class="n">USER_TRACKING_DIR</span> <span class="o">=</span> <span class="n">ConfigPaths</span><span class="o">.</span><span class="n">get_tracking_dir</span><span class="p">()</span>
+
+<span class="c1"># Export all public symbols</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s2">&quot;ConfigDirName&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;ConfigPaths&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;CONFIG_DIR_NAME&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;USER_CONFIG_DIR&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;USER_AGENTS_DIR&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;USER_TRACKING_DIR&quot;</span><span class="p">,</span>
+<span class="p">]</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Claude MPM Team.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
