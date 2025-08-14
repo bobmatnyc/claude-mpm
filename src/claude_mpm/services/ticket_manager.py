@@ -49,7 +49,7 @@ class TicketManager(TicketManagerInterface):
             # Check if config exists, create if needed
             if not config_file.exists():
                 try:
-                    config = Config.create_default(str(config_file))
+                    config = Config.create_default(config_file)  # Pass Path object directly
                     config.set("paths.tickets_dir", "tickets")
                     config.set("paths.epics_dir", "tickets/epics")
                     config.set("paths.issues_dir", "tickets/issues")
@@ -64,7 +64,7 @@ class TicketManager(TicketManagerInterface):
             
             # Initialize TaskManager directly with the project path
             # TaskManager will handle project initialization internally
-            task_manager = TaskManager(str(self.project_path))
+            task_manager = TaskManager(self.project_path)  # Pass Path object directly
             
             # Verify it's using the right directory
             if hasattr(task_manager, 'tasks_dir'):
