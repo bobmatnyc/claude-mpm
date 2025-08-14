@@ -22,7 +22,7 @@ def test_direct_agent_delegation():
         "Use the Task tool to delegate to the research agent to analyze the main function",
         "I need you to use the Task tool with subagent_type='engineer' to implement a feature",
         "Please invoke the Task tool to ask the documentation agent to explain hooks",
-        "Call the Task tool with subagent_type='qa' to test the system"
+        "Call the Task tool with subagent_type='qa-agent' to test the system"
     ]
     
     for i, prompt in enumerate(test_prompts, 1):

@@ -11,6 +11,7 @@ import json
 import yaml
 
 from claude_mpm.core.logger import get_logger
+from claude_mpm.core.constants import NetworkConfig
 
 
 class ProjectInitializer:
@@ -249,7 +250,7 @@ class ProjectInitializer:
             "version": "1.0",
             "hooks": {
                 "enabled": True,
-                "port_range": [8080, 8099]
+                "port_range": list(NetworkConfig.SOCKETIO_PORT_RANGE)
             },
             "logging": {
                 "level": "INFO",

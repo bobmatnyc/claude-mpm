@@ -6,7 +6,7 @@ Inspired by awesome-claude-code's comprehensive error handling approach.
 
 import logging
 import sys
-from typing import Optional, Type, Callable, Any, Dict
+from typing import Optional, Type, Callable, Any, Dict, List
 from functools import wraps
 import traceback
 from datetime import datetime

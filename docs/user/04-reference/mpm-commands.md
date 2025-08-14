@@ -123,31 +123,29 @@ The command router (`/.claude/scripts/command_router.py`) provides a extensible 
 
 ## Agent Command Shortcuts
 
-While not implemented as MPM commands, Claude MPM supports agent-specific task delegation through the Task tool. You can delegate to agents using either format:
+While not implemented as MPM commands, Claude MPM supports agent-specific task delegation through the Task tool. The agent names must match the deployed agent YAML frontmatter names exactly:
 
-**Capitalized format:**
+**Correct format (matching deployed agent names):**
 ```
-Task(description="Research the authentication patterns", subagent_type="Research")
-Task(description="Implement the login endpoint", subagent_type="Engineer")
-Task(description="Write tests for the API", subagent_type="QA")
-```
-
-**Lowercase format:**
-```
-Task(description="Research the authentication patterns", subagent_type="research")
+Task(description="Research the authentication patterns", subagent_type="research-agent")
 Task(description="Implement the login endpoint", subagent_type="engineer")
-Task(description="Write tests for the API", subagent_type="qa")
+Task(description="Write tests for the API", subagent_type="qa-agent")
+Task(description="Write documentation", subagent_type="documentation-agent")
+Task(description="Security audit", subagent_type="security-agent")
+Task(description="Deploy service", subagent_type="ops-agent")
+Task(description="Git operations", subagent_type="version-control")
+Task(description="Process data", subagent_type="data-engineer")
 ```
 
-Available agents:
-- `engineer` / `Engineer` - For coding and implementation
-- `qa` / `QA` - For testing and quality assurance
-- `documentation` / `Documentation` - For documentation tasks
-- `research` / `Research` - For investigation and analysis
-- `security` / `Security` - For security-related tasks
-- `ops` / `Ops` - For deployment and infrastructure
-- `version-control` / `Version Control` - For git operations
-- `data-engineer` / `Data Engineer` - For data processing
+Available agents (exact names required):
+- `engineer` - For coding and implementation
+- `qa-agent` - For testing and quality assurance
+- `documentation-agent` - For documentation tasks
+- `research-agent` - For investigation and analysis
+- `security-agent` - For security-related tasks
+- `ops-agent` - For deployment and infrastructure
+- `version-control` - For git operations (hyphen, not underscore)
+- `data-engineer` - For data processing (hyphen, not underscore)
 
 ## Common Workflows
 

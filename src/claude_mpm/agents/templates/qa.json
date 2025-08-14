@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "qa-agent",
-  "agent_version": "3.0.1",
+  "agent_version": "3.1.0",
   "agent_type": "qa",
   "metadata": {
     "name": "Qa Agent",

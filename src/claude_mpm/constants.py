@@ -99,6 +99,19 @@ class AggregateCommands(str, Enum):
     EXPORT = "export"
 
 
+class TicketCommands(str, Enum):
+    """Ticket subcommand constants."""
+    CREATE = "create"
+    LIST = "list"
+    VIEW = "view"
+    UPDATE = "update"
+    DELETE = "delete"
+    CLOSE = "close"
+    SEARCH = "search"
+    COMMENT = "comment"
+    WORKFLOW = "workflow"
+
+
 class CLIFlags(str, Enum):
     """CLI flag constants (without prefix)."""
     # Logging flags

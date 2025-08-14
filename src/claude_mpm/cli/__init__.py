@@ -19,7 +19,7 @@ from .parser import create_parser, preprocess_args
 from .utils import ensure_directories, setup_logging
 from .commands import (
     run_session,
-    list_tickets,
+    manage_tickets,
     show_info,
     manage_agents,
     manage_memory,
@@ -178,7 +178,7 @@ def _execute_command(command: str, args) -> int:
     # Map commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
-        CLICommands.TICKETS.value: list_tickets,
+        CLICommands.TICKETS.value: manage_tickets,
         CLICommands.INFO.value: show_info,
         CLICommands.AGENTS.value: manage_agents,
         CLICommands.MEMORY.value: manage_memory,

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.2.0",
   "agent_id": "ops-agent",
-  "agent_version": "2.0.1",
+  "agent_version": "2.1.0",
   "agent_type": "ops",
   "metadata": {
     "name": "Ops Agent",

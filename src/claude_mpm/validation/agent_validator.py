@@ -28,6 +28,14 @@ from datetime import datetime
 import jsonschema
 from jsonschema import validate, ValidationError, Draft7Validator
 from claude_mpm.config.paths import paths
+from claude_mpm.core.constants import (
+    SystemLimits,
+    ResourceLimits,
+    TimeoutConfig,
+    ComplexityMetrics,
+    ErrorMessages,
+    ValidationRules
+)
 
 logger = logging.getLogger(__name__)
 
@@ -198,8 +206,11 @@ class AgentValidator:
         # SECURITY: Validate instruction length to prevent memory exhaustion
         # Double-check even though schema enforces this - defense in depth
         instructions = agent_data.get("instructions", "")
-        if len(instructions) > 8000:
-            result.errors.append(f"Instructions exceed 8000 character limit: {len(instructions)} characters")
+        if len(instructions) > SystemLimits.MAX_INSTRUCTION_LENGTH:
+            result.errors.append(ErrorMessages.INSTRUCTION_TOO_LONG.format(
+                limit=SystemLimits.MAX_INSTRUCTION_LENGTH,
+                actual=len(instructions)
+            ))
             result.is_valid = False
         
         # Validate model compatibility with tools
@@ -237,19 +248,19 @@ class AgentValidator:
         """
         tier_limits = {
             "intensive": {
-                "memory_limit": (4096, 8192),
-                "cpu_limit": (60, 100),
-                "timeout": (600, 3600)
+                "memory_limit": ResourceLimits.INTENSIVE_MEMORY_RANGE,
+                "cpu_limit": ResourceLimits.INTENSIVE_CPU_RANGE,
+                "timeout": TimeoutConfig.INTENSIVE_TIMEOUT_RANGE
             },
             "standard": {
-                "memory_limit": (2048, 4096),
-                "cpu_limit": (30, 60),
-                "timeout": (300, 1200)
+                "memory_limit": ResourceLimits.STANDARD_MEMORY_RANGE,
+                "cpu_limit": ResourceLimits.STANDARD_CPU_RANGE,
+                "timeout": TimeoutConfig.STANDARD_TIMEOUT_RANGE
             },
             "lightweight": {
-                "memory_limit": (512, 2048),
-                "cpu_limit": (10, 30),
-                "timeout": (30, 600)
+                "memory_limit": ResourceLimits.LIGHTWEIGHT_MEMORY_RANGE,
+                "cpu_limit": ResourceLimits.LIGHTWEIGHT_CPU_RANGE,
+                "timeout": TimeoutConfig.LIGHTWEIGHT_TIMEOUT_RANGE
             }
         }
         
@@ -345,9 +356,11 @@ class AgentValidator:
             
             # SECURITY: Check file size to prevent memory exhaustion
             file_size = file_path.stat().st_size
-            max_size = 1024 * 1024  # 1MB limit for agent configs
+            max_size = SystemLimits.MAX_AGENT_CONFIG_SIZE
             if file_size > max_size:
-                raise ValueError(f"File too large: {file_size} bytes (max {max_size} bytes)")
+                raise ValueError(ErrorMessages.FILE_TOO_LARGE.format(
+                    limit=max_size
+                ))
             with open(file_path, 'r') as f:
                 agent_data = json.load(f)
             
@@ -381,7 +394,7 @@ class AgentValidator:
             raise ValueError(f"Path is not a directory: {directory}")
         
         # SECURITY: Limit number of files to prevent DoS
-        max_files = 100
+        max_files = SystemLimits.MAX_FILES_TO_VALIDATE
         file_count = 0
         
         for json_file in directory.glob("*.json"):

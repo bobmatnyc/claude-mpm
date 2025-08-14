@@ -1,4 +1,15 @@
-"""Services for Claude MPM."""
+"""Services for Claude MPM.
+
+This module provides backward compatibility for the reorganized service layer.
+Part of TSK-0046: Service Layer Architecture Reorganization
+
+New structure:
+- core/: Core interfaces and base classes
+- agent/: Agent-related services
+- communication/: SocketIO and WebSocket services
+- project/: Project management services
+- infrastructure/: Logging and monitoring services
+"""
 
 # Use lazy imports to prevent circular dependency issues
 def __getattr__(name):
@@ -7,8 +18,13 @@ def __getattr__(name):
         from .ticket_manager import TicketManager
         return TicketManager
     elif name == "AgentDeploymentService":
-        from .agents.deployment import AgentDeploymentService
-        return AgentDeploymentService
+        # Try new location first, fall back to old
+        try:
+            from .agent.deployment import AgentDeploymentService
+            return AgentDeploymentService
+        except ImportError:
+            from .agents.deployment import AgentDeploymentService
+            return AgentDeploymentService
     elif name == "AgentMemoryManager":
         from .agents.memory import AgentMemoryManager
         return AgentMemoryManager
@@ -17,8 +33,13 @@ def __getattr__(name):
         return get_memory_manager
     # Add backward compatibility for other agent services
     elif name == "AgentRegistry":
-        from .agents.registry import AgentRegistry
-        return AgentRegistry
+        # Try new location first, fall back to old
+        try:
+            from .agent.registry import AgentRegistry
+            return AgentRegistry
+        except ImportError:
+            from .agents.registry import AgentRegistry
+            return AgentRegistry
     elif name == "AgentLifecycleManager":
         from .agents.deployment import AgentLifecycleManager
         return AgentLifecycleManager
@@ -53,23 +74,36 @@ def __getattr__(name):
         from .hook_service import HookService
         return HookService
     elif name == "ProjectAnalyzer":
-        from .project_analyzer import ProjectAnalyzer
-        return ProjectAnalyzer
-    elif name == "AdvancedHealthMonitor":
+        # Try new location first, fall back to old
         try:
-            from .health_monitor import AdvancedHealthMonitor
-            return AdvancedHealthMonitor
+            from .project.analyzer import ProjectAnalyzer
+            return ProjectAnalyzer
         except ImportError:
-            raise AttributeError(f"Health monitoring not available: {name}")
+            from .project_analyzer import ProjectAnalyzer
+            return ProjectAnalyzer
+    elif name == "AdvancedHealthMonitor" or name == "HealthMonitor":
+        try:
+            from .infrastructure.monitoring import HealthMonitor
+            return HealthMonitor
+        except ImportError:
+            try:
+                from .health_monitor import AdvancedHealthMonitor
+                return AdvancedHealthMonitor
+            except ImportError:
+                raise AttributeError(f"Health monitoring not available: {name}")
     elif name == "RecoveryManager":
         try:
             from .recovery_manager import RecoveryManager
             return RecoveryManager
         except ImportError:
             raise AttributeError(f"Recovery management not available: {name}")
-    elif name == "StandaloneSocketIOServer":
-        from .standalone_socketio_server import StandaloneSocketIOServer
-        return StandaloneSocketIOServer
+    elif name == "StandaloneSocketIOServer" or name == "SocketIOServer":
+        try:
+            from .communication.socketio import SocketIOServer
+            return SocketIOServer
+        except ImportError:
+            from .standalone_socketio_server import StandaloneSocketIOServer
+            return StandaloneSocketIOServer
     # Backward compatibility for memory services
     elif name == "MemoryBuilder":
         from .memory.builder import MemoryBuilder
@@ -86,6 +120,23 @@ def __getattr__(name):
     elif name == "SharedPromptCache":
         from .memory.cache.shared_prompt_cache import SharedPromptCache
         return SharedPromptCache
+    # New service organization imports
+    elif name == "AgentManagementService":
+        from .agent.management import AgentManagementService
+        return AgentManagementService
+    elif name == "ProjectRegistry":
+        from .project.registry import ProjectRegistry
+        return ProjectRegistry
+    elif name == "LoggingService":
+        from .infrastructure.logging import LoggingService
+        return LoggingService
+    elif name == "SocketIOClientManager":
+        from .communication.websocket import SocketIOClientManager
+        return SocketIOClientManager
+    # Core interfaces and base classes
+    elif name.startswith('I') or name in ['BaseService', 'SyncBaseService', 'SingletonService']:
+        from . import core
+        return getattr(core, name)
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 __all__ = [
@@ -96,12 +147,15 @@ __all__ = [
     "HookService",
     "ProjectAnalyzer",
     "AdvancedHealthMonitor",
+    "HealthMonitor",  # New alias
     "RecoveryManager", 
     "StandaloneSocketIOServer",
+    "SocketIOServer",  # New alias
     # Additional agent services for backward compatibility
     "AgentRegistry",
     "AgentLifecycleManager",
     "AgentManager",
+    "AgentManagementService",  # New service
     "AgentCapabilitiesGenerator",
     "AgentModificationTracker",
     "AgentPersistenceService",
@@ -110,10 +164,20 @@ __all__ = [
     "BaseAgentManager",
     "DeployedAgentDiscovery",
     "FrameworkAgentLoader",
+    # Project services
+    "ProjectRegistry",  # New service
+    # Infrastructure services
+    "LoggingService",  # New service
+    # Communication services
+    "SocketIOClientManager",  # New service
     # Memory services (backward compatibility)
     "MemoryBuilder",
     "MemoryRouter",
     "MemoryOptimizer",
     "SimpleCacheService",
     "SharedPromptCache",
+    # Core exports
+    "BaseService",
+    "SyncBaseService",
+    "SingletonService",
 ]

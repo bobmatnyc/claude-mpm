@@ -1,69 +1,38 @@
 #!/usr/bin/env bash
-# Simple wrapper that delegates to aitrackdown for ticket management
+# Ticket Management Shell Wrapper for claude-mpm
+#
+# WHY: This shell script provides backward compatibility for users who use the
+# 'ticket' command directly from the shell. It delegates all operations to the
+# integrated claude-mpm tickets command.
+#
+# DESIGN DECISION: This thin wrapper maintains the existing shell interface while
+# delegating to the new claude-mpm tickets subcommands for consistency.
 
-# Ensure we're in the virtual environment if it exists
+# Find the project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-VENV_DIR="$SCRIPT_DIR/../venv"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/.." && pwd )"
 
-if [ -d "$VENV_DIR" ]; then
-    source "$VENV_DIR/bin/activate"
+# Check if we should use local claude-mpm or installed version
+if [ -f "$PROJECT_ROOT/claude-mpm" ] && [ -d "$PROJECT_ROOT/src/claude_mpm" ]; then
+    # Use local development version
+    CLAUDE_MPM="$PROJECT_ROOT/claude-mpm"
+else
+    # Use installed version
+    CLAUDE_MPM="claude-mpm"
 fi
 
-# Map common ticket commands to aitrackdown equivalents
-case "$1" in
-    create)
-        shift
-        # Default to task creation unless specified
-        if [[ "$*" == *"-t epic"* ]] || [[ "$*" == *"--type epic"* ]]; then
-            exec aitrackdown epic create "$@"
-        elif [[ "$*" == *"-t issue"* ]] || [[ "$*" == *"--type issue"* ]]; then
-            exec aitrackdown issue create "$@"
-        else
-            # Default to task
-            exec aitrackdown task create "$@"
-        fi
-        ;;
-    list)
-        shift
-        exec aitrackdown task list "$@"
-        ;;
-    view|show)
-        shift
-        exec aitrackdown task show "$@"
-        ;;
-    update)
-        shift
-        exec aitrackdown task update "$@"
-        ;;
-    close)
-        shift
-        task_id="$1"
-        shift
-        exec aitrackdown task complete "$task_id" "$@"
-        ;;
-    help|--help|-h)
-        echo "Ticket Management Wrapper for AI Trackdown"
-        echo ""
-        echo "Usage:"
-        echo "  ticket create <title> [options]    Create a new ticket (task by default)"
-        echo "  ticket list [options]              List tickets"
-        echo "  ticket view <id>                   View ticket details"
-        echo "  ticket update <id> [options]       Update a ticket"
-        echo "  ticket close <id>                  Close/complete a ticket"
-        echo ""
-        echo "Examples:"
-        echo "  ticket create \"Fix login bug\" -p high"
-        echo "  ticket create \"New feature\" -t issue -d \"Description here\""
-        echo "  ticket create \"Project roadmap\" -t epic"
-        echo "  ticket list"
-        echo "  ticket view TSK-0001"
-        echo "  ticket update TSK-0001 -p critical"
-        echo "  ticket close TSK-0001"
-        echo ""
-        echo "For more options, use: aitrackdown --help"
-        ;;
-    *)
-        # Pass through to aitrackdown
-        exec aitrackdown "$@"
-        ;;
-esac
+# Check if claude-mpm is available
+if ! command -v "$CLAUDE_MPM" &> /dev/null && [ "$CLAUDE_MPM" = "claude-mpm" ]; then
+    echo "Error: claude-mpm not found. Please ensure it's installed and in your PATH."
+    echo "Install with: pip install claude-mpm"
+    exit 1
+fi
+
+# Delegate to claude-mpm tickets command
+# If no arguments or help requested, show help
+if [ $# -eq 0 ] || [ "$1" = "help" ] || [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+    exec "$CLAUDE_MPM" tickets --help
+else
+    # Pass all arguments to claude-mpm tickets
+    exec "$CLAUDE_MPM" tickets "$@"
+fi
