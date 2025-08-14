@@ -362,8 +362,7 @@ class FrameworkLoader:
             if self.framework_content.get("workflow_instructions"):
                 workflow_content = self._strip_metadata_comments(self.framework_content['workflow_instructions'])
                 instructions += f"\n\n{workflow_content}\n"
-                if self.framework_content.get("project_workflow") == "project":
-                    instructions += "\n<!-- Using project-specific WORKFLOW.md -->\n"
+                # Note: project-specific workflow is being used (logged elsewhere)
             
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()
@@ -383,12 +382,7 @@ class FrameworkLoader:
             return instructions
         
         # Otherwise fall back to generating framework
-        instructions = f"""
-<!-- Framework injected by Claude MPM -->
-<!-- Version: {self.framework_content['version']} -->
-<!-- Timestamp: {datetime.now().isoformat()} -->
-
-# Claude MPM Framework Instructions
+        instructions = """# Claude MPM Framework Instructions
 
 You are operating within the Claude Multi-Agent Project Manager (MPM) framework.
 
