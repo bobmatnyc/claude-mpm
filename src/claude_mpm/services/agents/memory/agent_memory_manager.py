@@ -44,13 +44,14 @@ class AgentMemoryManager(MemoryServiceInterface):
     to keep them organized and separate from other project files. Files follow a
     standardized markdown format with enforced size limits to prevent unbounded growth.
     
-    The 8KB limit (~2000 tokens) balances comprehensive knowledge storage with
+    The 80KB limit (~20k tokens) balances comprehensive knowledge storage with
     reasonable context size for agent prompts.
     """
     
     # Default limits - will be overridden by configuration
+    # Updated to support 20k tokens (~80KB) for enhanced memory capacity
     DEFAULT_MEMORY_LIMITS = {
-        'max_file_size_kb': 8,
+        'max_file_size_kb': 80,  # Increased from 8KB to 80KB (20k tokens)
         'max_sections': 10,
         'max_items_per_section': 15,
         'max_line_length': 120
@@ -1365,7 +1366,7 @@ Feel free to edit these files to:
 - Add domain-specific knowledge
 
 ## Memory Limits
-- Max file size: 8KB (~2000 tokens)
+- Max file size: 80KB (~20k tokens)
 - Max sections: 10
 - Max items per section: 15
 - Files auto-truncate when limits exceeded

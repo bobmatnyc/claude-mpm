@@ -85,6 +85,6 @@ search:
     - 404.html
 
 # Advanced configuration
-conda:
-  # Not using conda, but keeping as reference
-  # environment: environment.yml
+# Note: conda configuration would go here if using conda instead of pip
+# conda:
+#   environment: environment.yml

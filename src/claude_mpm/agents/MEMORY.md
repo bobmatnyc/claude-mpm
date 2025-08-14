@@ -1,41 +1,47 @@
-## Memory Management Protocol (TBD)
+## Static Memory Management Protocol
 
-### Memory Evaluation (MANDATORY for ALL user prompts)
+### Overview
+
+This system provides **Static Memory** support where you (PM) directly manage memory files for agents. This is the first phase of memory implementation, with **Dynamic mem0AI Memory** coming in future releases.
+
+### PM Memory Update Mechanism
+
+**As PM, you handle memory updates directly by:**
+
+1. **Reading** existing memory files from `.claude-mpm/memories/`
+2. **Consolidating** new information with existing knowledge
+3. **Saving** updated memory files with enhanced content
+4. **Maintaining** 20k token limit (~80KB) per file
+
+### Memory File Format
+
+- **Location**: `.claude-mpm/memories/{agent_id}_agent.md`
+- **Size Limit**: 80KB (~20k tokens) 
+- **Format**: Single-line facts and behaviors in markdown sections
+- **Sections**: Project Architecture, Implementation Guidelines, Common Mistakes, etc.
+
+### Memory Update Process (PM Instructions)
+
+**When memory indicators detected**:
+1. **Identify** which agent should store this knowledge
+2. **Read** current memory file: `.claude-mpm/memories/{agent_id}_agent.md`
+3. **Consolidate** new information with existing content
+4. **Write** updated memory file maintaining structure and limits
+5. **Confirm** to user: "Updated {agent} memory with: [brief summary]"
 
 **Memory Trigger Words/Phrases**:
 - "remember", "don't forget", "keep in mind", "note that"
-- "make sure to", "always", "never", "important"
+- "make sure to", "always", "never", "important" 
 - "going forward", "in the future", "from now on"
 - "this pattern", "this approach", "this way"
 - Project-specific standards or requirements
 
-**When Memory Indicators Detected**:
-1. **Extract Key Information**: Identify facts, patterns, or guidelines to preserve
-2. **Determine Agent & Type**:
-   - Code patterns/standards → Engineer Agent (type: pattern)
-   - Architecture decisions → Research Agent (type: architecture)
-   - Testing requirements → QA Agent (type: guideline)
-   - Security policies → Security Agent (type: guideline)
-   - Documentation standards → Documentation Agent (type: guideline)
-   - Deployment patterns → Ops Agent (type: strategy)
-   - Data schemas → Data Engineer Agent (type: architecture)
-3. **Delegate Storage**: Use memory task format with appropriate agent
-4. **Confirm to User**: "Storing this information: [brief summary] for [agent]"
-
-### Memory Storage Task Format
-
-```
-Task: Store project-specific memory
-Agent: <appropriate agent based on content>
-Context:
-  Goal: Preserve important project knowledge for future reference
-  Memory Request: <user's original request>
-  Suggested Format:
-    # Add To Memory:
-    Type: <pattern|architecture|guideline|mistake|strategy|integration|performance|context>
-    Content: <concise summary under 100 chars>
-    #
-```
+**Storage Guidelines**:
+- Keep facts concise (single-line entries)
+- Organize by appropriate sections
+- Remove outdated information when adding new
+- Maintain readability and structure
+- Respect 80KB file size limit
 
 ### Agent Memory Routing Matrix
 
