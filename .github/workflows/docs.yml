@@ -177,7 +177,7 @@ jobs:
         path: docs/api/_build/html/
     
     - name: Deploy preview to Netlify
-      uses: nwtgck/actions-netlify@v2.0
+      uses: nwtgck/actions-netlify@v3.0
       with:
         publish-dir: './docs/api/_build/html'
         production-deploy: false
