@@ -2,31 +2,21 @@
 
 from .claude_runner import ClaudeRunner
 from .mixins import LoggerMixin
-
-# Import config components if needed
-try:
-    from .config import Config
-    from .config_aliases import ConfigAliases
-except ImportError:
-    pass
+from .config import Config
 
 # Import DI components
-try:
-    from .container import DIContainer, ServiceLifetime, get_container
-    from .service_registry import ServiceRegistry, get_service_registry, initialize_services
-    from .injectable_service import InjectableService
-    from .factories import (
-        ServiceFactory, AgentServiceFactory, SessionManagerFactory, 
-        ConfigurationFactory, get_factory_registry
-    )
-except ImportError:
-    pass
+from .container import DIContainer, ServiceLifetime, get_container
+from .service_registry import ServiceRegistry, get_service_registry, initialize_services
+from .injectable_service import InjectableService
+from .factories import (
+    ServiceFactory, AgentServiceFactory, SessionManagerFactory, 
+    ConfigurationFactory, get_factory_registry
+)
 
 __all__ = [
     "ClaudeRunner",
     "LoggerMixin",
     "Config",
-    "ConfigAliases",
     "DIContainer",
     "ServiceLifetime",
     "get_container",

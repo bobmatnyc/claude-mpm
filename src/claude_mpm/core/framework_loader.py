@@ -163,21 +163,46 @@ class FrameworkLoader:
         """
         Load INSTRUCTIONS.md or legacy CLAUDE.md from working directory.
         
+        NOTE: We no longer load CLAUDE.md since Claude Code already picks it up automatically.
+        This prevents duplication of instructions.
+        
         Args:
             content: Dictionary to update with loaded instructions
         """
-        working_instructions = Path.cwd() / "INSTRUCTIONS.md"
-        working_claude = Path.cwd() / "CLAUDE.md"  # Legacy support
+        # Disabled - Claude Code already reads CLAUDE.md automatically
+        # We don't need to duplicate it in the PM instructions
+        pass
+    
+    def _load_workflow_instructions(self, content: Dict[str, Any]) -> None:
+        """
+        Load WORKFLOW.md with project-specific override support.
         
-        if working_instructions.exists():
-            loaded_content = self._try_load_file(working_instructions, "working directory INSTRUCTIONS.md")
+        Precedence:
+        1. Project-specific: .claude-mpm/agents/WORKFLOW.md
+        2. System default: src/claude_mpm/agents/WORKFLOW.md
+        
+        Args:
+            content: Dictionary to update with workflow instructions
+        """
+        # Check for project-specific workflow first
+        project_workflow_path = Path.cwd() / ".claude-mpm" / "agents" / "WORKFLOW.md"
+        if project_workflow_path.exists():
+            loaded_content = self._try_load_file(project_workflow_path, "project-specific WORKFLOW.md")
             if loaded_content:
-                content["working_claude_md"] = loaded_content
-        elif working_claude.exists():
-            # Legacy support for CLAUDE.md
-            loaded_content = self._try_load_file(working_claude, "working directory CLAUDE.md (legacy)")
-            if loaded_content:
-                content["working_claude_md"] = loaded_content
+                content["workflow_instructions"] = loaded_content
+                content["project_workflow"] = "project"
+                self.logger.info("Using project-specific WORKFLOW.md")
+                return
+        
+        # Fall back to system workflow
+        if self.framework_path:
+            system_workflow_path = self.framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
+            if system_workflow_path.exists():
+                loaded_content = self._try_load_file(system_workflow_path, "system WORKFLOW.md")
+                if loaded_content:
+                    content["workflow_instructions"] = loaded_content
+                    content["project_workflow"] = "system"
+                    self.logger.info("Using system WORKFLOW.md")
     
     def _load_single_agent(self, agent_file: Path) -> tuple[Optional[str], Optional[str]]:
         """
@@ -250,7 +275,9 @@ class FrameworkLoader:
             "version": "unknown",
             "loaded": False,
             "working_claude_md": "",
-            "framework_instructions": ""
+            "framework_instructions": "",
+            "workflow_instructions": "",
+            "project_workflow": ""
         }
         
         # Load instructions file from working directory
@@ -281,6 +308,9 @@ class FrameworkLoader:
             if base_pm_content:
                 content["base_pm_instructions"] = base_pm_content
         
+        # Load WORKFLOW.md - check for project-specific first, then system
+        self._load_workflow_instructions(content)
+        
         # Discover agent directories
         agents_dir, templates_dir, main_dir = self._discover_framework_paths()
         
@@ -296,12 +326,26 @@ class FrameworkLoader:
         Returns:
             Complete framework instructions ready for injection
         """
-        if self.framework_content["loaded"] or self.framework_content["working_claude_md"]:
+        if self.framework_content["loaded"]:
             # Build framework from components
             return self._format_full_framework()
         else:
             # Use minimal fallback
             return self._format_minimal_framework()
+    
+    def _strip_metadata_comments(self, content: str) -> str:
+        """Strip metadata HTML comments from content.
+        
+        Removes comments like:
+        <!-- FRAMEWORK_VERSION: 0010 -->
+        <!-- LAST_MODIFIED: 2025-08-10T00:00:00Z -->
+        """
+        import re
+        # Remove HTML comments that contain metadata
+        cleaned = re.sub(r'<!--\s*(FRAMEWORK_VERSION|LAST_MODIFIED|WORKFLOW_VERSION|PROJECT_WORKFLOW_VERSION|CUSTOM_PROJECT_WORKFLOW)[^>]*-->\n?', '', content)
+        # Also remove any leading blank lines that might result
+        cleaned = cleaned.lstrip('\n')
+        return cleaned
     
     def _format_full_framework(self) -> str:
         """Format full framework instructions."""
@@ -309,11 +353,17 @@ class FrameworkLoader:
         
         # If we have the full framework INSTRUCTIONS.md, use it
         if self.framework_content.get("framework_instructions"):
-            instructions = self.framework_content["framework_instructions"]
+            instructions = self._strip_metadata_comments(self.framework_content["framework_instructions"])
             
-            # Add working directory instructions if they exist
-            if self.framework_content["working_claude_md"]:
-                instructions += f"\n\n## Working Directory Instructions\n{self.framework_content['working_claude_md']}\n"
+            # Note: We don't add working directory CLAUDE.md here since Claude Code
+            # already picks it up automatically. This prevents duplication.
+            
+            # Add WORKFLOW.md after instructions
+            if self.framework_content.get("workflow_instructions"):
+                workflow_content = self._strip_metadata_comments(self.framework_content['workflow_instructions'])
+                instructions += f"\n\n{workflow_content}\n"
+                if self.framework_content.get("project_workflow") == "project":
+                    instructions += "\n<!-- Using project-specific WORKFLOW.md -->\n"
             
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()
@@ -324,7 +374,11 @@ class FrameworkLoader:
             
             # Add BASE_PM.md framework requirements AFTER INSTRUCTIONS.md
             if self.framework_content.get("base_pm_instructions"):
-                instructions += f"\n\n{self.framework_content['base_pm_instructions']}\n"
+                base_pm = self._strip_metadata_comments(self.framework_content['base_pm_instructions'])
+                instructions += f"\n\n{base_pm}"
+            
+            # Clean up any trailing whitespace
+            instructions = instructions.rstrip() + "\n"
             
             return instructions
         
@@ -348,13 +402,8 @@ You are a multi-agent orchestrator. Your primary responsibilities are:
 
 """
         
-        # Add working directory INSTRUCTIONS.md (or CLAUDE.md) if exists
-        if self.framework_content["working_claude_md"]:
-            instructions += f"""
-## Working Directory Instructions
-{self.framework_content["working_claude_md"]}
-
-"""
+        # Note: We don't add working directory CLAUDE.md here since Claude Code
+        # already picks it up automatically. This prevents duplication.
         
         # Add agent definitions
         if self.framework_content["agents"]:
@@ -440,7 +489,6 @@ Extract tickets from these patterns:
             import yaml
             
             # Read directly from deployed agents in .claude/agents/
-            # This ensures we show the exact agent IDs that work with the Task tool
             agents_dir = Path.cwd() / ".claude" / "agents"
             
             if not agents_dir.exists():
@@ -449,83 +497,155 @@ Extract tickets from these patterns:
             
             # Build capabilities section
             section = "\n\n## Available Agent Capabilities\n\n"
-            section += "You have the following specialized agents available for delegation:\n\n"
             
             # Collect deployed agents
             deployed_agents = []
             for agent_file in agents_dir.glob("*.md"):
-                # Skip hidden files and system files
                 if agent_file.name.startswith('.'):
                     continue
                     
-                # The agent ID is the filename without extension
-                # This is what the Task tool expects
-                agent_id = agent_file.stem
-                
-                # Try to read agent metadata from frontmatter
-                agent_name = agent_id.replace('_', ' ').title()
-                agent_desc = "Specialized agent"
-                
-                try:
-                    with open(agent_file, 'r') as f:
-                        content = f.read()
-                        # Extract YAML frontmatter if present
-                        if content.startswith('---'):
-                            end_marker = content.find('---', 3)
-                            if end_marker > 0:
-                                frontmatter = content[3:end_marker]
-                                metadata = yaml.safe_load(frontmatter)
-                                if metadata:
-                                    agent_name = metadata.get('name', agent_name)
-                                    agent_desc = metadata.get('description', agent_desc)
-                except Exception as e:
-                    self.logger.debug(f"Could not read metadata from {agent_file}: {e}")
-                
-                deployed_agents.append((agent_id, agent_name, agent_desc))
+                # Parse agent metadata
+                agent_data = self._parse_agent_metadata(agent_file)
+                if agent_data:
+                    deployed_agents.append(agent_data)
             
             if not deployed_agents:
                 return self._get_fallback_capabilities()
             
-            # Sort agents and display them
-            deployed_agents.sort(key=lambda x: x[0])
+            # Sort agents alphabetically by ID
+            deployed_agents.sort(key=lambda x: x['id'])
             
-            # Group common agent types
-            core_agents = []
-            other_agents = []
+            # Display all agents with their rich descriptions
+            for agent in deployed_agents:
+                # Clean up display name - handle common acronyms
+                display_name = agent['display_name']
+                display_name = display_name.replace('Qa ', 'QA ').replace('Ui ', 'UI ').replace('Api ', 'API ')
+                if display_name.lower() == 'qa agent':
+                    display_name = 'QA Agent'
+                
+                section += f"\n### {display_name} (`{agent['id']}`)\n"
+                section += f"{agent['description']}\n"
+                
+                # Add any additional metadata if present
+                if agent.get('authority'):
+                    section += f"- **Authority**: {agent['authority']}\n"
+                if agent.get('primary_function'):
+                    section += f"- **Primary Function**: {agent['primary_function']}\n"
+                if agent.get('handoff_to'):
+                    section += f"- **Handoff To**: {agent['handoff_to']}\n"
+                if agent.get('tools') and agent['tools'] != 'standard':
+                    section += f"- **Tools**: {agent['tools']}\n"
+                if agent.get('model') and agent['model'] != 'opus':
+                    section += f"- **Model**: {agent['model']}\n"
             
-            core_types = ['engineer', 'research', 'qa', 'documentation', 'security', 
-                         'data_engineer', 'ops', 'version_control']
+            # Add simple Context-Aware Agent Selection
+            section += "\n## Context-Aware Agent Selection\n\n"
+            section += "Select agents based on their descriptions above. Key principles:\n"
+            section += "- **PM questions** → Answer directly (only exception)\n"
+            section += "- Match task requirements to agent descriptions and authority\n"
+            section += "- Consider agent handoff recommendations\n"
+            section += "- Use the agent ID in parentheses when delegating via Task tool\n"
             
-            for agent_id, name, desc in deployed_agents:
-                if agent_id in core_types:
-                    core_agents.append((agent_id, name, desc))
-                else:
-                    other_agents.append((agent_id, name, desc))
-            
-            # Display core agents first
-            if core_agents:
-                section += "### Engineering Agents\n"
-                for agent_id, name, desc in core_agents:
-                    # Format: Name (agent_id) - use Name for TodoWrite, agent_id for Task tool
-                    clean_name = name.replace(' Agent', '').replace('-', ' ')
-                    section += f"- **{clean_name}** (`{agent_id}`): {desc}\n"
-            
-            # Display other/custom agents
-            if other_agents:
-                section += "\n### Research Agents\n"
-                for agent_id, name, desc in other_agents:
-                    clean_name = name.replace(' Agent', '').replace('-', ' ')
-                    section += f"- **{clean_name}** (`{agent_id}`): {desc}\n"
-            
-            # Add summary and usage instructions
+            # Add summary
             section += f"\n**Total Available Agents**: {len(deployed_agents)}\n"
-            section += "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
             
             return section
             
         except Exception as e:
             self.logger.warning(f"Could not generate dynamic agent capabilities: {e}")
             return self._get_fallback_capabilities()
+    
+    def _parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
+        """Parse agent metadata from deployed agent file.
+        
+        Returns:
+            Dictionary with agent metadata directly from YAML frontmatter.
+        """
+        try:
+            import yaml
+            
+            with open(agent_file, 'r') as f:
+                content = f.read()
+                
+            # Default values
+            agent_data = {
+                'id': agent_file.stem,
+                'display_name': agent_file.stem.replace('_', ' ').replace('-', ' ').title(),
+                'description': 'Specialized agent'
+            }
+            
+            # Extract YAML frontmatter if present
+            if content.startswith('---'):
+                end_marker = content.find('---', 3)
+                if end_marker > 0:
+                    frontmatter = content[3:end_marker]
+                    metadata = yaml.safe_load(frontmatter)
+                    if metadata:
+                        # Use name as ID for Task tool
+                        agent_data['id'] = metadata.get('name', agent_data['id'])
+                        agent_data['display_name'] = metadata.get('name', agent_data['display_name']).replace('-', ' ').title()
+                        
+                        # Copy all metadata fields directly
+                        for key, value in metadata.items():
+                            if key not in ['name']:  # Skip already processed fields
+                                agent_data[key] = value
+                        
+                        # IMPORTANT: Do NOT add spaces to tools field - it breaks deployment!
+                        # Tools must remain as comma-separated without spaces: "Read,Write,Edit"
+            
+            return agent_data
+            
+        except Exception as e:
+            self.logger.debug(f"Could not parse metadata from {agent_file}: {e}")
+            return None
+    
+    def _generate_agent_selection_guide(self, deployed_agents: list) -> str:
+        """Generate Context-Aware Agent Selection guide from deployed agents.
+        
+        Creates a mapping of task types to appropriate agents based on their
+        descriptions and capabilities.
+        """
+        guide = ""
+        
+        # Build selection mapping based on deployed agents
+        selection_map = {}
+        
+        for agent in deployed_agents:
+            agent_id = agent['id']
+            desc_lower = agent['description'].lower()
+            
+            # Map task types to agents based on their descriptions
+            if 'implementation' in desc_lower or ('engineer' in agent_id and 'data' not in agent_id):
+                selection_map['Implementation tasks'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'codebase analysis' in desc_lower or 'research' in agent_id:
+                selection_map['Codebase analysis'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'testing' in desc_lower or 'qa' in agent_id:
+                selection_map['Testing/quality'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'documentation' in desc_lower:
+                selection_map['Documentation'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'security' in desc_lower or 'sast' in desc_lower:
+                selection_map['Security operations'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'deployment' in desc_lower or 'infrastructure' in desc_lower or 'ops' in agent_id:
+                selection_map['Deployment/infrastructure'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'data' in desc_lower and ('pipeline' in desc_lower or 'etl' in desc_lower):
+                selection_map['Data pipeline/ETL'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'git' in desc_lower or 'version control' in desc_lower:
+                selection_map['Version control'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'ticket' in desc_lower or 'epic' in desc_lower:
+                selection_map['Ticket/issue management'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'browser' in desc_lower or 'e2e' in desc_lower:
+                selection_map['Browser/E2E testing'] = f"{agent['display_name']} (`{agent_id}`)"
+            if 'frontend' in desc_lower or 'ui' in desc_lower or 'html' in desc_lower:
+                selection_map['Frontend/UI development'] = f"{agent['display_name']} (`{agent_id}`)"
+        
+        # Always include PM questions
+        selection_map['PM questions'] = "Answer directly (only exception)"
+        
+        # Format the selection guide
+        for task_type, agent_info in selection_map.items():
+            guide += f"- **{task_type}** → {agent_info}\n"
+        
+        return guide
     
     def _get_fallback_capabilities(self) -> str:
         """Return fallback capabilities when dynamic discovery fails."""
@@ -536,13 +656,13 @@ Extract tickets from these patterns:
 You have the following specialized agents available for delegation:
 
 - **Engineer** (`engineer`): Code implementation and development
-- **Research** (`research`): Investigation and analysis  
-- **QA** (`qa`): Testing and quality assurance
-- **Documentation** (`documentation`): Documentation creation and maintenance
-- **Security** (`security`): Security analysis and protection
-- **Data Engineer** (`data_engineer`): Data management and pipelines
-- **Ops** (`ops`): Deployment and operations
-- **Version Control** (`version_control`): Git operations and version management
+- **Research** (`research-agent`): Investigation and analysis  
+- **QA** (`qa-agent`): Testing and quality assurance
+- **Documentation** (`documentation-agent`): Documentation creation and maintenance
+- **Security** (`security-agent`): Security analysis and protection
+- **Data Engineer** (`data-engineer`): Data management and pipelines
+- **Ops** (`ops-agent`): Deployment and operations
+- **Version Control** (`version-control`): Git operations and version management
 
 **IMPORTANT**: Use the exact agent ID in parentheses when delegating tasks.
 """

@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 
-from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel, ConfigCommands, AggregateCommands
+from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel, ConfigCommands, AggregateCommands, TicketCommands
 
 
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
@@ -306,17 +306,229 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     add_common_arguments(run_parser)
     add_run_arguments(run_parser)
     
-    # Tickets command
+    # Tickets command with subcommands
     tickets_parser = subparsers.add_parser(
         CLICommands.TICKETS.value,
-        help="List recent tickets"
+        help="Manage tickets and tracking"
     )
     add_common_arguments(tickets_parser)
-    tickets_parser.add_argument(
+    
+    tickets_subparsers = tickets_parser.add_subparsers(
+        dest="tickets_command",
+        help="Ticket commands",
+        metavar="SUBCOMMAND"
+    )
+    
+    # Create ticket
+    create_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.CREATE.value,
+        help="Create a new ticket"
+    )
+    create_ticket_parser.add_argument(
+        "title",
+        help="Ticket title"
+    )
+    create_ticket_parser.add_argument(
+        "-t", "--type",
+        default="task",
+        choices=["task", "bug", "feature", "issue", "epic"],
+        help="Ticket type (default: task)"
+    )
+    create_ticket_parser.add_argument(
+        "-p", "--priority",
+        default="medium",
+        choices=["low", "medium", "high", "critical"],
+        help="Priority level (default: medium)"
+    )
+    create_ticket_parser.add_argument(
+        "-d", "--description",
+        nargs="*",
+        help="Ticket description"
+    )
+    create_ticket_parser.add_argument(
+        "--tags",
+        help="Comma-separated tags"
+    )
+    create_ticket_parser.add_argument(
+        "--parent-epic",
+        help="Parent epic ID"
+    )
+    create_ticket_parser.add_argument(
+        "--parent-issue",
+        help="Parent issue ID"
+    )
+    create_ticket_parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Verbose output"
+    )
+    
+    # List tickets
+    list_tickets_parser = tickets_subparsers.add_parser(
+        TicketCommands.LIST.value,
+        help="List recent tickets"
+    )
+    list_tickets_parser.add_argument(
         "-n", "--limit",
         type=int,
         default=10,
-        help="Number of tickets to show"
+        help="Number of tickets to show (default: 10)"
+    )
+    list_tickets_parser.add_argument(
+        "--type",
+        choices=["task", "bug", "feature", "issue", "epic", "all"],
+        default="all",
+        help="Filter by ticket type"
+    )
+    list_tickets_parser.add_argument(
+        "--status",
+        choices=["open", "in_progress", "done", "closed", "blocked", "all"],
+        default="all",
+        help="Filter by status"
+    )
+    list_tickets_parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show detailed ticket information"
+    )
+    
+    # View ticket
+    view_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.VIEW.value,
+        help="View a specific ticket"
+    )
+    view_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID (e.g., TSK-0001)"
+    )
+    view_ticket_parser.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        help="Show metadata and full details"
+    )
+    
+    # Update ticket
+    update_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.UPDATE.value,
+        help="Update a ticket"
+    )
+    update_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID"
+    )
+    update_ticket_parser.add_argument(
+        "-s", "--status",
+        choices=["open", "in_progress", "done", "closed", "blocked"],
+        help="Update status"
+    )
+    update_ticket_parser.add_argument(
+        "-p", "--priority",
+        choices=["low", "medium", "high", "critical"],
+        help="Update priority"
+    )
+    update_ticket_parser.add_argument(
+        "-a", "--assign",
+        help="Assign to user"
+    )
+    update_ticket_parser.add_argument(
+        "--tags",
+        help="Update tags (comma-separated)"
+    )
+    update_ticket_parser.add_argument(
+        "-d", "--description",
+        nargs="*",
+        help="Update description"
+    )
+    
+    # Close ticket
+    close_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.CLOSE.value,
+        help="Close a ticket"
+    )
+    close_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID"
+    )
+    close_ticket_parser.add_argument(
+        "--resolution",
+        help="Resolution description"
+    )
+    
+    # Delete ticket
+    delete_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.DELETE.value,
+        help="Delete a ticket"
+    )
+    delete_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID"
+    )
+    delete_ticket_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force deletion without confirmation"
+    )
+    
+    # Search tickets
+    search_tickets_parser = tickets_subparsers.add_parser(
+        TicketCommands.SEARCH.value,
+        help="Search tickets"
+    )
+    search_tickets_parser.add_argument(
+        "query",
+        help="Search query"
+    )
+    search_tickets_parser.add_argument(
+        "--type",
+        choices=["task", "bug", "feature", "issue", "epic", "all"],
+        default="all",
+        help="Filter by ticket type"
+    )
+    search_tickets_parser.add_argument(
+        "--status",
+        choices=["open", "in_progress", "done", "closed", "blocked", "all"],
+        default="all",
+        help="Filter by status"
+    )
+    search_tickets_parser.add_argument(
+        "-n", "--limit",
+        type=int,
+        default=20,
+        help="Maximum results to show"
+    )
+    
+    # Add comment to ticket
+    comment_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.COMMENT.value,
+        help="Add comment to a ticket"
+    )
+    comment_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID"
+    )
+    comment_ticket_parser.add_argument(
+        "comment",
+        nargs="+",
+        help="Comment text"
+    )
+    
+    # Update workflow state
+    workflow_ticket_parser = tickets_subparsers.add_parser(
+        TicketCommands.WORKFLOW.value,
+        help="Update ticket workflow state"
+    )
+    workflow_ticket_parser.add_argument(
+        "id",
+        help="Ticket ID"
+    )
+    workflow_ticket_parser.add_argument(
+        "state",
+        choices=["todo", "in_progress", "ready", "tested", "done", "blocked"],
+        help="New workflow state"
+    )
+    workflow_ticket_parser.add_argument(
+        "--comment",
+        help="Optional comment for the transition"
     )
     
     # Info command

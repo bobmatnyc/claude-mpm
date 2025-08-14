@@ -1,0 +1,46 @@
+# Agent Version Update Summary
+==================================================
+
+## Template Files (JSON)
+------------------------------
+  code_analyzer           2.1.0 → 2.2.1   
+  data_engineer           2.0.1 → 2.1.1   
+  documentation           2.0.1 → 2.1.1   
+  engineer                2.0.1 → 2.1.1   
+  ops                     2.0.1 → 2.1.1   
+  qa                      3.0.1 → 3.1.1   
+  research                3.0.1 → 3.1.1   
+  security                2.0.1 → 2.1.1   
+  ticketing               2.0.1 → 2.1.1   
+  version_control         2.0.1 → 2.1.1   
+  web_qa                  1.0.1 → 1.1.1   
+  web_ui                  1.0.1 → 1.1.1   
+
+## Deployed Agents (Markdown)
+------------------------------
+  code_analyzer           2.1.0 → 2.2.1   
+  data-engineer           2.0.1 → 2.1.1   
+  data_engineer           2.0.1 → 2.1.1   
+  documentation           2.0.1 → 2.1.1   
+  engineer                2.0.1 → 2.1.1   
+  ops                     2.0.1 → 2.1.1   
+  qa                      3.0.1 → 3.1.1   
+  research                3.0.1 → 3.1.1   
+  security                2.0.1 → 2.1.1   
+  ticketing               2.0.1 → 2.1.1   
+  version_control         2.0.1 → 2.1.1   
+  web-qa-agent            1.0.1 → 1.1.1   
+  web-ui-engineer         1.0.1 → 1.1.1   
+  web_qa                  1.0.1 → 1.1.1   
+  web_ui                  1.0.1 → 1.1.1   
+
+## Statistics
+------------------------------
+  Total JSON templates updated: 12
+  Total MD agents updated: 15
+  Total files updated: 27
+
+## Version Consistency Check
+------------------------------
+  ℹ️  web_ui_engineer: Only in MD (1.1.1)
+  ✅ All matching agents have consistent versions

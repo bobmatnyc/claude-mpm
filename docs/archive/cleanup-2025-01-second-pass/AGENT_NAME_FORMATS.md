@@ -1,12 +1,14 @@
-# Agent Name Format Guide
+# Agent Name Format Guide (ARCHIVED - OUTDATED)
 
 ## Overview
+
+**NOTE: This document contains outdated information. Agent names must now match the deployed agent YAML frontmatter names exactly.**
 
 This document clarifies the agent name formats used in different contexts within the claude-mpm system and Claude Code.
 
 ## Important Note About Claude Code's Task Tool
 
-**Claude Code's Task tool has its own validation that requires exact lowercase agent names.** While the claude-mpm framework can normalize various formats internally, Claude Code will reject capitalized or incorrectly formatted agent names before they reach our code.
+**UPDATE: Claude Code's Task tool requires exact agent names as defined in the deployed agent YAML frontmatter.** The names are not simply lowercase versions but must match the `name:` field in each agent's YAML header.
 
 ## Agent Name Formats by Context
 
@@ -71,7 +73,7 @@ The claude-mpm framework's `AgentNameNormalizer` can handle various input format
 
 | Context | Format Required | Example |
 |---------|----------------|---------|
-| Claude Code Task tool | Exact lowercase with underscores | `subagent_type="research"` |
+| Claude Code Task tool | Exact YAML frontmatter names | `subagent_type="research-agent"` |
 | TodoWrite display | Capitalized with spaces | `[Research]` |
 | Agent loader (internal) | Flexible, normalizes automatically | Both "Research" and "research" work |
 | Hook tracking | Normalizes on capture | Converts any format for consistency |

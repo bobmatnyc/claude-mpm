@@ -29,10 +29,11 @@ from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
 from claude_mpm.utils.paths import PathResolver
 from claude_mpm.services.project_analyzer import ProjectAnalyzer
+from claude_mpm.core.interfaces import MemoryServiceInterface
 # Socket.IO notifications are optional - we'll skip them if server is not available
 
 
-class AgentMemoryManager:
+class AgentMemoryManager(MemoryServiceInterface):
     """Manages agent memory files with size limits and validation.
     
     WHY: Agents need to accumulate project-specific knowledge over time to become
@@ -1394,6 +1395,160 @@ Standard markdown with structured sections. Agents expect:
         except Exception as e:
             self.logger.error(f"Error ensuring memories directory: {e}")
             # Continue anyway - memory system should not block operations
+    
+    # ================================================================================
+    # Interface Adapter Methods
+    # ================================================================================
+    # These methods adapt the existing implementation to comply with MemoryServiceInterface
+    
+    def load_memory(self, agent_id: str) -> Optional[str]:
+        """Load memory for a specific agent.
+        
+        WHY: This adapter method provides interface compliance by wrapping
+        the existing load_agent_memory method.
+        
+        Args:
+            agent_id: Identifier of the agent
+            
+        Returns:
+            Memory content as string or None if not found
+        """
+        try:
+            content = self.load_agent_memory(agent_id)
+            return content if content else None
+        except Exception as e:
+            self.logger.error(f"Failed to load memory for {agent_id}: {e}")
+            return None
+    
+    def save_memory(self, agent_id: str, content: str) -> bool:
+        """Save memory for a specific agent.
+        
+        WHY: This adapter method provides interface compliance. The existing
+        implementation uses update_agent_memory for modifications, so we
+        implement a full save by writing directly to the file.
+        
+        Args:
+            agent_id: Identifier of the agent
+            content: Memory content to save
+            
+        Returns:
+            True if save successful
+        """
+        try:
+            memory_path = self.memories_dir / f"{agent_id}_agent.md"
+            
+            # Validate size before saving
+            is_valid, error_msg = self.validate_memory_size(content)
+            if not is_valid:
+                self.logger.error(f"Memory validation failed: {error_msg}")
+                return False
+            
+            # Write the content
+            memory_path.write_text(content, encoding='utf-8')
+            self.logger.info(f"Saved memory for agent {agent_id}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Failed to save memory for {agent_id}: {e}")
+            return False
+    
+    def validate_memory_size(self, content: str) -> tuple[bool, Optional[str]]:
+        """Validate memory content size and structure.
+        
+        WHY: This adapter method provides interface compliance by implementing
+        validation based on configured limits.
+        
+        Args:
+            content: Memory content to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        try:
+            # Check file size
+            size_kb = len(content.encode('utf-8')) / 1024
+            max_size_kb = self.memory_limits.get('max_file_size_kb', 8)
+            
+            if size_kb > max_size_kb:
+                return False, f"Memory size {size_kb:.1f}KB exceeds limit of {max_size_kb}KB"
+            
+            # Check section count
+            sections = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+            max_sections = self.memory_limits.get('max_sections', 10)
+            
+            if len(sections) > max_sections:
+                return False, f"Too many sections: {len(sections)} (max {max_sections})"
+            
+            # Check for required sections
+            required = set(self.REQUIRED_SECTIONS)
+            found = set(sections)
+            missing = required - found
+            
+            if missing:
+                return False, f"Missing required sections: {', '.join(missing)}"
+            
+            return True, None
+            
+        except Exception as e:
+            return False, f"Validation error: {str(e)}"
+    
+    def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get memory usage metrics.
+        
+        WHY: This adapter method provides interface compliance by gathering
+        metrics about memory usage.
+        
+        Args:
+            agent_id: Optional specific agent ID, or None for all
+            
+        Returns:
+            Dictionary with memory metrics
+        """
+        metrics = {
+            "total_memories": 0,
+            "total_size_kb": 0,
+            "agent_metrics": {},
+            "limits": self.memory_limits.copy()
+        }
+        
+        try:
+            if agent_id:
+                # Get metrics for specific agent
+                memory_path = self.memories_dir / f"{agent_id}_agent.md"
+                if memory_path.exists():
+                    content = memory_path.read_text(encoding='utf-8')
+                    size_kb = len(content.encode('utf-8')) / 1024
+                    sections = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+                    
+                    metrics["agent_metrics"][agent_id] = {
+                        "size_kb": round(size_kb, 2),
+                        "sections": len(sections),
+                        "exists": True
+                    }
+                    metrics["total_memories"] = 1
+                    metrics["total_size_kb"] = round(size_kb, 2)
+            else:
+                # Get metrics for all agents
+                for memory_file in self.memories_dir.glob("*_agent.md"):
+                    agent_name = memory_file.stem.replace("_agent", "")
+                    content = memory_file.read_text(encoding='utf-8')
+                    size_kb = len(content.encode('utf-8')) / 1024
+                    sections = re.findall(r'^##\s+(.+)$', content, re.MULTILINE)
+                    
+                    metrics["agent_metrics"][agent_name] = {
+                        "size_kb": round(size_kb, 2),
+                        "sections": len(sections),
+                        "exists": True
+                    }
+                    metrics["total_memories"] += 1
+                    metrics["total_size_kb"] += size_kb
+                
+                metrics["total_size_kb"] = round(metrics["total_size_kb"], 2)
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get memory metrics: {e}")
+        
+        return metrics
 
 
 # Convenience functions for external use

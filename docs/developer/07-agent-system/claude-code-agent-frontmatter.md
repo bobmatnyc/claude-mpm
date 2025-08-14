@@ -31,11 +31,63 @@ Agents are stored in two possible locations with clear precedence rules. Project
 
 ## Complete field specifications with validation rules
 
-The **name field** (required) identifies each agent uniquely within its scope. It must contain only lowercase letters, numbers, and hyphens, cannot start or end with hyphens, and should match the filename (without the `.md` extension). Claude uses this identifier for explicit invocation and internal routing. Validation fails if names conflict within the same scope or contain invalid characters.
+### ⚠️ CRITICAL FORMAT REQUIREMENTS
+
+#### Name Field - MUST Follow Strict Pattern
+
+The **name field** (required) identifies each agent uniquely and **MUST** follow the pattern:
+
+```regex
+^[a-z0-9]+(-[a-z0-9]+)*$
+```
+
+**CRITICAL REQUIREMENTS:**
+- ✅ **ONLY lowercase letters** (a-z) - NO uppercase allowed
+- ✅ **Numbers** (0-9) are permitted
+- ✅ **Hyphens** (-) as word separators ONLY
+- ❌ **NO underscores** (_) - Will cause agent recognition failure
+- ❌ **NO periods, spaces, or special characters**
+- ❌ **Cannot start or end with hyphens**
+
+**Examples:**
+```yaml
+# ✅ VALID
+name: engineer
+name: qa-agent
+name: web-ui-engineer
+name: code-analyzer-v2
+
+# ❌ INVALID - WILL FAIL
+name: qa_agent        # Underscores break recognition
+name: QA-Agent        # Uppercase not allowed
+name: qa.agent        # Periods not allowed
+name: qa agent        # Spaces not allowed
+```
+
+**Why this matters:** Claude Code uses strict pattern matching for agent discovery. Invalid names cause silent failures - the agent won't appear in available agents and cannot be invoked.
 
 The **description field** (required) provides Claude with context for automatic delegation decisions. This natural language description should clearly explain when the agent should be invoked, what tasks it handles, and any specific expertise areas. Descriptions shorter than 10 characters are typically insufficient for proper task routing. Including specific trigger conditions and use cases improves delegation accuracy significantly.
 
-The **tools field** (optional) restricts agent access to specific capabilities following the principle of least privilege. When omitted, agents inherit all tools from the main thread. Tools can be specified as a comma-separated string (`"Read, Edit, Write, Bash"`) or a YAML array. Invalid tool names are silently ignored rather than causing failures. Available tools include file operations (Read, Edit, MultiEdit, Write), search capabilities (Grep, Glob, search_files), terminal access (Bash, terminal), version control (git_commit, git_push), container operations (docker_build, docker_run), package management (npm_install, pip_install), and MCP server tools following the format `mcp__server_name__tool_name`.
+#### Tools Field - NO SPACES After Commas!
+
+The **tools field** (optional) restricts agent access to specific capabilities. **CRITICAL: When using comma-separated format, there must be NO SPACES after commas!**
+
+```yaml
+# ❌ WRONG - SPACES BREAK TOOL RECOGNITION
+tools: "Read, Write, Edit, Bash"
+
+# ✅ CORRECT - NO SPACES
+tools: "Read,Write,Edit,Bash"
+
+# ✅ ALSO CORRECT - Array format
+tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+```
+
+**Why this matters:** Spaces in the comma-separated format cause tool validation failures. The agent may lose access to critical tools, causing runtime failures. Invalid tool names are silently ignored rather than causing failures. Available tools include file operations (Read, Edit, MultiEdit, Write), search capabilities (Grep, Glob, search_files), terminal access (Bash, terminal), version control (git_commit, git_push), container operations (docker_build, docker_run), package management (npm_install, pip_install), and MCP server tools following the format `mcp__server_name__tool_name`.
 
 The **model field** (unofficial, optional) appears in community implementations but lacks official documentation. When present, it accepts values of "sonnet", "opus", or "haiku" to override the default model selection. This field enables resource optimization by using appropriate model tiers for different task complexities.
 

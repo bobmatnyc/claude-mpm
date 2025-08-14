@@ -1,71 +1,35 @@
 #!/usr/bin/env python3
 """
-Simple Flask Hello World Application
+Simple Flask Hello World application.
+
+This module creates a basic Flask web application with a single route
+that returns "Hello World" when accessed.
 """
 
-from flask import Flask, jsonify
-import logging
-from werkzeug.exceptions import HTTPException
+from flask import Flask
 
-# Initialize Flask app
+# Create Flask application instance
 app = Flask(__name__)
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Basic configuration
+app.config['DEBUG'] = False  # Set to True for development
 
 
 @app.route('/')
 def hello_world():
-    """Root route that returns Hello, World!"""
-    logger.info('Hello World endpoint accessed')
-    return 'Hello, World!'
-
-
-@app.route('/health')
-def health_check():
-    """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'message': 'Application is running'})
-
-
-@app.errorhandler(404)
-def not_found(error):
-    """Handle 404 errors"""
-    logger.warning(f'404 error: {error}')
-    return jsonify({'error': 'Resource not found'}), 404
-
-
-@app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 errors"""
-    logger.error(f'Internal server error: {error}')
-    return jsonify({'error': 'Internal server error'}), 500
-
-
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    """Handle HTTP exceptions"""
-    logger.error(f'HTTP exception occurred: {e}')
-    return jsonify({
-        'error': e.name,
-        'message': e.description
-    }), e.code
-
-
-@app.errorhandler(Exception)
-def handle_unexpected_error(error):
-    """Handle unexpected errors"""
-    logger.error(f'Unexpected error: {error}', exc_info=True)
-    return jsonify({'error': 'An unexpected error occurred'}), 500
+    """
+    Home page route handler.
+    
+    Returns a simple "Hello World" message when the root URL is accessed.
+    
+    Returns:
+        str: The greeting message
+    """
+    return "Hello World"
 
 
 if __name__ == '__main__':
-    logger.info('Starting Flask application on http://localhost:5000')
-    app.run(
-        host='0.0.0.0',
-        port=5000,
-        debug=True
-    )
+    # Run the Flask development server
+    # Host 0.0.0.0 makes it accessible from external IPs (optional)
+    # Port 5000 is Flask's default port
+    app.run(host='127.0.0.1', port=5000, debug=True)

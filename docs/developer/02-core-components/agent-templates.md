@@ -187,7 +187,7 @@ The PM uses the Task tool with this format:
 ```python
 Task(
     description="Analyze authentication patterns in the codebase",
-    subagent_type="research",  # or "Research" - both formats accepted
+    subagent_type="research-agent",  # Must match deployed agent YAML name
     context={
         "goal": "Understand current auth implementation",
         "scope": "auth module and middleware",
@@ -211,7 +211,7 @@ Agents communicate through:
 # PM delegates to Research agent first
 Task(
     description="Research payment processing patterns",
-    subagent_type="research",
+    subagent_type="research-agent",
     context={
         "goal": "Understand payment flow for error handling implementation",
         "research_scope": {
@@ -240,7 +240,7 @@ Task(
 # Automatically routed to Security agent
 Task(
     description="Review authentication endpoint implementation",
-    subagent_type="security",
+    subagent_type="security-agent",
     context={
         "code_location": "/api/auth/*",
         "concerns": ["SQL injection", "JWT validation", "rate limiting"],

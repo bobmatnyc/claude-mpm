@@ -1,38 +1,83 @@
 # Claude MPM Quality Assurance Guide
 
-This document provides guidelines for testing claude-mpm to ensure quality and stability, especially after significant changes.
+This document provides comprehensive guidelines for testing claude-mpm to ensure quality and stability, especially after the TSK-0053 service layer refactoring.
 
 ## Overview
 
-Quality assurance for claude-mpm involves multiple levels of testing:
-1. Unit tests - Test individual components
-2. Integration tests - Test component interactions
-3. End-to-end (E2E) tests - Test complete workflows
-4. Manual testing - Verify user experience
+Quality assurance for claude-mpm involves multiple levels of testing following the modern service-oriented architecture:
+
+1. **Unit tests** - Test individual services and components in isolation
+2. **Integration tests** - Test service interactions and interfaces
+3. **End-to-end (E2E) tests** - Test complete workflows and user scenarios
+4. **Performance tests** - Verify caching, lazy loading, and optimization
+5. **Security tests** - Validate input validation and security measures
+6. **Manual testing** - Verify user experience and edge cases
 
 ## When to Run Tests
 
 **Run the full test suite after:**
 - Major feature additions or modifications
 - Changes to core components (CLI, agents, services)
+- Service layer or interface modifications
 - Updates to the framework or agent system
-- Modifications to the framework loading system
+- Modifications to dependency injection or service container
+- Performance optimization changes
+- Security framework updates
 - Before creating a new release
+
+## Architecture-Specific Testing
+
+### Service Layer Testing
+The new service-oriented architecture requires specific testing approaches:
+
+- **Interface Testing**: Verify all services implement their contracts correctly
+- **Dependency Injection Testing**: Ensure service resolution works properly
+- **Service Lifecycle Testing**: Test initialization, operation, and shutdown
+- **Cache Testing**: Verify caching behavior and invalidation
+- **Security Testing**: Validate input validation and sanitization
 
 ## Test Suite Components
 
 ### 1. Unit Tests
 
-Located in `/tests/test_*.py` files (excluding `test_e2e.py`).
+Located in `/tests/unit/` and `/tests/test_*.py` files.
+
+**Test Categories:**
+- **Service Tests**: Individual service functionality
+- **Interface Tests**: Interface contract compliance
+- **Utility Tests**: Helper functions and utilities
+- **Validation Tests**: Input validation and security
 
 **Run unit tests:**
 ```bash
-pytest tests/ -v --ignore=tests/test_e2e.py
+# All unit tests
+pytest tests/unit/ -v
+
+# Specific service tests
+pytest tests/unit/services/ -v
+
+# Legacy unit tests
+pytest tests/ -v --ignore=tests/test_e2e.py --ignore=tests/integration/ --ignore=tests/performance/
 ```
 
-### 2. End-to-End Tests
+### 2. Integration Tests
 
-Located in `/tests/test_e2e.py`.
+Located in `/tests/integration/`.
+
+**Test Categories:**
+- **Service Integration**: Inter-service communication
+- **Database Integration**: Persistence layer testing
+- **API Integration**: External service integration
+- **Memory System Integration**: Agent memory testing
+
+**Run integration tests:**
+```bash
+pytest tests/integration/ -v
+```
+
+### 3. End-to-End Tests
+
+Located in `/tests/e2e/` and `/tests/test_e2e.py`.
 
 **Run E2E tests:**
 ```bash
@@ -41,14 +86,49 @@ Located in `/tests/test_e2e.py`.
 
 Or directly:
 ```bash
-pytest tests/test_e2e.py -v
+pytest tests/e2e/ tests/test_e2e.py -v
 ```
 
-### 3. Full Test Suite
+### 4. Performance Tests
+
+Located in `/tests/performance/`.
+
+**Test Categories:**
+- **Caching Performance**: Cache hit rates and response times
+- **Lazy Loading**: Startup time optimization
+- **Memory Optimization**: Memory usage and cleanup
+- **Concurrent Operations**: Multi-threading and async performance
+
+**Run performance tests:**
+```bash
+pytest tests/performance/ -v --benchmark-only
+```
+
+### 5. Security Tests
+
+Located in `/tests/security/`.
+
+**Test Categories:**
+- **Input Validation**: Malicious input handling
+- **Path Traversal**: File system security
+- **Authentication**: Access control testing
+- **Configuration Security**: Secure configuration handling
+
+**Run security tests:**
+```bash
+pytest tests/security/ -v
+```
+
+### 6. Full Test Suite
 
 **Run all tests:**
 ```bash
 ./scripts/run_all_tests.sh
+```
+
+**Run with coverage:**
+```bash
+pytest --cov=src/claude_mpm --cov-report=html --cov-report=term
 ```
 
 ## E2E Test Coverage
@@ -80,14 +160,95 @@ The E2E tests verify:
 
 Before committing significant changes, ensure:
 
-- [ ] Unit tests pass: `pytest tests/ -v --ignore=tests/test_e2e.py`
+### Core Functionality
+- [ ] Unit tests pass: `pytest tests/unit/ -v`
+- [ ] Integration tests pass: `pytest tests/integration/ -v`
 - [ ] E2E tests pass: `./scripts/run_e2e_tests.sh`
+- [ ] Performance tests pass: `pytest tests/performance/ -v`
+- [ ] Security tests pass: `pytest tests/security/ -v`
+
+### Service Architecture
+- [ ] Service interfaces work: Test dependency injection resolution
+- [ ] Lazy imports work: Verify backward compatibility
+- [ ] Cache performance: Check cache hit rates > 90%
+- [ ] Memory optimization: Verify memory usage within limits
+
+### Basic Operations
 - [ ] Interactive mode starts: `./claude-mpm` (then type `exit`)
 - [ ] Non-interactive works: `./claude-mpm run -i "What is 2+2?" --non-interactive`
 - [ ] Version shows: `./claude-mpm --version`
+- [ ] Agent deployment: `./claude-mpm agents deploy`
 - [ ] No import errors in logs
 
+### Service-Specific Tests
+- [ ] Service container resolves all interfaces
+- [ ] Agent registry discovers agents correctly
+- [ ] Memory services save/load properly
+- [ ] Communication services start without errors
+
 ## Testing Specific Components
+
+### Testing Service Layer
+
+#### Service Container Testing
+```bash
+# Test service registration and resolution
+python -c "
+from claude_mpm.services.core import ServiceContainer
+from claude_mpm.services.core.interfaces import IAgentRegistry
+container = ServiceContainer()
+print('Service container OK')
+"
+```
+
+#### Interface Testing
+```bash
+# Test that services implement their interfaces
+python -c "
+from claude_mpm.services.agent.registry import AgentRegistry
+from claude_mpm.services.core.interfaces import IAgentRegistry
+registry = AgentRegistry()
+assert isinstance(registry, IAgentRegistry)
+print('Interface compliance OK')
+"
+```
+
+#### Dependency Injection Testing
+```bash
+# Test service resolution
+python -c "
+from claude_mpm.services import AgentDeploymentService
+service = AgentDeploymentService()
+print('Service resolution OK')
+"
+```
+
+### Testing Performance Optimizations
+
+#### Cache Testing
+```bash
+# Test cache performance
+python -c "
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+cache = SharedPromptCache.get_instance()
+cache.set('test', 'value')
+assert cache.get('test') == 'value'
+print('Cache functionality OK')
+"
+```
+
+#### Lazy Loading Testing
+```bash
+# Test lazy imports
+python -c "
+import time
+start = time.time()
+from claude_mpm.services import AgentDeploymentService
+load_time = time.time() - start
+print(f'Lazy import time: {load_time:.3f}s')
+assert load_time < 0.1, 'Import too slow'
+"
+```
 
 ### Testing Execution Modes
 
@@ -110,8 +271,23 @@ When modifying execution logic:
 ### Testing Agent System
 
 ```bash
-# Verify agent registry
-python -c "from claude_mpm.core.agent_registry import AgentRegistryAdapter; a = AgentRegistryAdapter(); print('OK')"
+# Verify new agent registry
+python -c "
+from claude_mpm.services.agent.registry import AgentRegistry
+import asyncio
+async def test():
+    registry = AgentRegistry()
+    agents = await registry.discover_agents()
+    print(f'Found {len(agents)} agents')
+asyncio.run(test())
+"
+
+# Test agent deployment
+python -c "
+from claude_mpm.services.agent.deployment import AgentDeploymentService
+deployment = AgentDeploymentService()
+print('Agent deployment service OK')
+"
 ```
 
 ### Testing Tree-Sitter Integration
@@ -205,19 +381,67 @@ echo "Explain Python decorators" > prompt.txt
 
 ## Performance Testing
 
-For performance regression testing:
+### Performance Regression Testing
 ```bash
 # Time a simple command
 time ./claude-mpm run -i "What is 2+2?" --non-interactive
 
 # Check startup time
 time ./claude-mpm --version
+
+# Check agent deployment time
+time ./claude-mpm agents deploy --force
 ```
 
-Expected performance:
-- Version command: < 3 seconds
-- Simple prompt: < 10 seconds
-- Interactive startup: < 5 seconds
+### Cache Performance Testing
+```bash
+# Test cache hit rates
+python -c "
+from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+cache = SharedPromptCache.get_instance()
+# Warm cache
+for i in range(100):
+    cache.set(f'test_{i}', f'value_{i}')
+# Test access
+import time
+start = time.time()
+for i in range(100):
+    cache.get(f'test_{i}')
+duration = time.time() - start
+print(f'Cache access time: {duration:.3f}s for 100 items')
+metrics = cache.get_metrics()
+print(f'Cache hit rate: {metrics.get(\"hit_rate\", 0):.2%}')
+"
+```
+
+### Memory Usage Testing
+```bash
+# Monitor memory usage during operations
+python -c "
+import psutil
+import os
+from claude_mpm.services.agent.registry import AgentRegistry
+
+process = psutil.Process(os.getpid())
+start_memory = process.memory_info().rss / 1024 / 1024  # MB
+
+# Perform operations
+registry = AgentRegistry()
+# ... more operations
+
+end_memory = process.memory_info().rss / 1024 / 1024  # MB
+print(f'Memory usage: {start_memory:.1f}MB -> {end_memory:.1f}MB')
+print(f'Memory delta: {end_memory - start_memory:.1f}MB')
+"
+```
+
+### Expected Performance (Post-Refactoring)
+- **Version command**: < 1 second (improved from 3s)
+- **Simple prompt**: < 5 seconds (improved from 10s)
+- **Interactive startup**: < 2 seconds (improved from 5s)
+- **Agent deployment**: < 2 seconds for 5 agents
+- **Cache hit rate**: > 90% for frequently accessed data
+- **Memory usage**: < 100MB baseline, < 500MB under load
 
 ## Release Testing
 

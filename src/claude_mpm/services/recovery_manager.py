@@ -28,6 +28,11 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional, Callable, Union
 import json
+from claude_mpm.core.constants import (
+    RetryConfig,
+    TimeoutConfig,
+    PerformanceConfig
+)
 
 from .health_monitor import HealthStatus, HealthCheckResult
 
@@ -112,9 +117,9 @@ class GradedRecoveryStrategy(RecoveryStrategy):
         
         # Configuration with defaults
         self.warning_threshold = self.config.get('warning_threshold', 2)
-        self.critical_threshold = self.config.get('critical_threshold', 1)
-        self.failure_window_seconds = self.config.get('failure_window_seconds', 300)
-        self.min_recovery_interval = self.config.get('min_recovery_interval', 60)
+        self.critical_threshold = self.config.get('critical_threshold', RetryConfig.CRITICAL_THRESHOLD)
+        self.failure_window_seconds = self.config.get('failure_window_seconds', RetryConfig.FAILURE_WINDOW)
+        self.min_recovery_interval = self.config.get('min_recovery_interval', RetryConfig.MIN_RECOVERY_INTERVAL)
         
         # Track recent failures
         self.recent_failures: deque = deque(maxlen=10)
@@ -193,8 +198,9 @@ class CircuitBreaker:
     - Gradually re-enable recovery after failures
     """
     
-    def __init__(self, failure_threshold: int = 5, timeout_seconds: int = 300, 
-                 success_threshold: int = 3):
+    def __init__(self, failure_threshold: int = RetryConfig.FAILURE_THRESHOLD, 
+                 timeout_seconds: int = RetryConfig.CIRCUIT_TIMEOUT, 
+                 success_threshold: int = RetryConfig.SUCCESS_THRESHOLD):
         """Initialize circuit breaker.
         
         Args:
@@ -338,9 +344,9 @@ class RecoveryManager:
         # Initialize circuit breaker
         circuit_config = self.config.get('circuit_breaker', {})
         self.circuit_breaker = CircuitBreaker(
-            failure_threshold=circuit_config.get('failure_threshold', 5),
-            timeout_seconds=circuit_config.get('timeout_seconds', 300),
-            success_threshold=circuit_config.get('success_threshold', 3)
+            failure_threshold=circuit_config.get('failure_threshold', RetryConfig.FAILURE_THRESHOLD),
+            timeout_seconds=circuit_config.get('timeout_seconds', RetryConfig.CIRCUIT_TIMEOUT),
+            success_threshold=circuit_config.get('success_threshold', RetryConfig.SUCCESS_THRESHOLD)
         )
         
         # Initialize recovery strategy
@@ -451,7 +457,7 @@ class RecoveryManager:
         
         finally:
             self.recovery_in_progress = False
-            duration_ms = (time.time() - start_time) * 1000
+            duration_ms = (time.time() - start_time) * PerformanceConfig.SECONDS_TO_MS
             
             # Create recovery event
             event = RecoveryEvent(

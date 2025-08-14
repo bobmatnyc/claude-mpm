@@ -27,6 +27,11 @@ import logging
 import logging.handlers
 from dataclasses import dataclass, asdict
 from enum import Enum
+from claude_mpm.core.constants import (
+    SystemLimits,
+    TimeoutConfig,
+    PerformanceConfig
+)
 
 # Import configuration manager
 from ..core.config import Config
@@ -108,7 +113,7 @@ class AsyncSessionLogger:
         else:
             self.log_format = LogFormat.JSON
         
-        self.max_queue_size = max_queue_size if max_queue_size is not None else response_config.get('max_queue_size', 10000)
+        self.max_queue_size = max_queue_size if max_queue_size is not None else response_config.get('max_queue_size', SystemLimits.MAX_QUEUE_SIZE)
         
         # Handle async configuration with backward compatibility
         if enable_async is not None:
@@ -223,12 +228,12 @@ class AsyncSessionLogger:
         while not self._shutdown:
             try:
                 # Get entry with timeout to allow shutdown checks
-                entry = self._queue.get(timeout=0.1)
+                entry = self._queue.get(timeout=TimeoutConfig.QUEUE_GET_TIMEOUT)
                 
                 # Time the write operation
                 start_time = time.perf_counter()
                 self._write_entry(entry)
-                write_time = (time.perf_counter() - start_time) * 1000
+                write_time = (time.perf_counter() - start_time) * PerformanceConfig.SECONDS_TO_MS
                 
                 # Update statistics
                 write_times.append(write_time)

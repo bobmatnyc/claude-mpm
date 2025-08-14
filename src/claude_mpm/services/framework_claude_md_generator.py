@@ -19,6 +19,7 @@ from typing import Dict, Optional, Any, List, Tuple, Callable
 from dataclasses import dataclass, field
 
 from claude_mpm.core.config_paths import ConfigPaths
+from claude_mpm.core.constants import SystemLimits
 
 logger = logging.getLogger(__name__)
 
@@ -450,8 +451,8 @@ class FrameworkClaudeMdGenerator:
         suggestions = []
         
         # Check minimum length
-        if len(content) < 1000:
-            errors.append("Content seems too short")
+        if len(content) < SystemLimits.MIN_CONTENT_LENGTH:
+            errors.append(f"Content seems too short (minimum {SystemLimits.MIN_CONTENT_LENGTH} characters)")
         
         # Check for required sections
         required_sections = [

@@ -2,6 +2,14 @@
 Core Service Interfaces for Claude PM Framework
 ==============================================
 
+DEPRECATED: This file has been moved to services/core/interfaces.py
+
+This file is maintained for backward compatibility only.
+All new code should import from claude_mpm.services.core.interfaces
+
+Part of TSK-0046: Service Layer Architecture Reorganization
+
+Original description:
 This module defines the core service interfaces that establish contracts for 
 dependency injection, service discovery, and framework orchestration.
 
@@ -17,6 +25,10 @@ Phase 1 Refactoring: Interface extraction and dependency injection foundation
 These interfaces reduce cyclomatic complexity and establish clean separation of concerns.
 """
 
+# Re-export everything from the new location for backward compatibility
+from claude_mpm.services.core.interfaces import *
+
+# Keep original imports to prevent any parsing issues
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Set, Tuple, Union, TypeVar, Generic
 from dataclasses import dataclass
@@ -505,6 +517,412 @@ class IEventBus(ABC):
         pass
 
 
+# Agent deployment interface
+class AgentDeploymentInterface(ABC):
+    """Interface for agent deployment operations.
+    
+    WHY: Agent deployment needs to be decoupled from concrete implementations
+    to enable different deployment strategies (local, remote, containerized).
+    This interface ensures consistency across different deployment backends.
+    
+    DESIGN DECISION: Methods return deployment status/results to enable
+    proper error handling and rollback operations when deployments fail.
+    """
+    
+    @abstractmethod
+    def deploy_agents(self, force: bool = False, include_all: bool = False) -> Dict[str, Any]:
+        """Deploy agents to target environment.
+        
+        Args:
+            force: Force deployment even if agents already exist
+            include_all: Include all agents, ignoring exclusion lists
+            
+        Returns:
+            Dictionary with deployment results and status
+        """
+        pass
+    
+    @abstractmethod
+    def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
+        """Validate agent configuration and structure.
+        
+        Args:
+            agent_path: Path to agent configuration file
+            
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        pass
+    
+    @abstractmethod
+    def clean_deployment(self, preserve_user_agents: bool = True) -> bool:
+        """Clean up deployed agents.
+        
+        Args:
+            preserve_user_agents: Whether to keep user-created agents
+            
+        Returns:
+            True if cleanup successful
+        """
+        pass
+    
+    @abstractmethod
+    def get_deployment_status(self) -> Dict[str, Any]:
+        """Get current deployment status and metrics.
+        
+        Returns:
+            Dictionary with deployment status information
+        """
+        pass
+
+
+# Memory service interface
+class MemoryServiceInterface(ABC):
+    """Interface for memory management operations.
+    
+    WHY: Memory management is crucial for agent learning and context retention.
+    This interface abstracts memory storage, retrieval, and optimization to
+    enable different backends (file-based, database, distributed cache).
+    
+    DESIGN DECISION: Memory operations return success/failure status to enable
+    proper error handling and fallback strategies when memory is unavailable.
+    """
+    
+    @abstractmethod
+    def load_memory(self, agent_id: str) -> Optional[str]:
+        """Load memory for a specific agent.
+        
+        Args:
+            agent_id: Identifier of the agent
+            
+        Returns:
+            Memory content as string or None if not found
+        """
+        pass
+    
+    @abstractmethod
+    def save_memory(self, agent_id: str, content: str) -> bool:
+        """Save memory for a specific agent.
+        
+        Args:
+            agent_id: Identifier of the agent
+            content: Memory content to save
+            
+        Returns:
+            True if save successful
+        """
+        pass
+    
+    @abstractmethod
+    def validate_memory_size(self, content: str) -> Tuple[bool, Optional[str]]:
+        """Validate memory content size and structure.
+        
+        Args:
+            content: Memory content to validate
+            
+        Returns:
+            Tuple of (is_valid, error_message)
+        """
+        pass
+    
+    @abstractmethod
+    def optimize_memory(self, agent_id: str) -> bool:
+        """Optimize memory by removing duplicates and consolidating entries.
+        
+        Args:
+            agent_id: Identifier of the agent
+            
+        Returns:
+            True if optimization successful
+        """
+        pass
+    
+    @abstractmethod
+    def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
+        """Get memory usage metrics.
+        
+        Args:
+            agent_id: Optional specific agent ID, or None for all
+            
+        Returns:
+            Dictionary with memory metrics
+        """
+        pass
+
+
+# Hook service interface
+class HookServiceInterface(ABC):
+    """Interface for hook execution operations.
+    
+    WHY: Hooks provide extensibility points for the framework, allowing plugins
+    and extensions to modify behavior. This interface ensures consistent hook
+    registration, priority handling, and execution across different hook systems.
+    
+    DESIGN DECISION: Separate pre/post delegation methods for clarity and
+    performance - no runtime type checking needed during execution.
+    """
+    
+    @abstractmethod
+    def register_hook(self, hook: Any) -> bool:
+        """Register a hook with the service.
+        
+        Args:
+            hook: Hook instance to register
+            
+        Returns:
+            True if registration successful
+        """
+        pass
+    
+    @abstractmethod
+    def execute_pre_delegation_hooks(self, context: Any) -> Any:
+        """Execute all pre-delegation hooks.
+        
+        Args:
+            context: Hook execution context
+            
+        Returns:
+            Hook execution result
+        """
+        pass
+    
+    @abstractmethod
+    def execute_post_delegation_hooks(self, context: Any) -> Any:
+        """Execute all post-delegation hooks.
+        
+        Args:
+            context: Hook execution context
+            
+        Returns:
+            Hook execution result
+        """
+        pass
+    
+    @abstractmethod
+    def get_registered_hooks(self) -> Dict[str, List[Any]]:
+        """Get all registered hooks by type.
+        
+        Returns:
+            Dictionary mapping hook types to lists of hooks
+        """
+        pass
+    
+    @abstractmethod
+    def clear_hooks(self, hook_type: Optional[str] = None) -> None:
+        """Clear registered hooks.
+        
+        Args:
+            hook_type: Optional specific hook type to clear, or None for all
+        """
+        pass
+
+
+# WebSocket/SocketIO service interface
+class SocketIOServiceInterface(ABC):
+    """Interface for WebSocket communication.
+    
+    WHY: Real-time communication is essential for monitoring and interactive
+    features. This interface abstracts WebSocket/SocketIO implementation to
+    enable different transport mechanisms and fallback strategies.
+    
+    DESIGN DECISION: Async methods for non-blocking I/O operations, with
+    support for both broadcast and targeted messaging.
+    """
+    
+    @abstractmethod
+    async def start(self, host: str = "localhost", port: int = 8765) -> None:
+        """Start the WebSocket server.
+        
+        Args:
+            host: Host to bind to
+            port: Port to listen on
+        """
+        pass
+    
+    @abstractmethod
+    async def stop(self) -> None:
+        """Stop the WebSocket server."""
+        pass
+    
+    @abstractmethod
+    async def emit(self, event: str, data: Any, room: Optional[str] = None) -> None:
+        """Emit an event to connected clients.
+        
+        Args:
+            event: Event name
+            data: Event data
+            room: Optional room to target
+        """
+        pass
+    
+    @abstractmethod
+    async def broadcast(self, event: str, data: Any) -> None:
+        """Broadcast event to all connected clients.
+        
+        Args:
+            event: Event name
+            data: Event data
+        """
+        pass
+    
+    @abstractmethod
+    def get_connection_count(self) -> int:
+        """Get number of connected clients.
+        
+        Returns:
+            Number of active connections
+        """
+        pass
+    
+    @abstractmethod
+    def is_running(self) -> bool:
+        """Check if server is running.
+        
+        Returns:
+            True if server is active
+        """
+        pass
+
+
+# Project analyzer interface
+class ProjectAnalyzerInterface(ABC):
+    """Interface for project analysis operations.
+    
+    WHY: Understanding project structure and characteristics is essential for
+    context-aware agent behavior. This interface abstracts project analysis
+    to support different project types and structures.
+    
+    DESIGN DECISION: Returns structured data classes for type safety and
+    clear contracts between analysis and consumption components.
+    """
+    
+    @abstractmethod
+    def analyze_project(self, project_path: Optional[Path] = None) -> Any:
+        """Analyze project characteristics.
+        
+        Args:
+            project_path: Optional path to project, defaults to current
+            
+        Returns:
+            ProjectCharacteristics or similar structured data
+        """
+        pass
+    
+    @abstractmethod
+    def detect_technology_stack(self) -> List[str]:
+        """Detect technologies used in the project.
+        
+        Returns:
+            List of detected technologies
+        """
+        pass
+    
+    @abstractmethod
+    def analyze_code_patterns(self) -> Dict[str, Any]:
+        """Analyze code patterns and conventions.
+        
+        Returns:
+            Dictionary of pattern analysis results
+        """
+        pass
+    
+    @abstractmethod
+    def get_project_structure(self) -> Dict[str, Any]:
+        """Get project directory structure analysis.
+        
+        Returns:
+            Dictionary representing project structure
+        """
+        pass
+    
+    @abstractmethod
+    def identify_entry_points(self) -> List[Path]:
+        """Identify project entry points.
+        
+        Returns:
+            List of entry point paths
+        """
+        pass
+
+
+# Ticket manager interface
+class TicketManagerInterface(ABC):
+    """Interface for ticket management operations.
+    
+    WHY: Ticket management provides work tracking and organization. This
+    interface abstracts ticket operations to support different backend
+    systems (file-based, API-based, database).
+    
+    DESIGN DECISION: Uses string IDs for flexibility across different
+    ticketing systems, with structured data returns for consistency.
+    """
+    
+    @abstractmethod
+    def create_task(self, title: str, description: str, **kwargs) -> Optional[str]:
+        """Create a new task ticket.
+        
+        Args:
+            title: Task title
+            description: Task description
+            **kwargs: Additional task properties
+            
+        Returns:
+            Task ID if created successfully, None otherwise
+        """
+        pass
+    
+    @abstractmethod
+    def update_task(self, task_id: str, **updates) -> bool:
+        """Update an existing task.
+        
+        Args:
+            task_id: ID of task to update
+            **updates: Fields to update
+            
+        Returns:
+            True if update successful
+        """
+        pass
+    
+    @abstractmethod
+    def get_task(self, task_id: str) -> Optional[Dict[str, Any]]:
+        """Get task details.
+        
+        Args:
+            task_id: ID of task to retrieve
+            
+        Returns:
+            Task data dictionary or None if not found
+        """
+        pass
+    
+    @abstractmethod
+    def list_tasks(self, status: Optional[str] = None, **filters) -> List[Dict[str, Any]]:
+        """List tasks with optional filtering.
+        
+        Args:
+            status: Optional status filter
+            **filters: Additional filter criteria
+            
+        Returns:
+            List of task dictionaries
+        """
+        pass
+    
+    @abstractmethod
+    def close_task(self, task_id: str, resolution: Optional[str] = None) -> bool:
+        """Close a task.
+        
+        Args:
+            task_id: ID of task to close
+            resolution: Optional resolution description
+            
+        Returns:
+            True if close successful
+        """
+        pass
+
+
 # Interface registry for dependency injection discovery
 class InterfaceRegistry:
     """Registry of all core interfaces for dependency injection"""
@@ -521,6 +939,12 @@ class InterfaceRegistry:
         'error_handler': IErrorHandler,
         'performance_monitor': IPerformanceMonitor,
         'event_bus': IEventBus,
+        'agent_deployment': AgentDeploymentInterface,
+        'memory_service': MemoryServiceInterface,
+        'hook_service': HookServiceInterface,
+        'socketio_service': SocketIOServiceInterface,
+        'project_analyzer': ProjectAnalyzerInterface,
+        'ticket_manager': TicketManagerInterface,
     }
     
     @classmethod
