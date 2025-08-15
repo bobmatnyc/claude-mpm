@@ -240,8 +240,8 @@ Code changes detected in 1 file(s)
 The build tracking system integrates with:
 
 1. **ClaudeRunner** (`src/claude_mpm/core/claude_runner.py`)
-   - Reads BUILDVERSION in `_get_version()` method
-   - Formats as `vX.Y.Z-BBBBB`
+   - Reads BUILD_NUMBER in `_get_version()` method
+   - Formats as `vX.Y.Z-build.BBB` (v3.9.5+) or `X.Y.Z+build.BBB` (PEP 440)
 
 2. **Interactive Session** (`src/claude_mpm/core/interactive_session.py`)
    - Displays version with build in welcome message

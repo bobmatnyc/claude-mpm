@@ -661,11 +661,13 @@ jobs:
 
 ## Version Information Display
 
-Version is automatically shown in:
-- CLI: `claude-mpm --version`
-- Interactive mode startup banner
-- Log files (session metadata)
-- Python: `import claude_mpm; print(claude_mpm.__version__)`
+Version is automatically shown with build numbers (v3.9.5+):
+- CLI: `claude-mpm --version` → `claude-mpm v3.9.5-build.275`
+- Interactive mode: Startup banner → `Version v3.9.5-build.275`
+- Log files: Session metadata → `v3.9.5-build.275`
+- Python: `import claude_mpm; print(claude_mpm.__version__)` → `3.9.5+build.275`
+- Development context: PEP 440 compliant format for dependencies
+- Release context: Clean semantic version for PyPI
 
 ## Troubleshooting
 
@@ -673,6 +675,7 @@ Version is automatically shown in:
 - Ensure `git fetch --tags` to get all tags
 - Run `./scripts/manage_version.py check`
 - Verify VERSION file matches git tag
+- Check BUILD_NUMBER file is properly synchronized (v3.9.5+)
 
 ### Build Failures
 - Clear build directories: `rm -rf build/ dist/ *.egg-info`
@@ -683,6 +686,13 @@ Version is automatically shown in:
 - Verify PyPI/npm credentials
 - Check network connectivity
 - Ensure unique version number
+
+### Memory Issues (v3.9.5+)
+- **Large .claude.json files**: Can cause 2GB+ memory usage with --resume
+- **Solution**: Use `claude-mpm cleanup-memory` command
+- **Usage**: `claude-mpm cleanup-memory --days 30 --max-size 500KB`
+- **Safe operation**: Archives old conversations, keeps recent ones active
+- **Automatic cleanup**: Recommended to run periodically
 
 ## Security Considerations
 

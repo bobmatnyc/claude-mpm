@@ -208,6 +208,15 @@ def test_service_implements_interface():
 4. **Performance Metrics**: Document performance expectations and benchmarks
 
 ### Version Management
+
+Claude MPM uses a dual tracking system as of v3.9.5:
+- **VERSION file**: Contains semantic version only (e.g., "3.9.5")
+- **BUILD_NUMBER file**: Contains serial build number only (e.g., "275")
+- **Combined display**: Three formats for different contexts:
+  - Development: `3.9.5+build.275` (PEP 440 compliant)
+  - UI/Logging: `v3.9.5-build.275` (user-friendly)
+  - PyPI Release: `3.9.5` (clean semantic version)
+
 Use [Conventional Commits](https://www.conventionalcommits.org/) for automatic versioning:
 - `feat:` for new features (minor version bump)
 - `fix:` for bug fixes (patch version bump)
@@ -215,6 +224,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) for automatic v
 - `perf:` for performance improvements
 - `refactor:` for code refactoring
 - `docs:` for documentation updates
+
+Build numbers increment automatically with every substantial code change via git hooks.
 
 ## Deployment Process
 
@@ -247,6 +258,19 @@ The service layer architecture refactoring delivered:
 - **Extensibility**: Plugin architecture through interfaces and hooks
 - **Modularity**: Clear service boundaries enable independent development
 - **Performance**: Intelligent caching and resource optimization foundations
+
+## v3.9.5 Updates
+
+### Version Tracking System Enhancement
+- **BUILD_NUMBER file**: Replaces BUILDVERSION for cleaner naming
+- **Dual tracking**: VERSION (semantic) + BUILD_NUMBER (serial)
+- **Three display formats**: Development, UI/Logging, and PyPI Release
+- **Automatic incrementing**: Git hooks increment build numbers for code changes
+
+### New Features
+- **cleanup-memory command**: New CLI command to manage Claude conversation history
+- **Memory management**: Addresses 2GB+ memory usage from large .claude.json files
+- **Archive system**: Safely archive old conversations while keeping recent ones active
 
 ## Important Notes
 
