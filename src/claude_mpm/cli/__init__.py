@@ -25,7 +25,8 @@ from .commands import (
     manage_memory,
     manage_monitor,
     manage_config,
-    aggregate_command
+    aggregate_command,
+    cleanup_memory
 )
 from claude_mpm.config.paths import paths
 
@@ -185,6 +186,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.MONITOR.value: manage_monitor,
         CLICommands.CONFIG.value: manage_config,
         CLICommands.AGGREGATE.value: aggregate_command,
+        CLICommands.CLEANUP.value: cleanup_memory,
     }
     
     # Execute command if found

@@ -252,6 +252,11 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
         const="last",
         help="Resume a session (last session if no ID specified, or specific session ID)"
     )
+    run_group.add_argument(
+        "--force",
+        action="store_true",
+        help="Force operations even with warnings (e.g., large .claude.json file)"
+    )
     
     # Dependency checking options (for backward compatibility at top level)
     dep_group_top = parser.add_argument_group('dependency options (when no command specified)')
@@ -969,6 +974,10 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     # Import and add aggregate command parser
     from .commands.aggregate import add_aggregate_parser
     add_aggregate_parser(subparsers)
+    
+    # Import and add cleanup command parser
+    from .commands.cleanup import add_cleanup_parser
+    add_cleanup_parser(subparsers)
     
     return parser
 

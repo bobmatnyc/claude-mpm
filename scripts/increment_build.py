@@ -9,6 +9,13 @@ DESIGN DECISION: Uses git diff to detect code changes and only increments
 the build number when relevant files are modified. This prevents build
 number inflation from documentation or configuration changes.
 
+BUILD NUMBER FORMAT:
+    - Stored as a simple integer in BUILD_NUMBER file
+    - Combined with VERSION for display:
+      * Development: "3.9.5+build.275" (PEP 440)
+      * UI/Logging: "v3.9.5-build.275"
+      * PyPI Release: "3.9.5" (clean)
+
 USAGE:
     python scripts/increment_build.py [--check-only] [--force]
     
@@ -35,10 +42,10 @@ def get_project_root() -> Path:
 
 
 def get_current_build_number(build_file: Path) -> int:
-    """Read the current build number from BUILDVERSION file.
+    """Read the current build number from BUILD_NUMBER file.
     
     Args:
-        build_file: Path to the BUILDVERSION file
+        build_file: Path to the BUILD_NUMBER file
         
     Returns:
         Current build number, or 0 if file doesn't exist
@@ -55,10 +62,10 @@ def get_current_build_number(build_file: Path) -> int:
 
 
 def write_build_number(build_file: Path, build_number: int) -> None:
-    """Write the build number to BUILDVERSION file.
+    """Write the build number to BUILD_NUMBER file.
     
     Args:
-        build_file: Path to the BUILDVERSION file
+        build_file: Path to the BUILD_NUMBER file
         build_number: Build number to write
     """
     try:
@@ -125,8 +132,8 @@ def has_code_changes(files: List[str]) -> Tuple[bool, List[str]]:
     code_files = []
     
     for file in files:
-        # Skip if it's the BUILDVERSION file itself
-        if file == 'BUILDVERSION':
+        # Skip if it's the BUILD_NUMBER file itself
+        if file == 'BUILD_NUMBER':
             continue
             
         # Check for code files
@@ -181,7 +188,7 @@ def main():
     
     # Get project root and build file path
     project_root = get_project_root()
-    build_file = project_root / 'BUILDVERSION'
+    build_file = project_root / 'BUILD_NUMBER'
     
     # Get current build number
     current_build = get_current_build_number(build_file)
