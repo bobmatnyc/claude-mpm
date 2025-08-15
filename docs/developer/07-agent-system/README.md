@@ -9,6 +9,7 @@ Documentation for the Claude MPM agent system, covering development, deployment,
 ## Documentation
 
 - **[Agent Development Guide](./AGENT_DEVELOPMENT.md)** - Complete guide for creating and deploying agents
+- **[Research Agent Improvements](./research-agent-improvements.md)** - v4.0.0 critical search failure fixes and best practices
 - **[Agent Formats](./formats.md)** - Supported file formats and conversion
 - **[Frontmatter Guide](./frontmatter.md)** - YAML frontmatter configuration
 - **[Compatibility](./compatibility.md)** - Version compatibility and migration
