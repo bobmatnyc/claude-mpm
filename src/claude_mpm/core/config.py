@@ -281,6 +281,21 @@ class Config:
             # Task and issue tracking
             "enable_persistent_tracking": True,
             "fallback_tracking_method": "logging",  # Options: "logging", "file", "disabled"
+            # Memory management configuration
+            "memory_management": {
+                "enabled": True,
+                "claude_json_warning_threshold_kb": 500,  # Warn at 500KB
+                "claude_json_critical_threshold_kb": 1024,  # Critical at 1MB
+                "auto_archive_enabled": False,  # Don't auto-archive by default
+                "archive_retention_days": 90,  # Keep archives for 90 days
+                "session_retention_hours": 24,  # Keep active sessions for 24 hours
+                "conversation_retention_days": 30,  # Keep conversations for 30 days
+                "monitor_memory_usage": True,  # Monitor memory usage
+                "memory_usage_log_interval": 300,  # Log memory usage every 5 minutes
+                "max_memory_usage_mb": 2048,  # Warn if memory usage exceeds 2GB
+                "cleanup_on_startup": False,  # Don't auto-cleanup on startup
+                "compress_archives": True  # Compress archived files
+            },
             # Evaluation system - Phase 2 Mirascope integration
             "enable_evaluation": True,
             "evaluation_storage_path": str(ConfigPaths.get_user_config_dir() / "training"),

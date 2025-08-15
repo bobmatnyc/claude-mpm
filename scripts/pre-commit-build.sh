@@ -56,10 +56,10 @@ if python3 "$INCREMENT_SCRIPT" --check-only --staged-only; then
     echo "Code changes detected, incrementing build number..."
     python3 "$INCREMENT_SCRIPT" --staged-only
     
-    # Add the BUILDVERSION file to the commit if it was updated
-    if [ -f "BUILDVERSION" ]; then
-        git add BUILDVERSION
-        echo "BUILDVERSION file added to commit"
+    # Add the BUILD_NUMBER file to the commit if it was updated
+    if [ -f "BUILD_NUMBER" ]; then
+        git add BUILD_NUMBER
+        echo "BUILD_NUMBER file added to commit"
     fi
 else
     # No code changes, no need to increment

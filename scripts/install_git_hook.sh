@@ -92,7 +92,7 @@ install_hook() {
     echo "The build tracking system is now active!"
     echo "Build numbers will automatically increment when you commit code changes."
     echo
-    echo "Current build number: $(cat "$PROJECT_ROOT/BUILDVERSION" 2>/dev/null || echo "1")"
+    echo "Current build number: $(cat "$PROJECT_ROOT/BUILD_NUMBER" 2>/dev/null || echo "1")"
     echo
     echo "To test the hook manually:"
     echo "  python3 scripts/increment_build.py --check-only"

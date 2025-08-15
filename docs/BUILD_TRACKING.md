@@ -6,8 +6,8 @@ The claude-mpm build tracking system automatically increments build numbers for 
 
 ## Components
 
-### 1. BUILDVERSION File
-- **Location**: `/BUILDVERSION` (project root)
+### 1. BUILD_NUMBER File
+- **Location**: `/BUILD_NUMBER` (project root)
 - **Format**: Plain text file containing a single integer
 - **Purpose**: Stores the current build number
 - **Persistence**: Never resets, increments forever
@@ -27,7 +27,7 @@ The claude-mpm build tracking system automatically increments build numbers for 
 - **Behavior**: 
   - Checks staged files for code changes
   - Increments build number if code changed
-  - Adds BUILDVERSION to the commit
+  - Adds BUILD_NUMBER to the commit
 
 ### 4. Installation Script
 - **Location**: `/scripts/install_git_hook.sh`
