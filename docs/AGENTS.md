@@ -12,6 +12,7 @@ This document serves as the main index for agent documentation. For detailed inf
 - **[Agent Formats](developer/agents/formats.md)** - Comprehensive format documentation (JSON, .claude, .claude-mpm)
 - **[Agent Schema](developer/agents/schema.md)** - Schema documentation covering v1.1.0 and v1.2.0 specifications
 - **[Agent Creation Guide](developer/agents/creation-guide.md)** - Step-by-step guide with practical examples and best practices
+- **[Research Agent Improvements](developer/07-agent-system/research-agent-improvements.md)** - v4.0.0 critical search failure fixes and quality improvements
 
 ### Quick Reference
 
