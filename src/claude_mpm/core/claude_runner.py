@@ -1160,6 +1160,12 @@ Use these agents to delegate specialized work via the Task tool.
             version = __version__
             method_used = "package_import"
             self.logger.debug(f"Version obtained via package import: {version}")
+            # If version already includes build number (PEP 440 format), extract it
+            if '+build.' in version:
+                parts = version.split('+build.')
+                version = parts[0]  # Base version without build
+                build_number = int(parts[1]) if len(parts) > 1 else None
+                self.logger.debug(f"Extracted base version: {version}, build: {build_number}")
         except ImportError as e:
             self.logger.debug(f"Package import failed: {e}")
         except Exception as e:
@@ -1192,19 +1198,20 @@ Use these agents to delegate specialized work via the Task tool.
             except Exception as e:
                 self.logger.warning(f"Failed to read VERSION file: {e}")
         
-        # Try to read build number
-        try:
-            build_file = paths.project_root / "BUILDVERSION"
-            if build_file.exists():
-                build_content = build_file.read_text().strip()
-                build_number = int(build_content)
-                self.logger.debug(f"Build number obtained: {build_number}")
-        except (ValueError, IOError) as e:
-            self.logger.debug(f"Could not read BUILDVERSION: {e}")
-            build_number = None
-        except Exception as e:
-            self.logger.debug(f"Unexpected error reading BUILDVERSION: {e}")
-            build_number = None
+        # Try to read build number (only if not already obtained from version string)
+        if build_number is None:
+            try:
+                build_file = paths.project_root / "BUILD_NUMBER"
+                if build_file.exists():
+                    build_content = build_file.read_text().strip()
+                    build_number = int(build_content)
+                    self.logger.debug(f"Build number obtained from file: {build_number}")
+            except (ValueError, IOError) as e:
+                self.logger.debug(f"Could not read BUILD_NUMBER: {e}")
+                build_number = None
+            except Exception as e:
+                self.logger.debug(f"Unexpected error reading BUILD_NUMBER: {e}")
+                build_number = None
         
         # Log final result
         if version == "0.0.0":
@@ -1215,8 +1222,14 @@ Use these agents to delegate specialized work via the Task tool.
             self.logger.debug(f"Final version: {version} (method: {method_used})")
         
         # Format version with build number if available
+        # For development: Use PEP 440 format (e.g., "3.9.5+build.275")
+        # For UI/logging: Use dash format (e.g., "v3.9.5-build.275")
+        # For PyPI releases: Use clean version (e.g., "3.9.5")
+        
+        # Determine formatting context (default to UI format for claude_runner)
         if build_number is not None:
-            return f"v{version}-{build_number:05d}"
+            # UI/logging format with 'v' prefix and dash separator
+            return f"v{version}-build.{build_number}"
         else:
             return f"v{version}"
     

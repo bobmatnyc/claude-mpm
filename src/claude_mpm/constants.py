@@ -30,6 +30,7 @@ class CLICommands(str, Enum):
     MONITOR = "monitor"
     CONFIG = "config"
     AGGREGATE = "aggregate"
+    CLEANUP = "cleanup-memory"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""

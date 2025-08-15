@@ -5,10 +5,13 @@ The claude-mpm project uses an automatic build tracking system that assigns a un
 ## Overview
 
 - **Build Number**: A monotonically increasing integer that increments with each code change
-- **Version Format**: `vX.Y.Z-BBBBB` (e.g., `v3.9.0-00001`)
-  - `X.Y.Z`: Semantic version from VERSION file
-  - `BBBBB`: 5-digit zero-padded build number
-- **Storage**: Build number is stored in `BUILD_VERSION` file at project root
+- **Version Formats**:
+  - **Development**: `3.9.5+build.275` (PEP 440 compliant)
+  - **UI/Logging**: `v3.9.5-build.275` (human-readable)
+  - **PyPI Release**: `3.9.5` (clean semantic version)
+- **Storage**: 
+  - Semantic version in `VERSION` file
+  - Build number in `BUILD_NUMBER` file
 
 ## Installation
 
@@ -32,9 +35,9 @@ If you prefer to set up manually:
    chmod +x .git/hooks/pre-commit
    ```
 
-2. Verify the BUILD_VERSION file exists:
+2. Verify the BUILD_NUMBER file exists:
    ```bash
-   cat BUILD_VERSION  # Should show current build number
+   cat BUILD_NUMBER  # Should show current build number
    ```
 
 ## How It Works

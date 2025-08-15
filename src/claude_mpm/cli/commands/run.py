@@ -182,6 +182,9 @@ def run_session(args):
     # Perform startup configuration check
     _check_configuration_health(logger)
     
+    # Check for memory usage issues with .claude.json
+    _check_claude_json_memory(args, logger)
+    
     try:
         from ...core.claude_runner import ClaudeRunner, create_simple_context
         from ...core.session_manager import SessionManager
@@ -804,6 +807,89 @@ def open_in_browser_tab(url, logger):
         logger.warning(f"Browser opening failed: {e}")
         # Final fallback
         webbrowser.open(url)
+
+
+def _check_claude_json_memory(args, logger):
+    """Check .claude.json file size and warn about memory issues.
+    
+    WHY: Large .claude.json files (>500KB) cause significant memory issues when
+    using --resume. Claude Desktop loads the entire conversation history into
+    memory, leading to 2GB+ memory consumption.
+    
+    DESIGN DECISIONS:
+    - Warn at 500KB (conservative threshold)
+    - Suggest cleanup command for remediation
+    - Allow bypass with --force flag
+    - Only check when using --resume
+    
+    Args:
+        args: Parsed command line arguments
+        logger: Logger instance for output
+    """
+    # Only check if using --resume
+    if not hasattr(args, 'resume') or not args.resume:
+        return
+    
+    claude_json_path = Path.home() / ".claude.json"
+    
+    # Check if file exists
+    if not claude_json_path.exists():
+        logger.debug("No .claude.json file found")
+        return
+    
+    # Check file size
+    file_size = claude_json_path.stat().st_size
+    
+    # Format size for display
+    def format_size(size_bytes):
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size_bytes < 1024.0:
+                return f"{size_bytes:.1f}{unit}"
+            size_bytes /= 1024.0
+        return f"{size_bytes:.1f}TB"
+    
+    # Get thresholds from configuration
+    try:
+        from ...core.config import Config
+        config = Config()
+        memory_config = config.get('memory_management', {})
+        warning_threshold = memory_config.get('claude_json_warning_threshold_kb', 500) * 1024
+        critical_threshold = memory_config.get('claude_json_critical_threshold_kb', 1024) * 1024
+    except Exception as e:
+        logger.debug(f"Could not load memory configuration: {e}")
+        # Fall back to defaults
+        warning_threshold = 500 * 1024  # 500KB
+        critical_threshold = 1024 * 1024  # 1MB
+    
+    if file_size > critical_threshold:
+        print(f"\n⚠️  CRITICAL: Large .claude.json file detected ({format_size(file_size)})")
+        print(f"   This WILL cause memory issues when using --resume")
+        print(f"   Claude Desktop may consume 2GB+ of memory\n")
+        
+        if not getattr(args, 'force', False):
+            print("   Recommended actions:")
+            print("   1. Run 'claude-mpm cleanup-memory' to archive old conversations")
+            print("   2. Use --force to bypass this warning (not recommended)")
+            print("\n   Would you like to continue anyway? [y/N]: ", end="")
+            
+            try:
+                response = input().strip().lower()
+                if response != 'y':
+                    print("\n✅ Session cancelled. Run 'claude-mpm cleanup-memory' to fix this issue.")
+                    import sys
+                    sys.exit(0)
+            except (EOFError, KeyboardInterrupt):
+                print("\n✅ Session cancelled.")
+                import sys
+                sys.exit(0)
+    
+    elif file_size > warning_threshold:
+        print(f"\n⚠️  Warning: .claude.json file is getting large ({format_size(file_size)})")
+        print("   This may cause memory issues when using --resume")
+        print("   💡 Consider running 'claude-mpm cleanup-memory' to archive old conversations\n")
+        # Just warn, don't block execution
+    
+    logger.info(f".claude.json size: {format_size(file_size)}")
 
 
 def _check_configuration_health(logger):

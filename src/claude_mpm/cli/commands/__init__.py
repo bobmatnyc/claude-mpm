@@ -13,6 +13,7 @@ from .memory import manage_memory
 from .monitor import manage_monitor
 from .config import manage_config
 from .aggregate import aggregate_command
+from .cleanup import cleanup_memory
 
 __all__ = [
     'run_session',
@@ -23,5 +24,6 @@ __all__ = [
     'manage_memory',
     'manage_monitor',
     'manage_config',
-    'aggregate_command'
+    'aggregate_command',
+    'cleanup_memory'
 ]

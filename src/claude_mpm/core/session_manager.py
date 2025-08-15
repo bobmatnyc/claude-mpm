@@ -1,9 +1,11 @@
 """Session ID management for Claude subprocess optimization."""
 
 import uuid
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from datetime import datetime, timedelta
 import json
+import shutil
+import gzip
 from pathlib import Path
 
 from ..core.logger import get_logger
@@ -95,11 +97,15 @@ class SessionManager:
             self.active_sessions[session_id]["last_used"] = datetime.now().isoformat()
             self._save_sessions()
     
-    def cleanup_old_sessions(self, max_age_hours: int = 24):
+    def cleanup_old_sessions(self, max_age_hours: int = 24, archive: bool = True):
         """Remove sessions older than max_age_hours.
+        
+        WHY: We archive old sessions instead of just deleting them to preserve
+        conversation history while reducing active memory usage.
         
         Args:
             max_age_hours: Maximum age in hours
+            archive: Whether to archive sessions before removing
         """
         now = datetime.now()
         max_age = timedelta(hours=max_age_hours)
@@ -109,6 +115,10 @@ class SessionManager:
             created = datetime.fromisoformat(session_data["created_at"])
             if now - created > max_age:
                 expired.append(session_id)
+        
+        # Archive sessions if requested
+        if archive and expired:
+            self._archive_sessions([self.active_sessions[sid] for sid in expired])
         
         for session_id in expired:
             del self.active_sessions[session_id]
@@ -180,11 +190,105 @@ class SessionManager:
                 with open(session_file, 'r') as f:
                     self.active_sessions = json.load(f)
                     
-                # Clean up old sessions on load
-                self.cleanup_old_sessions()
+                # Clean up old sessions on load (archive by default)
+                self.cleanup_old_sessions(archive=True)
+                
+                # Also check and clean .claude.json if needed
+                self._check_claude_json_size()
             except Exception as e:
                 logger.error(f"Failed to load sessions: {e}")
                 self.active_sessions = {}
+    
+    def _archive_sessions(self, sessions: List[Dict[str, Any]]):
+        """Archive sessions to compressed files.
+        
+        WHY: Archiving preserves conversation history while reducing the size
+        of active memory files like .claude.json.
+        
+        Args:
+            sessions: List of session data dictionaries to archive
+        """
+        if not sessions:
+            return
+        
+        archive_dir = self.session_dir.parent / "archives" / "sessions"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create timestamped archive file
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        archive_name = f"sessions_archive_{timestamp}.json.gz"
+        archive_path = archive_dir / archive_name
+        
+        try:
+            # Compress and save sessions
+            with gzip.open(archive_path, 'wt', encoding='utf-8') as f:
+                json.dump(sessions, f, indent=2)
+            
+            logger.info(f"Archived {len(sessions)} sessions to {archive_path}")
+        except Exception as e:
+            logger.error(f"Failed to archive sessions: {e}")
+    
+    def _check_claude_json_size(self):
+        """Check .claude.json size and suggest cleanup if needed.
+        
+        WHY: Large .claude.json files cause memory issues. This provides
+        proactive monitoring and suggestions for cleanup.
+        """
+        claude_json_path = Path.home() / ".claude.json"
+        
+        if not claude_json_path.exists():
+            return
+        
+        file_size = claude_json_path.stat().st_size
+        warning_threshold = 500 * 1024  # 500KB
+        
+        if file_size > warning_threshold:
+            size_mb = file_size / (1024 * 1024)
+            logger.warning(f".claude.json is {size_mb:.1f}MB - consider running 'claude-mpm cleanup-memory'")
+    
+    def archive_claude_json(self, keep_days: int = 30) -> bool:
+        """Archive old conversations from .claude.json.
+        
+        WHY: This is called by the cleanup command to reduce memory usage
+        while preserving conversation history.
+        
+        Args:
+            keep_days: Number of days of history to keep
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        claude_json_path = Path.home() / ".claude.json"
+        
+        if not claude_json_path.exists():
+            logger.info("No .claude.json file to archive")
+            return True
+        
+        try:
+            # Create backup first
+            archive_dir = Path.home() / ".claude-mpm" / "archives"
+            archive_dir.mkdir(parents=True, exist_ok=True)
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_name = f"claude_json_backup_{timestamp}.json.gz"
+            backup_path = archive_dir / backup_name
+            
+            # Compress and backup current file
+            with open(claude_json_path, 'rb') as f_in:
+                with gzip.open(backup_path, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            
+            logger.info(f"Created backup at {backup_path}")
+            
+            # For now, we don't modify the original .claude.json
+            # as we don't know its exact structure.
+            # The cleanup command handles this.
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to archive .claude.json: {e}")
+            return False
 
 
 class OrchestrationSession:
