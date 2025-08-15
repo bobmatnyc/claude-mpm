@@ -3,6 +3,9 @@
 .ai-trackdown/logs/
 *.tmp
 
+# AI Code Review docs
+ai-code-review-docs/
+
 # Virtual environments (CRITICAL)
 venv/
 env/
@@ -35,6 +38,9 @@ build/
 # Test logs
 test_logs/
 tests/test_logs/
+
+# Temporary test files (root level)
+test_research_agent.py
 
 # Agent backups
 src/claude_mpm/agents/templates/backup/
