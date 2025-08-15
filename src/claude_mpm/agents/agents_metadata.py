@@ -191,6 +191,29 @@ DATA_ENGINEER_CONFIG = {
     }
 }
 
+# Project Organizer Agent Metadata
+PROJECT_ORGANIZER_CONFIG = {
+    "name": "project_organizer_agent",
+    "version": "1.0.0",
+    "type": "core_agent",
+    "capabilities": [
+        "pattern_detection",
+        "file_organization",
+        "structure_validation",
+        "convention_enforcement",
+        "batch_reorganization",
+        "framework_recognition",
+        "documentation_maintenance"
+    ],
+    "primary_interface": "organization_tools",
+    "performance_targets": {
+        "structure_analysis": "2m",
+        "file_placement": "10s",
+        "validation_scan": "5m",
+        "batch_reorganization": "15m"
+    }
+}
+
 # Aggregate all configs for easy access
 ALL_AGENT_CONFIGS = {
     "documentation": DOCUMENTATION_CONFIG,
@@ -200,5 +223,6 @@ ALL_AGENT_CONFIGS = {
     "ops": OPS_CONFIG,
     "security": SECURITY_CONFIG,
     "engineer": ENGINEER_CONFIG,
-    "data_engineer": DATA_ENGINEER_CONFIG
+    "data_engineer": DATA_ENGINEER_CONFIG,
+    "project_organizer": PROJECT_ORGANIZER_CONFIG
 }
