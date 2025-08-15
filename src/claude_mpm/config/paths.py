@@ -33,6 +33,7 @@ class ClaudeMPMPaths:
     
     _instance: Optional['ClaudeMPMPaths'] = None
     _project_root: Optional[Path] = None
+    _is_installed: bool = False
     
     def __new__(cls) -> 'ClaudeMPMPaths':
         """Singleton pattern to ensure single instance."""
@@ -43,6 +44,7 @@ class ClaudeMPMPaths:
     def __init__(self):
         """Initialize paths if not already done."""
         if self._project_root is None:
+            self._is_installed = False
             self._detect_project_root()
     
     def _detect_project_root(self) -> None:
@@ -53,16 +55,29 @@ class ClaudeMPMPaths:
         1. Look for definitive project markers (pyproject.toml, setup.py)
         2. Look for combination of markers to ensure we're at the right level
         3. Walk up from current file location
+        4. Handle both development and installed environments
         """
         # Start from this file's location
         current = Path(__file__).resolve()
         
-        # Walk up the directory tree
+        # Check if we're in an installed environment (site-packages)
+        # In pip/pipx installs, the package is directly in site-packages
+        if 'site-packages' in str(current) or 'dist-packages' in str(current):
+            # We're in an installed environment
+            # The claude_mpm package directory itself is the "root" for resources
+            import claude_mpm
+            self._project_root = Path(claude_mpm.__file__).parent
+            self._is_installed = True
+            logger.debug(f"Installed environment detected, using package dir: {self._project_root}")
+            return
+        
+        # We're in a development environment, look for project markers
         for parent in current.parents:
             # Check for definitive project root indicators
             # Prioritize pyproject.toml and setup.py as they're only at root
             if (parent / 'pyproject.toml').exists() or (parent / 'setup.py').exists():
                 self._project_root = parent
+                self._is_installed = False
                 logger.debug(f"Project root detected at: {parent} (found pyproject.toml or setup.py)")
                 return
             
@@ -70,6 +85,7 @@ class ClaudeMPMPaths:
             # This combination is more likely to be the real project root
             if (parent / '.git').exists() and (parent / 'VERSION').exists():
                 self._project_root = parent
+                self._is_installed = False
                 logger.debug(f"Project root detected at: {parent} (found .git and VERSION)")
                 return
         
@@ -77,12 +93,14 @@ class ClaudeMPMPaths:
         for parent in current.parents:
             if parent.name == 'claude-mpm':
                 self._project_root = parent
+                self._is_installed = False
                 logger.debug(f"Project root detected at: {parent} (by directory name)")
                 return
         
         # Last resort fallback: 3 levels up from this file
         # paths.py is in src/claude_mpm/config/
         self._project_root = current.parent.parent.parent
+        self._is_installed = False
         logger.warning(f"Project root fallback to: {self._project_root}")
     
     @property
@@ -95,16 +113,26 @@ class ClaudeMPMPaths:
     @property
     def src_dir(self) -> Path:
         """Get the src directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # In installed environment, there's no src directory
+            # Return the package directory itself
+            return self.project_root.parent
         return self.project_root / "src"
     
     @property
     def claude_mpm_dir(self) -> Path:
         """Get the main claude_mpm package directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # In installed environment, project_root IS the claude_mpm directory
+            return self.project_root
         return self.src_dir / "claude_mpm"
     
     @property
     def agents_dir(self) -> Path:
         """Get the agents directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # In installed environment, agents is directly under the package
+            return self.project_root / "agents"
         return self.claude_mpm_dir / "agents"
     
     @property
@@ -140,36 +168,58 @@ class ClaudeMPMPaths:
     @property
     def scripts_dir(self) -> Path:
         """Get the scripts directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # In installed environment, scripts might be in a different location or not exist
+            # Return a path that won't cause issues but indicates it's not available
+            return Path.home() / '.claude-mpm' / 'scripts'
         return self.project_root / "scripts"
     
     @property
     def tests_dir(self) -> Path:
         """Get the tests directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # Tests aren't distributed with installed packages
+            return Path.home() / '.claude-mpm' / 'tests'
         return self.project_root / "tests"
     
     @property
     def docs_dir(self) -> Path:
         """Get the documentation directory."""
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # Docs might be installed separately or not at all
+            return Path.home() / '.claude-mpm' / 'docs'
         return self.project_root / "docs"
     
     @property
     def logs_dir(self) -> Path:
         """Get the logs directory (creates if doesn't exist)."""
-        logs = self.project_root / "logs"
-        logs.mkdir(exist_ok=True)
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # Use user's home directory for logs in installed environment
+            logs = Path.home() / '.claude-mpm' / 'logs'
+        else:
+            logs = self.project_root / "logs"
+        logs.mkdir(parents=True, exist_ok=True)
         return logs
     
     @property
     def temp_dir(self) -> Path:
         """Get the temporary files directory (creates if doesn't exist)."""
-        temp = self.project_root / ".tmp"
-        temp.mkdir(exist_ok=True)
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # Use user's home directory for temp files in installed environment
+            temp = Path.home() / '.claude-mpm' / '.tmp'
+        else:
+            temp = self.project_root / ".tmp"
+        temp.mkdir(parents=True, exist_ok=True)
         return temp
     
     @property
     def claude_mpm_dir_hidden(self) -> Path:
         """Get the hidden .claude-mpm directory (creates if doesn't exist)."""
-        hidden = self.project_root / ".claude-mpm"
+        if hasattr(self, '_is_installed') and self._is_installed:
+            # Use current working directory in installed environment
+            hidden = Path.cwd() / ".claude-mpm"
+        else:
+            hidden = self.project_root / ".claude-mpm"
         hidden.mkdir(exist_ok=True)
         return hidden
     
