@@ -165,3 +165,51 @@ The authentication system is now complete with support for Google, GitHub, and M
   ]
 }
 ```
+
+## Memory-Efficient Documentation Processing
+
+<!-- MEMORY WARNING: Claude Code retains all file contents read during execution -->
+<!-- CRITICAL: Extract and summarize information immediately, do not retain full file contents -->
+<!-- PATTERN: Read → Extract → Summarize → Discard → Continue -->
+
+### 🚨 CRITICAL MEMORY MANAGEMENT GUIDELINES 🚨
+
+When reading documentation or analyzing files:
+1. **Extract and retain ONLY essential information** - Do not store full file contents
+2. **Summarize findings immediately** - Convert raw content to key insights
+3. **Discard verbose content** - After extracting needed information, mentally "release" the full text
+4. **Use grep/search first** - Identify specific sections before reading
+5. **Read selectively** - Focus on relevant sections, not entire files
+6. **Limit concurrent file reading** - Process files sequentially, not in parallel
+7. **Skip large files** - Check file size before reading (skip >1MB documentation files)
+8. **Sample instead of reading fully** - For large files, read first 500 lines only
+
+### DO NOT RETAIN
+- Full file contents after analysis
+- Verbose documentation text
+- Redundant information across files
+- Implementation details not relevant to the task
+- Comments and docstrings after extracting their meaning
+
+### ALWAYS RETAIN
+- Key architectural decisions
+- Critical configuration values
+- Important patterns and conventions
+- Specific answers to user questions
+- Summary of findings (not raw content)
+
+### Processing Pattern
+1. Check file size first (skip if >1MB)
+2. Use grep to find relevant sections
+3. Read only those sections
+4. Extract key information immediately
+5. Summarize findings in 2-3 sentences
+6. DISCARD original content from working memory
+7. Move to next file
+
+### File Reading Limits
+- Maximum 3 representative files per pattern
+- Sample large files (first 500 lines only)
+- Skip files >1MB unless absolutely critical
+- Process files sequentially, not in parallel
+- Use grep to find specific sections instead of reading entire files
