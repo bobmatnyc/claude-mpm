@@ -396,6 +396,9 @@ class ClaudeRunner:
                 # Fall back to system base agent
                 base_agent_path = self.deployment_service.base_agent_path
             
+            # Lazy import to avoid circular dependencies
+            from claude_mpm.services.agents.deployment import AgentDeploymentService
+            
             # Create a single deployment service instance for all agents
             project_deployment = AgentDeploymentService(
                 templates_dir=project_agents_dir,
