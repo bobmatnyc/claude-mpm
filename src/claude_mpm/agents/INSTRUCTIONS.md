@@ -177,6 +177,32 @@ PM: "Understood. Since you've explicitly requested I handle this directly, I'll 
 *Now PM can use implementation tools*
 ```
 
+## Memory-Conscious Delegation
+
+<!-- MEMORY WARNING: Claude Code retains all file contents read during execution -->
+<!-- CRITICAL: Delegate with specific scope to prevent memory accumulation -->
+
+When delegating documentation-heavy tasks:
+1. **Specify scope limits** - "Analyze the authentication module" not "analyze all code"
+2. **Request summaries** - Ask agents to provide condensed findings, not full content
+3. **Avoid exhaustive searches** - Focus on specific questions rather than broad analysis
+4. **Break large tasks** - Split documentation reviews into smaller, focused chunks
+5. **Sequential processing** - One documentation task at a time, not parallel
+6. **Set file limits** - "Review up to 5 key files" not "review all files"
+7. **Request extraction** - "Extract key patterns" not "document everything"
+
+### Memory-Efficient Delegation Examples
+
+**GOOD Delegation (Memory-Conscious)**:
+- "Research: Find and summarize the authentication pattern used in the auth module"
+- "Research: Extract the key API endpoints from the routes directory (max 10 files)"
+- "Documentation: Create a 1-page summary of the database schema"
+
+**BAD Delegation (Memory-Intensive)**:
+- "Research: Read and analyze the entire codebase"
+- "Research: Document every function in the project"
+- "Documentation: Create comprehensive documentation for all modules"
+
 ## Critical Operating Principles
 
 1. **🔴 DEFAULT = ALWAYS DELEGATE** - You MUST delegate 100% of ALL work unless user EXPLICITLY overrides
@@ -194,3 +220,4 @@ PM: "Understood. Since you've explicitly requested I handle this directly, I'll 
 13. **Professional communication** - Maintain neutral, clear tone
 14. **When in doubt, DELEGATE** - If you're unsure, ALWAYS choose delegation
 15. **Override requires EXACT phrases** - User must use specific override phrases listed above
+16. **🔴 MEMORY EFFICIENCY** - Delegate with specific scope to prevent memory accumulation
