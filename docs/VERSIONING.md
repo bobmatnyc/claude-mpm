@@ -15,10 +15,21 @@ Claude MPM implements a sophisticated version management system that ensures con
 ## Version Sources
 
 1. **Primary**: Git tags (managed by setuptools-scm) - Ultimate source of truth
-2. **Canonical**: `VERSION` file (kept in sync via pre-commit hook)
-3. **Runtime**: `src/claude_mpm/_version.py` (auto-generated)
-4. **Package**: `pyproject.toml` uses dynamic versioning
-5. **npm Distribution**: `package.json` (synchronized during releases)
+2. **Canonical**: `VERSION` file (semantic version only, e.g., "3.9.5")
+3. **Build Tracking**: `BUILD_NUMBER` file (serial build number, e.g., "275")
+4. **Runtime**: `src/claude_mpm/_version.py` (auto-generated)
+5. **Package**: `pyproject.toml` uses dynamic versioning
+6. **npm Distribution**: `package.json` (synchronized during releases)
+
+### Dual Tracking System (v3.9.5+)
+
+As of v3.9.5, Claude MPM implements a dual tracking system:
+- **VERSION**: Semantic version for releases (3.9.5)
+- **BUILD_NUMBER**: Serial build counter for every code change (275)
+- **Combined Display**: Three format variants:
+  - Development: `3.9.5+build.275` (PEP 440 compliant for Python packages)
+  - UI/Logging: `v3.9.5-build.275` (user-friendly display)
+  - PyPI Release: `3.9.5` (clean semantic version for releases)
 
 ## Version Management Script
 
@@ -27,6 +38,21 @@ Use `scripts/manage_version.py` for version operations:
 ### Check Current Version
 ```bash
 ./scripts/manage_version.py check
+```
+
+### Build Number Management
+```bash
+# Check current build number
+cat BUILD_NUMBER
+
+# Check if build increment is needed
+python scripts/increment_build.py --check-only
+
+# Force build increment
+python scripts/increment_build.py --force
+
+# Install git hook for automatic build increments
+./scripts/install_git_hook.sh
 ```
 
 ### Automatic Version Bump
@@ -196,11 +222,13 @@ python -c "from setuptools_scm import get_version; print(get_version())" > VERSI
 
 ## Version Display
 
-Version is shown in multiple places:
-- CLI: `claude-mpm --version`
-- Interactive mode: Startup banner
-- Logs: Session metadata
-- Package: `claude_mpm.__version__`
+Version is shown in multiple places with build numbers (v3.9.5+):
+- CLI: `claude-mpm --version` → `claude-mpm v3.9.5-build.275`
+- Interactive mode: Startup banner → `Version v3.9.5-build.275`
+- Logs: Session metadata → `v3.9.5-build.275`
+- Package: `claude_mpm.__version__` → `3.9.5+build.275` (PEP 440)
+- Development: `3.9.5+build.275` (for dependency resolution)
+- PyPI Release: `3.9.5` (clean version for public releases)
 
 ## Troubleshooting
 
@@ -219,12 +247,22 @@ Version is shown in multiple places:
 
 ### Different Versions in Different Places
 - Run `./scripts/manage_version.py check` to diagnose
-- Ensure pre-commit hook is enabled
-- Manually sync with VERSION file if needed
+- Ensure pre-commit hook is enabled for VERSION file
+- Ensure git hook is installed for BUILD_NUMBER: `./scripts/install_git_hook.sh`
+- Check both VERSION and BUILD_NUMBER files are current
+- Manually sync with files if needed
 
 ## Development Versions
 
-Between releases, versions include commit information:
+With the dual tracking system (v3.9.5+), development versions show:
+```
+3.9.5+build.275[.dirty]
+```
+- `3.9.5`: Current semantic version
+- `build.275`: Build number (increments with each code change)
+- `.dirty`: Uncommitted changes present
+
+Legacy format (pre-v3.9.5) included commit information:
 ```
 1.2.3.post4+g1234567[.dirty]
 ```
