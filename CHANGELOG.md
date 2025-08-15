@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.9.4] - 2025-08-15
 
+### Fixed
+- **Path Resolution**: Fix critical issue with pipx installations where templates directory could not be found
+  - Resolves missing templates directory error when installed via pipx
+  - Ensures proper path resolution for package resources in isolated environments
+  - Fixes agent deployment failures in pipx installations
+
 ## [3.9.3] - 2025-08-15
 
 ## [3.9.2] - 2025-08-15

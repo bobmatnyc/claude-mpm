@@ -1,0 +1,344 @@
+diff --git a/src/claude_mpm/hooks/claude_hooks/hook_handler.py b/src/claude_mpm/hooks/claude_hooks/hook_handler.py
+index 1234567..abcdefg 100644
+--- a/src/claude_mpm/hooks/claude_hooks/hook_handler.py
++++ b/src/claude_mpm/hooks/claude_hooks/hook_handler.py
+@@ -88,15 +88,130 @@ except ImportError:
+ # No fallback needed - we only use Socket.IO now
+ 
+ 
++class SocketIOConnectionPool:
++    """Connection pool for Socket.IO clients to prevent connection leaks.
++    
++    WHY: Reuses connections instead of creating new ones for each event,
++    preventing the accumulation of zombie connections over time.
++    """
++    
++    def __init__(self, max_connections=3):
++        self.max_connections = max_connections
++        self.connections = []
++        self.current_index = 0
++        self.last_cleanup = time.time()
++        
++    def get_connection(self, port):
++        """Get or create a connection to the specified port."""
++        # Clean up dead connections periodically
++        if time.time() - self.last_cleanup > 60:  # Every minute
++            self._cleanup_dead_connections()
++            self.last_cleanup = time.time()
++        
++        # Look for existing connection to this port
++        for conn in self.connections:
++            if conn.get('port') == port and conn.get('client'):
++                client = conn['client']
++                if self._is_connection_alive(client):
++                    return client
++                else:
++                    # Remove dead connection
++                    self.connections.remove(conn)
++        
++        # Create new connection if under limit
++        if len(self.connections) < self.max_connections:
++            client = self._create_connection(port)
++            if client:
++                self.connections.append({
++                    'port': port,
++                    'client': client,
++                    'created': time.time()
++                })
++                return client
++        
++        # Reuse oldest connection if at limit
++        if self.connections:
++            oldest = min(self.connections, key=lambda x: x['created'])
++            self._close_connection(oldest['client'])
++            oldest['client'] = self._create_connection(port)
++            oldest['port'] = port
++            oldest['created'] = time.time()
++            return oldest['client']
++        
++        return None
++    
++    def _create_connection(self, port):
++        """Create a new Socket.IO connection."""
++        if not SOCKETIO_AVAILABLE:
++            return None
++            
++        try:
++            client = socketio.Client(
++                reconnection=False,  # Disable auto-reconnect to prevent zombies
++                logger=False,
++                engineio_logger=False
++            )
++            client.connect(f'http://localhost:{port}', 
++                          wait=True, 
++                          wait_timeout=NetworkConfig.SOCKET_WAIT_TIMEOUT)
++            if client.connected:
++                return client
++        except Exception:
++            pass
++        return None
++    
++    def _is_connection_alive(self, client):
++        """Check if a connection is still alive."""
++        try:
++            return client and client.connected
++        except:
++            return False
++    
++    def _close_connection(self, client):
++        """Safely close a connection."""
++        try:
++            if client:
++                client.disconnect()
++        except:
++            pass
++    
++    def _cleanup_dead_connections(self):
++        """Remove dead connections from the pool."""
++        self.connections = [
++            conn for conn in self.connections 
++            if self._is_connection_alive(conn.get('client'))
++        ]
++    
++    def close_all(self):
++        """Close all connections in the pool."""
++        for conn in self.connections:
++            self._close_connection(conn.get('client'))
++        self.connections.clear()
++
++
++# Global singleton handler instance
++_global_handler = None
++_handler_lock = threading.Lock()
++
++
+ class ClaudeHookHandler:
+     """Optimized hook handler with direct Socket.IO client.
+     
+     WHY direct client approach:
+-    - Simple and reliable synchronous operation
+-    - No complex threading or async issues
+-    - Fast connection reuse when possible
++    - Uses singleton pattern to prevent multiple instances
++    - Connection pooling prevents connection leaks
++    - Automatic cleanup of old data prevents memory growth
+     - Graceful fallback when Socket.IO unavailable
+     """
+     
++    # Maximum sizes for tracking dictionaries
++    MAX_DELEGATION_TRACKING = 200
++    MAX_PROMPT_TRACKING = 100
++    MAX_CACHE_AGE_SECONDS = 300  # 5 minutes
++    CLEANUP_INTERVAL_EVENTS = 100  # Clean up every 100 events
++    
+     def __init__(self):
+         # Socket.IO client (persistent if possible)
+-        self.sio_client = None
+-        self.sio_connected = False
++        self.connection_pool = SocketIOConnectionPool(max_connections=3)
++        
++        # Track events for periodic cleanup
++        self.events_processed = 0
++        self.last_cleanup = time.time()
+         
+         # Agent delegation tracking
+         # Store recent Task delegations: session_id -> agent_type
+@@ -160,6 +275,36 @@ class ClaudeHookHandler:
+                     print(f"  - delegation_requests size after: {len(self.delegation_requests)}", file=sys.stderr)
+             
+             # Clean up old delegations (older than 5 minutes)
++            self._cleanup_old_entries()
++    
++    def _cleanup_old_entries(self):
++        """Clean up old entries to prevent memory growth."""
++        cutoff_time = datetime.now().timestamp() - self.MAX_CACHE_AGE_SECONDS
++        
++        # Clean up active_delegations
++        if len(self.active_delegations) > self.MAX_DELEGATION_TRACKING:
++            # Keep only the most recent entries
++            recent_sessions = set()
++            for key, _ in reversed(list(self.delegation_history)[-self.MAX_DELEGATION_TRACKING:]):
++                session_id = key.split(':')[0]
++                recent_sessions.add(session_id)
++            
++            keys_to_remove = [
++                k for k in self.active_delegations.keys() 
++                if k not in recent_sessions
++            ]
++            for key in keys_to_remove:
++                del self.active_delegations[key]
++        
++        # Clean up delegation_requests
++        if len(self.delegation_requests) > self.MAX_DELEGATION_TRACKING:
++            # Remove oldest entries
++            sorted_keys = sorted(self.delegation_requests.keys())
++            excess = len(self.delegation_requests) - self.MAX_DELEGATION_TRACKING
++            for key in sorted_keys[:excess]:
++                del self.delegation_requests[key]
++        
++        # Clean up pending_prompts (same logic)
++        if len(self.pending_prompts) > self.MAX_PROMPT_TRACKING:
+             cutoff_time = datetime.now().timestamp() - 300
+             keys_to_remove = []
+             for sid in list(self.active_delegations.keys()):
+@@ -455,90 +600,20 @@ class ClaudeHookHandler:
+             self._git_branch_cache_time[cache_key] = current_time
+             return 'Unknown'
+     
+-    def _get_socketio_client(self):
+-        """Get or create Socket.IO client with improved reliability.
+-        
+-        WHY improved approach:
+-        - Implements retry logic with exponential backoff
+-        - Properly tests connection before returning
+-        - Ensures connection persists across events
+-        - Better error handling and recovery
+-        """
+-        if not SOCKETIO_AVAILABLE:
+-            return None
+-            
+-        # Check if we have a connected client
+-        if self.sio_client and self.sio_connected:
+-            try:
+-                # Test if still connected
+-                if self.sio_client.connected:
+-                    return self.sio_client
+-                else:
+-                    # Connection lost, clear it
+-                    if DEBUG:
+-                        print("Hook handler: Socket.IO connection lost, reconnecting...", file=sys.stderr)
+-                    self.sio_connected = False
+-            except:
+-                self.sio_connected = False
+-        
+-        # Need to create or reconnect client
+-        port = int(os.environ.get('CLAUDE_MPM_SOCKETIO_PORT', '8765'))
+-        max_retries = RetryConfig.MAX_RETRIES
+-        retry_delay = RetryConfig.INITIAL_RETRY_DELAY
+-        
+-        for attempt in range(max_retries):
+-            try:
+-                # Clean up old client if exists
+-                if self.sio_client and not self.sio_connected:
+-                    try:
+-                        self.sio_client.disconnect()
+-                    except:
+-                        pass
+-                    self.sio_client = None
+-                
+-                # Create new client
+-                self.sio_client = socketio.Client(
+-                    reconnection=True,  # Enable auto-reconnection
+-                    reconnection_attempts=3,
+-                    reconnection_delay=NetworkConfig.RECONNECTION_DELAY,
+-                    reconnection_delay_max=2,
+-                    logger=False,
+-                    engineio_logger=False
+-                )
+-                
+-                # Try to connect with proper wait
+-                self.sio_client.connect(
+-                    f'http://localhost:{port}', 
+-                    wait=True, 
+-                    wait_timeout=NetworkConfig.SOCKET_WAIT_TIMEOUT
+-                )
+-                
+-                # Verify connection
+-                if self.sio_client.connected:
+-                    self.sio_connected = True
+-                    if DEBUG:
+-                        print(f"Hook handler: Successfully connected to Socket.IO server on port {port} (attempt {attempt + 1})", file=sys.stderr)
+-                    return self.sio_client
+-                    
+-            except Exception as e:
+-                if DEBUG and attempt == max_retries - 1:
+-                    print(f"Hook handler: Failed to connect to Socket.IO after {max_retries} attempts: {e}", file=sys.stderr)
+-                elif DEBUG:
+-                    print(f"Hook handler: Connection attempt {attempt + 1} failed, retrying...", file=sys.stderr)
+-                
+-                # Exponential backoff with async delay
+-                if attempt < max_retries - 1:
+-                    # Use asyncio.sleep if in async context, otherwise fall back to time.sleep
+-                    try:
+-                        loop = asyncio.get_event_loop()
+-                        if loop.is_running():
+-                            # We're in an async context, use async sleep
+-                            asyncio.create_task(asyncio.sleep(retry_delay))
+-                        else:
+-                            # Sync context, use regular sleep
+-                            time.sleep(retry_delay)
+-                    except:
+-                        # Fallback to sync sleep if asyncio not available
+-                        time.sleep(retry_delay)
+-                    retry_delay *= 2  # Double the delay for next attempt
+-        
+-        # All attempts failed
+-        self.sio_client = None
+-        self.sio_connected = False
+-        return None
+     
+     def handle(self):
+         """Process hook event with minimal overhead and zero blocking delays.
+@@ -559,6 +634,13 @@ class ClaudeHookHandler:
+             self._continue_execution()
+             return
+         
++        # Increment event counter and perform periodic cleanup
++        self.events_processed += 1
++        if self.events_processed % self.CLEANUP_INTERVAL_EVENTS == 0:
++            self._cleanup_old_entries()
++            if DEBUG:
++                print(f"🧹 Performed cleanup after {self.events_processed} events", file=sys.stderr)
++        
+         # Route event to appropriate handler
+         self._route_event(event)
+         
+@@ -645,11 +727,9 @@ class ClaudeHookHandler:
+         # Always try to emit Socket.IO events if available
+         # The daemon should be running when manager is active
+         
+-        # Get Socket.IO client
+-        client = self._get_socketio_client()
++        # Get Socket.IO client from pool
++        port = int(os.environ.get('CLAUDE_MPM_SOCKETIO_PORT', '8765'))
++        client = self.connection_pool.get_connection(port)
+         if not client:
+             if DEBUG:
+                 print(f"Hook handler: No Socket.IO client available for event: hook.{event}", file=sys.stderr)
+@@ -1668,17 +1748,28 @@ class ClaudeHookHandler:
+             # Don't fail the delegation result - memory is optional
+     
+     def __del__(self):
+-        """Cleanup Socket.IO client on handler destruction."""
+-        if self.sio_client and self.sio_connected:
+-            try:
+-                self.sio_client.disconnect()
+-            except:
+-                pass
++        """Cleanup connections on handler destruction."""
++        if hasattr(self, 'connection_pool'):
++            self.connection_pool.close_all()
+ 
+ 
+ def main():
+-    """Entry point with comprehensive error handling."""
++    """Entry point with singleton pattern to prevent multiple instances."""
++    global _global_handler
++    
+     try:
+-        handler = ClaudeHookHandler()
++        # Use singleton pattern to prevent creating multiple instances
++        with _handler_lock:
++            if _global_handler is None:
++                _global_handler = ClaudeHookHandler()
++                if DEBUG:
++                    print(f"✅ Created new ClaudeHookHandler singleton (pid: {os.getpid()})", file=sys.stderr)
++            else:
++                if DEBUG:
++                    print(f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})", file=sys.stderr)
++            
++            handler = _global_handler
++        
+         handler.handle()
+     except Exception as e:
+         # Always output continue action to not block Claude
