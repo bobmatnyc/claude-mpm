@@ -14,7 +14,7 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 
-from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel, ConfigCommands, AggregateCommands, TicketCommands
+from ..constants import CLICommands, CLIPrefix, AgentCommands, MemoryCommands, MonitorCommands, LogLevel, ConfigCommands, AggregateCommands, TicketCommands, MCPCommands
 
 
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
@@ -978,6 +978,153 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     # Import and add cleanup command parser
     from .commands.cleanup import add_cleanup_parser
     add_cleanup_parser(subparsers)
+    
+    # MCP command with subcommands
+    mcp_parser = subparsers.add_parser(
+        CLICommands.MCP.value,
+        help="Manage MCP Gateway server and tools"
+    )
+    add_common_arguments(mcp_parser)
+    
+    mcp_subparsers = mcp_parser.add_subparsers(
+        dest="mcp_command",
+        help="MCP commands",
+        metavar="SUBCOMMAND"
+    )
+    
+    # Install MCP Gateway
+    install_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.INSTALL.value,
+        help="Install and configure MCP Gateway"
+    )
+    install_mcp_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Force overwrite existing configuration"
+    )
+    
+    # Start MCP server
+    start_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.START.value,
+        help="Start the MCP Gateway server"
+    )
+    start_mcp_parser.add_argument(
+        "--mode",
+        choices=["stdio", "standalone"],
+        default="stdio",
+        help="Server mode: stdio for Claude integration, standalone for testing (default: stdio)"
+    )
+    start_mcp_parser.add_argument(
+        "--port",
+        type=int,
+        default=8766,
+        help="Port for standalone mode (default: 8766)"
+    )
+    start_mcp_parser.add_argument(
+        "--config-file",
+        type=Path,
+        help="Path to MCP configuration file"
+    )
+    
+    # Stop MCP server
+    stop_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.STOP.value,
+        help="Stop the MCP Gateway server"
+    )
+    
+    # MCP status
+    status_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.STATUS.value,
+        help="Check server and tool status"
+    )
+    status_mcp_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed status information"
+    )
+    
+    # List/manage tools
+    tools_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.TOOLS.value,
+        help="List and manage registered tools"
+    )
+    tools_mcp_parser.add_argument(
+        "tool_action",
+        nargs="?",
+        choices=["list", "enable", "disable"],
+        default="list",
+        help="Tool action (default: list)"
+    )
+    tools_mcp_parser.add_argument(
+        "tool_name",
+        nargs="?",
+        help="Tool name for enable/disable actions"
+    )
+    tools_mcp_parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show detailed tool information including schemas"
+    )
+    
+    # Register new tool
+    register_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.REGISTER.value,
+        help="Register a new MCP tool"
+    )
+    register_mcp_parser.add_argument(
+        "name",
+        help="Tool name"
+    )
+    register_mcp_parser.add_argument(
+        "description",
+        help="Tool description"
+    )
+    register_mcp_parser.add_argument(
+        "--schema-file",
+        type=Path,
+        help="Path to JSON schema file for tool input"
+    )
+    register_mcp_parser.add_argument(
+        "--adapter",
+        help="Path to custom tool adapter module"
+    )
+    register_mcp_parser.add_argument(
+        "--save",
+        action="store_true",
+        help="Save tool to configuration"
+    )
+    
+    # Test tool invocation
+    test_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.TEST.value,
+        help="Test MCP tool invocation"
+    )
+    test_mcp_parser.add_argument(
+        "tool_name",
+        help="Name of tool to test"
+    )
+    test_mcp_parser.add_argument(
+        "--args",
+        help="Tool arguments as JSON string"
+    )
+    test_mcp_parser.add_argument(
+        "--args-file",
+        type=Path,
+        help="Path to JSON file containing tool arguments"
+    )
+    
+    # Manage configuration
+    config_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.CONFIG.value,
+        help="View and manage MCP configuration"
+    )
+    config_mcp_parser.add_argument(
+        "config_action",
+        nargs="?",
+        choices=["view", "edit", "reset"],
+        default="view",
+        help="Configuration action (default: view)"
+    )
     
     return parser
 

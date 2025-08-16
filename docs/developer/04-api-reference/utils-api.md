@@ -6,9 +6,11 @@ This document provides a comprehensive API reference for the utility modules in 
 
 1. [Overview](#overview)
 2. [Logger Utilities](#logger-utilities)
-3. [Path Operations](#path-operations)
-4. [Config Manager](#config-manager)
-5. [Import Utilities](#import-utilities)
+3. [Subprocess Utilities](#subprocess-utilities)
+4. [File Utilities](#file-utilities)
+5. [Path Operations](#path-operations)
+6. [Config Manager](#config-manager)
+7. [Import Utilities](#import-utilities)
 
 ---
 
@@ -91,6 +93,159 @@ Default format:
 With debug enabled:
 ```
 %(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s
+```
+
+---
+
+## Subprocess Utilities
+
+Enhanced subprocess execution and management utilities with proper error handling, timeouts, and process cleanup.
+
+### Location
+`src/claude_mpm/utils/subprocess_utils.py`
+
+### run_subprocess()
+
+```python
+def run_subprocess(
+    cmd: List[str],
+    timeout: Optional[float] = None,
+    capture_output: bool = True,
+    text: bool = True,
+    cwd: Optional[str] = None,
+    env: Optional[Dict[str, str]] = None,
+    **kwargs
+) -> SubprocessResult
+```
+
+Run a subprocess with enhanced error handling and timeout support.
+
+**Parameters:**
+- `cmd` (List[str]): Command and arguments to execute
+- `timeout` (Optional[float]): Maximum time to wait for completion (seconds)
+- `capture_output` (bool): Whether to capture stdout/stderr
+- `text` (bool): Whether to return text (True) or bytes (False)
+- `cwd` (Optional[str]): Working directory for the subprocess
+- `env` (Optional[Dict[str, str]]): Environment variables for the subprocess
+
+**Returns:** SubprocessResult object with returncode, stdout, stderr
+
+**Raises:** SubprocessError if the subprocess fails or times out
+
+**Example:**
+```python
+from claude_mpm.utils.subprocess_utils import run_subprocess, SubprocessError
+
+try:
+    result = run_subprocess(["echo", "Hello World"], timeout=30)
+    if result.success:
+        print(f"Output: {result.stdout}")
+    else:
+        print(f"Failed with code: {result.returncode}")
+except SubprocessError as e:
+    print(f"Subprocess error: {e}")
+```
+
+### terminate_process_tree()
+
+```python
+def terminate_process_tree(pid: int, timeout: float = 5.0) -> int
+```
+
+Terminate a process and all its children gracefully.
+
+**Parameters:**
+- `pid` (int): Process ID to terminate
+- `timeout` (float): Time to wait for graceful termination before force killing
+
+**Returns:** Number of processes terminated
+
+**Example:**
+```python
+from claude_mpm.utils.subprocess_utils import terminate_process_tree
+
+# Terminate process and all children
+terminated_count = terminate_process_tree(process.pid)
+print(f"Terminated {terminated_count} processes")
+```
+
+### cleanup_orphaned_processes()
+
+```python
+def cleanup_orphaned_processes(pattern: str, max_age_hours: float = 1.0) -> int
+```
+
+Clean up orphaned processes matching a pattern.
+
+**Parameters:**
+- `pattern` (str): String pattern to match in process command line
+- `max_age_hours` (float): Maximum age in hours before considering a process orphaned
+
+**Returns:** Number of processes cleaned up
+
+**Example:**
+```python
+from claude_mpm.utils.subprocess_utils import cleanup_orphaned_processes
+
+# Clean up old hook handler processes
+cleanup_count = cleanup_orphaned_processes('hook_handler.py', max_age_hours=0.5)
+print(f"Cleaned up {cleanup_count} orphaned processes")
+```
+
+---
+
+## File Utilities
+
+Safe file operations with atomic writes, error handling, and directory management.
+
+### Location
+`src/claude_mpm/utils/file_utils.py`
+
+### atomic_write()
+
+```python
+def atomic_write(
+    path: Union[str, Path],
+    content: str,
+    encoding: str = 'utf-8',
+    create_dirs: bool = True
+) -> None
+```
+
+Atomically write content to a file using a temporary file to prevent corruption.
+
+**Parameters:**
+- `path` (Union[str, Path]): File path to write
+- `content` (str): Content to write
+- `encoding` (str): Text encoding to use
+- `create_dirs` (bool): Whether to create parent directories
+
+**Example:**
+```python
+from claude_mpm.utils.file_utils import atomic_write
+
+# Safely write configuration
+atomic_write("config.json", json.dumps(config_data, indent=2))
+```
+
+### read_json_file() / write_json_file()
+
+```python
+def read_json_file(path: Union[str, Path]) -> Any
+def write_json_file(path: Union[str, Path], data: Any, indent: int = 2, atomic: bool = True) -> None
+```
+
+Read and write JSON files safely with error handling.
+
+**Example:**
+```python
+from claude_mpm.utils.file_utils import read_json_file, write_json_file
+
+# Read JSON configuration
+config = read_json_file("config.json")
+
+# Write JSON data atomically
+write_json_file("output.json", {"status": "complete"}, atomic=True)
 ```
 
 ---

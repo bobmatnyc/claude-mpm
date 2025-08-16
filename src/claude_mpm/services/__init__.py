@@ -133,6 +133,28 @@ def __getattr__(name):
     elif name == "SocketIOClientManager":
         from .communication.websocket import SocketIOClientManager
         return SocketIOClientManager
+    # MCP Gateway services
+    elif name == "MCPConfiguration":
+        from .mcp_gateway.config.configuration import MCPConfiguration
+        return MCPConfiguration
+    elif name == "MCPConfigLoader":
+        from .mcp_gateway.config.config_loader import MCPConfigLoader
+        return MCPConfigLoader
+    elif name == "MCPServer":
+        from .mcp_gateway.server.mcp_server import MCPServer
+        return MCPServer
+    elif name == "MCPToolRegistry":
+        from .mcp_gateway.tools.tool_registry import MCPToolRegistry
+        return MCPToolRegistry
+    elif name == "BaseMCPService":
+        from .mcp_gateway.core.base import BaseMCPService
+        return BaseMCPService
+    elif name.startswith("IMCP"):
+        from .mcp_gateway.core import interfaces
+        return getattr(interfaces, name)
+    elif name.startswith("MCP") and "Error" in name:
+        from .mcp_gateway.core import exceptions
+        return getattr(exceptions, name)
     # Core interfaces and base classes
     elif name.startswith('I') or name in ['BaseService', 'SyncBaseService', 'SingletonService']:
         from . import core
@@ -176,6 +198,12 @@ __all__ = [
     "MemoryOptimizer",
     "SimpleCacheService",
     "SharedPromptCache",
+    # MCP Gateway services
+    "MCPConfiguration",
+    "MCPConfigLoader",
+    "MCPServer",
+    "MCPToolRegistry",
+    "BaseMCPService",
     # Core exports
     "BaseService",
     "SyncBaseService",

@@ -113,7 +113,35 @@ from claude_mpm.utils.subprocess_utils import terminate_process_tree
 terminated_count = terminate_process_tree(pid)
 ```
 
-### 4. Working Directory and Environment
+### 4. Process Cleanup and Orphan Management
+
+**Before:**
+```python
+# Manual process cleanup - error-prone and platform-specific
+import psutil
+import time
+
+def cleanup_old_processes():
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline', 'create_time']):
+        try:
+            if 'my_script.py' in ' '.join(proc.info['cmdline']):
+                age = time.time() - proc.info['create_time']
+                if age > 3600:  # 1 hour
+                    proc.terminate()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+```
+
+**After:**
+```python
+from claude_mpm.utils.subprocess_utils import cleanup_orphaned_processes
+
+# Clean up processes older than 1 hour
+cleanup_count = cleanup_orphaned_processes('my_script.py', max_age_hours=1.0)
+print(f"Cleaned up {cleanup_count} orphaned processes")
+```
+
+### 5. Working Directory and Environment
 
 **Before:**
 ```python
@@ -357,26 +385,71 @@ terminate_process_tree(proc.pid)
 
 ### subprocess_utils
 
-- `run_subprocess()` - Synchronous subprocess execution
-- `run_subprocess_async()` - Asynchronous subprocess execution  
-- `SubprocessError` - Unified exception for subprocess errors
-- `get_process_info()` - Get current process information
-- `monitor_process_resources()` - Monitor process CPU/memory
-- `terminate_process_tree()` - Terminate process and all children
+- `run_subprocess()` - Synchronous subprocess execution with timeout and error handling
+- `run_subprocess_async()` - Asynchronous subprocess execution with timeout support
+- `SubprocessError` - Unified exception for subprocess errors with detailed context
+- `SubprocessResult` - Result object with returncode, stdout, stderr, and success property
+- `get_process_info()` - Get detailed process information including CPU, memory, and children
+- `monitor_process_resources()` - Monitor process CPU/memory usage in real-time
+- `terminate_process_tree()` - Gracefully terminate process and all children with timeout
+- `cleanup_orphaned_processes()` - Clean up orphaned processes matching a pattern by age
 
 ### file_utils
 
-- `ensure_directory()` - Create directory if it doesn't exist
-- `safe_read_file()` - Read file with error handling
-- `safe_write_file()` - Write file with directory creation
-- `atomic_write()` - Atomic file write operation
-- `get_file_info()` - Get file metadata safely
+- `ensure_directory()` - Create directory if it doesn't exist with proper error handling
+- `safe_read_file()` - Read file with encoding support and error handling
+- `safe_write_file()` - Write file with directory creation and encoding support
+- `atomic_write()` - Atomic file write operation using temporary files
+- `get_file_info()` - Get file metadata safely with size, timestamps, and permissions
+- `safe_copy_file()` - Copy files with error handling and directory creation
+- `safe_remove_file()` - Remove files safely with existence checking
+- `read_json_file()` - Read and parse JSON files with error handling
+- `write_json_file()` - Write JSON files with formatting and atomic write support
+- `backup_file()` - Create backup copies of files with custom suffixes
+
+## Hook Handler Process Fixes
+
+The Claude MPM hook system has been enhanced to prevent process accumulation and improve reliability:
+
+### Problem Solved
+
+Previously, hook handler processes would accumulate due to:
+- Blocking `sys.stdin.read()` calls that never received input
+- Missing timeout protection causing infinite hangs
+- Lack of proper cleanup mechanisms
+
+### Improvements Made
+
+1. **Non-blocking Input Reading**: Added `select()` with timeout to prevent hanging on stdin
+2. **Process Timeout Protection**: 10-second timeout using `signal.alarm()`
+3. **Enhanced Cleanup**: Signal handlers and atexit cleanup ensure proper termination
+4. **Orphan Process Cleanup**: Automated cleanup script for monitoring and maintenance
+
+### Usage
+
+```python
+# Monitor and clean up orphaned hook processes
+from claude_mpm.utils.subprocess_utils import cleanup_orphaned_processes
+
+# Clean up hook handlers older than 5 minutes
+cleanup_count = cleanup_orphaned_processes('hook_handler.py', max_age_hours=5/60)
+```
+
+Or use the provided cleanup script:
+
+```bash
+# Run the cleanup script
+python scripts/cleanup_orphaned_hooks.py
+```
 
 ## Next Steps
 
 1. Review the demo scripts:
    - `demo/subprocess_improvements_demo.py` - Interactive demo
    - `demo/subprocess_before_after.py` - Before/after comparison
+
+2. Monitor hook handler processes:
+   - `scripts/cleanup_orphaned_hooks.py` - Process monitoring and cleanup
 
 2. Start migrating modules that use subprocess heavily:
    - Hook service
