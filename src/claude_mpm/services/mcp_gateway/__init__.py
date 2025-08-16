@@ -29,9 +29,9 @@ def __getattr__(name):
     """Lazy import mechanism for MCP Gateway components."""
     
     # Core interfaces and base classes
-    if name == "IMCPServer":
-        from .core.interfaces import IMCPServer
-        return IMCPServer
+    if name == "IMCPGateway":
+        from .core.interfaces import IMCPGateway
+        return IMCPGateway
     elif name == "IMCPToolRegistry":
         from .core.interfaces import IMCPToolRegistry
         return IMCPToolRegistry
@@ -45,10 +45,10 @@ def __getattr__(name):
         from .core.base import BaseMCPService
         return BaseMCPService
     
-    # Server implementations
-    elif name == "MCPServer":
-        from .server.mcp_server import MCPServer
-        return MCPServer
+    # Gateway implementations
+    elif name == "MCPGateway":
+        from .server.mcp_gateway import MCPGateway
+        return MCPGateway
     elif name == "StdioHandler":
         from .server.stdio_handler import StdioHandler
         return StdioHandler
@@ -105,14 +105,14 @@ def __getattr__(name):
 # Public API exports
 __all__ = [
     # Core interfaces
-    "IMCPServer",
+    "IMCPGateway",
     "IMCPToolRegistry",
     "IMCPConfiguration",
     "IMCPToolAdapter",
     "BaseMCPService",
-    
-    # Server implementations
-    "MCPServer",
+
+    # Gateway implementations
+    "MCPGateway",
     "StdioHandler",
     "AlternativeStdioHandler",
     

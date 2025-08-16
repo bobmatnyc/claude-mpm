@@ -1,0 +1,34 @@
+TASK: Create GitHub issues for EP-0008 epic and all related ISS tickets using gh CLI
+
+AGENT: Version Control
+STATUS: in_progress
+PRIORITY: high
+
+DESCRIPTION:
+Create GitHub issues for the Memory Guardian System epic and all related issues using the gh CLI. Sync the completed ticket content to GitHub for proper project tracking and visibility.
+
+TICKETS TO SYNC:
+1. EP-0008: Memory Guardian System for Claude Code Auto-Restart (Epic)
+2. ISS-0042: Core Infrastructure - MemoryGuardian Service Foundation
+3. ISS-0043: State Management System - Context Preservation
+4. ISS-0044: CLI Integration - run-guarded Command and Configuration
+5. ISS-0045: Safety Features and Testing - Restart Protection and Comprehensive Validation
+
+GITHUB ISSUE FORMAT:
+- Title: [Ticket ID] Ticket Title
+- Body: Full ticket content with description, implementation details, completion summary
+- Labels: enhancement, epic/infrastructure/cli/testing, memory-management, experimental, completed
+- Status: Closed (since work is completed)
+- Cross-references: Link issues to epic and each other
+
+ACCEPTANCE CRITERIA:
+- [ ] Create EP-0008 epic issue with comprehensive content
+- [ ] Create ISS-0042 through ISS-0045 issues with full details
+- [ ] Apply appropriate labels to each issue
+- [ ] Link issues to each other (ISS issues reference EP-0008)
+- [ ] Mark all issues as closed since implementation is complete
+- [ ] Include experimental feature notices in each issue
+- [ ] Verify all issues are created successfully
+
+CONTEXT:
+The Memory Guardian System epic and all related issues are completed work that needs to be synced to GitHub for proper project tracking. This work represents 168 hours of implementation time and includes experimental features for Claude Code memory management.

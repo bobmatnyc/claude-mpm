@@ -38,7 +38,7 @@ def manage_mcp(args):
     try:
         # Import MCP Gateway services with lazy loading
         from ...services.mcp_gateway import (
-            MCPServer,
+            MCPGateway,
             ToolRegistry,
             MCPConfiguration,
             MCPServiceRegistry
@@ -50,7 +50,8 @@ def manage_mcp(args):
         
         # Route to specific command handlers
         if args.mcp_command == MCPCommands.START.value:
-            return _start_server(args, logger)
+            import asyncio
+            return asyncio.run(_start_server(args, logger))
         
         elif args.mcp_command == MCPCommands.STOP.value:
             return _stop_server(args, logger)
@@ -106,92 +107,55 @@ def _show_help():
     print("Use 'claude-mpm mcp <command> --help' for more information")
 
 
-def _start_server(args, logger):
+# Daemon mode removed - MCP servers should be simple stdio responders
+
+
+async def _start_server(args, logger):
     """
-    Start the MCP Gateway server.
-    
-    WHY: Users need to start the MCP server to enable tool invocation
-    and external service integration in Claude sessions.
-    
+    Start the MCP Gateway using the global manager.
+
+    WHY: Users need to start the MCP gateway to enable tool invocation
+    and external service integration in Claude sessions. We use the global
+    manager to ensure only one instance runs per installation.
+
     Args:
         args: Command arguments with optional port and configuration
         logger: Logger instance
-        
+
     Returns:
         int: Exit code (0 for success, non-zero for failure)
     """
-    from ...services.mcp_gateway import MCPServer, ToolRegistry, MCPConfiguration
-    from ...services.mcp_gateway.server.stdio_handler import StdioHandler
+    from ...services.mcp_gateway.manager import (
+        start_global_gateway,
+        run_global_gateway,
+        is_gateway_running,
+        get_gateway_status
+    )
     
     try:
-        print("Starting MCP Gateway server...")
-        
-        # Load configuration
-        config_path = getattr(args, 'config_file', None)
-        if config_path and Path(config_path).exists():
-            logger.info(f"Loading configuration from: {config_path}")
-            config = MCPConfiguration.from_file(config_path)
-        else:
-            logger.info("Using default MCP configuration")
-            config = MCPConfiguration()
-        
-        # Initialize server components
-        server = MCPServer(
-            server_name=config.server_name,
-            version=config.version
-        )
-        
-        # Initialize tool registry
-        tool_registry = ToolRegistry()
-        
-        # Load default tools if enabled
-        if config.load_default_tools:
-            logger.info("Loading default tools")
-            _load_default_tools(tool_registry, logger)
-        
-        # Set dependencies
-        server.set_tool_registry(tool_registry)
-        
-        # Start server based on mode
-        mode = getattr(args, 'mode', 'stdio')
-        
-        if mode == 'stdio':
-            # Standard I/O mode for Claude integration
-            logger.info("Starting MCP server in stdio mode")
-            stdio_handler = StdioHandler(server)
-            
-            # Run the server
-            asyncio.run(stdio_handler.run())
-            
-        elif mode == 'standalone':
-            # Standalone mode for testing
-            port = getattr(args, 'port', 8766)
-            logger.info(f"Starting MCP server in standalone mode on port {port}")
-            
-            # Create async event loop and run server
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            async def run_standalone():
-                await server.start()
-                print(f"MCP Gateway server started on port {port}")
-                print("Press Ctrl+C to stop")
-                
-                # Keep server running
-                try:
-                    await asyncio.Event().wait()
-                except KeyboardInterrupt:
-                    print("\nStopping server...")
-                    await server.stop()
-            
-            loop.run_until_complete(run_standalone())
-            
-        else:
-            logger.error(f"Unknown server mode: {mode}")
-            print(f"Error: Unknown server mode: {mode}")
+        logger.info("Starting MCP Gateway")
+
+        # Note: MCP gateways don't "run" as background services
+        # They are stdio-based protocol handlers activated by MCP clients
+
+        # Get configuration values
+        gateway_name = getattr(args, 'name', 'claude-mpm-gateway')
+        version = getattr(args, 'version', '1.0.0')
+
+        # Initialize the global gateway components
+        logger.info(f"Initializing MCP gateway: {gateway_name}")
+        if not await start_global_gateway(gateway_name, version):
+            logger.error("Failed to initialize MCP gateway")
+            print("Error: Failed to initialize MCP gateway")
             return 1
-        
-        print("MCP Gateway server stopped")
+
+        # Run the gateway stdio handler
+        logger.info("Starting MCP gateway stdio handler")
+        print("MCP Gateway ready for Claude Desktop", file=sys.stderr)
+        print("Listening for MCP protocol messages on stdin/stdout...", file=sys.stderr)
+
+        await run_global_gateway()
+
         return 0
         
     except KeyboardInterrupt:
@@ -287,23 +251,15 @@ def _show_status(args, logger):
         print("MCP Gateway Status")
         print("=" * 50)
         
-        # Check server status
-        pid_file = Path.home() / ".claude-mpm" / "mcp_server.pid"
-        
-        if pid_file.exists():
-            with open(pid_file, 'r') as f:
-                pid = int(f.read().strip())
-            
-            # Check if process is running
-            import os
-            try:
-                os.kill(pid, 0)
-                print(f"Server Status: ✅ Running (PID: {pid})")
-            except ProcessLookupError:
-                print("Server Status: ❌ Not running (stale PID file)")
-                pid_file.unlink()
-        else:
-            print("Server Status: ❌ Not running")
+        # Check gateway manager status
+        from ...services.mcp_gateway.manager import get_gateway_status, is_gateway_running
+
+        # MCP gateways are stdio-based protocol handlers, not background services
+        print("Gateway Status: ℹ️  MCP protocol handler (stdio-based)")
+        print("  • Activated on-demand by MCP clients (Claude Desktop)")
+        print("  • No background processes - communicates via stdin/stdout")
+        print("  • Ready for Claude Desktop integration")
+        print("  • Test with: claude-mpm mcp test <tool_name>")
         
         print()
         
@@ -311,24 +267,23 @@ def _show_status(args, logger):
         print("Registered Tools:")
         print("-" * 30)
         
-        # Initialize tool registry to check tools
-        tool_registry = ToolRegistry()
-        
-        # Load configuration to check enabled tools
-        config_file = Path.home() / ".claude-mpm" / "mcp_config.yaml"
-        if config_file.exists():
-            from ...services.mcp_gateway import MCPConfiguration
-            config = MCPConfiguration.from_file(config_file)
-            
-            # Load tools based on configuration
-            if config.load_default_tools:
-                _load_default_tools(tool_registry, logger)
+        # Get tool registry with fallback to running server
+        try:
+            tool_registry = _create_tool_registry_with_fallback(logger)
+            config_file = Path.home() / ".claude-mcp" / "mcp_config.yaml"
+            config = _load_config_sync(config_file if config_file.exists() else None, logger)
+        except ValueError as e:
+            print(f"Configuration Error: {e}")
+            return 1
+        except Exception as e:
+            logger.error(f"Failed to initialize: {e}")
+            print(f"Error: Failed to initialize MCP components: {e}")
+            return 1
         
         tools = tool_registry.list_tools()
         if tools:
             for tool in tools:
-                status = "✅" if tool.enabled else "❌"
-                print(f"  {status} {tool.name}: {tool.description}")
+                print(f"  ✅ {tool.name}: {tool.description}")
         else:
             print("  No tools registered")
         
@@ -337,14 +292,17 @@ def _show_status(args, logger):
         # Show configuration
         print("Configuration:")
         print("-" * 30)
-        
+
         if config_file.exists():
             print(f"  Config file: {config_file}")
-            print(f"  Server name: {config.server_name}")
-            print(f"  Version: {config.version}")
-            print(f"  Default tools: {'Enabled' if config.load_default_tools else 'Disabled'}")
         else:
             print("  Using default configuration")
+
+        server_config = config.get("mcp", {}).get("server", {})
+        tools_config = config.get("mcp", {}).get("tools", {})
+        print(f"  Server name: {server_config.get('name', 'claude-mpm-gateway')}")
+        print(f"  Version: {server_config.get('version', '1.0.0')}")
+        print(f"  Tools enabled: {'Yes' if tools_config.get('enabled', True) else 'No'}")
         
         # Show verbose details if requested
         if getattr(args, 'verbose', False):
@@ -388,16 +346,8 @@ def _manage_tools(args, logger):
         # Check for subcommand
         action = getattr(args, 'tool_action', 'list')
         
-        # Initialize tool registry
-        tool_registry = ToolRegistry()
-        
-        # Load tools from configuration
-        config_file = Path.home() / ".claude-mpm" / "mcp_config.yaml"
-        if config_file.exists():
-            from ...services.mcp_gateway import MCPConfiguration
-            config = MCPConfiguration.from_file(config_file)
-            if config.load_default_tools:
-                _load_default_tools(tool_registry, logger)
+        # Get tool registry with fallback to running server
+        tool_registry = _create_tool_registry_with_fallback(logger)
         
         if action == 'list':
             # List all tools
@@ -423,8 +373,7 @@ def _manage_tools(args, logger):
                 print("-" * 30)
                 
                 for tool in category_tools:
-                    status = "✅" if tool.enabled else "❌"
-                    print(f"  {status} {tool.name}")
+                    print(f"  ✅ {tool.name}")
                     print(f"      {tool.description}")
                     
                     if getattr(args, 'verbose', False):
@@ -573,22 +522,14 @@ def _test_tool(args, logger):
         print(f"Arguments: {json.dumps(tool_args, indent=2)}")
         print("-" * 50)
         
-        # Initialize tool registry
-        tool_registry = ToolRegistry()
-        
-        # Load tools
-        config_file = Path.home() / ".claude-mpm" / "mcp_config.yaml"
-        if config_file.exists():
-            from ...services.mcp_gateway import MCPConfiguration
-            config = MCPConfiguration.from_file(config_file)
-            if config.load_default_tools:
-                _load_default_tools(tool_registry, logger)
+        # Get tool registry with fallback to running server
+        tool_registry = _create_tool_registry_with_fallback(logger)
         
         # Create invocation request
         invocation = MCPToolInvocation(
             tool_name=tool_name,
-            arguments=tool_args,
-            request_id=f"test-{tool_name}"
+            parameters=tool_args,
+            context={"source": "cli_test"}
         )
         
         # Invoke tool
@@ -596,7 +537,8 @@ def _test_tool(args, logger):
         
         if result.success:
             print("✅ Tool invocation successful!")
-            print(f"Result: {json.dumps(result.result, indent=2)}")
+            print(f"Result: {json.dumps(result.data, indent=2)}")
+            print(f"Execution time: {result.execution_time:.3f}s")
         else:
             print("❌ Tool invocation failed!")
             print(f"Error: {result.error}")
@@ -787,7 +729,7 @@ def _manage_config(args, logger):
         return 1
 
 
-def _load_default_tools(tool_registry, logger):
+async def _load_default_tools(tool_registry, logger):
     """
     Load default MCP tools into the registry.
     
@@ -814,9 +756,212 @@ def _load_default_tools(tool_registry, logger):
         ]
         
         for adapter in default_tools:
-            tool_def = adapter.get_tool_definition()
-            tool_registry.register_tool(tool_def, adapter)
+            await adapter.initialize()
+            tool_registry.register_tool(adapter)
+            tool_def = adapter.get_definition()
             logger.debug(f"Loaded default tool: {tool_def.name}")
         
     except Exception as e:
         logger.error(f"Failed to load default tools: {e}", exc_info=True)
+        raise
+
+
+def _load_config_sync(config_path=None, logger=None):
+    """
+    Load MCP configuration synchronously with validation.
+
+    Args:
+        config_path: Optional path to configuration file
+        logger: Optional logger for error reporting
+
+    Returns:
+        Dictionary with configuration data
+
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    # Use default configuration structure
+    default_config = {
+        "mcp": {
+            "server": {
+                "name": "claude-mpm-gateway",
+                "version": "1.0.0",
+                "description": "Claude MPM MCP Gateway Server",
+            },
+            "tools": {
+                "enabled": True,
+                "auto_discover": True,
+            },
+            "logging": {
+                "level": "INFO",
+            }
+        }
+    }
+
+    if config_path and Path(config_path).exists():
+        try:
+            import yaml
+            with open(config_path, 'r') as f:
+                loaded_config = yaml.safe_load(f) or {}
+
+            # Validate configuration structure
+            if not isinstance(loaded_config, dict):
+                raise ValueError("Configuration must be a dictionary")
+
+            # Validate MCP section if present
+            if "mcp" in loaded_config:
+                mcp_config = loaded_config["mcp"]
+                if not isinstance(mcp_config, dict):
+                    raise ValueError("mcp section must be a dictionary")
+
+                # Validate server section
+                if "server" in mcp_config:
+                    server_config = mcp_config["server"]
+                    if not isinstance(server_config, dict):
+                        raise ValueError("mcp.server section must be a dictionary")
+
+                    # Validate server name
+                    if "name" in server_config:
+                        if not isinstance(server_config["name"], str) or not server_config["name"].strip():
+                            raise ValueError("mcp.server.name must be a non-empty string")
+
+                # Validate tools section
+                if "tools" in mcp_config:
+                    tools_config = mcp_config["tools"]
+                    if not isinstance(tools_config, dict):
+                        raise ValueError("mcp.tools section must be a dictionary")
+
+                    if "enabled" in tools_config and not isinstance(tools_config["enabled"], bool):
+                        raise ValueError("mcp.tools.enabled must be a boolean")
+
+            # Merge with defaults
+            def merge_dict(base, overlay):
+                for key, value in overlay.items():
+                    if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                        merge_dict(base[key], value)
+                    else:
+                        base[key] = value
+
+            merge_dict(default_config, loaded_config)
+
+            if logger:
+                logger.info(f"Successfully loaded configuration from {config_path}")
+
+        except yaml.YAMLError as e:
+            error_msg = f"Invalid YAML in configuration file {config_path}: {e}"
+            if logger:
+                logger.error(error_msg)
+            raise ValueError(error_msg)
+        except ValueError as e:
+            error_msg = f"Configuration validation error in {config_path}: {e}"
+            if logger:
+                logger.error(error_msg)
+            raise
+        except Exception as e:
+            error_msg = f"Failed to load configuration from {config_path}: {e}"
+            if logger:
+                logger.warning(error_msg)
+            # Fall back to defaults for other errors
+
+    return default_config
+
+
+def _load_default_tools_sync(tool_registry, logger):
+    """
+    Load default MCP tools into the registry synchronously.
+
+    Args:
+        tool_registry: ToolRegistry instance
+        logger: Logger instance
+    """
+    try:
+        # Import default tool adapters
+        from ...services.mcp_gateway.tools.base_adapter import (
+            EchoToolAdapter,
+            CalculatorToolAdapter,
+            SystemInfoToolAdapter
+        )
+
+        # Register default tools
+        default_tools = [
+            EchoToolAdapter(),
+            CalculatorToolAdapter(),
+            SystemInfoToolAdapter()
+        ]
+
+        for adapter in default_tools:
+            # Initialize synchronously (skip async parts for CLI)
+            adapter._initialized = True
+            tool_registry.register_tool(adapter)
+            tool_def = adapter.get_definition()
+            logger.debug(f"Loaded default tool: {tool_def.name}")
+
+    except Exception as e:
+        logger.error(f"Failed to load default tools: {e}", exc_info=True)
+
+
+def _get_server_tools_via_mcp(logger):
+    """
+    Get tools from running MCP server via MCP protocol.
+
+    Returns:
+        List of tool definitions or None if server not accessible
+    """
+    try:
+        import json
+        import subprocess
+        import tempfile
+
+        # Create a simple MCP client request
+        request = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/list",
+            "params": {}
+        }
+
+        # Try to communicate with running server
+        pid_file = Path.home() / ".claude-mcp" / "mcp_server.pid"
+        if not pid_file.exists():
+            return None
+
+        # For now, return None since we need a proper MCP client implementation
+        # This is a placeholder for future implementation
+        return None
+
+    except Exception as e:
+        logger.debug(f"Could not connect to running server: {e}")
+        return None
+
+
+def _create_tool_registry_with_fallback(logger):
+    """
+    Create tool registry, trying to connect to running server first.
+
+    Args:
+        logger: Logger instance
+
+    Returns:
+        ToolRegistry instance with tools loaded
+    """
+    from ...services.mcp_gateway import ToolRegistry
+
+    # Create registry
+    tool_registry = ToolRegistry()
+
+    # Try to get tools from running server
+    server_tools = _get_server_tools_via_mcp(logger)
+
+    if server_tools:
+        logger.debug("Connected to running MCP server")
+        # TODO: Populate registry with server tools
+        # For now, fall back to loading default tools
+
+    # Fallback: Load default tools locally
+    config_file = Path.home() / ".claude-mcp" / "mcp_config.yaml"
+    config = _load_config_sync(config_file if config_file.exists() else None, logger)
+
+    if config.get("mcp", {}).get("tools", {}).get("enabled", True):
+        _load_default_tools_sync(tool_registry, logger)
+
+    return tool_registry

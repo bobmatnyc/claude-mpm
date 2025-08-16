@@ -39,9 +39,9 @@ class AITrackdownAdapter(ITaskManagerAdapter):
         self._task_manager = self._init_task_manager()
         
     def _init_task_manager(self):
-        """Initialize ai-trackdown-pytools TaskManager."""
+        """Initialize ai-trackdown-pytools TicketManager."""
         try:
-            from ai_trackdown_pytools.core.task import TaskManager
+            from ai_trackdown_pytools.core.task import TicketManager as AITicketManager
             from ai_trackdown_pytools import Config as TrackdownConfig, Project
             
             # Ensure tickets directory exists
@@ -64,14 +64,14 @@ class AITrackdownAdapter(ITaskManagerAdapter):
                 config.save()
                 self.logger.info("Created .trackdown.yaml configuration")
             
-            # Initialize task manager directly
-            return TaskManager(self.project_path)
+            # Initialize ticket manager directly
+            return AITicketManager(self.project_path)
             
         except ImportError:
             self.logger.error("ai-trackdown-pytools not installed")
             return None
         except Exception as e:
-            self.logger.error(f"Failed to initialize TaskManager: {e}")
+            self.logger.error(f"Failed to initialize TicketManager: {e}")
             return None
             
     def create_task(self, **kwargs) -> Any:
