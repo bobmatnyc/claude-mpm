@@ -75,6 +75,17 @@ pytest tests/
 - **[Technical Reference](./12-responses/TECHNICAL_REFERENCE.md)** - API and internals
 - **[User Guide](./12-responses/USER_GUIDE.md)** - Using the response system
 
+#### 🔌 [MCP Gateway](./13-mcp-gateway/)
+- **[MCP Gateway Overview](./13-mcp-gateway/README.md)** - Model Context Protocol gateway implementation
+  - Production-ready MCP protocol handler
+  - Claude Desktop integration
+  - Extensible tool framework
+  - Singleton coordination
+  - Comprehensive testing and documentation
+- **[Tool Development Guide](./13-mcp-gateway/tool-development.md)** - Creating custom MCP tools
+- **[Configuration Reference](./13-mcp-gateway/configuration.md)** - Gateway configuration options
+- **[MCP Gateway API](./04-api-reference/mcp-gateway-api.md)** - Complete API reference
+
 ### Development Guides
 
 #### 📚 [Architecture](./01-architecture/)
