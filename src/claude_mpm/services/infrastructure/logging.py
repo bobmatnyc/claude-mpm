@@ -13,11 +13,11 @@ import logging
 import json
 from datetime import datetime
 
-from claude_mpm.services.core import SyncBaseService, ILoggingService
-from claude_mpm.utils.logger import get_logger
+from claude_mpm.services.core import SyncBaseService, IStructuredLogger
+from claude_mpm.core.logger import get_logger
 
 
-class LoggingService(SyncBaseService, ILoggingService):
+class LoggingService(SyncBaseService, IStructuredLogger):
     """
     Centralized logging service for the Claude MPM framework.
     

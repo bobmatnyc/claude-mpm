@@ -6,6 +6,8 @@ separate modules for better maintainability and code organization.
 """
 
 from .run import run_session
+# Note: run_guarded is imported separately to avoid loading experimental code
+# from .run_guarded import execute_run_guarded as run_guarded_session
 from .tickets import manage_tickets, list_tickets
 from .info import show_info
 from .agents import manage_agents
@@ -18,6 +20,7 @@ from .mcp import manage_mcp
 
 __all__ = [
     'run_session',
+    # 'run_guarded_session',  # Excluded from default exports (experimental)
     'manage_tickets',
     'list_tickets',
     'show_info',

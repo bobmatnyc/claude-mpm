@@ -13,7 +13,7 @@ from threading import RLock
 import logging
 
 from claude_mpm.services.mcp_gateway.core.interfaces import (
-    IMCPServer,
+    IMCPGateway,
     IMCPToolRegistry,
     IMCPCommunication,
     IMCPConfiguration,
@@ -375,13 +375,9 @@ def register_mcp_services() -> None:
     registry = get_service_registry()
     
     # Register core services
-    # Try to use the official MCP server, fall back to simple implementation
-    try:
-        from claude_mpm.services.mcp_gateway.server.mcp_server import MCPServer
-        registry.register(IMCPServer, MCPServer, singleton=True)
-    except ImportError:
-        from claude_mpm.services.mcp_gateway.server.mcp_server_simple import SimpleMCPServer
-        registry.register(IMCPServer, SimpleMCPServer, singleton=True)
+    # Use the official MCP gateway implementation
+    from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
+    registry.register(IMCPGateway, MCPGateway, singleton=True)
     
     from claude_mpm.services.mcp_gateway.server.stdio_handler import StdioHandler
     from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry

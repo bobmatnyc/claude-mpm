@@ -29,9 +29,9 @@ class TicketManager(TicketManagerInterface):
         self.task_manager = self._init_task_manager()
         
     def _init_task_manager(self):
-        """Initialize ai-trackdown-pytools TaskManager."""
+        """Initialize ai-trackdown-pytools TicketManager."""
         try:
-            from ai_trackdown_pytools.core.task import TaskManager
+            from ai_trackdown_pytools.core.task import TicketManager as AITicketManager
             from ai_trackdown_pytools import Config, Project
             
             # First, ensure tickets directory exists
@@ -62,15 +62,15 @@ class TicketManager(TicketManagerInterface):
             else:
                 self.logger.info(f"Using configuration from: {config_file}")
             
-            # Initialize TaskManager directly with the project path
-            # TaskManager will handle project initialization internally
-            task_manager = TaskManager(self.project_path)  # Pass Path object directly
-            
+            # Initialize TicketManager directly with the project path
+            # TicketManager will handle project initialization internally
+            task_manager = AITicketManager(self.project_path)  # Pass Path object directly
+
             # Verify it's using the right directory
             if hasattr(task_manager, 'tasks_dir'):
-                self.logger.info(f"TaskManager using tasks directory: {task_manager.tasks_dir}")
+                self.logger.info(f"TicketManager using tasks directory: {task_manager.tasks_dir}")
             else:
-                self.logger.info(f"Initialized TaskManager for: {self.project_path}")
+                self.logger.info(f"Initialized TicketManager for: {self.project_path}")
             
             return task_manager
             

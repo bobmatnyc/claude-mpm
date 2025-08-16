@@ -425,8 +425,7 @@ class SystemInfoToolAdapter(BaseToolAdapter):
         try:
             import platform
             import psutil
-            from datetime import datetime
-            
+
             info_type = invocation.parameters["info_type"]
             
             if info_type == "platform":

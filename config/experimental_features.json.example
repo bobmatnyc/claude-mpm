@@ -1,0 +1,11 @@
+{
+  "experimental_features": {
+    "enable_memory_guardian": false,
+    "enable_mcp_gateway": false,
+    "enable_advanced_aggregation": false,
+    "show_experimental_warnings": true,
+    "require_experimental_acceptance": true
+  },
+  "_comment": "Copy this file to ~/.claude-mpm/experimental.json to configure experimental features",
+  "_warning": "Experimental features are in beta and may change or have issues. Use with caution in production."
+}
