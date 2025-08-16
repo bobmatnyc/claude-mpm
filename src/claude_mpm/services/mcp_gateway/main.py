@@ -16,7 +16,7 @@ from typing import Optional, List
 import argparse
 import logging
 
-from claude_mpm.services.mcp_gateway.server.mcp_server import MCPServer
+from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 from claude_mpm.services.mcp_gateway.server.stdio_handler import StdioHandler
 from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 from claude_mpm.services.mcp_gateway.tools.base_adapter import (
@@ -27,6 +27,7 @@ from claude_mpm.services.mcp_gateway.tools.base_adapter import (
 from claude_mpm.services.mcp_gateway.tools.document_summarizer import DocumentSummarizerTool
 from claude_mpm.services.mcp_gateway.config.configuration import MCPConfiguration
 from claude_mpm.core.logger import get_logger
+from .manager import start_global_gateway, run_global_gateway
 
 
 class MCPGateway:
@@ -104,10 +105,10 @@ class MCPGateway:
                 self.logger.error("Failed to initialize communication handler")
                 return False
             
-            # Initialize MCP server
-            server_name = self.configuration.get("server.name", "claude-mpm-mcp")
+            # Initialize MCP gateway
+            gateway_name = self.configuration.get("server.name", "claude-mpm-mcp")
             version = self.configuration.get("server.version", "1.0.0")
-            self.server = MCPServer(server_name=server_name, version=version)
+            self.server = MCPGateway(gateway_name=gateway_name, version=version)
             
             # Wire dependencies
             self.server.set_tool_registry(self.registry)
@@ -317,10 +318,39 @@ Examples:
     return parser.parse_args()
 
 
+async def run_global_mcp_gateway(gateway_name: str = "claude-mpm-mcp", version: str = "1.0.0"):
+    """
+    Run the MCP Gateway using the global manager.
+
+    This ensures only one gateway instance per installation.
+
+    Args:
+        gateway_name: Name for the gateway
+        version: Gateway version
+    """
+    logger = get_logger("MCPGatewayMain")
+
+    try:
+        logger.info(f"Starting global MCP gateway: {gateway_name}")
+
+        # Start the global gateway
+        if not await start_global_gateway(gateway_name, version):
+            logger.error("Failed to start global gateway")
+            return False
+
+        # Run the gateway
+        await run_global_gateway()
+        return True
+
+    except Exception as e:
+        logger.error(f"Error running global gateway: {e}")
+        return False
+
+
 if __name__ == "__main__":
     # Parse arguments
     args = parse_arguments()
-    
+
     # Run the gateway
     exit_code = asyncio.run(main(args))
     sys.exit(exit_code)

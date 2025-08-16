@@ -6,7 +6,7 @@ Core interfaces and base classes for the MCP Gateway service.
 """
 
 from .interfaces import (
-    IMCPServer,
+    IMCPGateway,
     IMCPToolRegistry,
     IMCPConfiguration,
     IMCPToolAdapter,
@@ -30,7 +30,7 @@ from .exceptions import (
 
 __all__ = [
     # Interfaces
-    "IMCPServer",
+    "IMCPGateway",
     "IMCPToolRegistry",
     "IMCPConfiguration",
     "IMCPToolAdapter",

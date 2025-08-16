@@ -1,16 +1,16 @@
-# Claude MPM MCP Gateway - Local Lightweight Architecture Requirements
+# Claude MPM MCP Gateway - Standards-Compliant Architecture
 
-**Document Version:** 2.0  
-**Date:** August 15, 2025  
-**Architecture Type:** Local Event-Driven  
+**Document Version:** 3.0
+**Date:** August 16, 2025
+**Architecture Type:** MCP Protocol Compliant
 **Status:** Technical Requirements Specification
 
 ---
 
 ## Executive Summary
 
-### Local Lightweight Design Philosophy
-The Claude MPM MCP Gateway runs as a **local, lightweight process** on the user's desktop, providing AI tool integration directly within the Claude Code environment. This design prioritizes minimal resource usage, fast startup, and seamless integration with existing Claude Code installations.
+### Standards-Compliant Design Philosophy
+The Claude MPM MCP Gateway implements the official Model Context Protocol (MCP) specification, providing AI tool integration through a simple, standards-compliant stdio-based server. This design prioritizes protocol compliance, simplicity, and seamless integration with Claude Desktop and other MCP clients.
 
 ### Core Local Benefits
 - **Zero Network Dependencies**: Runs entirely on local machine
@@ -418,21 +418,21 @@ class SafeToolExecution:
 
 ### Management Commands
 ```bash
-# Check gateway status
+# Check gateway status and available tools
 claude-mpm mcp status
 
-# Install/update gateway
-claude-mpm mcp install
+# Start MCP server (stdio mode for Claude Desktop integration)
+claude-mpm mcp start
 
-# Test gateway functionality
-claude-mpm mcp test
+# List available tools
+claude-mpm mcp tools
 
-# View performance metrics
-claude-mpm mcp metrics
+# Test tool functionality
+claude-mcp mcp test echo --args '{"message": "Hello MCP"}'
+claude-mcp mcp test calculator --args '{"operation": "add", "a": 5, "b": 3}'
 
-# Enable/disable specific tools
-claude-mpm mcp tool enable document_summarizer
-claude-mpm mcp tool disable keyword_indexer
+# View configuration
+claude-mpm mcp config view
 ```
 
-This local architecture provides all the MCP Gateway functionality while running entirely on the user's desktop with minimal resource usage and seamless Claude Code integration.
+This standards-compliant architecture provides full MCP protocol compatibility while maintaining simplicity and ease of integration with Claude Desktop and other MCP clients.

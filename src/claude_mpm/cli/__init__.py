@@ -19,6 +19,7 @@ from .parser import create_parser, preprocess_args
 from .utils import ensure_directories, setup_logging
 from .commands import (
     run_session,
+    # run_guarded_session is imported lazily to avoid loading experimental code
     manage_tickets,
     show_info,
     manage_agents,
@@ -168,7 +169,11 @@ def _execute_command(command: str, args) -> int:
     Execute the specified command.
     
     WHY: This function maps command names to their implementations, providing
-    a single place to manage command routing.
+    a single place to manage command routing. Experimental commands are imported
+    lazily to avoid loading unnecessary code.
+    
+    DESIGN DECISION: run_guarded is imported only when needed to maintain
+    separation between stable and experimental features.
     
     Args:
         command: The command name to execute
@@ -177,9 +182,17 @@ def _execute_command(command: str, args) -> int:
     Returns:
         Exit code from the command
     """
-    # Map commands to their implementations
+    # Handle experimental run-guarded command separately with lazy import
+    if command == 'run-guarded':
+        # Lazy import to avoid loading experimental code unless needed
+        from .commands.run_guarded import execute_run_guarded
+        result = execute_run_guarded(args)
+        return result if result is not None else 0
+    
+    # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
+        # CLICommands.RUN_GUARDED.value is handled above
         CLICommands.TICKETS.value: manage_tickets,
         CLICommands.INFO.value: show_info,
         CLICommands.AGENTS.value: manage_agents,

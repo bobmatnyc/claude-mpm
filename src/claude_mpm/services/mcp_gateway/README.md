@@ -2,15 +2,16 @@
 
 ## Overview
 
-The MCP Gateway is a service module for Claude MPM that implements the Model Context Protocol (MCP), enabling integration with MCP-compatible tools and services through a standardized interface.
+The MCP Gateway is a standards-compliant implementation of the Model Context Protocol (MCP) for Claude MPM. It provides a simple, stdio-based server that enables seamless integration with Claude Desktop and other MCP clients.
 
 ## Architecture
 
-The MCP Gateway follows the claude-mpm service-oriented architecture with:
+The MCP Gateway uses the official Anthropic MCP Python SDK with:
 
-- **Interface-based contracts** for all components
-- **Dependency injection** for service resolution
-- **Lazy loading** for performance optimization
+- **Standards compliance** with the official MCP specification
+- **Stdio-based communication** for Claude Desktop integration
+- **Simple JSON-RPC protocol** over stdin/stdout
+- **Tool registry system** for extensible functionality
 - **Comprehensive error handling** and logging
 
 ## Structure
@@ -32,22 +33,61 @@ mcp_gateway/
 
 ## Features
 
-### Implemented (ISS-0034)
-- ✅ Service-oriented architecture foundation
-- ✅ Core interfaces for MCP services
-- ✅ Base service class with lifecycle management
-- ✅ Configuration management system
-- ✅ YAML-based configuration with schema validation
-- ✅ Environment variable overrides
-- ✅ Comprehensive exception handling
+### Implemented
+- ✅ **Official MCP Server** - Standards-compliant implementation using Anthropic's MCP SDK
+- ✅ **Tool Registry System** - Extensible tool management and discovery
+- ✅ **Stdio Communication** - Standard MCP protocol over stdin/stdout
+- ✅ **Configuration Management** - YAML-based configuration with validation
+- ✅ **Built-in Tools** - Echo, calculator, and system info tools
+- ✅ **CLI Integration** - Complete command-line interface for management
+- ✅ **Error Handling** - Comprehensive error handling and logging
 
-### Planned
-- 🔄 MCP server implementation (ISS-0035)
-- 🔄 Tool registry and discovery (ISS-0036)
-- 🔄 stdio communication handler (ISS-0037)
-- 🔄 Tool adapter framework (ISS-0038)
-- 🔄 WebSocket/HTTP communication support
-- 🔄 Resource and prompt capabilities
+### Key Features
+- **Protocol Handler** - Stdio-based MCP protocol handler, not a background service
+- **Claude Desktop Ready** - Direct integration with Claude Desktop MCP client
+- **Extensible** - Easy to add new tools and capabilities
+- **Standards Compliant** - Follows official MCP specification exactly
+
+## Quick Start
+
+### 1. Check Status
+```bash
+claude-mpm mcp status
+```
+
+### 2. Test Tools
+```bash
+# Test echo tool
+claude-mpm mcp test echo --args '{"message": "Hello MCP!"}'
+
+# Test calculator
+claude-mpm mcp test calculator --args '{"operation": "add", "a": 5, "b": 3}'
+
+# Test system info
+claude-mpm mcp test system_info
+```
+
+### 3. Start MCP Gateway Handler
+```bash
+# Start gateway handler for Claude Desktop integration
+claude-mpm mcp start
+```
+
+The gateway handler will listen for MCP protocol messages via stdin/stdout. This is typically invoked by Claude Desktop, not run directly by users.
+
+### 4. Claude Desktop Integration
+Add to your Claude Desktop MCP configuration:
+```json
+{
+  "mcpServers": {
+    "claude-mpm": {
+      "command": "python",
+      "args": ["-m", "claude_mpm.cli", "mcp", "start"],
+      "cwd": "/path/to/claude-mpm"
+    }
+  }
+}
+```
 
 ## Configuration
 

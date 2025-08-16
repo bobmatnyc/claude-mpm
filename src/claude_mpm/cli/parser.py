@@ -423,8 +423,8 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     )
     update_ticket_parser.add_argument(
         "-s", "--status",
-        choices=["open", "in_progress", "done", "closed", "blocked"],
-        help="Update status"
+        choices=["waiting", "in_progress", "ready", "tested"],
+        help="Update workflow state (aitrackdown compatible)"
     )
     update_ticket_parser.add_argument(
         "-p", "--priority",
@@ -978,6 +978,12 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     # Import and add cleanup command parser
     from .commands.cleanup import add_cleanup_parser
     add_cleanup_parser(subparsers)
+    
+    # Import and add run-guarded command parser (EXPERIMENTAL)
+    # WHY: run-guarded is kept separate from run to maintain stability
+    # DESIGN DECISION: Experimental features are clearly marked and isolated
+    from .commands.run_guarded import add_run_guarded_parser
+    add_run_guarded_parser(subparsers)
     
     # MCP command with subcommands
     mcp_parser = subparsers.add_parser(

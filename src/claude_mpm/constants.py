@@ -23,6 +23,7 @@ class CLIPrefix(str, Enum):
 class CLICommands(str, Enum):
     """CLI command constants."""
     RUN = "run"
+    RUN_GUARDED = "run-guarded"
     TICKETS = "tickets"
     INFO = "info"
     AGENTS = "agents"

@@ -405,11 +405,12 @@ class IMCPLifecycle(ABC):
         pass
 
 
-class IMCPServer(IMCPLifecycle):
+class IMCPGateway(IMCPLifecycle):
     """
-    Main interface for MCP server implementation.
-    
+    Main interface for MCP gateway implementation.
+
     Orchestrates tool registry, communication, and request handling.
+    Acts as a protocol bridge between Claude Desktop and internal tools.
     """
     
     @abstractmethod
@@ -448,9 +449,9 @@ class IMCPServer(IMCPLifecycle):
     @abstractmethod
     async def run(self) -> None:
         """
-        Run the MCP server main loop.
-        
-        This method should handle incoming requests and manage the server lifecycle.
+        Run the MCP gateway main loop.
+
+        This method should handle incoming requests and manage the gateway lifecycle.
         """
         pass
     
@@ -468,9 +469,9 @@ class IMCPServer(IMCPLifecycle):
     @abstractmethod
     def get_capabilities(self) -> Dict[str, Any]:
         """
-        Get server capabilities.
-        
+        Get gateway capabilities.
+
         Returns:
-            Dictionary of server capabilities
+            Dictionary of gateway capabilities
         """
         pass
