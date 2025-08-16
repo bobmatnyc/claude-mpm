@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.9.9] - 2025-08-16
 
+### 🚀 New Features & Enhancements
+
+#### MCP Gateway Integration (NEW)
+- **NEW**: Complete MCP (Model Context Protocol) Gateway implementation
+  - MCP server with tool registry and service management
+  - CLI commands for MCP server management (`claude-mpm mcp start/stop/status/test`)
+  - Document summarizer and hello world tools as examples
+  - Configuration system with YAML support and example configs
+
+#### Enhanced Process & File Management
+- **NEW**: Robust utility modules for system operations
+  - `subprocess_utils.py`: Enhanced subprocess execution with timeouts and cleanup
+  - `file_utils.py`: Atomic file operations and safe file handling
+  - `platform_memory.py`: Cross-platform memory monitoring utilities
+
+#### Memory Optimization & Monitoring
+- **NEW**: Memory guardian configuration for proactive memory management
+- **NEW**: Process monitoring and cleanup utilities
+- **NEW**: Orphaned process cleanup script (`scripts/cleanup_orphaned_hooks.py`)
+
+#### Hook System Reliability
+- **ENHANCED**: Hook handler timeout protection prevents hanging processes
+- **ENHANCED**: Non-blocking stdin reading with select() and 1-second timeout
+- **ENHANCED**: Automatic 10-second process timeout using signal.alarm()
+- **ENHANCED**: Enhanced cleanup mechanisms with signal handlers
+
+#### CLI & Service Improvements
+- **ENHANCED**: Updated cleanup command with better process management
+- **ENHANCED**: Enhanced constants and configuration management
+- **ENHANCED**: Improved service communication and SocketIO handling
+
+#### Documentation & Configuration
+- **NEW**: MCP Gateway documentation and examples
+- **ENHANCED**: Enhanced troubleshooting guides
+- **ENHANCED**: Developer documentation updates for new utilities
+- **NEW**: Configuration examples for MCP Gateway setup
+
+### 🔧 Technical Improvements
+- **BUILD**: Incremented build number to 279
+- **VERSION**: Synchronized all version files (Python, npm, package distribution)
+
 ## [3.9.8] - 2025-08-16
 
 ### 🔧 Process Management & Hook System Improvements
