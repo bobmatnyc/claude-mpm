@@ -13,6 +13,7 @@ DESIGN DECISIONS:
 """
 
 import os
+import sys
 import json
 import shutil
 from pathlib import Path
@@ -339,7 +340,26 @@ def cleanup_memory(args):
     # Get confirmation unless forced
     if not args.force and not args.dry_run:
         print("\n⚠️  This will modify your conversation history")
-        response = input("Continue? [y/N]: ").strip().lower()
+        
+        # Ensure stdout is flushed before reading input
+        sys.stdout.flush()
+        
+        # Check if we're in a TTY environment
+        if not sys.stdin.isatty():
+            # In non-TTY environment (like pipes), we need special handling
+            print("Continue? [y/N]: ", end="", flush=True)
+            try:
+                # Use readline for better compatibility in non-TTY environments
+                response = sys.stdin.readline().strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                response = 'n'
+        else:
+            # In TTY environment, use normal input()
+            try:
+                response = input("Continue? [y/N]: ").strip().lower()
+            except (EOFError, KeyboardInterrupt):
+                response = 'n'
+        
         # Handle various line endings and control characters
         response = response.replace('\r', '').replace('\n', '').strip()
         if response != 'y':

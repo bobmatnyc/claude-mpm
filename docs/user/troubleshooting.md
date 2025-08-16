@@ -193,6 +193,35 @@ git branch -vv
 git fetch --all
 ```
 
+### Hook System Issues
+
+**Orphaned Hook Processes**
+```bash
+# Check for orphaned processes
+ps aux | grep hook_handler.py | grep -v grep | wc -l
+
+# Clean up orphaned processes
+python scripts/cleanup_orphaned_hooks.py
+```
+
+**Hook Handler Timeouts**
+```bash
+# Hook handlers now have automatic 10-second timeouts
+# Check logs for timeout messages
+tail -f ~/.claude-mpm/logs/hooks.log | grep timeout
+```
+
+**Socket.IO Connection Issues**
+```bash
+# Check if Socket.IO server is running
+netstat -an | grep 8765
+
+# Restart hook system
+claude-mpm hooks restart
+```
+
+For detailed hook system troubleshooting, see [Hook System Troubleshooting](troubleshooting/hook-system.md).
+
 ## Performance Issues
 
 ### Slow Startup

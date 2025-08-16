@@ -418,6 +418,57 @@ def execute(self, context: HookContext) -> HookResult:
 
 - Keep hooks lightweight
 - Use async operations for I/O bound tasks
+- Avoid blocking operations that could cause process accumulation
+
+### 4. Process Management and Reliability
+
+The hook system includes several reliability improvements to prevent process accumulation:
+
+#### Timeout Protection
+Hook handlers automatically timeout after 10 seconds to prevent infinite hangs:
+
+```python
+# Automatic timeout protection in hook handlers
+signal.signal(signal.SIGALRM, timeout_handler)
+signal.alarm(10)  # 10-second timeout
+```
+
+#### Non-blocking Input Reading
+Hook handlers use `select()` to avoid blocking on stdin:
+
+```python
+# Check for input availability before reading
+ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+if ready:
+    event_data = sys.stdin.read()
+```
+
+#### Process Cleanup
+Automatic cleanup mechanisms ensure processes terminate properly:
+
+```python
+# Signal handlers for graceful shutdown
+signal.signal(signal.SIGTERM, cleanup_handler)
+signal.signal(signal.SIGINT, cleanup_handler)
+atexit.register(cleanup_handler)
+```
+
+#### Monitoring and Maintenance
+Use the provided cleanup script to monitor hook processes:
+
+```bash
+# Monitor and clean up orphaned hook processes
+python scripts/cleanup_orphaned_hooks.py
+```
+
+Or programmatically:
+
+```python
+from claude_mpm.utils.subprocess_utils import cleanup_orphaned_processes
+
+# Clean up hook handlers older than 5 minutes
+cleanup_count = cleanup_orphaned_processes('hook_handler.py', max_age_hours=5/60)
+```
 - Implement timeouts for external calls
 - Cache expensive computations
 
