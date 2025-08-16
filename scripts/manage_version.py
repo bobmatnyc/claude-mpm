@@ -185,20 +185,33 @@ def parse_conventional_commit(message: str) -> Tuple[Optional[str], Optional[str
 def get_commits_since_tag(tag: Optional[str] = None) -> List[dict]:
     """Get all commits since the last tag."""
     if tag:
-        cmd = ["git", "log", f"{tag}..HEAD", "--pretty=format:%H|%ai|%s|%b|%an"]
+        cmd = ["git", "log", f"{tag}..HEAD", "--pretty=format:COMMIT_START%n%H|%ai|%s|%an%nBODY_START%n%b%nCOMMIT_END"]
     else:
-        cmd = ["git", "log", "--pretty=format:%H|%ai|%s|%b|%an"]
-    
+        cmd = ["git", "log", "--pretty=format:COMMIT_START%n%H|%ai|%s|%an%nBODY_START%n%b%nCOMMIT_END"]
+
     output = run_command(cmd)
     if not output:
         return []
-    
+
     commits = []
-    for line in output.split("\n"):
-        if line:
-            parts = line.split("|", 4)
-            if len(parts) >= 5:
-                hash, date, subject, body, author = parts
+    # Split by COMMIT_START to get individual commits
+    commit_blocks = output.split("COMMIT_START\n")[1:]  # Skip first empty element
+
+    for block in commit_blocks:
+        if not block.strip():
+            continue
+
+        # Split each commit block into header and body
+        parts = block.split("\nBODY_START\n")
+        if len(parts) >= 2:
+            header = parts[0]
+            body_and_end = parts[1]
+            body = body_and_end.replace("\nCOMMIT_END", "").strip()
+
+            # Parse header: hash|date|subject|author
+            header_parts = header.split("|", 3)
+            if len(header_parts) >= 4:
+                hash, date, subject, author = header_parts
                 commit_type, scope, description, is_breaking = parse_conventional_commit(subject)
                 commits.append({
                     "hash": hash[:7],
@@ -210,7 +223,7 @@ def get_commits_since_tag(tag: Optional[str] = None) -> List[dict]:
                     "author": author,
                     "body": body
                 })
-    
+
     return commits
 
 
