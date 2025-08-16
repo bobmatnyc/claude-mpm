@@ -5,6 +5,46 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.11] - 2025-08-16
+
+### 📚 Documentation
+
+#### Comprehensive MCP Gateway Developer Documentation
+- **NEW**: Complete MCP Gateway developer documentation in `docs/developer/13-mcp-gateway/`
+  - Developer guide with architecture overview, quick start, and core interfaces
+  - Complete API reference with data models and implementation classes
+  - Tool development guide covering full lifecycle from planning to deployment
+  - Configuration reference with multi-source config and validation examples
+- **NEW**: MCP Gateway API reference in `docs/developer/04-api-reference/mcp-gateway-api.md`
+- **IMPROVED**: Updated developer README to include MCP Gateway in Core Systems section
+
+#### Documentation Features
+- **1,200+ lines** of comprehensive developer documentation
+- **Production-ready guidance** for tool development and deployment
+- **Complete API coverage** with examples and best practices
+- **Multi-environment configuration** examples (dev, prod, testing)
+- **Testing strategies** for unit, integration, and manual testing
+- **Troubleshooting guides** and performance optimization tips
+
+### 🎯 Developer Experience
+
+#### Enhanced Onboarding
+- **Quick Start Guides**: Get MCP Gateway running immediately
+- **Code Examples**: Copy-paste ready examples for common tasks
+- **Best Practices**: Industry-standard patterns and recommendations
+- **Tool Creation**: Step-by-step guide for custom tool development
+
+#### Production Readiness
+- **Configuration Management**: Multi-source configuration with validation
+- **Testing Documentation**: Comprehensive testing approaches and examples
+- **Security Guidelines**: Input validation, sandboxing, and rate limiting
+- **Deployment Patterns**: Tool packaging, distribution, and operational guidance
+
+### 🔄 Breaking Changes
+- **NONE**: All changes are documentation-only and fully backward compatible
+
+---
+
 ## [3.9.10] - 2025-08-16
 
 ### 🚀 Major Features
