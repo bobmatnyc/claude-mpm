@@ -1,0 +1,62 @@
+# MCP Gateway Configuration Example
+# ==================================
+#
+# This is an example configuration file for the Claude MPM MCP Gateway.
+# Copy this file to one of the following locations and modify as needed:
+#   - ~/.claude/mcp/config.yaml (user-specific)
+#   - ./mcp_gateway.yaml (project-specific)
+#   - /etc/claude-mpm/mcp_gateway.yaml (system-wide)
+#
+# Environment variables can override these settings using the pattern:
+#   MCP_GATEWAY_<SECTION>_<KEY>=value
+# For example: MCP_GATEWAY_SERVER_NAME=my-custom-gateway
+
+mcp:
+  # Server configuration
+  server:
+    name: claude-mpm-gateway
+    version: 1.0.0
+    description: Claude MPM Model Context Protocol Gateway Server
+    
+    # Communication settings
+    communication:
+      type: stdio  # Options: stdio, websocket, http
+      timeout: 30  # Request timeout in seconds
+      buffer_size: 8192  # Buffer size for stdio communication
+    
+    # Server capabilities
+    capabilities:
+      tools: true      # Enable tool support
+      resources: false # Resource support (not yet implemented)
+      prompts: false   # Prompt support (not yet implemented)
+  
+  # Tool management configuration
+  tools:
+    enabled: true
+    auto_discover: true  # Automatically discover tools in configured paths
+    
+    # Paths to search for tool definitions
+    discovery_paths:
+      - ~/.claude/mcp/tools
+      - ./mcp_tools
+    
+    timeout_default: 30  # Default timeout for tool execution (seconds)
+    max_concurrent: 10   # Maximum concurrent tool executions
+  
+  # Logging configuration
+  logging:
+    level: INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+    file: ~/.claude/logs/mcp_gateway.log
+    max_size: 10MB
+    max_files: 5
+    format: json  # Options: json, text
+  
+  # Security configuration
+  security:
+    validate_schemas: true   # Validate tool schemas before execution
+    sanitize_inputs: true    # Sanitize tool inputs
+    max_request_size: 1048576  # Maximum request size (1MB)
+    
+    # Tool access control (empty lists mean no restrictions)
+    allowed_tools: []  # List of explicitly allowed tools
+    blocked_tools: []  # List of explicitly blocked tools

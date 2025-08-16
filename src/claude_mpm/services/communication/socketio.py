@@ -31,17 +31,17 @@ except ImportError:
     web = None
     # Don't print warnings at module level
 
-from ..core.logging_config import get_logger, log_operation, log_performance_context
-from ..deployment_paths import get_project_root, get_scripts_dir
-from .socketio.handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler
-from ..core.constants import (
+from claude_mpm.core.logging_config import get_logger, log_operation, log_performance_context
+from claude_mpm.deployment_paths import get_project_root, get_scripts_dir
+# from .socketio.handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler  # Module not found, commenting out
+from claude_mpm.core.constants import (
     SystemLimits,
     NetworkConfig,
     TimeoutConfig,
     PerformanceConfig
 )
-from ..core.interfaces import SocketIOServiceInterface
-from ..exceptions import MPMConnectionError
+from claude_mpm.core.interfaces import SocketIOServiceInterface
+from claude_mpm.services.exceptions import SocketIOServerError as MPMConnectionError
 
 
 class SocketIOClientProxy:
@@ -1030,24 +1030,26 @@ class SocketIOServer(SocketIOServiceInterface):
         handlers in a modular way. Each handler focuses on a specific domain,
         reducing complexity and improving maintainability.
         """
-        # Initialize the event handler registry
-        self.event_registry = EventHandlerRegistry(self)
-        self.event_registry.initialize()
+        # Handler registry not available - skip handler-based registration
+        # # Initialize the event handler registry
+        # self.event_registry = EventHandlerRegistry(self)
+        # self.event_registry.initialize()
         
-        # Register all events from all handlers
-        self.event_registry.register_all_events()
+        # # Register all events from all handlers
+        # self.event_registry.register_all_events()
         
-        # Keep handler instances for HTTP endpoint compatibility
-        self.file_handler = self.event_registry.get_handler(FileEventHandler)
-        self.git_handler = self.event_registry.get_handler(GitEventHandler)
+        # # Keep handler instances for HTTP endpoint compatibility
+        # self.file_handler = self.event_registry.get_handler(FileEventHandler)
+        # self.git_handler = self.event_registry.get_handler(GitEventHandler)
         
-        self.logger.info("All Socket.IO events registered via handler system")
+        # self.logger.info("All Socket.IO events registered via handler system")
         
         # Note: The actual event registration is now handled by individual
         # handler classes in socketio/handlers/. This dramatically reduces
         # the complexity of this method from 514 lines to under 20 lines.
         
-        return  # Early return to skip old implementation
+        # Continue with old implementation since handlers are not available
+        # return  # Early return to skip old implementation
         
         @self.sio.event
         async def connect(sid, environ, *args):

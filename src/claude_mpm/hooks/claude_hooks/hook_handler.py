@@ -16,6 +16,9 @@ import json
 import sys
 import os
 import subprocess
+import signal
+import select
+import atexit
 from datetime import datetime
 import time
 import asyncio
@@ -593,56 +596,93 @@ class ClaudeHookHandler:
     
     
     def handle(self):
-        """Process hook event with minimal overhead and zero blocking delays.
-        
+        """Process hook event with minimal overhead and timeout protection.
+
         WHY this approach:
         - Fast path processing for minimal latency (no blocking waits)
         - Non-blocking Socket.IO connection and event emission
-        - Removed sleep() delays that were adding 100ms+ to every hook
+        - Timeout protection prevents indefinite hangs
         - Connection timeout prevents indefinite hangs
         - Graceful degradation if Socket.IO unavailable
         - Always continues regardless of event status
+        - Process exits after handling to prevent accumulation
         """
+        def timeout_handler(signum, frame):
+            """Handle timeout by forcing exit."""
+            if DEBUG:
+                print(f"Hook handler timeout (pid: {os.getpid()})", file=sys.stderr)
+            self._continue_execution()
+            sys.exit(0)
+
         try:
+            # Set a 10-second timeout for the entire operation
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(10)
+
             # Read and parse event
             event = self._read_hook_event()
             if not event:
                 self._continue_execution()
                 return
-            
+
             # Increment event counter and perform periodic cleanup
             self.events_processed += 1
             if self.events_processed % self.CLEANUP_INTERVAL_EVENTS == 0:
                 self._cleanup_old_entries()
                 if DEBUG:
                     print(f"🧹 Performed cleanup after {self.events_processed} events", file=sys.stderr)
-            
+
             # Route event to appropriate handler
             self._route_event(event)
-            
+
             # Always continue execution
             self._continue_execution()
-            
+
         except:
             # Fail fast and silent
             self._continue_execution()
+        finally:
+            # Cancel the alarm
+            signal.alarm(0)
     
     def _read_hook_event(self) -> dict:
         """
-        Read and parse hook event from stdin.
-        
-        WHY: Centralized event reading with error handling
-        ensures consistent parsing and validation.
-        
+        Read and parse hook event from stdin with timeout.
+
+        WHY: Centralized event reading with error handling and timeout
+        ensures consistent parsing and validation while preventing
+        processes from hanging indefinitely on stdin.read().
+
         Returns:
-            Parsed event dictionary or None if invalid
+            Parsed event dictionary or None if invalid/timeout
         """
         try:
+            # Check if data is available on stdin with 1 second timeout
+            if sys.stdin.isatty():
+                # Interactive terminal - no data expected
+                return None
+
+            ready, _, _ = select.select([sys.stdin], [], [], 1.0)
+            if not ready:
+                # No data available within timeout
+                if DEBUG:
+                    print("No hook event data received within timeout", file=sys.stderr)
+                return None
+
+            # Data is available, read it
             event_data = sys.stdin.read()
+            if not event_data.strip():
+                # Empty or whitespace-only data
+                return None
+
             return json.loads(event_data)
-        except (json.JSONDecodeError, ValueError):
+        except (json.JSONDecodeError, ValueError) as e:
             if DEBUG:
-                print("Failed to parse hook event", file=sys.stderr)
+                print(f"Failed to parse hook event: {e}", file=sys.stderr)
+            return None
+        except Exception as e:
+            if DEBUG:
+                print(f"Error reading hook event: {e}", file=sys.stderr)
             return None
     
     def _route_event(self, event: dict) -> None:
@@ -1725,9 +1765,22 @@ class ClaudeHookHandler:
 
 
 def main():
-    """Entry point with singleton pattern to prevent multiple instances."""
+    """Entry point with singleton pattern and proper cleanup."""
     global _global_handler
-    
+
+    def cleanup_handler(signum=None, frame=None):
+        """Cleanup handler for signals and exit."""
+        if DEBUG:
+            print(f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})", file=sys.stderr)
+        # Always output continue action to not block Claude
+        print(json.dumps({"action": "continue"}))
+        sys.exit(0)
+
+    # Register cleanup handlers
+    signal.signal(signal.SIGTERM, cleanup_handler)
+    signal.signal(signal.SIGINT, cleanup_handler)
+    atexit.register(cleanup_handler)
+
     try:
         # Use singleton pattern to prevent creating multiple instances
         with _handler_lock:
@@ -1738,10 +1791,14 @@ def main():
             else:
                 if DEBUG:
                     print(f"♻️ Reusing existing ClaudeHookHandler singleton (pid: {os.getpid()})", file=sys.stderr)
-            
+
             handler = _global_handler
-        
+
         handler.handle()
+
+        # Ensure we exit after handling
+        cleanup_handler()
+
     except Exception as e:
         # Always output continue action to not block Claude
         print(json.dumps({"action": "continue"}))

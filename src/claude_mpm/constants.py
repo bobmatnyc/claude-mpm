@@ -31,6 +31,7 @@ class CLICommands(str, Enum):
     CONFIG = "config"
     AGGREGATE = "aggregate"
     CLEANUP = "cleanup-memory"
+    MCP = "mcp"
     
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""
@@ -98,6 +99,18 @@ class AggregateCommands(str, Enum):
     SESSIONS = "sessions"
     VIEW = "view"
     EXPORT = "export"
+
+
+class MCPCommands(str, Enum):
+    """MCP Gateway subcommand constants."""
+    INSTALL = "install"
+    START = "start"
+    STOP = "stop"
+    STATUS = "status"
+    TOOLS = "tools"
+    REGISTER = "register"
+    TEST = "test"
+    CONFIG = "config"
 
 
 class TicketCommands(str, Enum):
