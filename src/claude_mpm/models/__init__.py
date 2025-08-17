@@ -8,17 +8,17 @@ providing a single source of truth for data structures across the system.
 from .agent_definition import (
     AgentDefinition,
     AgentMetadata,
-    AgentType,
+    AgentPermissions,
     AgentSection,
+    AgentType,
     AgentWorkflow,
-    AgentPermissions
 )
 
 __all__ = [
-    'AgentDefinition',
-    'AgentMetadata',
-    'AgentType',
-    'AgentSection',
-    'AgentWorkflow',
-    'AgentPermissions'
+    "AgentDefinition",
+    "AgentMetadata",
+    "AgentType",
+    "AgentSection",
+    "AgentWorkflow",
+    "AgentPermissions",
 ]

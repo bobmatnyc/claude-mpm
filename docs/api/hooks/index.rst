@@ -50,7 +50,7 @@ Architecture Benefits
 --------------------
 
 * **Plugin Architecture**: Clean extensibility without modifying core framework
-* **Performance**: Hooks are executed only when registered and relevant  
+* **Performance**: Hooks are executed only when registered and relevant
 * **Type Safety**: Strong typing throughout the hook system
 * **Error Handling**: Comprehensive error handling and fallback mechanisms
 * **Documentation**: Self-documenting hook interfaces and contracts

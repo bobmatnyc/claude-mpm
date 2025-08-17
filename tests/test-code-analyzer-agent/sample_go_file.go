@@ -116,12 +116,12 @@ func (um *UserManager) FindDuplicates(users []User) []User {
 func ReadUserFile(filename string) (string, error) {
 	// BAD: No path validation
 	fullPath := fmt.Sprintf("/app/user-data/%s", filename)
-	
+
 	content, err := os.ReadFile(fullPath)
 	if err != nil {
 		return "", err
 	}
-	
+
 	return string(content), nil
 }
 

@@ -9,115 +9,68 @@ and implement the appropriate interfaces.
 Part of TSK-0046: Service Layer Architecture Reorganization
 """
 
-from .interfaces import (
-    # Core dependency injection
-    IServiceContainer,
-    ServiceType,
-    
-    # Configuration management
-    IConfigurationService,
-    IConfigurationManager,
-    
-    # Agent management
-    IAgentRegistry,
-    AgentMetadata,
-    
-    # Health monitoring
-    IHealthMonitor,
-    HealthStatus,
-    
-    # Caching
-    IPromptCache,
-    CacheEntry,
-    
-    # Template management
-    ITemplateManager,
-    TemplateRenderContext,
-    
-    # Factory patterns
-    IServiceFactory,
-    
-    # Event system
-    IEventBus,
-    
-    # Logging
-    IStructuredLogger,
-    
-    # Service lifecycle
-    IServiceLifecycle,
-    
-    # Error handling
-    IErrorHandler,
-    
-    # Performance monitoring
-    IPerformanceMonitor,
-    
-    # Cache service
-    ICacheService,
-    
-    # Agent deployment
+from .base import BaseService, SingletonService, SyncBaseService
+from .interfaces import (  # Core dependency injection; Configuration management; Agent management; Health monitoring; Caching; Template management; Factory patterns; Event system; Logging; Service lifecycle; Error handling; Performance monitoring; Cache service; Agent deployment; Memory service; Hook service; SocketIO service; Project analyzer; Ticket manager; Interface registry
     AgentDeploymentInterface,
-    
-    # Memory service
-    MemoryServiceInterface,
-    
-    # Hook service
+    AgentMetadata,
+    CacheEntry,
+    HealthStatus,
     HookServiceInterface,
-    
-    # SocketIO service
-    SocketIOServiceInterface,
-    
-    # Project analyzer
-    ProjectAnalyzerInterface,
-    
-    # Ticket manager
-    TicketManagerInterface,
-    
-    # Interface registry
+    IAgentRegistry,
+    ICacheService,
+    IConfigurationManager,
+    IConfigurationService,
+    IErrorHandler,
+    IEventBus,
+    IHealthMonitor,
     InterfaceRegistry,
-)
-
-from .base import (
-    BaseService,
-    SyncBaseService,
-    SingletonService,
+    IPerformanceMonitor,
+    IPromptCache,
+    IServiceContainer,
+    IServiceFactory,
+    IServiceLifecycle,
+    IStructuredLogger,
+    ITemplateManager,
+    MemoryServiceInterface,
+    ProjectAnalyzerInterface,
+    ServiceType,
+    SocketIOServiceInterface,
+    TemplateRenderContext,
+    TicketManagerInterface,
 )
 
 __all__ = [
     # Core interfaces
-    'IServiceContainer',
-    'ServiceType',
-    'IConfigurationService',
-    'IConfigurationManager',
-    'IAgentRegistry',
-    'AgentMetadata',
-    'IHealthMonitor',
-    'HealthStatus',
-    'IPromptCache',
-    'CacheEntry',
-    'ITemplateManager',
-    'TemplateRenderContext',
-    'IServiceFactory',
-    'IEventBus',
-    'IStructuredLogger',
-    'IServiceLifecycle',
-    'IErrorHandler',
-    'IPerformanceMonitor',
-    'ICacheService',
-    
+    "IServiceContainer",
+    "ServiceType",
+    "IConfigurationService",
+    "IConfigurationManager",
+    "IAgentRegistry",
+    "AgentMetadata",
+    "IHealthMonitor",
+    "HealthStatus",
+    "IPromptCache",
+    "CacheEntry",
+    "ITemplateManager",
+    "TemplateRenderContext",
+    "IServiceFactory",
+    "IEventBus",
+    "IStructuredLogger",
+    "IServiceLifecycle",
+    "IErrorHandler",
+    "IPerformanceMonitor",
+    "ICacheService",
     # Service interfaces
-    'AgentDeploymentInterface',
-    'MemoryServiceInterface',
-    'HookServiceInterface',
-    'SocketIOServiceInterface',
-    'ProjectAnalyzerInterface',
-    'TicketManagerInterface',
-    
+    "AgentDeploymentInterface",
+    "MemoryServiceInterface",
+    "HookServiceInterface",
+    "SocketIOServiceInterface",
+    "ProjectAnalyzerInterface",
+    "TicketManagerInterface",
     # Registry
-    'InterfaceRegistry',
-    
+    "InterfaceRegistry",
     # Base classes
-    'BaseService',
-    'SyncBaseService',
-    'SingletonService',
+    "BaseService",
+    "SyncBaseService",
+    "SingletonService",
 ]

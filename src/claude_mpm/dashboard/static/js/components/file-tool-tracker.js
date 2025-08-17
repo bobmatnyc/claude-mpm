@@ -1,14 +1,14 @@
 /**
  * File and Tool Tracker Module
- * 
+ *
  * Tracks file operations and tool calls by pairing pre/post events and maintaining
  * organized collections for the files and tools tabs. Provides analysis of
  * tool execution patterns and file operation history.
- * 
+ *
  * WHY: Extracted from main dashboard to isolate complex event pairing logic
  * that groups related events into meaningful operations. This provides better
  * maintainability for the intricate logic of matching tool events with their results.
- * 
+ *
  * DESIGN DECISION: Uses intelligent correlation strategy for tool calls that:
  * - Separates pre_tool and post_tool events first
  * - Correlates based on temporal proximity, parameter similarity, and context
@@ -20,13 +20,13 @@ class FileToolTracker {
     constructor(agentInference, workingDirectoryManager) {
         this.agentInference = agentInference;
         this.workingDirectoryManager = workingDirectoryManager;
-        
+
         // File tracking for files tab
         this.fileOperations = new Map(); // Map of file paths to operations
-        
+
         // Tool call tracking for tools tab
         this.toolCalls = new Map(); // Map of tool call keys to paired pre/post events
-        
+
         console.log('File-tool tracker initialized');
     }
 
@@ -43,12 +43,12 @@ class FileToolTracker {
         // Group events by session and timestamp to match pre/post pairs
         const eventPairs = new Map(); // Key: session_id + timestamp + tool_name
         let fileOperationCount = 0;
-        
+
         // First pass: collect all tool events and group them
         events.forEach((event, index) => {
             const isFileOp = this.isFileOperation(event);
             if (isFileOp) fileOperationCount++;
-            
+
             if (index < 5) { // Debug first 5 events with more detail
                 console.log(`Event ${index}:`, {
                     type: event.type,
@@ -58,12 +58,12 @@ class FileToolTracker {
                     isFileOp: isFileOp
                 });
             }
-            
+
             if (isFileOp) {
                 const toolName = event.tool_name;
                 const sessionId = event.session_id || 'unknown';
                 const eventKey = `${sessionId}_${toolName}_${Math.floor(new Date(event.timestamp).getTime() / 1000)}`; // Group by second
-                
+
                 if (!eventPairs.has(eventKey)) {
                     eventPairs.set(eventKey, {
                         pre_event: null,
@@ -72,7 +72,7 @@ class FileToolTracker {
                         session_id: sessionId
                     });
                 }
-                
+
                 const pair = eventPairs.get(eventKey);
                 if (event.subtype === 'pre_tool' || event.type === 'hook' && !event.subtype.includes('post')) {
                     pair.pre_event = event;
@@ -85,16 +85,16 @@ class FileToolTracker {
                 }
             }
         });
-        
+
         console.log('updateFileOperations - found', fileOperationCount, 'file operations in', eventPairs.size, 'event pairs');
-        
+
         // Second pass: extract file paths and operations from paired events
         eventPairs.forEach((pair, key) => {
             const filePath = this.extractFilePathFromPair(pair);
-            
+
             if (filePath) {
                 console.log('File operation detected for:', filePath, 'from pair:', key);
-                
+
                 if (!this.fileOperations.has(filePath)) {
                     this.fileOperations.set(filePath, {
                         path: filePath,
@@ -106,10 +106,10 @@ class FileToolTracker {
                 const fileData = this.fileOperations.get(filePath);
                 const operation = this.getFileOperationFromPair(pair);
                 const timestamp = pair.post_event?.timestamp || pair.pre_event?.timestamp;
-                
+
                 const agentInfo = this.extractAgentFromPair(pair);
                 const workingDirectory = this.workingDirectoryManager.extractWorkingDirectoryFromPair(pair);
-                
+
                 fileData.operations.push({
                     operation: operation,
                     timestamp: timestamp,
@@ -124,7 +124,7 @@ class FileToolTracker {
                 console.log('No file path found for pair:', key, pair);
             }
         });
-        
+
         console.log('updateFileOperations - final result:', this.fileOperations.size, 'file operations');
         if (this.fileOperations.size > 0) {
             console.log('File operations map:', Array.from(this.fileOperations.entries()));
@@ -145,12 +145,12 @@ class FileToolTracker {
         const preToolEvents = [];
         const postToolEvents = [];
         let toolOperationCount = 0;
-        
+
         // First pass: separate pre_tool and post_tool events
         events.forEach((event, index) => {
             const isToolOp = this.isToolOperation(event);
             if (isToolOp) toolOperationCount++;
-            
+
             if (index < 5) { // Debug first 5 events with more detail
                 console.log(`Tool Event ${index}:`, {
                     type: event.type,
@@ -160,7 +160,7 @@ class FileToolTracker {
                     isToolOp: isToolOp
                 });
             }
-            
+
             if (isToolOp) {
                 if (event.subtype === 'pre_tool' || (event.type === 'hook' && !event.subtype.includes('post'))) {
                     preToolEvents.push(event);
@@ -173,18 +173,18 @@ class FileToolTracker {
                 }
             }
         });
-        
+
         console.log('updateToolCalls - found', toolOperationCount, 'tool operations:', preToolEvents.length, 'pre_tool,', postToolEvents.length, 'post_tool');
-        
+
         // Second pass: correlate pre_tool events with post_tool events
         const toolCallPairs = new Map();
         const usedPostEvents = new Set();
-        
+
         preToolEvents.forEach((preEvent, preIndex) => {
             const toolName = preEvent.tool_name;
             const sessionId = preEvent.session_id || 'unknown';
             const preTimestamp = new Date(preEvent.timestamp).getTime();
-            
+
             // Create a base pair for this pre_tool event
             const pairKey = `${sessionId}_${toolName}_${preIndex}_${preTimestamp}`;
             const pair = {
@@ -201,53 +201,53 @@ class FileToolTracker {
                 agent_type: null,
                 agent_confidence: null
             };
-            
+
             // Get agent info from pre_event
             const agentInfo = this.extractAgentFromEvent(preEvent);
             pair.agent_type = agentInfo.name;
             pair.agent_confidence = agentInfo.confidence;
-            
+
             // Try to find matching post_tool event
             let bestMatchIndex = -1;
             let bestMatchScore = -1;
             const maxTimeDiffMs = 300000; // 5 minutes max time difference
-            
+
             postToolEvents.forEach((postEvent, postIndex) => {
                 // Skip already used post events
                 if (usedPostEvents.has(postIndex)) return;
-                
+
                 // Must match tool name and session
                 if (postEvent.tool_name !== toolName || postEvent.session_id !== sessionId) return;
-                
+
                 const postTimestamp = new Date(postEvent.timestamp).getTime();
                 const timeDiff = Math.abs(postTimestamp - preTimestamp);
-                
+
                 // Post event should generally come after pre event (or very close)
                 const isTemporallyValid = postTimestamp >= preTimestamp - 1000; // Allow 1s clock skew
-                
+
                 // Calculate correlation score (higher is better)
                 let score = 0;
                 if (isTemporallyValid && timeDiff <= maxTimeDiffMs) {
                     score = 1000 - (timeDiff / 1000); // Prefer closer timestamps
-                    
+
                     // Boost score for parameter similarity (if available)
                     if (this.compareToolParameters(preEvent, postEvent)) {
                         score += 500;
                     }
-                    
+
                     // Boost score for same working directory
-                    if (preEvent.working_directory && postEvent.working_directory && 
+                    if (preEvent.working_directory && postEvent.working_directory &&
                         preEvent.working_directory === postEvent.working_directory) {
                         score += 100;
                     }
                 }
-                
+
                 if (score > bestMatchScore) {
                     bestMatchScore = score;
                     bestMatchIndex = postIndex;
                 }
             });
-            
+
             // If we found a good match, pair them
             if (bestMatchIndex >= 0 && bestMatchScore > 0) {
                 const postEvent = postToolEvents[bestMatchIndex];
@@ -256,26 +256,26 @@ class FileToolTracker {
                 pair.success = postEvent.success;
                 pair.exit_code = postEvent.exit_code;
                 pair.result_summary = postEvent.result_summary;
-                
+
                 usedPostEvents.add(bestMatchIndex);
                 console.log(`Paired pre_tool ${toolName} at ${preEvent.timestamp} with post_tool at ${postEvent.timestamp} (score: ${bestMatchScore})`);
             } else {
                 console.log(`No matching post_tool found for ${toolName} at ${preEvent.timestamp} (still running or orphaned)`);
             }
-            
+
             toolCallPairs.set(pairKey, pair);
         });
-        
+
         // Third pass: handle any orphaned post_tool events (shouldn't happen but be safe)
         postToolEvents.forEach((postEvent, postIndex) => {
             if (usedPostEvents.has(postIndex)) return;
-            
+
             console.log('Orphaned post_tool event found:', postEvent.tool_name, 'at', postEvent.timestamp);
-            
+
             const toolName = postEvent.tool_name;
             const sessionId = postEvent.session_id || 'unknown';
             const postTimestamp = new Date(postEvent.timestamp).getTime();
-            
+
             const pairKey = `orphaned_${sessionId}_${toolName}_${postIndex}_${postTimestamp}`;
             const pair = {
                 pre_event: null,
@@ -291,17 +291,17 @@ class FileToolTracker {
                 agent_type: null,
                 agent_confidence: null
             };
-            
+
             const agentInfo = this.extractAgentFromEvent(postEvent);
             pair.agent_type = agentInfo.name;
             pair.agent_confidence = agentInfo.confidence;
-            
+
             toolCallPairs.set(pairKey, pair);
         });
-        
+
         // Store the correlated tool calls
         this.toolCalls = toolCallPairs;
-        
+
         console.log('updateToolCalls - final result:', this.toolCalls.size, 'tool calls');
         if (this.toolCalls.size > 0) {
             console.log('Tool calls map keys:', Array.from(this.toolCalls.keys()));
@@ -315,9 +315,9 @@ class FileToolTracker {
      */
     isToolOperation(event) {
         // Tool operations have tool_name and are hook events with pre_tool or post_tool subtype
-        return event.tool_name && 
-               event.type === 'hook' && 
-               (event.subtype === 'pre_tool' || event.subtype === 'post_tool' || 
+        return event.tool_name &&
+               event.type === 'hook' &&
+               (event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
                 event.subtype.includes('tool'));
     }
 
@@ -331,7 +331,7 @@ class FileToolTracker {
         // Check case-insensitively since tool names can come in different cases
         const fileTools = ['read', 'write', 'edit', 'grep', 'multiedit', 'glob', 'ls', 'bash', 'notebookedit'];
         const toolName = event.tool_name ? event.tool_name.toLowerCase() : '';
-        
+
         // Also check if Bash commands involve file operations
         if (toolName === 'bash' && event.tool_parameters) {
             const command = event.tool_parameters.command || '';
@@ -340,7 +340,7 @@ class FileToolTracker {
                 return true;
             }
         }
-        
+
         return toolName && fileTools.includes(toolName);
     }
 
@@ -359,12 +359,12 @@ class FileToolTracker {
         if (event.data?.tool_parameters?.notebook_path) return event.data.tool_parameters.notebook_path;
         if (event.file_path) return event.file_path;
         if (event.path) return event.path;
-        
+
         // For Glob tool, use the pattern as a pseudo-path
         if (event.tool_name?.toLowerCase() === 'glob' && event.tool_parameters?.pattern) {
             return `[glob] ${event.tool_parameters.pattern}`;
         }
-        
+
         // For Bash commands, try to extract file paths from the command
         if (event.tool_name?.toLowerCase() === 'bash' && event.tool_parameters?.command) {
             const command = event.tool_parameters.command;
@@ -374,7 +374,7 @@ class FileToolTracker {
                 return fileMatch[1];
             }
         }
-        
+
         return null;
     }
 
@@ -386,15 +386,15 @@ class FileToolTracker {
     extractFilePathFromPair(pair) {
         // Try pre_event first, then post_event
         let filePath = null;
-        
+
         if (pair.pre_event) {
             filePath = this.extractFilePath(pair.pre_event);
         }
-        
+
         if (!filePath && pair.post_event) {
             filePath = this.extractFilePath(pair.post_event);
         }
-        
+
         return filePath;
     }
 
@@ -405,7 +405,7 @@ class FileToolTracker {
      */
     getFileOperation(event) {
         if (!event.tool_name) return 'unknown';
-        
+
         const toolName = event.tool_name.toLowerCase();
         switch (toolName) {
             case 'read': return 'read';
@@ -416,7 +416,7 @@ class FileToolTracker {
             case 'grep': return 'search';
             case 'glob': return 'search';
             case 'ls': return 'list';
-            case 'bash': 
+            case 'bash':
                 // Check bash command for file operation type
                 const command = event.tool_parameters?.command || '';
                 if (command.match(/\b(cat|less|more|head|tail)\b/)) return 'read';
@@ -442,11 +442,11 @@ class FileToolTracker {
         if (pair.pre_event) {
             return this.getFileOperation(pair.pre_event);
         }
-        
+
         if (pair.post_event) {
             return this.getFileOperation(pair.post_event);
         }
-        
+
         return 'unknown';
     }
 
@@ -467,11 +467,11 @@ class FileToolTracker {
                 };
             }
         }
-        
+
         // Fallback to direct event properties
-        const agentName = event?.agent_type || event?.subagent_type || 
+        const agentName = event?.agent_type || event?.subagent_type ||
                           pair.pre_event?.agent_type || pair.post_event?.agent_type || 'PM';
-        
+
         return {
             name: agentName,
             confidence: 'direct'
@@ -485,14 +485,14 @@ class FileToolTracker {
      */
     getFileOperationDetailsFromPair(pair) {
         const details = {};
-        
+
         // Extract details from pre_event (parameters)
         if (pair.pre_event) {
             const params = pair.pre_event.tool_parameters || pair.pre_event.data?.tool_parameters || {};
             details.parameters = params;
             details.tool_input = pair.pre_event.tool_input;
         }
-        
+
         // Extract details from post_event (results)
         if (pair.post_event) {
             details.result = pair.post_event.result;
@@ -501,7 +501,7 @@ class FileToolTracker {
             details.exit_code = pair.post_event.exit_code;
             details.duration_ms = pair.post_event.duration_ms;
         }
-        
+
         return details;
     }
 
@@ -582,21 +582,21 @@ class FileToolTracker {
         // Extract parameters from both events
         const preParams = preEvent.tool_parameters || preEvent.data?.tool_parameters || {};
         const postParams = postEvent.tool_parameters || postEvent.data?.tool_parameters || {};
-        
+
         // If no parameters in either event, can't compare meaningfully
         if (Object.keys(preParams).length === 0 && Object.keys(postParams).length === 0) {
             return false; // No boost for empty parameters
         }
-        
+
         // Compare key parameters that are likely to be the same
         const importantParams = ['file_path', 'path', 'pattern', 'command', 'notebook_path'];
         let matchedParams = 0;
         let totalComparableParams = 0;
-        
+
         importantParams.forEach(param => {
             const preValue = preParams[param];
             const postValue = postParams[param];
-            
+
             if (preValue !== undefined || postValue !== undefined) {
                 totalComparableParams++;
                 if (preValue === postValue) {
@@ -604,26 +604,26 @@ class FileToolTracker {
                 }
             }
         });
-        
+
         // If we found comparable parameters, check if most match
         if (totalComparableParams > 0) {
             return (matchedParams / totalComparableParams) >= 0.8; // 80% parameter match threshold
         }
-        
+
         // If no important parameters to compare, check if the parameter structure is similar
         const preKeys = Object.keys(preParams).sort();
         const postKeys = Object.keys(postParams).sort();
-        
+
         if (preKeys.length === 0 && postKeys.length === 0) {
             return false;
         }
-        
+
         // Simple structural similarity check
         if (preKeys.length === postKeys.length) {
             const keyMatches = preKeys.filter(key => postKeys.includes(key)).length;
             return keyMatches >= Math.max(1, preKeys.length * 0.5); // At least 50% key overlap
         }
-        
+
         return false;
     }
 
@@ -642,14 +642,17 @@ class FileToolTracker {
                 };
             }
         }
-        
+
         // Fallback to direct event properties
-        const agentName = event.agent_type || event.subagent_type || 
+        const agentName = event.agent_type || event.subagent_type ||
                           event.data?.agent_type || event.data?.subagent_type || 'PM';
-        
+
         return {
             name: agentName,
             confidence: 'direct'
         };
     }
 }
+// ES6 Module export
+export { FileToolTracker };
+export default FileToolTracker;

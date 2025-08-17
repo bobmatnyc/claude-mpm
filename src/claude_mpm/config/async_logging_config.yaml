@@ -5,61 +5,61 @@ logging:
   # Enable async logging for improved performance
   async:
     enabled: true
-    
+
     # Log format options: json, syslog, journald
     format: json
-    
+
     # Maximum queue size for async writes
     max_queue_size: 10000
-    
+
     # Enable compression for JSON logs (reduces disk usage)
     compression: false
-    
+
     # Worker threads for async processing
     worker_threads: 4
-    
+
     # Flush timeout in seconds
     flush_timeout: 5.0
-  
+
   # Session logger settings
   session:
     # Base directory for logs
     base_dir: ".claude-mpm/responses"
-    
+
     # Use timestamp-based filenames (eliminates race conditions)
     timestamp_filenames: true
-    
+
     # Include microseconds in timestamps for uniqueness
     microsecond_precision: true
-    
+
     # Filename format with available variables:
     # {agent} - Agent name
     # {timestamp} - ISO timestamp
     # {microseconds} - Microsecond component
     # {session} - Session ID
     filename_format: "{agent}_{timestamp}_{microseconds}.json"
-  
+
   # OS-native logging options (for extreme performance)
   syslog:
     # Syslog address (auto-detected by default)
     # address: /var/run/syslog  # macOS
     # address: /dev/log         # Linux
     # address: ["localhost", 514]  # Network
-    
+
     # Syslog facility
     facility: local0
-    
+
     # Include structured data
     structured_data: true
-  
+
   # Performance tuning
   performance:
     # Fire-and-forget mode (don't wait for write confirmation)
     fire_and_forget: true
-    
+
     # Drop logs if queue is full (prevents blocking)
     drop_on_full: true
-    
+
     # Batch writes for efficiency
     batch_writes: true
     batch_size: 10
@@ -69,44 +69,44 @@ logging:
 hooks:
   # Enable hook system
   enabled: true
-  
+
   # Optimization settings
   optimization:
     # Cache hook configurations at startup
     cache_configs: true
-    
+
     # Lazy load hook implementations
     lazy_loading: true
-    
+
     # Use singleton pattern for hook service
     singleton: true
-    
+
     # Enable async hook execution
     async_execution: true
-    
+
     # Maximum workers for parallel hook execution
     max_workers: 4
-  
+
   # Pre-delegation hooks
   pre_delegation:
     enabled: true
-    
+
     # Parallel execution for independent hooks
     parallel_safe_hooks:
       - memory_context_hook
       - validation_hook
       - auth_hook
-  
+
   # Post-delegation hooks
   post_delegation:
     enabled: true
-    
+
     # Parallel execution for independent hooks
     parallel_safe_hooks:
       - logging_hook
       - metrics_hook
       - cleanup_hook
-  
+
   # Registered hooks with lazy loading
   registered:
     # NOTE: The builtin hooks have been deprecated and removed
@@ -118,7 +118,7 @@ hooks:
     #   enabled: true
     #   params:
     #     cache_size: 1000
-    # 
+    #
     # response_logger_hook:
     #   module: claude_mpm.hooks.builtin.logging_hooks
     #   class: ResponseLoggerHook
@@ -126,7 +126,7 @@ hooks:
     #   enabled: true
     #   params:
     #     async: true
-    # 
+    #
     # metrics_hook:
     #   module: claude_mpm.hooks.builtin.metrics_hooks
     #   class: MetricsCollectorHook

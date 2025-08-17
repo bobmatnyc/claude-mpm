@@ -71,12 +71,12 @@ find_port_process() {
 kill_port_process() {
     local port=$1
     local pid=$(find_port_process $port)
-    
+
     if [[ -n "$pid" ]]; then
         log_warning "Killing process $pid on port $port"
         kill -TERM $pid 2>/dev/null || true
         sleep 2
-        
+
         # Force kill if still running
         if kill -0 $pid 2>/dev/null; then
             kill -KILL $pid 2>/dev/null || true
@@ -87,35 +87,35 @@ kill_port_process() {
 # Check service dependencies
 check_dependencies() {
     log_info "Checking dependencies..."
-    
+
     local missing_deps=()
-    
+
     # Check Node.js
     if ! command -v node &> /dev/null; then
         missing_deps+=("node")
     fi
-    
+
     # Check npm/npx
     if ! command -v npx &> /dev/null; then
         missing_deps+=("npx")
     fi
-    
+
     # Check Python
     if ! command -v python3 &> /dev/null && ! command -v python &> /dev/null; then
         missing_deps+=("python3")
     fi
-    
+
     # Check required tools
     if ! command -v lsof &> /dev/null; then
         missing_deps+=("lsof")
     fi
-    
+
     if [[ ${#missing_deps[@]} -gt 0 ]]; then
         log_error "Missing dependencies: ${missing_deps[*]}"
         log_info "Please install missing dependencies and try again"
         return 1
     fi
-    
+
     log_success "All dependencies satisfied"
     return 0
 }
@@ -123,32 +123,32 @@ check_dependencies() {
 # Install MCP services if needed
 install_services() {
     log_info "Checking MCP service installations..."
-    
+
     # Check eva-memory
     if ! npm list -g @modelcontextprotocol/server-memory &>/dev/null; then
         log_info "Installing eva-memory service..."
         npm install -g @modelcontextprotocol/server-memory
     fi
-    
+
     # Check cloud bridge (example - adjust based on actual package)
     if ! npm list -g @aws/mcp-server-aws &>/dev/null; then
         log_info "Installing cloud bridge service..."
         npm install -g @aws/mcp-server-aws
     fi
-    
+
     # Check desktop gateway (example - adjust based on actual package)
     if ! pip show mcp-server-desktop &>/dev/null; then
         log_info "Installing desktop gateway service..."
         pip install mcp-server-desktop
     fi
-    
+
     log_success "All services installed"
 }
 
 # Setup environment variables
 setup_environment() {
     log_info "Setting up environment..."
-    
+
     # Create env file if it doesn't exist
     local env_file="$MCP_HOME/.env"
     if [[ ! -f "$env_file" ]]; then
@@ -173,7 +173,7 @@ export DESKTOP_GATEWAY_FILE_ACCESS_ENABLED="true"
 EOF
         log_success "Created environment file: $env_file"
     fi
-    
+
     # Source environment
     source "$env_file"
 }
@@ -194,9 +194,9 @@ stop_service() {
     local service=$1
     local port=$(get_service_port "$service")
     local pidfile="$MCP_PIDS/$service.pid"
-    
+
     log_info "Stopping $service..."
-    
+
     # Check pidfile
     if [[ -f "$pidfile" ]]; then
         local pid=$(cat "$pidfile")
@@ -209,36 +209,36 @@ stop_service() {
         fi
         rm -f "$pidfile"
     fi
-    
+
     # Also check port
     kill_port_process $port
-    
+
     log_success "$service stopped"
 }
 
 # Stop all services
 stop_all_services() {
     log_info "Stopping all MCP services..."
-    
+
     for service in "${SERVICE_NAMES[@]}"; do
         stop_service "$service"
     done
-    
+
     log_success "All services stopped"
 }
 
 # Clean up resources
 cleanup() {
     log_info "Cleaning up MCP resources..."
-    
+
     # Stop all services
     stop_all_services
-    
+
     # Clean old logs (keep last 7 days)
     if [[ -d "$MCP_LOGS" ]]; then
         find "$MCP_LOGS" -name "*.log" -mtime +7 -delete 2>/dev/null || true
     fi
-    
+
     # Remove stale pidfiles
     if [[ -d "$MCP_PIDS" ]]; then
         for pidfile in "$MCP_PIDS"/*.pid; do
@@ -250,7 +250,7 @@ cleanup() {
             fi
         done
     fi
-    
+
     log_success "Cleanup completed"
 }
 
@@ -259,40 +259,40 @@ show_status() {
     echo ""
     echo "MCP Service Status"
     echo "=================="
-    
+
     for i in "${!SERVICE_NAMES[@]}"; do
         local service="${SERVICE_NAMES[$i]}"
         local port="${SERVICE_PORTS[$i]}"
         local pidfile="$MCP_PIDS/$service.pid"
         local status="${RED}Stopped${NC}"
         local pid="N/A"
-        
+
         if [[ -f "$pidfile" ]]; then
             pid=$(cat "$pidfile")
             if kill -0 $pid 2>/dev/null; then
                 status="${GREEN}Running${NC}"
             fi
         fi
-        
+
         printf "%-20s Status: %b  PID: %-8s Port: %s\n" \
             "$service" "$status" "$pid" "$port"
     done
-    
+
     echo ""
 }
 
 # Start monitoring
 start_monitoring() {
     log_info "Starting MCP service monitoring..."
-    
+
     # Use the Python monitor script
     local monitor_script="$SCRIPT_DIR/monitor_mcp_services.py"
-    
+
     if [[ ! -f "$monitor_script" ]]; then
         log_error "Monitor script not found: $monitor_script"
         return 1
     fi
-    
+
     # Check if monitor is already running
     local monitor_pidfile="$MCP_PIDS/monitor.pid"
     if [[ -f "$monitor_pidfile" ]]; then
@@ -302,16 +302,16 @@ start_monitoring() {
             return 0
         fi
     fi
-    
+
     # Start monitor in background
     nohup python3 "$monitor_script" \
         --config "$MCP_CONFIG" \
         --log-dir "$MCP_LOGS" \
         > "$MCP_LOGS/monitor.out" 2>&1 &
-    
+
     local monitor_pid=$!
     echo $monitor_pid > "$monitor_pidfile"
-    
+
     log_success "Monitor started (PID: $monitor_pid)"
     log_info "Logs: $MCP_LOGS/monitor.out"
 }
@@ -319,7 +319,7 @@ start_monitoring() {
 # Stop monitoring
 stop_monitoring() {
     log_info "Stopping MCP monitor..."
-    
+
     local monitor_pidfile="$MCP_PIDS/monitor.pid"
     if [[ -f "$monitor_pidfile" ]]; then
         local monitor_pid=$(cat "$monitor_pidfile")
@@ -332,14 +332,14 @@ stop_monitoring() {
         fi
         rm -f "$monitor_pidfile"
     fi
-    
+
     log_success "Monitor stopped"
 }
 
 # Show logs
 show_logs() {
     local service=${1:-}
-    
+
     if [[ -z "$service" ]]; then
         # Show monitor log
         if [[ -f "$MCP_LOGS/monitor.out" ]]; then
@@ -408,7 +408,7 @@ main() {
             while true; do
                 show_menu
                 read -p "Select option: " choice
-                
+
                 case $choice in
                     1)
                         setup_directories
@@ -445,7 +445,7 @@ main() {
                         log_error "Invalid option"
                         ;;
                 esac
-                
+
                 echo ""
                 read -p "Press Enter to continue..."
             done

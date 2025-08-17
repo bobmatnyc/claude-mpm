@@ -16,6 +16,6 @@ from .analyzer import ProjectAnalyzer
 from .registry import ProjectRegistry
 
 __all__ = [
-    'ProjectAnalyzer',
-    'ProjectRegistry',
+    "ProjectAnalyzer",
+    "ProjectRegistry",
 ]

@@ -2,13 +2,14 @@
 Claude-PM Init section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class ClaudePmInitGenerator(BaseSectionGenerator):
     """Generates the Claude-PM Init section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the claude-pm init section."""
         return """
@@ -43,22 +44,22 @@ claude-pm init --verify
 
 3. **MANDATORY: Core System Health Check**:
    ```bash
-   python -c "from claude_pm.core import validate_core_system; validate_core_system()"
+   python -c "from claude_mpm.core import validate_core_system; validate_core_system()"
    ```
 
 4. **MANDATORY: Agent Registry Health Check**:
    ```bash
-   python -c "from claude_pm.core.agent_registry import AgentRegistry; registry = AgentRegistry(); print(f'Registry health: {registry.health_check()}')"
+   python -c "from claude_mpm.core.agent_registry import AgentRegistry; registry = get_agent_registry(); print(f'Registry health: {registry.health_check()}')"
    ```
 
 5. **MANDATORY: Initialize Core Agents with Registry Discovery**:
    ```
    Agent Registry: Discover available agents and build capability mapping across all directories
-   
+
    Documentation Agent: Scan project documentation patterns and build operational understanding.
-   
+
    Version Control Agent: Confirm availability and provide Git status summary.
-   
+
    Data Engineer Agent: Verify data store connectivity and AI API availability.
    ```
 
@@ -88,10 +89,9 @@ claude-pm init --verify
 **Framework Health Monitoring:**
 ```bash
 # Check framework protection status
-python -c "from claude_pm.services.health_monitor import HealthMonitor; HealthMonitor().check_framework_health()"
+python -c "from claude_mpm.services.health_monitor import HealthMonitor; HealthMonitor().check_framework_health()"
 
 # Validate agent hierarchy
 claude-pm init --verify
-
 
 ---"""

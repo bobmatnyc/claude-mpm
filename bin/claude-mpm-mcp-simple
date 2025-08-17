@@ -1,0 +1,195 @@
+#!/usr/bin/env python3
+"""
+Claude MPM MCP Server Entry Point (Simplified)
+===============================================
+
+Simplified version that directly uses MCPGateway without complex dependencies.
+Falls back gracefully if certain components are missing.
+
+WHY: This provides a minimal but functional MCP server that uses the
+official MCP protocol even if some optional components are unavailable.
+
+Usage in Claude Desktop config:
+{
+  "mcpServers": {
+    "claude-mpm": {
+      "command": "claude-mpm-mcp-simple"
+    }
+  }
+}
+"""
+
+import sys
+import asyncio
+import logging
+from pathlib import Path
+from typing import Optional
+
+# Add the project root to Python path if needed
+project_root = Path(__file__).parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+# Import the MCPGateway - this is the critical component
+from src.claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
+
+
+class MinimalToolRegistry:
+    """
+    Minimal tool registry implementation for standalone use.
+    
+    WHY: If the full ToolRegistry isn't available, we need a simple
+    fallback that allows the server to run with basic functionality.
+    """
+    
+    def __init__(self):
+        self.tools = []
+    
+    async def initialize(self):
+        """Initialize the registry."""
+        return True
+    
+    def list_tools(self):
+        """List all registered tools."""
+        return self.tools
+    
+    def register_tool(self, tool, category="builtin"):
+        """Register a tool."""
+        try:
+            tool_def = tool.get_definition()
+            self.tools.append(tool_def)
+            return True
+        except:
+            return False
+    
+    async def invoke_tool(self, invocation):
+        """Invoke a tool by name."""
+        # This is a simplified implementation
+        # In production, tools would be properly invoked
+        from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolResult
+        
+        return MCPToolResult(
+            success=False,
+            data=None,
+            error=f"Tool invocation not implemented in minimal registry",
+            execution_time=0.0,
+            metadata={}
+        )
+    
+    async def shutdown(self):
+        """Shutdown the registry."""
+        pass
+
+
+async def main():
+    """
+    Main entry point for the simplified MCP server.
+    
+    WHY: This provides a minimal working MCP server using the official
+    protocol, with graceful fallbacks for missing components.
+    """
+    # Configure logging to stderr so it doesn't interfere with stdio protocol
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        stream=sys.stderr
+    )
+    
+    logger = logging.getLogger("MCPGatewaySimple")
+    
+    try:
+        # Try to import the full ToolRegistry, fall back to minimal if needed
+        registry = None
+        try:
+            from src.claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
+            registry = ToolRegistry()
+            await registry.initialize()
+            logger.info("Using full ToolRegistry")
+        except ImportError:
+            logger.warning("Full ToolRegistry not available, using minimal registry")
+            registry = MinimalToolRegistry()
+            await registry.initialize()
+        
+        # Try to register available tools
+        tools_registered = 0
+        
+        # Try basic tools
+        try:
+            from src.claude_mpm.services.mcp_gateway.tools.base_adapter import (
+                EchoToolAdapter,
+                CalculatorToolAdapter,
+                SystemInfoToolAdapter,
+            )
+            
+            for tool_class in [EchoToolAdapter, CalculatorToolAdapter, SystemInfoToolAdapter]:
+                try:
+                    tool = tool_class()
+                    if await tool.initialize():
+                        if registry.register_tool(tool):
+                            tools_registered += 1
+                            logger.info(f"Registered tool: {tool.get_definition().name}")
+                except Exception as e:
+                    logger.warning(f"Could not register {tool_class.__name__}: {e}")
+        except ImportError:
+            logger.warning("Basic tools not available")
+        
+        # Try document summarizer tool
+        try:
+            from src.claude_mpm.services.mcp_gateway.tools.document_summarizer import DocumentSummarizerTool
+            
+            try:
+                tool = DocumentSummarizerTool()
+                if await tool.initialize():
+                    if registry.register_tool(tool):
+                        tools_registered += 1
+                        logger.info(f"Registered tool: {tool.get_definition().name}")
+            except Exception as e:
+                logger.warning(f"Could not register DocumentSummarizerTool: {e}")
+        except ImportError:
+            logger.warning("Document summarizer tool not available")
+        
+        # Try unified ticket tool
+        try:
+            from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import UnifiedTicketTool
+            
+            try:
+                tool = UnifiedTicketTool()
+                if await tool.initialize():
+                    if registry.register_tool(tool):
+                        tools_registered += 1
+                        logger.info(f"Registered tool: {tool.get_definition().name}")
+            except Exception as e:
+                logger.warning(f"Could not register UnifiedTicketTool: {e}")
+        except ImportError:
+            logger.warning("Unified ticket tool not available")
+        
+        logger.info(f"Successfully registered {tools_registered} tools")
+        
+        # Create the MCP Gateway server with official MCP protocol
+        server = MCPGateway(
+            gateway_name="claude-mpm-gateway",
+            version="1.0.0"
+        )
+        
+        # Set the tool registry
+        server.set_tool_registry(registry)
+        
+        # Initialize the server
+        if not await server.initialize():
+            logger.error("Failed to initialize MCP server")
+            sys.exit(1)
+        
+        # Run the server (this handles stdio communication using official MCP protocol)
+        logger.info("Starting simplified MCP Gateway with official protocol")
+        await server.run()
+        
+    except KeyboardInterrupt:
+        # Handle graceful shutdown
+        logger.info("Received interrupt, shutting down")
+    except Exception as e:
+        logger.error(f"Server error: {e}", exc_info=True)
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -13,12 +13,14 @@ Services:
 - MemoryGuardian: Memory monitoring and process restart management
 """
 
+from .health_monitor import HealthMonitor
 from .logging import LoggingService
-from .monitoring import AdvancedHealthMonitor as HealthMonitor
 from .memory_guardian import MemoryGuardian
+from .monitoring import AdvancedHealthMonitor
 
 __all__ = [
-    'LoggingService',
-    'HealthMonitor',
-    'MemoryGuardian',
+    "LoggingService",
+    "AdvancedHealthMonitor",  # For SocketIO server monitoring
+    "HealthMonitor",  # For Memory Guardian system monitoring
+    "MemoryGuardian",
 ]

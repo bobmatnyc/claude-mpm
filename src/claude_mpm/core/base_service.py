@@ -18,19 +18,17 @@ Provides:
 
 import asyncio
 import logging
-import signal
-import sys
 import os
+import signal
+import threading
 import time
 import traceback
-import threading
 from abc import ABC, abstractmethod
+from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union, Type, Callable
 from pathlib import Path
-from contextlib import asynccontextmanager
-import json
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 from .config import Config
 from .logger import setup_logging
@@ -40,6 +38,7 @@ from .mixins import LoggerMixin
 @dataclass
 class ServiceHealth:
     """Service health status information."""
+
     status: str  # healthy, degraded, unhealthy, unknown
     message: str
     timestamp: str
@@ -50,6 +49,7 @@ class ServiceHealth:
 @dataclass
 class ServiceMetrics:
     """Service metrics collection."""
+
     requests_total: int = 0
     requests_failed: int = 0
     response_time_avg: float = 0.0
@@ -61,6 +61,7 @@ class ServiceMetrics:
 @dataclass
 class ServiceContext:
     """Service execution context with request tracking (enhanced feature)."""
+
     request_id: str
     start_time: float
     service_name: str
@@ -71,6 +72,7 @@ class ServiceContext:
 @dataclass
 class CircuitBreakerState:
     """Circuit breaker state for service resilience (enhanced feature)."""
+
     failure_count: int = 0
     last_failure_time: Optional[float] = None
     state: str = "closed"  # closed, open, half_open
@@ -100,12 +102,12 @@ class BaseService(LoggerMixin, ABC):
     """
 
     def __init__(
-        self, 
-        name: str, 
-        config: Optional[Dict[str, Any]] = None, 
+        self,
+        name: str,
+        config: Optional[Dict[str, Any]] = None,
         config_path: Optional[Path] = None,
         enable_enhanced_features: bool = False,
-        container: Optional[Any] = None
+        container: Optional[Any] = None,
     ):
         """
         Initialize the base service.
@@ -121,9 +123,11 @@ class BaseService(LoggerMixin, ABC):
         self.config = Config(config or {}, config_path)
         self._enable_enhanced = enable_enhanced_features
         self._container = container
-        
+
         # Set custom logger name based on service name
-        self._logger_name = f"{self.__class__.__module__}.{self.__class__.__name__}.{name}"
+        self._logger_name = (
+            f"{self.__class__.__module__}.{self.__class__.__name__}.{name}"
+        )
 
         # Service state
         self._running = False
@@ -133,7 +137,9 @@ class BaseService(LoggerMixin, ABC):
 
         # Health and metrics
         self._health = ServiceHealth(
-            status="unknown", message="Service not started", timestamp=datetime.now().isoformat()
+            status="unknown",
+            message="Service not started",
+            timestamp=datetime.now().isoformat(),
         )
         self._metrics = ServiceMetrics()
         self._last_health_check: Optional[float] = None
@@ -144,39 +150,39 @@ class BaseService(LoggerMixin, ABC):
         # Enhanced features (only initialized if enabled)
         if self._enable_enhanced:
             self._init_enhanced_features()
-        
+
         # Check for quiet mode
         default_log_level = "INFO"
-        if os.getenv('CLAUDE_PM_QUIET_MODE') == 'true':
+        if os.getenv("CLAUDE_PM_QUIET_MODE") == "true":
             default_log_level = "WARNING"
             self.logger.setLevel(logging.WARNING)
-        
+
         # Only log if not in quiet mode
-        if not os.environ.get('CLAUDE_PM_QUIET_MODE', '').lower() == 'true':
+        if not os.environ.get("CLAUDE_PM_QUIET_MODE", "").lower() == "true":
             self.logger.info(f"Initialized {self.name} service")
 
     def _init_enhanced_features(self):
         """Initialize enhanced features when enabled."""
         # Circuit breaker for resilience
         self._circuit_breaker = CircuitBreakerState()
-        
+
         # Error tracking
         self._error_counts: Dict[str, int] = {}
-        
+
         # Request tracking
         self._request_contexts: Dict[str, ServiceContext] = {}
-        
+
         # Performance metrics
         self._performance_metrics: Dict[str, List[float]] = {}
-        
+
         # Thread safety
         self._lock = threading.RLock()
-        
+
         # Optional service dependencies
         self._health_monitor: Optional[Any] = None
         self._error_handler: Optional[Any] = None
         self._cache: Optional[Any] = None
-        
+
         # Register dependencies if container provided
         if self._container:
             self._register_service_dependencies()
@@ -231,9 +237,11 @@ class BaseService(LoggerMixin, ABC):
                 timestamp=datetime.now().isoformat(),
                 checks={"startup": False},
             )
-            
-            if self._enable_enhanced and hasattr(self, '_handle_error'):
-                await self._handle_error(e, {"operation": "start", "service": self.name})
+
+            if self._enable_enhanced and hasattr(self, "_handle_error"):
+                await self._handle_error(
+                    e, {"operation": "start", "service": self.name}
+                )
             raise
 
     async def _start_internal(self):
@@ -242,7 +250,7 @@ class BaseService(LoggerMixin, ABC):
         self._setup_signal_handlers()
 
         # Initialize dependencies if enhanced
-        if self._enable_enhanced and hasattr(self, '_initialize_dependencies'):
+        if self._enable_enhanced and hasattr(self, "_initialize_dependencies"):
             await self._initialize_dependencies()
 
         # Initialize service
@@ -252,7 +260,7 @@ class BaseService(LoggerMixin, ABC):
         await self._start_background_tasks()
 
         # Register with health monitor if available
-        if self._enable_enhanced and hasattr(self, '_register_with_health_monitor'):
+        if self._enable_enhanced and hasattr(self, "_register_with_health_monitor"):
             await self._register_with_health_monitor()
 
         # Mark as running
@@ -265,7 +273,7 @@ class BaseService(LoggerMixin, ABC):
             message="Service started successfully",
             timestamp=datetime.now().isoformat(),
             checks={"startup": True},
-            metrics=self._get_health_metrics() if self._enable_enhanced else {}
+            metrics=self._get_health_metrics() if self._enable_enhanced else {},
         )
 
     async def stop(self) -> None:
@@ -295,7 +303,7 @@ class BaseService(LoggerMixin, ABC):
             raise
         except Exception as e:
             self.logger.error(f"Error stopping service {self.name}: {e}")
-            if self._enable_enhanced and hasattr(self, '_handle_error'):
+            if self._enable_enhanced and hasattr(self, "_handle_error"):
                 await self._handle_error(e, {"operation": "stop", "service": self.name})
             raise
 
@@ -305,7 +313,7 @@ class BaseService(LoggerMixin, ABC):
         self._stop_event.set()
 
         # Unregister from health monitor if available
-        if self._enable_enhanced and hasattr(self, '_unregister_from_health_monitor'):
+        if self._enable_enhanced and hasattr(self, "_unregister_from_health_monitor"):
             await self._unregister_from_health_monitor()
 
         # Cancel background tasks
@@ -346,7 +354,7 @@ class BaseService(LoggerMixin, ABC):
         """
         try:
             # Use enhanced health check if enabled
-            if self._enable_enhanced and hasattr(self, '_enhanced_health_check'):
+            if self._enable_enhanced and hasattr(self, "_enhanced_health_check"):
                 return await self._enhanced_health_check()
 
             # Basic health check
@@ -412,8 +420,11 @@ class BaseService(LoggerMixin, ABC):
 
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
+
         def signal_handler(signum, frame):
-            self.logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+            self.logger.info(
+                f"Received signal {signum}, initiating graceful shutdown..."
+            )
             asyncio.create_task(self.stop())
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -472,6 +483,7 @@ class BaseService(LoggerMixin, ABC):
             # Memory usage (basic implementation)
             try:
                 import psutil
+
                 process = psutil.Process()
                 self._metrics.memory_usage_mb = process.memory_info().rss / 1024 / 1024
             except ImportError:
@@ -484,72 +496,76 @@ class BaseService(LoggerMixin, ABC):
             self.logger.warning(f"Failed to collect metrics: {e}")
 
     # Enhanced features (conditionally included)
-    
+
     @asynccontextmanager
     async def _service_operation(self, operation: str):
         """Context manager for tracking service operations (enhanced feature)."""
         if not self._enable_enhanced:
             yield
             return
-            
+
         request_id = f"{self.name}_{operation}_{time.time()}"
         context = ServiceContext(
             request_id=request_id,
             start_time=time.time(),
             service_name=self.name,
-            operation=operation
+            operation=operation,
         )
-        
+
         self._request_contexts[request_id] = context
-        
+
         try:
             yield context
-            
+
             # Record success metrics
             duration = time.time() - context.start_time
             self._record_operation_metrics(operation, duration, success=True)
-            
+
         except Exception as e:
             # Record failure metrics
             duration = time.time() - context.start_time
             self._record_operation_metrics(operation, duration, success=False)
-            
+
             # Update error counts
             error_type = type(e).__name__
             self._error_counts[error_type] = self._error_counts.get(error_type, 0) + 1
-            
+
             raise
-        
+
         finally:
             # Cleanup context
             self._request_contexts.pop(request_id, None)
 
-    def _record_operation_metrics(self, operation: str, duration: float, success: bool) -> None:
+    def _record_operation_metrics(
+        self, operation: str, duration: float, success: bool
+    ) -> None:
         """Record operation performance metrics (enhanced feature)."""
         if not self._enable_enhanced:
             return
-            
+
         with self._lock:
             # Update general metrics
             self._metrics.requests_total += 1
             if not success:
                 self._metrics.requests_failed += 1
-            
+
             # Update performance tracking
             if operation not in self._performance_metrics:
                 self._performance_metrics[operation] = []
-            
+
             self._performance_metrics[operation].append(duration)
-            
+
             # Keep only recent metrics (last 100 operations)
             if len(self._performance_metrics[operation]) > 100:
-                self._performance_metrics[operation] = self._performance_metrics[operation][-100:]
-            
+                self._performance_metrics[operation] = self._performance_metrics[
+                    operation
+                ][-100:]
+
             # Calculate average
             all_times = []
             for times in self._performance_metrics.values():
                 all_times.extend(times)
-            
+
             if all_times:
                 self._metrics.response_time_avg = sum(all_times) / len(all_times)
 
@@ -560,32 +576,34 @@ class BaseService(LoggerMixin, ABC):
             if self._circuit_breaker.state == "open":
                 if self._should_attempt_circuit_recovery():
                     self._circuit_breaker.state = "half_open"
-                    self.logger.info(f"Circuit breaker for {self.name} moved to half-open")
+                    self.logger.info(
+                        f"Circuit breaker for {self.name} moved to half-open"
+                    )
                 else:
                     return ServiceHealth(
                         status="degraded",
                         message="Service circuit breaker is open",
                         timestamp=datetime.now().isoformat(),
                         checks={"circuit_breaker": False},
-                        metrics=self._get_health_metrics()
+                        metrics=self._get_health_metrics(),
                     )
-            
+
             # Perform standard health check
             health = await self.health_check()
-            
+
             # Update circuit breaker
             if health.status in ["healthy", "degraded"]:
                 self._record_circuit_success()
             else:
                 self._record_circuit_failure()
-            
+
             return health
 
     def _should_attempt_circuit_recovery(self) -> bool:
         """Check if circuit breaker should attempt recovery."""
         if not self._enable_enhanced or self._circuit_breaker.last_failure_time is None:
             return True
-        
+
         time_since_failure = time.time() - self._circuit_breaker.last_failure_time
         return time_since_failure >= self._circuit_breaker.timeout_seconds
 
@@ -593,11 +611,14 @@ class BaseService(LoggerMixin, ABC):
         """Record circuit breaker failure."""
         if not self._enable_enhanced:
             return
-            
+
         self._circuit_breaker.failure_count += 1
         self._circuit_breaker.last_failure_time = time.time()
-        
-        if self._circuit_breaker.failure_count >= self._circuit_breaker.failure_threshold:
+
+        if (
+            self._circuit_breaker.failure_count
+            >= self._circuit_breaker.failure_threshold
+        ):
             if self._circuit_breaker.state != "open":
                 self._circuit_breaker.state = "open"
                 self.logger.warning(f"Circuit breaker opened for service {self.name}")
@@ -606,14 +627,18 @@ class BaseService(LoggerMixin, ABC):
         """Record circuit breaker success."""
         if not self._enable_enhanced:
             return
-            
+
         if self._circuit_breaker.state == "half_open":
-            self._circuit_breaker.failure_count = max(0, self._circuit_breaker.failure_count - 1)
+            self._circuit_breaker.failure_count = max(
+                0, self._circuit_breaker.failure_count - 1
+            )
             if self._circuit_breaker.failure_count == 0:
                 self._circuit_breaker.state = "closed"
                 self.logger.info(f"Circuit breaker closed for service {self.name}")
         elif self._circuit_breaker.state == "closed":
-            self._circuit_breaker.failure_count = max(0, self._circuit_breaker.failure_count - 1)
+            self._circuit_breaker.failure_count = max(
+                0, self._circuit_breaker.failure_count - 1
+            )
 
     def _get_health_metrics(self) -> Dict[str, Any]:
         """Get metrics for health status."""
@@ -623,22 +648,24 @@ class BaseService(LoggerMixin, ABC):
             "requests_failed": self._metrics.requests_failed,
             "response_time_avg": self._metrics.response_time_avg,
         }
-        
+
         if self._enable_enhanced:
-            base_metrics.update({
-                "circuit_breaker_state": self._circuit_breaker.state,
-                "error_counts": self._error_counts.copy()
-            })
-        
+            base_metrics.update(
+                {
+                    "circuit_breaker_state": self._circuit_breaker.state,
+                    "error_counts": self._error_counts.copy(),
+                }
+            )
+
         return base_metrics
 
     async def _handle_error(self, error: Exception, context: Dict[str, Any]) -> None:
         """Handle service errors with context (enhanced feature)."""
         if not self._enable_enhanced:
             return
-            
+
         try:
-            if hasattr(self, '_error_handler') and self._error_handler:
+            if hasattr(self, "_error_handler") and self._error_handler:
                 await self._error_handler.handle_error(error, context)
             else:
                 # Default error handling
@@ -647,8 +674,8 @@ class BaseService(LoggerMixin, ABC):
                     extra={
                         "service": self.name,
                         "context": context,
-                        "traceback": traceback.format_exc()
-                    }
+                        "traceback": traceback.format_exc(),
+                    },
                 )
         except Exception as handler_error:
             self.logger.error(f"Error handler failed: {handler_error}")
@@ -657,14 +684,16 @@ class BaseService(LoggerMixin, ABC):
         """Register service dependencies (enhanced feature)."""
         if not self._container:
             return
-            
+
         try:
             # Get optional dependencies from container
             # This is a simplified version - real implementation would use interfaces
-            if hasattr(self._container, 'get_service'):
-                self._health_monitor = self._container.get_service('IHealthMonitor', None)
-                self._error_handler = self._container.get_service('IErrorHandler', None)
-                self._cache = self._container.get_service('ICacheService', None)
+            if hasattr(self._container, "get_service"):
+                self._health_monitor = self._container.get_service(
+                    "IHealthMonitor", None
+                )
+                self._error_handler = self._container.get_service("IErrorHandler", None)
+                self._cache = self._container.get_service("ICacheService", None)
         except Exception as e:
             self.logger.warning(f"Failed to register dependencies for {self.name}: {e}")
 
@@ -721,29 +750,29 @@ class BaseService(LoggerMixin, ABC):
 
     async def _collect_custom_metrics(self) -> None:
         """Collect custom metrics. Override in subclasses.
-        
+
         METRICS COLLECTION PATTERN:
         This method is called periodically by the metrics task to collect
         service-specific metrics. Subclasses should override this to:
-        
+
         1. COLLECT OPERATIONAL METRICS:
            - Request rates and latencies
            - Queue depths and processing times
            - Error rates by type
            - Resource utilization
-        
+
         2. COLLECT BUSINESS METRICS:
            - Agent usage patterns
            - Model selection distribution
            - Task complexity trends
            - Cost tracking metrics
-        
+
         3. COLLECT PERFORMANCE METRICS:
            - Cache hit rates
            - Database query times
            - API call latencies
            - Memory usage patterns
-        
+
         EXAMPLE IMPLEMENTATION:
         ```python
         async def _collect_custom_metrics(self) -> None:
@@ -754,7 +783,7 @@ class BaseService(LoggerMixin, ABC):
                     cache_hit_rate=loader_metrics['cache_hit_rate_percent'],
                     top_agents=loader_metrics['top_agents_by_usage']
                 )
-            
+
             # Collect deployment metrics
             if hasattr(self, 'deployment_service'):
                 deploy_metrics = self.deployment_service.get_deployment_metrics()
@@ -762,7 +791,7 @@ class BaseService(LoggerMixin, ABC):
                     deployment_success_rate=deploy_metrics['success_rate_percent'],
                     avg_deployment_time=deploy_metrics['average_deployment_time_ms']
                 )
-            
+
             # Collect resource metrics
             import psutil
             process = psutil.Process()
@@ -773,7 +802,7 @@ class BaseService(LoggerMixin, ABC):
                 thread_count=process.num_threads()
             )
         ```
-        
+
         BEST PRACTICES:
         - Keep collection fast (< 100ms)
         - Handle errors gracefully

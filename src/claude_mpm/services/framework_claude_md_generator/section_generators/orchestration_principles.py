@@ -2,13 +2,14 @@
 Orchestration principles section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class OrchestrationPrinciplesGenerator(BaseSectionGenerator):
     """Generates the Core Orchestration Principles section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the orchestration principles section."""
         return """

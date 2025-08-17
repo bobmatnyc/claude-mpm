@@ -25,7 +25,7 @@ create_github_issue() {
     local description=$3
     local priority=$4
     local epic_ref=$5
-    
+
     # Map priority
     local gh_priority="priority:medium"
     case $priority in
@@ -33,24 +33,24 @@ create_github_issue() {
         "high") gh_priority="priority:high" ;;
         "medium") gh_priority="priority:medium" ;;
     esac
-    
+
     # Create issue body
     local body="## Description
 $description
 
 ## Related to
 - AI Trackdown: $ticket_id"
-    
+
     if [ -n "$epic_ref" ]; then
         body="$body
 - EPIC: #$epic_ref"
     fi
-    
+
     body="$body
 
 ## Priority
 $priority"
-    
+
     # Create the issue
     gh issue create --title "$title" --body "$body" --label "enhancement,multi-agent,$gh_priority"
 }
@@ -59,7 +59,7 @@ $priority"
 update_ticket_with_github() {
     local ticket_id=$1
     local github_issue=$2
-    
+
     echo -e "${YELLOW}Note: Manual update needed for $ticket_id${NC}"
     echo "Add to ticket description: 'GitHub Issue: #$github_issue'"
     echo "./ticket update $ticket_id -d \"Updated description with GitHub Issue: #$github_issue\""
@@ -73,9 +73,9 @@ while true; do
     echo "2. Create GitHub issue from ticket"
     echo "3. Update ticket with GitHub reference"
     echo "4. Exit"
-    
+
     read -p "Select option: " option
-    
+
     case $option in
         1)
             echo -e "\n${GREEN}Current GitHub Issues:${NC}"
@@ -89,13 +89,13 @@ while true; do
             read -p "Enter description: " description
             read -p "Enter priority (critical/high/medium): " priority
             read -p "Enter EPIC GitHub issue # (or leave empty): " epic_ref
-            
+
             create_github_issue "$ticket_id" "$title" "$description" "$priority" "$epic_ref"
             ;;
         3)
             read -p "Enter ticket ID: " ticket_id
             read -p "Enter GitHub issue number: " github_issue
-            
+
             update_ticket_with_github "$ticket_id" "$github_issue"
             ;;
         4)

@@ -19,16 +19,15 @@ DOCUMENTATION_CONFIG = {
         "api_documentation",
         "version_documentation",
         "operational_docs",
-        "quality_assurance"
+        "quality_assurance",
     ],
     "primary_interface": "documentation_management",
     "performance_targets": {
         "changelog_generation": "5m",
         "documentation_update": "24h",
-        "coverage_target": "90%"
-    }
+        "coverage_target": "90%",
+    },
 }
-
 
 # Version Control Agent Metadata
 VERSION_CONTROL_CONFIG = {
@@ -42,15 +41,15 @@ VERSION_CONTROL_CONFIG = {
         "semantic_versioning",
         "tag_management",
         "release_coordination",
-        "version_file_updates"
+        "version_file_updates",
     ],
     "primary_interface": "git_cli",
     "performance_targets": {
         "branch_creation": "5s",
         "merge_operation": "30s",
         "version_bump": "10s",
-        "conflict_resolution": "5m"
-    }
+        "conflict_resolution": "5m",
+    },
 }
 
 # QA Agent Metadata
@@ -65,15 +64,15 @@ QA_CONFIG = {
         "performance_testing",
         "security_testing",
         "regression_testing",
-        "test_automation"
+        "test_automation",
     ],
     "primary_interface": "testing_framework",
     "performance_targets": {
         "unit_test_suite": "5m",
         "integration_tests": "15m",
         "full_test_suite": "30m",
-        "coverage_target": "80%"
-    }
+        "coverage_target": "80%",
+    },
 }
 
 # Research Agent Metadata
@@ -88,14 +87,14 @@ RESEARCH_CONFIG = {
         "performance_analysis",
         "security_research",
         "market_analysis",
-        "feasibility_studies"
+        "feasibility_studies",
     ],
     "primary_interface": "research_tools",
     "performance_targets": {
         "quick_research": "15m",
         "deep_analysis": "2h",
-        "comprehensive_report": "24h"
-    }
+        "comprehensive_report": "24h",
+    },
 }
 
 # Ops Agent Metadata
@@ -110,15 +109,15 @@ OPS_CONFIG = {
         "ci_cd_pipeline",
         "containerization",
         "cloud_services",
-        "performance_optimization"
+        "performance_optimization",
     ],
     "primary_interface": "deployment_tools",
     "performance_targets": {
         "deployment": "10m",
         "rollback": "5m",
         "infrastructure_update": "30m",
-        "monitoring_setup": "1h"
-    }
+        "monitoring_setup": "1h",
+    },
 }
 
 # Security Agent Metadata
@@ -133,15 +132,15 @@ SECURITY_CONFIG = {
         "code_security_review",
         "dependency_scanning",
         "security_patching",
-        "compliance_checking"
+        "compliance_checking",
     ],
     "primary_interface": "security_tools",
     "performance_targets": {
         "quick_scan": "10m",
         "full_audit": "2h",
         "penetration_test": "4h",
-        "dependency_scan": "30m"
-    }
+        "dependency_scan": "30m",
+    },
 }
 
 # Engineer Agent Metadata
@@ -156,15 +155,15 @@ ENGINEER_CONFIG = {
         "code_refactoring",
         "performance_optimization",
         "api_development",
-        "database_design"
+        "database_design",
     ],
     "primary_interface": "development_tools",
     "performance_targets": {
         "feature_implementation": "4h",
         "bug_fix": "1h",
         "code_review": "30m",
-        "refactoring": "2h"
-    }
+        "refactoring": "2h",
+    },
 }
 
 # Data Engineer Agent Metadata
@@ -180,15 +179,15 @@ DATA_ENGINEER_CONFIG = {
         "data_migration",
         "api_key_management",
         "data_analytics",
-        "schema_design"
+        "schema_design",
     ],
     "primary_interface": "data_management_tools",
     "performance_targets": {
         "pipeline_setup": "2h",
         "data_migration": "4h",
         "api_integration": "1h",
-        "schema_update": "30m"
-    }
+        "schema_update": "30m",
+    },
 }
 
 # Project Organizer Agent Metadata
@@ -203,15 +202,15 @@ PROJECT_ORGANIZER_CONFIG = {
         "convention_enforcement",
         "batch_reorganization",
         "framework_recognition",
-        "documentation_maintenance"
+        "documentation_maintenance",
     ],
     "primary_interface": "organization_tools",
     "performance_targets": {
         "structure_analysis": "2m",
         "file_placement": "10s",
         "validation_scan": "5m",
-        "batch_reorganization": "15m"
-    }
+        "batch_reorganization": "15m",
+    },
 }
 
 # Aggregate all configs for easy access
@@ -224,5 +223,5 @@ ALL_AGENT_CONFIGS = {
     "security": SECURITY_CONFIG,
     "engineer": ENGINEER_CONFIG,
     "data_engineer": DATA_ENGINEER_CONFIG,
-    "project_organizer": PROJECT_ORGANIZER_CONFIG
+    "project_organizer": PROJECT_ORGANIZER_CONFIG,
 }

@@ -19,7 +19,7 @@
     "color": "orange"
   },
   "capabilities": {
-    "model": "opus",
+    "model": "sonnet",
     "tools": [
       "Read",
       "Write",

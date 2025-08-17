@@ -5,16 +5,17 @@ Handles loading configuration from files, environment variables,
 and default values with proper validation and type conversion.
 """
 
+import json
+import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List, Tuple
-import logging
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import yaml
-import json
 
 from ..utils.config_manager import ConfigurationManager
-from .config_paths import ConfigPaths
-from .exceptions import ConfigurationError
+from .unified_paths import get_path_manager
+from .exceptions import ConfigurationError, FileOperationError
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ class Config:
 
         # Track where configuration was loaded from
         self._loaded_from = None
-        
+
         # Load from file if provided
         if config_file:
             self.load_file(config_file)
@@ -81,7 +82,7 @@ class Config:
 
     def load_file(self, file_path: Union[str, Path]) -> None:
         """Load configuration from file with enhanced error handling.
-        
+
         WHY: Configuration loading failures can cause silent issues. We need
         to provide clear, actionable error messages to help users fix problems.
         """
@@ -89,7 +90,9 @@ class Config:
 
         if not file_path.exists():
             logger.warning(f"Configuration file not found: {file_path}")
-            logger.info(f"TIP: Create a configuration file with: mkdir -p {file_path.parent} && touch {file_path}")
+            logger.info(
+                f"TIP: Create a configuration file with: mkdir -p {file_path.parent} && touch {file_path}"
+            )
             return
 
         try:
@@ -98,46 +101,71 @@ class Config:
                 logger.error(f"Configuration file is not readable: {file_path}")
                 logger.info(f"TIP: Fix permissions with: chmod 644 {file_path}")
                 return
-                
+
             # Check file size (warn if too large)
             file_size = file_path.stat().st_size
             if file_size > 1024 * 1024:  # 1MB
-                logger.warning(f"Configuration file is large ({file_size} bytes): {file_path}")
-                
+                logger.warning(
+                    f"Configuration file is large ({file_size} bytes): {file_path}"
+                )
+
             # Try to load the configuration
             file_config = self._config_mgr.load_auto(file_path)
             if file_config:
                 self._config = self._config_mgr.merge_configs(self._config, file_config)
                 logger.info(f"✓ Successfully loaded configuration from {file_path}")
-                
+
                 # Log important configuration values for debugging
                 if logger.isEnabledFor(logging.DEBUG):
-                    response_logging = file_config.get('response_logging', {})
+                    response_logging = file_config.get("response_logging", {})
                     if response_logging:
-                        logger.debug(f"Response logging enabled: {response_logging.get('enabled', False)}")
-                        logger.debug(f"Response logging format: {response_logging.get('format', 'json')}")
+                        logger.debug(
+                            f"Response logging enabled: {response_logging.get('enabled', False)}"
+                        )
+                        logger.debug(
+                            f"Response logging format: {response_logging.get('format', 'json')}"
+                        )
 
         except yaml.YAMLError as e:
             logger.error(f"YAML syntax error in {file_path}: {e}")
-            if hasattr(e, 'problem_mark'):
+            if hasattr(e, "problem_mark"):
                 mark = e.problem_mark
                 logger.error(f"Error at line {mark.line + 1}, column {mark.column + 1}")
-            logger.info("TIP: Validate your YAML at https://www.yamllint.com/ or run: python scripts/validate_configuration.py")
-            logger.info("TIP: Common issue - YAML requires spaces, not tabs. Fix with: sed -i '' 's/\t/    /g' " + str(file_path))
+            logger.info(
+                "TIP: Validate your YAML at https://www.yamllint.com/ or run: python scripts/validate_configuration.py"
+            )
+            logger.info(
+                "TIP: Common issue - YAML requires spaces, not tabs. Fix with: sed -i '' 's/\t/    /g' "
+                + str(file_path)
+            )
             # Store error for later retrieval
-            self._config['_load_error'] = str(e)
-            
+            self._config["_load_error"] = str(e)
+
         except json.JSONDecodeError as e:
             logger.error(f"JSON syntax error in {file_path}: {e}")
             logger.error(f"Error at line {e.lineno}, column {e.colno}")
             logger.info("TIP: Validate your JSON at https://jsonlint.com/")
-            self._config['_load_error'] = str(e)
-            
+            self._config["_load_error"] = str(e)
+
+        except (OSError, IOError, PermissionError) as e:
+            raise FileOperationError(
+                f"Failed to read configuration file: {e}",
+                context={
+                    "file_path": str(file_path),
+                    "operation": "read",
+                    "error_type": type(e).__name__,
+                },
+            )
         except Exception as e:
-            logger.error(f"Failed to load configuration from {file_path}: {e}")
-            logger.info("TIP: Check file permissions and format (YAML/JSON)")
-            logger.info("TIP: Run validation with: python scripts/validate_configuration.py")
-            self._config['_load_error'] = str(e)
+            # Catch any remaining unexpected errors and wrap them as configuration errors
+            raise ConfigurationError(
+                f"Unexpected error loading configuration from {file_path}: {e}",
+                context={
+                    "file_path": str(file_path),
+                    "error_type": type(e).__name__,
+                    "original_error": str(e),
+                },
+            )
 
     def _load_env_vars(self) -> None:
         """Load configuration from environment variables."""
@@ -241,7 +269,7 @@ class Config:
                 "file_descriptors": 1000,
                 "max_clients": 1000,
                 "max_error_rate": 0.1,
-                "network_timeout": 2.0
+                "network_timeout": 2.0,
             },
             # Automatic recovery configuration
             "recovery": {
@@ -252,14 +280,14 @@ class Config:
                 "circuit_breaker": {
                     "failure_threshold": 5,
                     "timeout_seconds": 300,
-                    "success_threshold": 3
+                    "success_threshold": 3,
                 },
                 "strategy": {
                     "warning_threshold": 2,
                     "critical_threshold": 1,
                     "failure_window_seconds": 300,
-                    "min_recovery_interval": 60
-                }
+                    "min_recovery_interval": 60,
+                },
             },
             # Service management
             "graceful_shutdown_timeout": 30,
@@ -294,18 +322,26 @@ class Config:
                 "memory_usage_log_interval": 300,  # Log memory usage every 5 minutes
                 "max_memory_usage_mb": 2048,  # Warn if memory usage exceeds 2GB
                 "cleanup_on_startup": False,  # Don't auto-cleanup on startup
-                "compress_archives": True  # Compress archived files
+                "compress_archives": True,  # Compress archived files
             },
             # Evaluation system - Phase 2 Mirascope integration
             "enable_evaluation": True,
-            "evaluation_storage_path": str(ConfigPaths.get_user_config_dir() / "training"),
+            "evaluation_storage_path": str(
+                get_path_manager().get_user_config_dir() / "training"
+            ),
             "correction_capture_enabled": True,
             "correction_storage_rotation_days": 30,
             "evaluation_logging_enabled": True,
             "auto_prompt_improvement": False,  # Disabled by default for Phase 1
             # Mirascope evaluation settings
             "evaluation_provider": "auto",  # auto, openai, anthropic
-            "evaluation_criteria": ["correctness", "relevance", "completeness", "clarity", "helpfulness"],
+            "evaluation_criteria": [
+                "correctness",
+                "relevance",
+                "completeness",
+                "clarity",
+                "helpfulness",
+            ],
             "evaluation_caching_enabled": True,
             "evaluation_cache_ttl_hours": 24,
             "evaluation_cache_max_size": 1000,
@@ -337,23 +373,23 @@ class Config:
             "correction_compression_enabled": True,
             # Agent Memory System configuration
             "memory": {
-                "enabled": True,                    # Master switch for memory system
-                "auto_learning": True,              # Automatic learning extraction (changed default to True)
+                "enabled": True,  # Master switch for memory system
+                "auto_learning": True,  # Automatic learning extraction (changed default to True)
                 "limits": {
-                    "default_size_kb": 80,          # Default file size limit (80KB ~20k tokens)
-                    "max_sections": 10,             # Maximum sections per file
-                    "max_items_per_section": 15,    # Maximum items per section
-                    "max_line_length": 120          # Maximum line length
+                    "default_size_kb": 80,  # Default file size limit (80KB ~20k tokens)
+                    "max_sections": 10,  # Maximum sections per file
+                    "max_items_per_section": 15,  # Maximum items per section
+                    "max_line_length": 120,  # Maximum line length
                 },
                 "agent_overrides": {
-                    "research": {                   # Research agent override
-                        "size_kb": 120,             # Can have larger memory (120KB ~30k tokens)
-                        "auto_learning": True       # Enable auto learning
+                    "research": {  # Research agent override
+                        "size_kb": 120,  # Can have larger memory (120KB ~30k tokens)
+                        "auto_learning": True,  # Enable auto learning
                     },
-                    "qa": {                         # QA agent override
-                        "auto_learning": True       # Enable auto learning
-                    }
-                }
+                    "qa": {
+                        "auto_learning": True
+                    },  # QA agent override  # Enable auto learning
+                },
             },
             # Socket.IO server health and recovery configuration
             "socketio_server": {
@@ -370,8 +406,8 @@ class Config:
                         "memory_mb": 500,
                         "file_descriptors": 1000,
                         "max_clients": 1000,
-                        "max_error_rate": 0.1
-                    }
+                        "max_error_rate": 0.1,
+                    },
                 },
                 "recovery": {
                     "enabled": True,
@@ -380,35 +416,35 @@ class Config:
                     "circuit_breaker": {
                         "failure_threshold": 5,
                         "timeout_seconds": 300,
-                        "success_threshold": 3
+                        "success_threshold": 3,
                     },
                     "strategy": {
                         "warning_threshold": 2,
                         "critical_threshold": 1,
                         "failure_window_seconds": 300,
-                        "min_recovery_interval": 60
+                        "min_recovery_interval": 60,
                     },
                     "actions": {
                         "log_warning": True,
                         "clear_connections": True,
                         "restart_service": True,
-                        "emergency_stop": True
-                    }
-                }
+                        "emergency_stop": True,
+                    },
+                },
             },
             # Agent deployment configuration
             "agent_deployment": {
-                "excluded_agents": [],              # List of agent IDs to exclude from deployment
-                "exclude_dependencies": False,      # Whether to exclude agent dependencies too
-                "case_sensitive": False            # Whether agent name matching is case-sensitive
-            }
+                "excluded_agents": [],  # List of agent IDs to exclude from deployment
+                "exclude_dependencies": False,  # Whether to exclude agent dependencies too
+                "case_sensitive": False,  # Whether agent name matching is case-sensitive
+            },
         }
 
         # Apply defaults for missing keys
         for key, default_value in defaults.items():
             if key not in self._config:
                 self._config[key] = default_value
-        
+
         # Validate health and recovery configuration
         self._validate_health_recovery_config()
 
@@ -458,14 +494,36 @@ class Config:
             else:
                 raise ConfigurationError(
                     f"Unsupported configuration format: {format}",
-                    context={"format": format, "supported_formats": ["json", "yaml", "yml"]}
+                    context={
+                        "format": format,
+                        "supported_formats": ["json", "yaml", "yml"],
+                    },
                 )
 
             logger.info(f"Configuration saved to {file_path}")
 
+        except (OSError, IOError, PermissionError) as e:
+            raise FileOperationError(
+                f"Failed to write configuration file: {e}",
+                context={
+                    "file_path": str(file_path),
+                    "operation": "write",
+                    "format": format,
+                    "error_type": type(e).__name__,
+                },
+            )
         except Exception as e:
-            logger.error(f"Failed to save configuration to {file_path}: {e}")
-            raise
+            # Re-raise ConfigurationError as-is, wrap others
+            if isinstance(e, ConfigurationError):
+                raise
+            raise ConfigurationError(
+                f"Unexpected error saving configuration: {e}",
+                context={
+                    "file_path": str(file_path),
+                    "format": format,
+                    "error_type": type(e).__name__,
+                },
+            )
 
     def validate(self, schema: Dict[str, Any]) -> bool:
         """
@@ -494,7 +552,10 @@ class Config:
             return True
 
         except Exception as e:
-            logger.error(f"Configuration validation error: {e}")
+            # Validation errors should be logged but not raise exceptions
+            # since this method returns a boolean result
+            logger.error(f"Unexpected error during configuration validation: {e}")
+            logger.debug(f"Validation error details: {type(e).__name__}: {e}")
             return False
 
     def __getitem__(self, key: str) -> Any:
@@ -513,182 +574,216 @@ class Config:
         """Validate health monitoring and recovery configuration."""
         try:
             # Validate health thresholds
-            thresholds = self.get('health_thresholds', {})
-            if thresholds.get('cpu_percent', 0) < 0 or thresholds.get('cpu_percent', 0) > 100:
-                logger.warning("CPU threshold should be between 0-100, using default 80")
-                self.set('health_thresholds.cpu_percent', 80.0)
-            
-            if thresholds.get('memory_mb', 0) <= 0:
-                logger.warning("Memory threshold should be positive, using default 500MB")
-                self.set('health_thresholds.memory_mb', 500)
-            
-            if thresholds.get('max_error_rate', 0) < 0 or thresholds.get('max_error_rate', 0) > 1:
-                logger.warning("Error rate threshold should be between 0-1, using default 0.1")
-                self.set('health_thresholds.max_error_rate', 0.1)
-            
+            thresholds = self.get("health_thresholds", {})
+            if (
+                thresholds.get("cpu_percent", 0) < 0
+                or thresholds.get("cpu_percent", 0) > 100
+            ):
+                logger.warning(
+                    "CPU threshold should be between 0-100, using default 80"
+                )
+                self.set("health_thresholds.cpu_percent", 80.0)
+
+            if thresholds.get("memory_mb", 0) <= 0:
+                logger.warning(
+                    "Memory threshold should be positive, using default 500MB"
+                )
+                self.set("health_thresholds.memory_mb", 500)
+
+            if (
+                thresholds.get("max_error_rate", 0) < 0
+                or thresholds.get("max_error_rate", 0) > 1
+            ):
+                logger.warning(
+                    "Error rate threshold should be between 0-1, using default 0.1"
+                )
+                self.set("health_thresholds.max_error_rate", 0.1)
+
             # Validate recovery configuration
-            recovery_config = self.get('recovery', {})
-            if recovery_config.get('max_recovery_attempts', 0) <= 0:
-                logger.warning("Max recovery attempts should be positive, using default 5")
-                self.set('recovery.max_recovery_attempts', 5)
-            
+            recovery_config = self.get("recovery", {})
+            if recovery_config.get("max_recovery_attempts", 0) <= 0:
+                logger.warning(
+                    "Max recovery attempts should be positive, using default 5"
+                )
+                self.set("recovery.max_recovery_attempts", 5)
+
             # Validate circuit breaker configuration
-            cb_config = recovery_config.get('circuit_breaker', {})
-            if cb_config.get('failure_threshold', 0) <= 0:
-                logger.warning("Circuit breaker failure threshold should be positive, using default 5")
-                self.set('recovery.circuit_breaker.failure_threshold', 5)
-            
-            if cb_config.get('timeout_seconds', 0) <= 0:
-                logger.warning("Circuit breaker timeout should be positive, using default 300")
-                self.set('recovery.circuit_breaker.timeout_seconds', 300)
-            
+            cb_config = recovery_config.get("circuit_breaker", {})
+            if cb_config.get("failure_threshold", 0) <= 0:
+                logger.warning(
+                    "Circuit breaker failure threshold should be positive, using default 5"
+                )
+                self.set("recovery.circuit_breaker.failure_threshold", 5)
+
+            if cb_config.get("timeout_seconds", 0) <= 0:
+                logger.warning(
+                    "Circuit breaker timeout should be positive, using default 300"
+                )
+                self.set("recovery.circuit_breaker.timeout_seconds", 300)
+
         except Exception as e:
             logger.error(f"Error validating health/recovery configuration: {e}")
-    
+
     def get_health_monitoring_config(self) -> Dict[str, Any]:
         """Get health monitoring configuration with defaults."""
         base_config = {
-            'enabled': self.get('enable_health_monitoring', True),
-            'check_interval': self.get('health_check_interval', 30),
-            'history_size': self.get('health_history_size', 100),
-            'aggregation_window': self.get('health_aggregation_window', 300),
-            'thresholds': self.get('health_thresholds', {
-                'cpu_percent': 80.0,
-                'memory_mb': 500,
-                'file_descriptors': 1000,
-                'max_clients': 1000,
-                'max_error_rate': 0.1,
-                'network_timeout': 2.0
-            })
+            "enabled": self.get("enable_health_monitoring", True),
+            "check_interval": self.get("health_check_interval", 30),
+            "history_size": self.get("health_history_size", 100),
+            "aggregation_window": self.get("health_aggregation_window", 300),
+            "thresholds": self.get(
+                "health_thresholds",
+                {
+                    "cpu_percent": 80.0,
+                    "memory_mb": 500,
+                    "file_descriptors": 1000,
+                    "max_clients": 1000,
+                    "max_error_rate": 0.1,
+                    "network_timeout": 2.0,
+                },
+            ),
         }
-        
+
         # Merge with socketio-specific config if available
-        socketio_config = self.get('socketio_server.health_monitoring', {})
+        socketio_config = self.get("socketio_server.health_monitoring", {})
         if socketio_config:
             base_config.update(socketio_config)
-        
+
         return base_config
-    
+
     def get_recovery_config(self) -> Dict[str, Any]:
         """Get recovery configuration with defaults."""
-        base_config = self.get('recovery', {
-            'enabled': True,
-            'check_interval': 60,
-            'max_recovery_attempts': 5,
-            'recovery_timeout': 30,
-            'circuit_breaker': {
-                'failure_threshold': 5,
-                'timeout_seconds': 300,
-                'success_threshold': 3
+        base_config = self.get(
+            "recovery",
+            {
+                "enabled": True,
+                "check_interval": 60,
+                "max_recovery_attempts": 5,
+                "recovery_timeout": 30,
+                "circuit_breaker": {
+                    "failure_threshold": 5,
+                    "timeout_seconds": 300,
+                    "success_threshold": 3,
+                },
+                "strategy": {
+                    "warning_threshold": 2,
+                    "critical_threshold": 1,
+                    "failure_window_seconds": 300,
+                    "min_recovery_interval": 60,
+                },
             },
-            'strategy': {
-                'warning_threshold': 2,
-                'critical_threshold': 1,
-                'failure_window_seconds': 300,
-                'min_recovery_interval': 60
-            }
-        })
-        
+        )
+
         # Merge with socketio-specific config if available
-        socketio_config = self.get('socketio_server.recovery', {})
+        socketio_config = self.get("socketio_server.recovery", {})
         if socketio_config:
             base_config = self._config_mgr.merge_configs(base_config, socketio_config)
-        
+
         return base_config
 
     def validate_configuration(self) -> Tuple[bool, List[str], List[str]]:
         """Validate the loaded configuration programmatically.
-        
+
         WHY: Provide a programmatic way to validate configuration that can be
         used by other components to check configuration health.
-        
+
         Returns:
             Tuple of (is_valid, errors, warnings)
         """
         errors = []
         warnings = []
-        
+
         # Check if there was a load error
-        if '_load_error' in self._config:
+        if "_load_error" in self._config:
             errors.append(f"Configuration load error: {self._config['_load_error']}")
-            
+
         # Validate response_logging configuration
-        response_logging = self.get('response_logging', {})
+        response_logging = self.get("response_logging", {})
         if response_logging:
             # Check enabled field
-            if 'enabled' in response_logging and not isinstance(response_logging['enabled'], bool):
+            if "enabled" in response_logging and not isinstance(
+                response_logging["enabled"], bool
+            ):
                 errors.append(
                     f"response_logging.enabled must be boolean, got {type(response_logging['enabled']).__name__}"
                 )
-                
+
             # Check format field
-            if 'format' in response_logging:
-                valid_formats = ['json', 'syslog', 'journald']
-                if response_logging['format'] not in valid_formats:
+            if "format" in response_logging:
+                valid_formats = ["json", "syslog", "journald"]
+                if response_logging["format"] not in valid_formats:
                     errors.append(
                         f"response_logging.format must be one of {valid_formats}, "
                         f"got '{response_logging['format']}'"
                     )
-                    
+
             # Check session_directory
-            if 'session_directory' in response_logging:
-                session_dir = Path(response_logging['session_directory'])
+            if "session_directory" in response_logging:
+                session_dir = Path(response_logging["session_directory"])
                 if session_dir.is_absolute() and not session_dir.parent.exists():
                     warnings.append(
                         f"Parent directory for session_directory does not exist: {session_dir.parent}"
                     )
-                    
+
         # Validate memory configuration
-        memory_config = self.get('memory', {})
+        memory_config = self.get("memory", {})
         if memory_config:
-            if 'enabled' in memory_config and not isinstance(memory_config['enabled'], bool):
+            if "enabled" in memory_config and not isinstance(
+                memory_config["enabled"], bool
+            ):
                 errors.append(f"memory.enabled must be boolean")
-                
+
             # Check limits
-            limits = memory_config.get('limits', {})
-            for field in ['default_size_kb', 'max_sections', 'max_items_per_section']:
+            limits = memory_config.get("limits", {})
+            for field in ["default_size_kb", "max_sections", "max_items_per_section"]:
                 if field in limits:
                     value = limits[field]
                     if not isinstance(value, int) or value <= 0:
-                        errors.append(f"memory.limits.{field} must be positive integer, got {value}")
-                        
+                        errors.append(
+                            f"memory.limits.{field} must be positive integer, got {value}"
+                        )
+
         # Validate health thresholds
-        health_thresholds = self.get('health_thresholds', {})
+        health_thresholds = self.get("health_thresholds", {})
         if health_thresholds:
-            cpu = health_thresholds.get('cpu_percent')
-            if cpu is not None and (not isinstance(cpu, (int, float)) or cpu < 0 or cpu > 100):
+            cpu = health_thresholds.get("cpu_percent")
+            if cpu is not None and (
+                not isinstance(cpu, (int, float)) or cpu < 0 or cpu > 100
+            ):
                 errors.append(f"health_thresholds.cpu_percent must be 0-100, got {cpu}")
-                
-            mem = health_thresholds.get('memory_mb')
+
+            mem = health_thresholds.get("memory_mb")
             if mem is not None and (not isinstance(mem, (int, float)) or mem <= 0):
-                errors.append(f"health_thresholds.memory_mb must be positive, got {mem}")
-                
+                errors.append(
+                    f"health_thresholds.memory_mb must be positive, got {mem}"
+                )
+
         is_valid = len(errors) == 0
         return is_valid, errors, warnings
-        
+
     def get_configuration_status(self) -> Dict[str, Any]:
         """Get detailed configuration status for debugging.
-        
+
         WHY: Provide a comprehensive view of configuration state for
         troubleshooting and health checks.
-        
+
         Returns:
             Dictionary with configuration status information
         """
         is_valid, errors, warnings = self.validate_configuration()
-        
+
         status = {
-            'valid': is_valid,
-            'errors': errors,
-            'warnings': warnings,
-            'loaded_from': getattr(self, '_loaded_from', 'defaults'),
-            'key_count': len(self._config),
-            'has_response_logging': 'response_logging' in self._config,
-            'has_memory_config': 'memory' in self._config,
-            'response_logging_enabled': self.get('response_logging.enabled', False),
-            'memory_enabled': self.get('memory.enabled', False)
+            "valid": is_valid,
+            "errors": errors,
+            "warnings": warnings,
+            "loaded_from": getattr(self, "_loaded_from", "defaults"),
+            "key_count": len(self._config),
+            "has_response_logging": "response_logging" in self._config,
+            "has_memory_config": "memory" in self._config,
+            "response_logging_enabled": self.get("response_logging.enabled", False),
+            "memory_enabled": self.get("memory.enabled", False),
         }
-        
+
         return status
 
     def __repr__(self) -> str:

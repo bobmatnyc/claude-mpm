@@ -2,9 +2,9 @@
 """Debug script to test uninitialized memory behavior"""
 
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
 from pathlib import Path
 
 # Create a temporary test directory
@@ -19,16 +19,18 @@ try:
     # Get the mpm command path
     project_root = Path(__file__).parent.parent
     mpm_cmd = str(project_root / "claude-mpm")
-    
+
     # Run memory status without initialization
     print("=== Running memory status without init ===")
     status_cmd = [mpm_cmd, "memory", "status"]
-    status_result = subprocess.run(status_cmd, capture_output=True, text=True, timeout=60)
+    status_result = subprocess.run(
+        status_cmd, capture_output=True, text=True, timeout=60
+    )
     print(f"Status return code: {status_result.returncode}")
     print(f"Status STDOUT: {status_result.stdout}")
     if status_result.stderr:
         print(f"Status STDERR: {status_result.stderr}")
-    
+
     # Run memory add without initialization
     print("\n=== Running memory add without init ===")
     add_cmd = [mpm_cmd, "memory", "add", "qa", "pattern", "test"]
@@ -41,9 +43,11 @@ try:
 except Exception as e:
     print(f"Error: {e}")
     import traceback
+
     traceback.print_exc()
 
 finally:
     os.chdir(original_cwd)
     import shutil
+
     shutil.rmtree(test_dir, ignore_errors=True)

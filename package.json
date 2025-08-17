@@ -1,6 +1,6 @@
 {
   "name": "@bobmatnyc/claude-mpm",
-  "version": "3.9.9",
+  "version": "4.0.0",
   "description": "NPM wrapper for claude-mpm Python package - Requires Python 3.8+. Orchestrate Claude with agent delegation and ticket tracking",
   "keywords": [
     "claude",
@@ -32,7 +32,12 @@
     "scripts/postinstall.js"
   ],
   "scripts": {
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:dashboard": "vite build && python -c \"import shutil; shutil.copytree('src/claude_mpm/dashboard/static/dist', 'src/claude_mpm/dashboard/static/built', dirs_exist_ok=True)\"",
+    "clean": "rm -rf src/claude_mpm/dashboard/static/dist src/claude_mpm/dashboard/static/built"
   },
   "engines": {
     "node": ">=14.0.0"
@@ -45,5 +50,11 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "terser": "^5.24.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
   }
 }

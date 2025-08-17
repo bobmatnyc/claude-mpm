@@ -6,7 +6,7 @@ __all__ = [
     "setup_logging",
     "safe_import",
     "safe_import_multiple",
-    "PathResolver",
+    "get_path_manager()",
     "get_framework_root",
     "get_project_root",
     "find_file_upwards",

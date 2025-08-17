@@ -41,19 +41,20 @@ TROUBLESHOOTING:
 - Deployment failures: Check file permissions
 """
 
-import sys
-from pathlib import Path
-import tempfile
 import shutil
+import sys
+import tempfile
+from pathlib import Path
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.deployment import AgentDeploymentService
 
+
 def main():
     """Test agent deployment.
-    
+
     This function executes a basic deployment test that:
     1. Creates a temporary directory for deployment
     2. Initializes the deployment service
@@ -61,19 +62,19 @@ def main():
     4. Reports deployment statistics
     5. Lists deployed Markdown files with sizes
     6. Shows sample content from the first deployed agent
-    
+
     OPERATIONAL METRICS TO MONITOR:
     - Total execution time (target: < 5 seconds)
     - Number of agents deployed (should match template count)
     - Error count (must be 0 for success)
     - File sizes (typical range: 2-5 KB per agent)
-    
+
     SUCCESS CRITERIA:
     - Zero deployment errors
     - All templates produce Markdown files
     - Markdown files contain valid frontmatter
     - Agent instructions are preserved
-    
+
     Returns:
         0 on success, non-zero on failure
     """
@@ -81,13 +82,13 @@ def main():
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         print(f"Testing deployment to: {temp_path}")
-        
+
         # Initialize deployment service
         service = AgentDeploymentService()
-        
+
         # Deploy agents to temp directory
         results = service.deploy_agents(target_dir=temp_path, force_rebuild=True)
-        
+
         print("\nDeployment Results:")
         print(f"  Total agents: {results['total']}")
         print(f"  Deployed: {len(results['deployed'])}")
@@ -95,18 +96,18 @@ def main():
         print(f"  Migrated: {len(results['migrated'])}")
         print(f"  Skipped: {len(results['skipped'])}")
         print(f"  Errors: {len(results['errors'])}")
-        
-        if results['errors']:
+
+        if results["errors"]:
             print("\nErrors:")
-            for error in results['errors']:
+            for error in results["errors"]:
                 print(f"  - {error}")
-        
+
         # List deployed files
         md_files = list(temp_path.glob("*.md"))
         print(f"\nDeployed {len(md_files)} Markdown files:")
         for md_file in sorted(md_files):
             print(f"  - {md_file.name} ({md_file.stat().st_size} bytes)")
-        
+
         # Show sample of first agent
         if md_files:
             sample_file = md_files[0]
@@ -114,14 +115,15 @@ def main():
             print("-" * 60)
             content = sample_file.read_text()
             # Show first 30 lines
-            lines = content.split('\n')[:30]
+            lines = content.split("\n")[:30]
             for line in lines:
                 print(line)
-            if len(content.split('\n')) > 30:
+            if len(content.split("\n")) > 30:
                 print("... (truncated)")
             print("-" * 60)
-    
+
     return 0
+
 
 if __name__ == "__main__":
     sys.exit(main())

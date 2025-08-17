@@ -109,8 +109,33 @@ See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/MIGRATION.md](docs/M
 
 ## Development
 
+### Quick Development Setup
+```bash
+# Complete development setup with code formatting and quality tools
+make dev-complete
+
+# Or step by step:
+make setup-dev          # Install in development mode
+make setup-pre-commit    # Set up automated code formatting
+```
+
+### Code Quality & Formatting
+The project uses automated code formatting and quality checks:
+- **Black** for code formatting
+- **isort** for import sorting
+- **flake8** for linting
+- **mypy** for type checking
+- **Pre-commit hooks** for automatic enforcement
+
+See [docs/developer/CODE_FORMATTING.md](docs/developer/CODE_FORMATTING.md) for details.
+
 ### Contributing
 Contributions are welcome! Please see our [project structure guide](docs/STRUCTURE.md) and follow the established patterns.
+
+**Development Workflow**:
+1. Run `make dev-complete` to set up your environment
+2. Code formatting happens automatically on commit
+3. All code must pass quality checks before merging
 
 ### Project Structure
 See [docs/STRUCTURE.md](docs/STRUCTURE.md) for codebase organization.

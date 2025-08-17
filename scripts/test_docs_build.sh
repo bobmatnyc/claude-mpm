@@ -56,7 +56,7 @@ if [ -f "_build/html/index.html" ]; then
     echo "To view locally, run:"
     echo "  python -m http.server 8000 --directory _build/html"
     echo "  Then open: http://localhost:8000"
-    
+
     # Check for warnings
     echo ""
     echo -e "${YELLOW}Checking for build warnings...${NC}"

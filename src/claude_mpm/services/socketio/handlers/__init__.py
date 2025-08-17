@@ -8,10 +8,10 @@ and maintainability.
 
 from .base import BaseEventHandler
 from .connection import ConnectionEventHandler
-from .project import ProjectEventHandler
-from .memory import MemoryEventHandler
 from .file import FileEventHandler
 from .git import GitEventHandler
+from .memory import MemoryEventHandler
+from .project import ProjectEventHandler
 from .registry import EventHandlerRegistry
 
 __all__ = [

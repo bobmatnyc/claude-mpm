@@ -11,8 +11,12 @@ tasks:
   directory: tickets
   auto_id: true
   id_format: TSK-{counter:04d}
-  counter: 93
+  counter: 104
 git:
   auto_commit: false
   commit_prefix: '[ai-trackdown]'
 plugins: {}
+epics:
+  counter: 2
+issues:
+  counter: 6

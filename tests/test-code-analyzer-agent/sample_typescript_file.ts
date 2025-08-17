@@ -39,7 +39,7 @@ class TypeScriptUserService {
     // Complex method with high cyclomatic complexity
     processUserPermissions(user: User, permissions: string[]): any {
         let result: any = {};
-        
+
         if (user.isActive) {
             if (permissions.includes('admin')) {
                 if (user.email.endsWith('@company.com')) {
@@ -91,14 +91,14 @@ class TypeScriptUserService {
             result.canModify = false;
             result.canRead = false;
         }
-        
+
         return result;
     }
 
     // Performance issue - O(n²) complexity
     findDuplicateUsers(users: User[]): User[] {
         const duplicates: User[] = [];
-        
+
         // BAD: Nested loops creating O(n²) complexity
         for (let i = 0; i < users.length; i++) {
             for (let j = i + 1; j < users.length; j++) {
@@ -108,7 +108,7 @@ class TypeScriptUserService {
                 }
             }
         }
-        
+
         return duplicates;
     }
 
@@ -146,12 +146,12 @@ class TypeScriptUserService {
 }
 
 // Generic type with overly complex constraints
-interface ComplexGeneric<T extends Record<string, any> & { 
-    id: number; 
-    metadata: { 
-        tags: string[]; 
-        properties: Record<string, unknown>; 
-    }; 
+interface ComplexGeneric<T extends Record<string, any> & {
+    id: number;
+    metadata: {
+        tags: string[];
+        properties: Record<string, unknown>;
+    };
 }> {
     data: T;
     validate(): boolean;
@@ -272,13 +272,13 @@ function massiveTypeScriptFunction(): string {
 async function processDataSynchronously(data: any[]): Promise<any[]> {
     const fs = require('fs');
     const results: any[] = [];
-    
+
     for (const item of data) {
         // BAD: Synchronous I/O in async function
         const content = fs.readFileSync(`/tmp/${item.id}.json`, 'utf8');
         results.push(JSON.parse(content));
     }
-    
+
     return results;
 }
 

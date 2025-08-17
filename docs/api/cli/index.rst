@@ -8,7 +8,7 @@ implementations, argument parsing, and utility functions.
    :maxdepth: 2
 
    commands
-   parser  
+   parser
    utils
 
 Overview
@@ -17,12 +17,12 @@ Overview
 The Claude MPM CLI is built with a modular architecture supporting:
 
 * **Command Discovery**: Automatic registration of CLI commands
-* **Argument Parsing**: Comprehensive argument parsing and validation  
+* **Argument Parsing**: Comprehensive argument parsing and validation
 * **Service Integration**: Deep integration with the service container
 * **Error Handling**: User-friendly error messages and recovery
 * **Help System**: Auto-generated help and documentation
 
-CLI Architecture  
+CLI Architecture
 ----------------
 
 Command System
@@ -48,6 +48,6 @@ Key Features
 
 * **Modular Commands**: Each command is self-contained with its own module
 * **Service Container Integration**: Commands can access all framework services
-* **Configuration Support**: Commands inherit configuration management capabilities  
+* **Configuration Support**: Commands inherit configuration management capabilities
 * **Interactive Mode**: Support for interactive command execution
 * **Batch Processing**: Commands support batch operations where applicable

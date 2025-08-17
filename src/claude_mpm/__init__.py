@@ -40,6 +40,6 @@ MPMOrchestrator = ClaudeRunner
 
 __all__ = [
     "ClaudeRunner",
-    "MPMOrchestrator", 
+    "MPMOrchestrator",
     "TicketManager",
 ]

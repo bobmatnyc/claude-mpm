@@ -7,26 +7,26 @@ class EventViewer {
     constructor(containerId, socketClient) {
         this.container = document.getElementById(containerId);
         this.socketClient = socketClient;
-        
+
         // State
         this.events = [];
         this.filteredEvents = [];
         this.selectedEventIndex = -1;
         this.filteredEventElements = [];
         this.autoScroll = true;
-        
+
         // Filters
         this.searchFilter = '';
         this.typeFilter = '';
         this.sessionFilter = '';
-        
+
         // Event type tracking
         this.eventTypeCount = {};
         this.availableEventTypes = new Set();
         this.errorCount = 0;
         this.eventsThisMinute = 0;
         this.lastMinute = new Date().getMinutes();
-        
+
         this.init();
     }
 
@@ -36,7 +36,7 @@ class EventViewer {
     init() {
         this.setupEventHandlers();
         this.setupKeyboardNavigation();
-        
+
         // Subscribe to socket events
         this.socketClient.onEventUpdate((events, sessions) => {
             // Ensure we always have a valid events array
@@ -87,7 +87,7 @@ class EventViewer {
 
         // Calculate new index
         let newIndex = this.selectedEventIndex + direction;
-        
+
         // Wrap around
         if (newIndex >= this.filteredEventElements.length) {
             newIndex = 0;
@@ -107,7 +107,7 @@ class EventViewer {
             console.warn('EventViewer: events array is not initialized, using empty array');
             this.events = [];
         }
-        
+
         this.filteredEvents = this.events.filter(event => {
             // Search filter
             if (this.searchFilter) {
@@ -116,7 +116,7 @@ class EventViewer {
                     event.subtype || '',
                     JSON.stringify(event.data || {})
                 ].join(' ').toLowerCase();
-                
+
                 if (!searchableText.includes(this.searchFilter)) {
                     return false;
                 }
@@ -161,7 +161,7 @@ class EventViewer {
             console.warn('EventViewer: events array is not initialized in updateEventTypeDropdown');
             this.events = [];
         }
-        
+
         this.events.forEach(event => {
             if (event.type && event.type.trim() !== '') {
                 // Combine type and subtype if subtype exists, otherwise just use type
@@ -173,7 +173,7 @@ class EventViewer {
         // Check if event types have changed
         const currentTypes = Array.from(eventTypes).sort();
         const previousTypes = Array.from(this.availableEventTypes).sort();
-        
+
         if (JSON.stringify(currentTypes) === JSON.stringify(previousTypes)) {
             return; // No change needed
         }
@@ -224,8 +224,8 @@ class EventViewer {
         if (this.filteredEvents.length === 0) {
             eventsList.innerHTML = `
                 <div class="no-events">
-                    ${this.events.length === 0 ? 
-                        'Connect to Socket.IO server to see events...' : 
+                    ${this.events.length === 0 ?
+                        'Connect to Socket.IO server to see events...' :
                         'No events match current filters...'}
                 </div>
             `;
@@ -237,16 +237,16 @@ class EventViewer {
             const timestamp = new Date(event.timestamp).toLocaleTimeString();
             const eventClass = event.type ? `event-${event.type}` : 'event-default';
             const isSelected = index === this.selectedEventIndex;
-            
+
             // Get main content and timestamp separately
             const mainContent = this.formatSingleRowEventContent(event);
-            
+
             // Check if this is an Edit/MultiEdit tool event and add diff viewer
             const diffViewer = this.createInlineEditDiffViewer(event, index);
-            
+
             return `
-                <div class="event-item single-row ${eventClass} ${isSelected ? 'selected' : ''}" 
-                     onclick="eventViewer.showEventDetails(${index})" 
+                <div class="event-item single-row ${eventClass} ${isSelected ? 'selected' : ''}"
+                     onclick="eventViewer.showEventDetails(${index})"
                      data-index="${index}">
                     <span class="event-single-row-content">
                         <span class="event-content-main">${mainContent}</span>
@@ -258,12 +258,12 @@ class EventViewer {
         }).join('');
 
         eventsList.innerHTML = html;
-        
+
         // Update filtered elements reference
         this.filteredEventElements = Array.from(eventsList.querySelectorAll('.event-item'));
 
         // Update Dashboard navigation items if we're in the events tab
-        if (window.dashboard && window.dashboard.currentTab === 'events' && 
+        if (window.dashboard && window.dashboard.currentTab === 'events' &&
             window.dashboard.tabNavigation && window.dashboard.tabNavigation.events) {
             window.dashboard.tabNavigation.events.items = this.filteredEventElements;
         }
@@ -364,40 +364,40 @@ class EventViewer {
     formatHookEvent(event) {
         const data = event.data;
         const eventType = data.event_type || event.subtype || 'unknown';
-        
+
         // Format based on specific hook event type
         switch (eventType) {
             case 'user_prompt':
                 const prompt = data.prompt_text || data.prompt_preview || '';
                 const truncated = prompt.length > 80 ? prompt.substring(0, 80) + '...' : prompt;
                 return `<strong>User Prompt:</strong> ${truncated || 'No prompt text'}`;
-                
+
             case 'pre_tool':
                 const toolName = data.tool_name || 'Unknown tool';
                 const operation = data.operation_type || 'operation';
                 return `<strong>Pre-Tool (${operation}):</strong> ${toolName}`;
-                
+
             case 'post_tool':
                 const postToolName = data.tool_name || 'Unknown tool';
                 const status = data.success ? 'success' : data.status || 'failed';
                 const duration = data.duration_ms ? ` (${data.duration_ms}ms)` : '';
                 return `<strong>Post-Tool (${status}):</strong> ${postToolName}${duration}`;
-                
+
             case 'notification':
                 const notifType = data.notification_type || 'notification';
                 const message = data.message_preview || data.message || 'No message';
                 return `<strong>Notification (${notifType}):</strong> ${message}`;
-                
+
             case 'stop':
                 const reason = data.reason || 'unknown';
                 const stopType = data.stop_type || 'normal';
                 return `<strong>Stop (${stopType}):</strong> ${reason}`;
-                
+
             case 'subagent_stop':
                 const agentType = data.agent_type || 'unknown agent';
                 const stopReason = data.reason || 'unknown';
                 return `<strong>Subagent Stop (${agentType}):</strong> ${stopReason}`;
-                
+
             default:
                 // Fallback to original logic for unknown hook types
                 const hookName = data.hook_name || data.name || data.event_type || 'Unknown';
@@ -458,12 +458,12 @@ class EventViewer {
     formatSingleRowEventContent(event) {
         const eventType = this.formatEventType(event);
         const data = event.data || {};
-        
+
         // Extract event details for different event types
         let eventDetails = '';
         let category = '';
         let action = '';
-        
+
         switch (event.type) {
             case 'hook':
                 // Hook events: extract tool name and hook type
@@ -473,7 +473,7 @@ class EventViewer {
                 category = this.getEventCategory(event);
                 eventDetails = `${hookDisplayName} (${category}): ${toolName}`;
                 break;
-                
+
             case 'agent':
                 // Agent events
                 const agentName = event.subagent_type || data.subagent_type || 'PM';
@@ -481,14 +481,14 @@ class EventViewer {
                 category = 'agent_operations';
                 eventDetails = `${agentName} ${agentAction}`;
                 break;
-                
+
             case 'todo':
                 // Todo events
                 const todoCount = data.todos ? data.todos.length : 0;
                 category = 'task_management';
                 eventDetails = `TodoWrite (${todoCount} items)`;
                 break;
-                
+
             case 'memory':
                 // Memory events
                 const operation = data.operation || 'unknown';
@@ -496,28 +496,28 @@ class EventViewer {
                 category = 'memory_operations';
                 eventDetails = `${operation} ${key}`;
                 break;
-                
+
             case 'session':
                 // Session events
                 const sessionAction = event.subtype || 'unknown';
                 category = 'session_management';
                 eventDetails = `Session ${sessionAction}`;
                 break;
-                
+
             case 'claude':
                 // Claude events
                 const claudeAction = event.subtype || 'interaction';
                 category = 'claude_interactions';
                 eventDetails = `Claude ${claudeAction}`;
                 break;
-                
+
             default:
                 // Generic events
                 category = 'general';
                 eventDetails = event.type || 'Unknown Event';
                 break;
         }
-        
+
         // Return formatted string: "type.subtype DisplayName (category): Details"
         return `${eventType} ${eventDetails}`;
     }
@@ -537,7 +537,7 @@ class EventViewer {
             'subagent_stop': 'Subagent-Stop',
             'notification': 'Notification'
         };
-        
+
         return hookNames[hookType] || hookType.replace('_', '-');
     }
 
@@ -549,7 +549,7 @@ class EventViewer {
     getEventCategory(event) {
         const data = event.data || {};
         const toolName = event.tool_name || data.tool_name || '';
-        
+
         // Categorize based on tool type
         if (['Read', 'Write', 'Edit', 'MultiEdit'].includes(toolName)) {
             return 'file_operations';
@@ -562,7 +562,7 @@ class EventViewer {
         } else if (event.subtype === 'stop' || event.subtype === 'subagent_stop') {
             return 'session_control';
         }
-        
+
         return 'general';
     }
 
@@ -580,10 +580,10 @@ class EventViewer {
 
         // Update selection
         this.selectedEventIndex = index;
-        
+
         // Get the selected event
         const event = this.filteredEvents[index];
-        
+
         // Coordinate with Dashboard unified navigation system
         if (window.dashboard) {
             // Update the dashboard's navigation state for events tab
@@ -594,12 +594,12 @@ class EventViewer {
                 window.dashboard.selectCard('events', index, 'event', event);
             }
         }
-        
+
         // Update visual selection (this will be handled by Dashboard.updateCardSelectionUI())
         this.filteredEventElements.forEach((el, i) => {
             el.classList.toggle('selected', i === index);
         });
-        
+
         // Notify other components about selection
         document.dispatchEvent(new CustomEvent('eventSelected', {
             detail: { event, index }
@@ -608,9 +608,9 @@ class EventViewer {
         // Scroll to selected event if not visible
         const selectedElement = this.filteredEventElements[index];
         if (selectedElement) {
-            selectedElement.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
+            selectedElement.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
             });
         }
     }
@@ -623,7 +623,7 @@ class EventViewer {
         this.filteredEventElements.forEach(el => {
             el.classList.remove('selected');
         });
-        
+
         // Coordinate with Dashboard unified navigation system
         if (window.dashboard) {
             if (window.dashboard.tabNavigation && window.dashboard.tabNavigation.events) {
@@ -633,7 +633,7 @@ class EventViewer {
                 window.dashboard.clearCardSelection();
             }
         }
-        
+
         // Notify other components
         document.dispatchEvent(new CustomEvent('eventSelectionCleared'));
     }
@@ -645,19 +645,19 @@ class EventViewer {
         // Update event type counts
         this.eventTypeCount = {};
         this.errorCount = 0;
-        
+
         // Defensive check to ensure events array exists
         if (!this.events || !Array.isArray(this.events)) {
             console.warn('EventViewer: events array is not initialized in updateMetrics');
             this.events = [];
         }
-        
+
         this.events.forEach(event => {
             const type = event.type || 'unknown';
             this.eventTypeCount[type] = (this.eventTypeCount[type] || 0) + 1;
-            
-            if (event.type === 'log' && 
-                event.data && 
+
+            if (event.type === 'log' &&
+                event.data &&
                 ['error', 'critical'].includes(event.data.level)) {
                 this.errorCount++;
             }
@@ -672,7 +672,7 @@ class EventViewer {
 
         // Count events in the last minute
         const oneMinuteAgo = new Date(Date.now() - 60000);
-        this.eventsThisMinute = this.events.filter(event => 
+        this.eventsThisMinute = this.events.filter(event =>
             new Date(event.timestamp) > oneMinuteAgo
         ).length;
 
@@ -702,12 +702,12 @@ class EventViewer {
         const dataStr = JSON.stringify(this.filteredEvents, null, 2);
         const dataBlob = new Blob([dataStr], { type: 'application/json' });
         const url = URL.createObjectURL(dataBlob);
-        
+
         const link = document.createElement('a');
         link.href = url;
         link.download = `claude-mpm-events-${new Date().toISOString().split('T')[0]}.json`;
         link.click();
-        
+
         URL.revokeObjectURL(url);
     }
 
@@ -768,12 +768,12 @@ class EventViewer {
     createInlineEditDiffViewer(event, index) {
         const data = event.data || {};
         const toolName = event.tool_name || data.tool_name || '';
-        
+
         // Only show for Edit and MultiEdit tools
         if (!['Edit', 'MultiEdit'].includes(toolName)) {
             return '';
         }
-        
+
         // Extract edit parameters based on tool type
         let edits = [];
         if (toolName === 'Edit') {
@@ -796,20 +796,20 @@ class EventViewer {
                 }));
             }
         }
-        
+
         if (edits.length === 0) {
             return '';
         }
-        
+
         // Create collapsible diff section
         const diffId = `edit-diff-${index}`;
         const isMultiEdit = edits.length > 1;
-        
+
         let diffContent = '';
         edits.forEach((edit, editIndex) => {
             const editId = `${diffId}-${editIndex}`;
             const diffHtml = this.createDiffHtml(edit.old_string, edit.new_string);
-            
+
             diffContent += `
                 <div class="edit-diff-section">
                     ${isMultiEdit ? `<div class="edit-diff-header">Edit ${editIndex + 1}</div>` : ''}
@@ -817,7 +817,7 @@ class EventViewer {
                 </div>
             `;
         });
-        
+
         return `
             <div class="inline-edit-diff-viewer">
                 <div class="diff-toggle-header" onclick="eventViewer.toggleEditDiff('${diffId}', event)">
@@ -843,15 +843,15 @@ class EventViewer {
         // Simple line-by-line diff implementation
         const oldLines = oldText.split('\n');
         const newLines = newText.split('\n');
-        
+
         let diffHtml = '';
         let i = 0, j = 0;
-        
+
         // Simple diff algorithm - can be enhanced with proper diff library if needed
         while (i < oldLines.length || j < newLines.length) {
             const oldLine = i < oldLines.length ? oldLines[i] : null;
             const newLine = j < newLines.length ? newLines[j] : null;
-            
+
             if (oldLine === null) {
                 // New line added
                 diffHtml += `<div class="diff-line diff-added">+ ${this.escapeHtml(newLine)}</div>`;
@@ -873,7 +873,7 @@ class EventViewer {
                 j++;
             }
         }
-        
+
         return `<div class="diff-container">${diffHtml}</div>`;
     }
 
@@ -885,10 +885,10 @@ class EventViewer {
     toggleEditDiff(diffId, event) {
         // Prevent event bubbling to parent event item
         event.stopPropagation();
-        
+
         const diffContainer = document.getElementById(diffId);
         const arrow = event.currentTarget.querySelector('.diff-toggle-arrow');
-        
+
         if (diffContainer) {
             const isVisible = diffContainer.style.display !== 'none';
             diffContainer.style.display = isVisible ? 'none' : 'block';
@@ -910,5 +910,9 @@ class EventViewer {
     }
 }
 
-// Export for global use
+// ES6 Module export
+export { EventViewer };
+export default EventViewer;
+
+// Backward compatibility - keep window export for non-module usage
 window.EventViewer = EventViewer;

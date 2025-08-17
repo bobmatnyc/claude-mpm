@@ -2,13 +2,14 @@
 Environment configuration section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class EnvironmentConfigGenerator(BaseSectionGenerator):
     """Generates the Environment Configuration section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the environment configuration section."""
         return """

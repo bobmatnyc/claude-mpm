@@ -1803,12 +1803,12 @@ button:disabled:hover {
     .split-container {
         flex-direction: column;
     }
-    
+
     .module-viewer {
         width: 100%;
         height: 250px;
     }
-    
+
     /* Single-row content adjustments for smaller screens */
     .event-single-row-content {
         font-size: 12px;
@@ -1822,17 +1822,17 @@ button:disabled:hover {
         padding: 10px;
         padding-bottom: 15px;
     }
-    
+
     .header-row {
         flex-direction: column;
         align-items: stretch;
         gap: 10px;
     }
-    
+
     .filter-group {
         max-width: none;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 10% auto;
@@ -2707,12 +2707,12 @@ button:disabled:hover {
         font-size: 10px;
         max-height: 150px;
     }
-    
+
     .inline-edit-diff-viewer {
         margin-left: -12px;
         margin-right: -12px;
     }
-    
+
     .directory-viewer-overlay {
         left: 10px !important;
         right: 10px !important;

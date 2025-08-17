@@ -2,4 +2,4 @@
 
 from .hook_handler import ClaudeHookHandler
 
-__all__ = ['ClaudeHookHandler']
+__all__ = ["ClaudeHookHandler"]

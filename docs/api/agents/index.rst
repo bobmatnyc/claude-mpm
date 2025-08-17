@@ -18,7 +18,7 @@ Overview
 The Claude MPM agent system is built around a flexible architecture that supports:
 
 * **Dynamic Agent Discovery**: Automatic discovery of agents from multiple sources
-* **Metadata Management**: Rich metadata including capabilities, specializations, and versions  
+* **Metadata Management**: Rich metadata including capabilities, specializations, and versions
 * **Lifecycle Management**: Complete agent lifecycle from deployment to removal
 * **Validation Framework**: Comprehensive validation of agent configurations and frontmatter
 

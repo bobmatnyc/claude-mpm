@@ -17,7 +17,7 @@ remove_symlinks() {
         rm "$HOME/.local/bin/claude-mpm"
         echo -e "${GREEN}✓ Removed claude-mpm symlink${NC}"
     fi
-    
+
     if [ -L "$HOME/.local/bin/ticket" ]; then
         rm "$HOME/.local/bin/ticket"
         echo -e "${GREEN}✓ Removed ticket symlink${NC}"
@@ -52,16 +52,16 @@ main() {
     echo "Claude MPM Uninstallation"
     echo "===================================="
     echo
-    
+
     # Remove components
     remove_symlinks
     uninstall_pip
-    
+
     # Check for user data
     if [ -d "$HOME/.claude-mpm" ]; then
         remove_user_data
     fi
-    
+
     echo
     echo -e "${GREEN}✨ Uninstallation complete!${NC}"
     echo

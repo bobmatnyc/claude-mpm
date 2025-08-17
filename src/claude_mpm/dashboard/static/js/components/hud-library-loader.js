@@ -8,7 +8,7 @@ class HUDLibraryLoader {
         this.loadedLibraries = new Set();
         this.loadingPromises = new Map();
         this.loadingCallbacks = new Map();
-        
+
         // Define library configurations with proper loading order
         this.libraries = [
             {
@@ -55,7 +55,7 @@ class HUDLibraryLoader {
             const script = document.createElement('script');
             script.src = library.url;
             script.async = true;
-            
+
             script.onload = () => {
                 if (library.globalCheck()) {
                     console.log(`Successfully loaded library: ${library.name}`);
@@ -69,14 +69,14 @@ class HUDLibraryLoader {
                     reject(error);
                 }
             };
-            
+
             script.onerror = () => {
                 const error = new Error(`Failed to load library: ${library.name} from ${library.url}`);
                 console.error(error);
                 this.loadingPromises.delete(library.name);
                 reject(error);
             };
-            
+
             document.head.appendChild(script);
         });
 
@@ -123,12 +123,12 @@ class HUDLibraryLoader {
      */
     async loadHUDLibraries(onProgress = null) {
         console.log('Starting HUD libraries loading...');
-        
+
         try {
             // Load libraries in dependency order
             for (let i = 0; i < this.libraries.length; i++) {
                 const library = this.libraries[i];
-                
+
                 if (onProgress) {
                     onProgress({
                         library: library.name,
@@ -137,7 +137,7 @@ class HUDLibraryLoader {
                         message: `Loading ${library.name}...`
                     });
                 }
-                
+
                 await this.loadLibraryWithDependencies(library);
             }
 
@@ -148,7 +148,7 @@ class HUDLibraryLoader {
             }
 
             console.log('All HUD libraries loaded successfully');
-            
+
             if (onProgress) {
                 onProgress({
                     library: 'complete',
@@ -161,7 +161,7 @@ class HUDLibraryLoader {
             return true;
         } catch (error) {
             console.error('Failed to load HUD libraries:', error);
-            
+
             if (onProgress) {
                 onProgress({
                     library: 'error',
@@ -171,7 +171,7 @@ class HUDLibraryLoader {
                     error: error
                 });
             }
-            
+
             throw error;
         }
     }

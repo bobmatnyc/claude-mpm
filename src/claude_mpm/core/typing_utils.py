@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """Type definitions and utilities for Claude MPM.
 
 This module provides common type aliases, protocols, and TypedDict definitions
@@ -12,26 +14,38 @@ that allows for more flexible and maintainable type checking while maintaining
 strict type safety.
 """
 
-from typing import (
-    Any, Callable, Dict, List, Optional, Union, TypeVar, Protocol,
-    TYPE_CHECKING, Literal, Tuple, Set, Awaitable, Iterator, AsyncIterator
-)
-from typing_extensions import TypedDict, NotRequired, TypeAlias
-from pathlib import Path
+import logging
 from datetime import datetime
 from enum import Enum
-import logging
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Protocol,
+    Set,
+    Tuple,
+    TypeVar,
+    Union,
+)
+
+from typing_extensions import NotRequired, TypeAlias, TypedDict
 
 if TYPE_CHECKING:
     from claude_mpm.core.claude_runner import ClaudeRunner
     from claude_mpm.services.socketio_server import SocketIOClientProxy
 
-
 # Generic type variables
-T = TypeVar('T')
-TSession = TypeVar('TSession')  # Generic session type
-TAgent = TypeVar('TAgent')  # Generic agent type
-TService = TypeVar('TService')  # Generic service type
+T = TypeVar("T")
+TSession = TypeVar("TSession")  # Generic session type
+TAgent = TypeVar("TAgent")  # Generic agent type
+TService = TypeVar("TService")  # Generic service type
 
 # Basic type aliases
 PathLike: TypeAlias = Union[str, Path]
@@ -43,12 +57,15 @@ LogLevel: TypeAlias = Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # Session types
 SessionId: TypeAlias = str
-SessionStatus: TypeAlias = Literal["initializing", "running", "stopped", "error", "completed"]
+SessionStatus: TypeAlias = Literal[
+    "initializing", "running", "stopped", "error", "completed"
+]
 LaunchMethod: TypeAlias = Literal["exec", "subprocess", "oneshot"]
 
 
 class SessionConfig(TypedDict):
     """Configuration for a Claude session."""
+
     session_id: SessionId
     launch_method: LaunchMethod
     working_dir: str
@@ -62,6 +79,7 @@ class SessionConfig(TypedDict):
 
 class SessionResult(TypedDict):
     """Result from a session execution."""
+
     success: bool
     session_id: SessionId
     response: NotRequired[str]
@@ -73,6 +91,7 @@ class SessionResult(TypedDict):
 
 class SessionEvent(TypedDict):
     """Event logged during session execution."""
+
     event: str
     timestamp: datetime
     session_id: NotRequired[SessionId]
@@ -92,6 +111,7 @@ ResourceTier: TypeAlias = Literal["standard", "premium", "enterprise"]
 
 class AgentCapabilities(TypedDict):
     """Capabilities of an agent."""
+
     model: ModelName
     tools: NotRequired[List[str]]
     resource_tier: NotRequired[ResourceTier]
@@ -102,6 +122,7 @@ class AgentCapabilities(TypedDict):
 
 class AgentMetadata(TypedDict):
     """Metadata for an agent."""
+
     name: str
     description: str
     tags: NotRequired[List[str]]
@@ -112,6 +133,7 @@ class AgentMetadata(TypedDict):
 
 class AgentDefinition(TypedDict):
     """Complete agent definition."""
+
     agent_id: AgentId
     version: AgentVersion
     metadata: AgentMetadata
@@ -129,6 +151,7 @@ SocketId: TypeAlias = str
 
 class WebSocketMessage(TypedDict):
     """WebSocket message structure."""
+
     event: EventName
     data: EventData
     timestamp: NotRequired[datetime]
@@ -137,6 +160,7 @@ class WebSocketMessage(TypedDict):
 
 class ClaudeStatus(TypedDict):
     """Claude process status."""
+
     status: Literal["starting", "running", "stopped", "error"]
     message: str
     timestamp: NotRequired[datetime]
@@ -145,6 +169,7 @@ class ClaudeStatus(TypedDict):
 
 class DelegationInfo(TypedDict):
     """Agent delegation information."""
+
     agent: AgentId
     task: str
     status: Literal["detected", "started", "completed", "failed"]
@@ -160,6 +185,7 @@ HookResult: TypeAlias = Any
 
 class HookConfig(TypedDict):
     """Hook configuration."""
+
     name: HookName
     enabled: NotRequired[bool]
     priority: NotRequired[HookPriority]
@@ -168,6 +194,7 @@ class HookConfig(TypedDict):
 
 class HookContext(TypedDict):
     """Context passed to hook handlers."""
+
     hook_name: HookName
     session_id: NotRequired[SessionId]
     agent_id: NotRequired[AgentId]
@@ -181,6 +208,7 @@ ServiceStatus: TypeAlias = Literal["idle", "running", "stopped", "error"]
 
 class ServiceConfig(TypedDict):
     """Service configuration."""
+
     name: ServiceName
     enabled: NotRequired[bool]
     port: NotRequired[int]
@@ -190,6 +218,7 @@ class ServiceConfig(TypedDict):
 
 class ServiceInfo(TypedDict):
     """Service information."""
+
     name: ServiceName
     status: ServiceStatus
     uptime: NotRequired[float]
@@ -200,14 +229,21 @@ class ServiceInfo(TypedDict):
 
 # Memory types
 MemoryType: TypeAlias = Literal[
-    "pattern", "architecture", "guideline", "mistake", 
-    "strategy", "integration", "performance", "context"
+    "pattern",
+    "architecture",
+    "guideline",
+    "mistake",
+    "strategy",
+    "integration",
+    "performance",
+    "context",
 ]
 MemoryId: TypeAlias = str
 
 
 class Memory(TypedDict):
     """Agent memory entry."""
+
     id: MemoryId
     type: MemoryType
     content: str
@@ -220,6 +256,7 @@ class Memory(TypedDict):
 
 class MemorySearchResult(TypedDict):
     """Result from memory search."""
+
     memory: Memory
     score: float
     matches: NotRequired[List[str]]
@@ -228,6 +265,7 @@ class MemorySearchResult(TypedDict):
 # Project and deployment types
 class ProjectConfig(TypedDict):
     """Project-specific configuration."""
+
     project_name: NotRequired[str]
     agent_deployment: NotRequired[Dict[str, Any]]
     excluded_agents: NotRequired[List[AgentId]]
@@ -239,6 +277,7 @@ class ProjectConfig(TypedDict):
 
 class DeploymentResult(TypedDict):
     """Result from agent deployment."""
+
     deployed: List[AgentId]
     failed: List[Tuple[AgentId, str]]
     skipped: List[AgentId]
@@ -248,6 +287,7 @@ class DeploymentResult(TypedDict):
 # Response logging types
 class ResponseLogEntry(TypedDict):
     """Entry in response log."""
+
     timestamp: datetime
     request_summary: str
     response_content: str
@@ -264,6 +304,7 @@ CommandArgs: TypeAlias = List[str]
 
 class CommandResult(TypedDict):
     """Result from command execution."""
+
     success: bool
     output: NotRequired[str]
     error: NotRequired[str]
@@ -272,18 +313,20 @@ class CommandResult(TypedDict):
 
 # Protocols for structural typing
 
+
 class SessionProtocol(Protocol):
     """Protocol for session handlers."""
-    
+
     def initialize_session(self, prompt: str) -> Tuple[bool, Optional[str]]:
         """Initialize the session."""
         ...
-    
-    def execute_command(self, prompt: str, context: Optional[str], 
-                        infrastructure: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+
+    def execute_command(
+        self, prompt: str, context: Optional[str], infrastructure: Dict[str, Any]
+    ) -> Tuple[bool, Optional[str]]:
         """Execute a command."""
         ...
-    
+
     def cleanup_session(self) -> None:
         """Clean up the session."""
         ...
@@ -291,17 +334,17 @@ class SessionProtocol(Protocol):
 
 class LoggerProtocol(Protocol):
     """Protocol for loggers."""
-    
-    def log_system(self, message: str, level: LogLevel = "INFO", 
-                   component: Optional[str] = None) -> None:
+
+    def log_system(
+        self, message: str, level: LogLevel = "INFO", component: Optional[str] = None
+    ) -> None:
         """Log a system message."""
         ...
-    
-    def log_agent(self, agent: AgentId, message: str, 
-                  level: LogLevel = "INFO") -> None:
+
+    def log_agent(self, agent: AgentId, message: str, level: LogLevel = "INFO") -> None:
         """Log an agent message."""
         ...
-    
+
     def get_session_summary(self) -> Dict[str, Any]:
         """Get session summary."""
         ...
@@ -309,28 +352,29 @@ class LoggerProtocol(Protocol):
 
 class WebSocketServerProtocol(Protocol):
     """Protocol for WebSocket server."""
-    
+
     def start(self) -> None:
         """Start the server."""
         ...
-    
-    def session_started(self, session_id: SessionId, launch_method: LaunchMethod,
-                       working_dir: str) -> None:
+
+    def session_started(
+        self, session_id: SessionId, launch_method: LaunchMethod, working_dir: str
+    ) -> None:
         """Notify session start."""
         ...
-    
+
     def session_ended(self) -> None:
         """Notify session end."""
         ...
-    
+
     def claude_status_changed(self, status: str, message: str) -> None:
         """Update Claude status."""
         ...
-    
+
     def claude_output(self, output: str, stream: Literal["stdout", "stderr"]) -> None:
         """Send Claude output."""
         ...
-    
+
     def agent_delegated(self, agent: AgentId, task: str, status: str) -> None:
         """Notify agent delegation."""
         ...
@@ -338,36 +382,44 @@ class WebSocketServerProtocol(Protocol):
 
 class AgentServiceProtocol(Protocol):
     """Protocol for agent service."""
-    
-    def deploy_agents(self, agents: List[AgentDefinition], 
-                     target_dir: PathLike) -> DeploymentResult:
+
+    def deploy_agents(
+        self, agents: List[AgentDefinition], target_dir: PathLike
+    ) -> DeploymentResult:
         """Deploy agents to target directory."""
         ...
-    
+
     def discover_agents(self, tier: AgentTier) -> List[AgentDefinition]:
         """Discover agents at specified tier."""
         ...
-    
-    def get_agent(self, agent_id: AgentId, tier: Optional[AgentTier] = None) -> Optional[AgentDefinition]:
+
+    def get_agent(
+        self, agent_id: AgentId, tier: Optional[AgentTier] = None
+    ) -> Optional[AgentDefinition]:
         """Get specific agent."""
         ...
 
 
 class MemoryServiceProtocol(Protocol):
     """Protocol for memory service."""
-    
+
     def add_memory(self, memory: Memory) -> bool:
         """Add a memory entry."""
         ...
-    
-    def search_memories(self, query: str, agent_id: Optional[AgentId] = None,
-                        memory_type: Optional[MemoryType] = None,
-                        limit: int = 10) -> List[MemorySearchResult]:
+
+    def search_memories(
+        self,
+        query: str,
+        agent_id: Optional[AgentId] = None,
+        memory_type: Optional[MemoryType] = None,
+        limit: int = 10,
+    ) -> List[MemorySearchResult]:
         """Search memories."""
         ...
-    
-    def get_relevant_memories(self, context: str, agent_id: AgentId,
-                             limit: int = 5) -> List[Memory]:
+
+    def get_relevant_memories(
+        self, context: str, agent_id: AgentId, limit: int = 5
+    ) -> List[Memory]:
         """Get relevant memories for context."""
         ...
 
@@ -377,12 +429,10 @@ SessionFactory = Callable[[Any], SessionProtocol]
 ServiceFactory = Callable[[ServiceConfig], Any]
 LoggerFactory = Callable[[str], logging.Logger]
 
-
 # Validation function types
 Validator = Callable[[Any], bool]
 Transformer = Callable[[T], T]
 ErrorHandler = Callable[[Exception], None]
-
 
 # Async types for future use
 AsyncSessionResult = Awaitable[SessionResult]
@@ -393,15 +443,15 @@ AsyncDeploymentResult = Awaitable[DeploymentResult]
 # Container/Dependency injection types
 class ServiceContainer(Protocol):
     """Protocol for service container."""
-    
+
     def register(self, name: str, factory: ServiceFactory) -> None:
         """Register a service."""
         ...
-    
+
     def get(self, name: str) -> Any:
         """Get a service instance."""
         ...
-    
+
     def has(self, name: str) -> bool:
         """Check if service is registered."""
         ...
@@ -414,6 +464,7 @@ EventFilter = Callable[[EventData], bool]
 
 class EventSubscription(TypedDict):
     """Event subscription details."""
+
     event: EventName
     handler: EventHandler
     filter: NotRequired[EventFilter]
@@ -423,6 +474,7 @@ class EventSubscription(TypedDict):
 # Testing types (for test files)
 class TestFixture(TypedDict):
     """Test fixture data."""
+
     name: str
     data: Any
     setup: NotRequired[Callable[[], None]]
@@ -435,43 +487,75 @@ ConfigDict = Dict[str, CommonTypes]
 ErrorResult = Tuple[bool, Optional[str]]
 SuccessResult = Tuple[bool, Any]
 
-
 __all__ = [
     # Basic type aliases
-    'PathLike', 'JSONValue', 'JSONDict', 'Headers', 'ErrorCode', 'LogLevel',
-    
+    "PathLike",
+    "JSONValue",
+    "JSONDict",
+    "Headers",
+    "ErrorCode",
+    "LogLevel",
     # Session types
-    'SessionId', 'SessionStatus', 'LaunchMethod', 'SessionConfig', 
-    'SessionResult', 'SessionEvent',
-    
+    "SessionId",
+    "SessionStatus",
+    "LaunchMethod",
+    "SessionConfig",
+    "SessionResult",
+    "SessionEvent",
     # Agent types
-    'AgentId', 'AgentVersion', 'AgentTier', 'ModelName', 'ResourceTier',
-    'AgentCapabilities', 'AgentMetadata', 'AgentDefinition',
-    
+    "AgentId",
+    "AgentVersion",
+    "AgentTier",
+    "ModelName",
+    "ResourceTier",
+    "AgentCapabilities",
+    "AgentMetadata",
+    "AgentDefinition",
     # WebSocket types
-    'EventName', 'EventData', 'SocketId', 'WebSocketMessage', 
-    'ClaudeStatus', 'DelegationInfo',
-    
+    "EventName",
+    "EventData",
+    "SocketId",
+    "WebSocketMessage",
+    "ClaudeStatus",
+    "DelegationInfo",
     # Hook types
-    'HookName', 'HookPriority', 'HookResult', 'HookConfig', 'HookContext',
-    
+    "HookName",
+    "HookPriority",
+    "HookResult",
+    "HookConfig",
+    "HookContext",
     # Service types
-    'ServiceName', 'ServiceStatus', 'ServiceConfig', 'ServiceInfo',
-    
+    "ServiceName",
+    "ServiceStatus",
+    "ServiceConfig",
+    "ServiceInfo",
     # Memory types
-    'MemoryType', 'MemoryId', 'Memory', 'MemorySearchResult',
-    
+    "MemoryType",
+    "MemoryId",
+    "Memory",
+    "MemorySearchResult",
     # Other types
-    'ProjectConfig', 'DeploymentResult', 'ResponseLogEntry',
-    'CommandName', 'CommandArgs', 'CommandResult',
-    
+    "ProjectConfig",
+    "DeploymentResult",
+    "ResponseLogEntry",
+    "CommandName",
+    "CommandArgs",
+    "CommandResult",
     # Protocols
-    'SessionProtocol', 'LoggerProtocol', 'WebSocketServerProtocol',
-    'AgentServiceProtocol', 'MemoryServiceProtocol', 'ServiceContainer',
-    
+    "SessionProtocol",
+    "LoggerProtocol",
+    "WebSocketServerProtocol",
+    "AgentServiceProtocol",
+    "MemoryServiceProtocol",
+    "ServiceContainer",
     # Generic type variables
-    'T', 'TSession', 'TAgent', 'TService',
-    
+    "T",
+    "TSession",
+    "TAgent",
+    "TService",
     # Common combinations
-    'CommonTypes', 'ConfigDict', 'ErrorResult', 'SuccessResult',
+    "CommonTypes",
+    "ConfigDict",
+    "ErrorResult",
+    "SuccessResult",
 ]

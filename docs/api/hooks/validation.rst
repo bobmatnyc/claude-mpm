@@ -1,4 +1,4 @@
-Validation Hooks  
+Validation Hooks
 ================
 
 Validation hooks provide custom validation logic integration within the Claude MPM framework.

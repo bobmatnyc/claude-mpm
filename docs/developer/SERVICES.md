@@ -2,9 +2,11 @@
 
 This guide provides comprehensive documentation for the Claude MPM service layer, including service domains, interfaces, implementations, usage examples, and lifecycle management.
 
-**Last Updated**: 2025-08-14  
-**Architecture Version**: 3.8.2  
+**Last Updated**: 2025-08-16
+**Architecture Version**: 3.8.3
 **Related Documents**: [ARCHITECTURE.md](../ARCHITECTURE.md), [TESTING.md](../TESTING.md)
+
+> **Note**: As of v3.8.3, the service layer has been fully consolidated to eliminate duplicate modules and enforce strict domain-driven organization. All legacy duplicate files have been removed.
 
 ## Table of Contents
 
@@ -649,5 +651,58 @@ class ConfigurableService:
 - **Configuration Validation**: Validate configuration on startup
 - **Runtime Configuration**: Support configuration updates
 - **Secure Secrets**: Handle sensitive configuration securely
+
+## Service Organization Policy
+
+**Effective**: v3.8.3 (2025-08-16)
+
+To prevent future duplication and maintain clean architecture, the following policies are enforced:
+
+### Domain-Driven Structure
+
+All services MUST be organized into their appropriate domain directories:
+
+```
+src/claude_mpm/services/
+├── core/                  # Foundation interfaces and base classes
+├── agents/               # Agent lifecycle, deployment, management
+├── communication/        # Real-time communication, WebSocket
+├── project/             # Project analysis, workspace management
+├── infrastructure/      # Logging, monitoring, cross-cutting concerns
+├── memory/              # Memory management and caching
+├── mcp_gateway/         # MCP protocol gateway services
+├── socketio/            # SocketIO event handlers
+└── version_control/     # Git operations and versioning
+```
+
+### Strict Anti-Duplication Rules
+
+1. **Single Source of Truth**: Each service implementation MUST exist in exactly one location
+2. **No Root-Level Services**: New services MUST NOT be placed directly in `/services/` root
+3. **Domain Alignment**: Services MUST be placed in the domain that best matches their primary responsibility
+4. **Import Consolidation**: All imports MUST use the canonical domain-specific paths
+
+### Backward Compatibility
+
+- The `/services/__init__.py` provides backward compatibility through lazy imports
+- Legacy import paths are supported but deprecated
+- New code MUST use domain-specific import paths
+
+### Enforcement
+
+- **Code Reviews**: All PRs adding services must follow domain structure
+- **Automated Checks**: CI validates no duplicate modules exist
+- **Documentation**: This policy must be updated when domains change
+
+### Migration Process
+
+When refactoring existing services:
+
+1. **Identify Domain**: Determine the correct domain for the service
+2. **Move Implementation**: Move to appropriate domain directory
+3. **Update Imports**: Update all direct imports to use new path
+4. **Update __init__.py**: Update lazy import to point to new location
+5. **Remove Duplicates**: Delete old implementation after verification
+6. **Test**: Ensure all imports work and tests pass
 
 This service layer guide provides the foundation for understanding and working with Claude MPM's service architecture. Each service is designed to be maintainable, testable, and performant while providing clear contracts through well-defined interfaces.
