@@ -1,8 +1,12 @@
 # Agent Memory System
 
+> **⚠️ DEPRECATED**: This document has been consolidated into [MEMORY.md](MEMORY.md). Please refer to the main memory documentation for complete and up-to-date information.
+>
+> **Redirect**: For memory system information, see [MEMORY.md](MEMORY.md)
+
 The Agent Memory System allows Claude MPM agents to learn and retain knowledge across sessions, improving performance over time.
 
-**Last Updated**: 2025-08-14  
+**Last Updated**: 2025-08-14
 **Version**: 3.8.2
 
 ## Overview

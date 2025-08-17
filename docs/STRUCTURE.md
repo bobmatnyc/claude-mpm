@@ -2,7 +2,9 @@
 
 This document provides a comprehensive overview of the claude-mpm project structure. **Always refer to this document when creating new files to ensure they are placed in the correct location.**
 
-Last Updated: 2025-08-07
+**🔧 Structure Enforcement**: This project includes an automated structure linting system that validates file placement and prevents violations. See [STRUCTURE_LINTING.md](STRUCTURE_LINTING.md) for details.
+
+Last Updated: 2025-08-17
 
 ## Project Overview
 

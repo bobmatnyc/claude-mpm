@@ -25,4 +25,4 @@ fi
 echo "Starting Flask app on http://localhost:5000"
 echo "Press Ctrl+C to stop the server"
 echo ""
-python app.py
+python scripts/app.py
