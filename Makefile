@@ -336,3 +336,13 @@ cleanup: deprecation-check ## Alias for deprecation-check
 # Quick targets
 quick: setup ## Alias for complete setup
 quick-dev: setup-dev ## Alias for complete development setup
+
+# Structure linting targets
+.PHONY: structure-lint structure-fix
+structure-lint:
+	@echo "🔍 Running structure linting..."
+	@python tools/dev/structure_linter.py --verbose
+
+structure-fix:
+	@echo "🔧 Running structure linting with auto-fix..."
+	@python tools/dev/structure_linter.py --fix --verbose

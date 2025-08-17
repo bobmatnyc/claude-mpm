@@ -1,5 +1,9 @@
 # Project-Level Agent Support
 
+> **⚠️ DEPRECATED**: This document has been consolidated into [AGENTS.md](AGENTS.md). Please refer to the main agent documentation for complete and up-to-date information.
+>
+> **Redirect**: For project-level agent information, see [AGENTS.md - Agent Tier System](AGENTS.md#agent-tier-system)
+
 ## Overview
 
 Claude MPM now supports project-level agents with the highest precedence in the agent hierarchy. This allows projects to customize or override system and user agents with project-specific implementations.

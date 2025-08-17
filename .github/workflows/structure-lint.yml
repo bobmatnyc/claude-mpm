@@ -1,0 +1,38 @@
+name: Structure Linting
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  structure-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install minimal dependencies needed for structure linter
+        pip install pathlib
+        
+    - name: Run structure linting
+      run: |
+        python tools/dev/structure_linter.py --verbose
+        
+    - name: Check for violations
+      if: failure()
+      run: |
+        echo "❌ Structure violations detected!"
+        echo "💡 Run 'python tools/dev/structure_linter.py --fix' locally to fix violations"
+        echo "📖 See docs/STRUCTURE.md for project structure requirements"
+        exit 1
