@@ -36,7 +36,7 @@ from ....core.constants import (
     SystemLimits,
     TimeoutConfig,
 )
-from ....core.interfaces import SocketIOServiceInterface
+from ...core.interfaces.communication import SocketIOServiceInterface
 from ....core.logging_config import get_logger, log_operation, log_performance_context
 from ....core.unified_paths import get_project_root, get_scripts_dir
 from ...exceptions import SocketIOServerError as MPMConnectionError
@@ -76,7 +76,7 @@ class SocketIOServer(SocketIOServiceInterface):
         self.running = False
         self.connected_clients: Set[str] = set()
         self.client_info: Dict[str, Dict[str, Any]] = {}
-        self.event_buffer = deque(maxlen=SystemLimits.MAX_EVENTS_BUFFER.value)
+        self.event_buffer = deque(maxlen=SystemLimits.MAX_EVENTS_BUFFER)
         self.buffer_lock = threading.Lock()
         self.stats = {
             "events_sent": 0,
@@ -89,7 +89,10 @@ class SocketIOServer(SocketIOServiceInterface):
         self.session_id = None
         self.claude_status = "unknown"
         self.claude_pid = None
-        self.event_history = deque(maxlen=SystemLimits.MAX_EVENTS_BUFFER.value)
+        self.event_history = deque(maxlen=SystemLimits.MAX_EVENTS_BUFFER)
+        
+        # Active session tracking for heartbeat
+        self.active_sessions: Dict[str, Dict[str, Any]] = {}
 
     def start_sync(self):
         """Start the Socket.IO server in a background thread (synchronous version)."""
@@ -97,6 +100,9 @@ class SocketIOServer(SocketIOServiceInterface):
             self.logger.warning("Socket.IO not available - server not started")
             return
 
+        # Set reference to main server for session data
+        self.core.main_server = self
+        
         # Start the core server
         self.core.start_sync()
 
@@ -154,15 +160,64 @@ class SocketIOServer(SocketIOServiceInterface):
         """Broadcast an event to all connected clients."""
         if self.broadcaster:
             self.broadcaster.broadcast_event(event_type, data)
+    
+    def send_to_client(self, client_id: str, event_type: str, data: Dict[str, Any]) -> bool:
+        """Send an event to a specific client.
+        
+        WHY: The SocketIOServiceInterface requires this method for targeted 
+        messaging. We delegate to the Socket.IO server's emit method with
+        the client's session ID as the room.
+        
+        Args:
+            client_id: ID of the target client
+            event_type: Type of event to send
+            data: Event data to send
+            
+        Returns:
+            True if message sent successfully
+        """
+        if not self.core or not self.core.sio:
+            return False
+        
+        try:
+            # Socket.IO uses session IDs as room names for individual clients
+            # We can send to a specific client by using their session ID as the room
+            if client_id in self.connected_clients:
+                # Use the asyncio loop to emit to specific client
+                if self.core.loop:
+                    asyncio.run_coroutine_threadsafe(
+                        self.core.sio.emit(event_type, data, room=client_id),
+                        self.core.loop
+                    )
+                    return True
+            return False
+        except Exception as e:
+            self.logger.error(f"Error sending to client {client_id}: {e}")
+            return False
 
     def session_started(self, session_id: str, launch_method: str, working_dir: str):
         """Notify that a session has started."""
         self.session_id = session_id
+        
+        # Track active session for heartbeat
+        self.active_sessions[session_id] = {
+            "session_id": session_id,
+            "start_time": datetime.now().isoformat(),
+            "agent": "pm",  # Default to PM, will be updated if delegated
+            "status": "active",
+            "launch_method": launch_method,
+            "working_dir": working_dir,
+        }
+        
         if self.broadcaster:
             self.broadcaster.session_started(session_id, launch_method, working_dir)
 
     def session_ended(self):
         """Notify that a session has ended."""
+        # Remove from active sessions
+        if self.session_id and self.session_id in self.active_sessions:
+            del self.active_sessions[self.session_id]
+            
         if self.broadcaster:
             self.broadcaster.session_ended()
 
@@ -182,6 +237,11 @@ class SocketIOServer(SocketIOServiceInterface):
 
     def agent_delegated(self, agent: str, task: str, status: str = "started"):
         """Notify agent delegation."""
+        # Update active session with current agent
+        if self.session_id and self.session_id in self.active_sessions:
+            self.active_sessions[self.session_id]["agent"] = agent
+            self.active_sessions[self.session_id]["status"] = status
+            
         if self.broadcaster:
             self.broadcaster.agent_delegated(agent, task, status)
 
@@ -225,6 +285,30 @@ class SocketIOServer(SocketIOServiceInterface):
     def is_running(self) -> bool:
         """Check if server is running."""
         return self.core.is_running()
+    
+    def get_active_sessions(self) -> List[Dict[str, Any]]:
+        """Get list of active sessions for heartbeat.
+        
+        WHY: Provides session information for system heartbeat events.
+        """
+        # Clean up old sessions (older than 1 hour)
+        cutoff_time = datetime.now().timestamp() - 3600
+        sessions_to_remove = []
+        
+        for session_id, session_data in self.active_sessions.items():
+            try:
+                start_time = datetime.fromisoformat(session_data["start_time"])
+                if start_time.timestamp() < cutoff_time:
+                    sessions_to_remove.append(session_id)
+            except:
+                pass
+        
+        for session_id in sessions_to_remove:
+            del self.active_sessions[session_id]
+        
+        # Return list of active sessions
+        return list(self.active_sessions.values())
+
 
     # Legacy compatibility properties
     @property

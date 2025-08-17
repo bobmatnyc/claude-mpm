@@ -21,7 +21,8 @@ class MCPServerCommands:
         """Start MCP server command.
 
         WHY: This command starts the MCP server using the proper stdio-based
-        implementation that Claude Desktop/Code can communicate with.
+        implementation that Claude Code can communicate with.
+        NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.
 
         DESIGN DECISION: When called without flags, we run the server directly
         for Claude Code compatibility. With --instructions flag, we show setup info.
@@ -35,20 +36,20 @@ class MCPServerCommands:
 
         if daemon_mode:
             # Daemon mode - not recommended for MCP
-            print("⚠️  MCP servers are designed to be spawned by Claude Desktop/Code")
+            print("⚠️  MCP servers are designed to be spawned by Claude Code")
             print("   Running as a daemon is not recommended.")
+            print("   Note: MCP is ONLY for Claude Code, not Claude Desktop.")
             return 1
 
         if show_instructions:
             # Show configuration instructions
-            print("🚀 MCP Server Setup Instructions")
+            print("🚀 MCP Server Setup Instructions for Claude Code")
             print("=" * 50)
-            print("\nThe MCP server is designed to be spawned by Claude Desktop/Code.")
-            print("\nTo use the MCP server with Claude Desktop:")
-            print("\n1. Add this to your Claude Desktop configuration:")
-            print(
-                "   (usually at ~/Library/Application Support/Claude/claude_desktop_config.json on macOS)"
-            )
+            print("\nℹ️  IMPORTANT: MCP is ONLY for Claude Code - NOT for Claude Desktop!")
+            print("   Claude Desktop uses a different system for agent deployment.")
+            print("\nThe MCP server is designed to be spawned by Claude Code.")
+            print("\nTo use the MCP server with Claude Code:")
+            print("\n1. Add this to your Claude Code configuration (~/.claude.json):")
             print("\n{")
             print('  "mcpServers": {')
             print('    "claude-mpm": {')
@@ -70,9 +71,10 @@ class MCPServerCommands:
             print("    }")
             print("  }")
             print("}")
-            print("\n2. Restart Claude Desktop to load the MCP server")
+            print("\n2. Restart Claude Code to load the MCP server")
             print("\n3. The server will be automatically started when needed")
-            print("\nFor Claude Code, the configuration is usually automatic.")
+            print("\nOr use the registration script:")
+            print("  python scripts/register_mcp_gateway.py")
             print("\nTo test the server directly, run:")
             print("  claude-mpm mcp start --test")
             print("\nFor more information, see:")

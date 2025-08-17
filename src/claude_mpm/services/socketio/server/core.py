@@ -84,6 +84,11 @@ class SocketIOServerCore:
 
         # Static files path
         self.static_path = None
+        
+        # Heartbeat task
+        self.heartbeat_task = None
+        self.heartbeat_interval = 60  # seconds
+        self.main_server = None  # Reference to main server for session data
 
     def start_sync(self):
         """Start the Socket.IO server in a background thread (synchronous version)."""
@@ -181,6 +186,10 @@ class SocketIOServerCore:
             if self.static_path:
                 self.logger.info(f"Serving static files from: {self.static_path}")
 
+            # Start heartbeat task
+            self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+            self.logger.info("Started system heartbeat task")
+
             # Keep the server running
             while self.running:
                 await asyncio.sleep(1)
@@ -193,6 +202,15 @@ class SocketIOServerCore:
     async def _stop_server(self):
         """Stop the server gracefully."""
         try:
+            # Cancel heartbeat task
+            if self.heartbeat_task and not self.heartbeat_task.done():
+                self.heartbeat_task.cancel()
+                try:
+                    await self.heartbeat_task
+                except asyncio.CancelledError:
+                    pass
+                self.logger.info("Stopped system heartbeat task")
+
             if self.site:
                 await self.site.stop()
                 self.site = None
@@ -208,37 +226,50 @@ class SocketIOServerCore:
 
     def _setup_static_files(self):
         """Setup static file serving for the dashboard."""
-        self.dashboard_path = self._find_static_path()
+        try:
+            self.dashboard_path = self._find_static_path()
 
-        if self.dashboard_path and self.dashboard_path.exists():
-            # Serve index.html at root
-            async def index_handler(request):
-                index_file = self.dashboard_path / "index.html"
-                if index_file.exists():
-                    return web.FileResponse(index_file)
-                else:
-                    return web.Response(text="Dashboard not available", status=404)
+            if self.dashboard_path and self.dashboard_path.exists():
+                # Serve index.html at root
+                async def index_handler(request):
+                    index_file = self.dashboard_path / "index.html"
+                    if index_file.exists():
+                        return web.FileResponse(index_file)
+                    else:
+                        return web.Response(text="Dashboard not available", status=404)
 
-            self.app.router.add_get("/", index_handler)
+                self.app.router.add_get("/", index_handler)
 
-            # Serve static assets (CSS, JS) from the dashboard static directory
-            dashboard_static_path = (
-                get_project_root() / "src" / "claude_mpm" / "dashboard" / "static"
-            )
-            if dashboard_static_path.exists():
-                self.app.router.add_static(
-                    "/static/", dashboard_static_path, name="dashboard_static"
+                # Serve static assets (CSS, JS) from the dashboard static directory
+                dashboard_static_path = (
+                    get_project_root() / "src" / "claude_mpm" / "dashboard" / "static"
                 )
+                if dashboard_static_path.exists():
+                    self.app.router.add_static(
+                        "/static/", dashboard_static_path, name="dashboard_static"
+                    )
+                else:
+                    self.logger.debug(f"Static assets directory not found at: {dashboard_static_path}")
 
-        else:
-            # Fallback handler
-            async def fallback_handler(request):
+            else:
+                # Fallback handler
+                async def fallback_handler(request):
+                    return web.Response(
+                        text="Socket.IO server running - Dashboard not available",
+                        status=200,
+                    )
+
+                self.app.router.add_get("/", fallback_handler)
+                
+        except Exception as e:
+            self.logger.warning(f"Error setting up static files: {e}")
+            # Ensure we always have a basic handler
+            async def error_handler(request):
                 return web.Response(
-                    text="Socket.IO server running - Dashboard not available",
+                    text="Socket.IO server running - Static files unavailable",
                     status=200,
                 )
-
-            self.app.router.add_get("/", fallback_handler)
+            self.app.router.add_get("/", error_handler)
 
     def _find_static_path(self):
         """Find the static files directory using multiple approaches.
@@ -301,3 +332,64 @@ class SocketIOServerCore:
             True if server is active
         """
         return self.running
+    
+    async def _heartbeat_loop(self):
+        """Send periodic heartbeat events to connected clients.
+        
+        WHY: This provides a way to verify the event flow is working and
+        track server health and active sessions without relying on hook events.
+        """
+        while self.running:
+            try:
+                # Wait for the interval
+                await asyncio.sleep(self.heartbeat_interval)
+                
+                if not self.sio:
+                    continue
+                    
+                # Calculate uptime
+                uptime_seconds = 0
+                if self.stats.get("start_time"):
+                    uptime_seconds = int((datetime.now() - self.stats["start_time"]).total_seconds())
+                
+                # Get active sessions from main server if available
+                active_sessions = []
+                if self.main_server and hasattr(self.main_server, 'get_active_sessions'):
+                    try:
+                        active_sessions = self.main_server.get_active_sessions()
+                    except Exception as e:
+                        self.logger.debug(f"Could not get active sessions: {e}")
+                
+                # Prepare heartbeat data
+                heartbeat_data = {
+                    "type": "system",
+                    "event": "heartbeat",
+                    "timestamp": datetime.now().isoformat(),
+                    "data": {
+                        "uptime_seconds": uptime_seconds,
+                        "connected_clients": len(self.connected_clients),
+                        "total_events": self.stats.get("events_sent", 0),
+                        "active_sessions": active_sessions,
+                        "server_info": {
+                            "version": "4.0.2",
+                            "port": self.port,
+                        },
+                    },
+                }
+                
+                # Emit heartbeat to all connected clients
+                await self.sio.emit("system_event", heartbeat_data)
+                
+                self.logger.info(
+                    f"System heartbeat sent - clients: {len(self.connected_clients)}, "
+                    f"uptime: {uptime_seconds}s, events: {self.stats.get('events_sent', 0)}, "
+                    f"sessions: {len(active_sessions)}"
+                )
+                
+            except asyncio.CancelledError:
+                # Task was cancelled, exit gracefully
+                break
+            except Exception as e:
+                self.logger.error(f"Error in heartbeat loop: {e}")
+                # Continue running even if one heartbeat fails
+                await asyncio.sleep(5)  # Short delay before retry

@@ -9,6 +9,7 @@ that dispatches to specific subcommand handlers, maintaining consistency
 with other command modules like agents.py and memory.py.
 """
 
+import subprocess
 import sys
 
 from ...constants import MonitorCommands
@@ -38,16 +39,11 @@ def manage_monitor(args):
         server_manager = ServerManager()
 
         if not args.monitor_command:
-            # No subcommand - show help
-            # WHY: Since we removed status, show help instead when no subcommand is provided
-            print("Available monitor commands:")
-            print("  start    - Start the Socket.IO monitoring server")
-            print("  stop     - Stop the Socket.IO monitoring server")
-            print("  restart  - Restart the Socket.IO monitoring server")
-            print("  port <N> - Start/restart on specific port")
-            print()
-            print("Use 'claude-mpm monitor <command> --help' for more information")
-            return 0
+            # No subcommand - show status as default
+            # WHY: Status is the most common operation users want when running monitor without args
+            args.verbose = False  # Set default for verbose flag
+            success = _status_server(args, server_manager)
+            return 0 if success else 1
 
         if args.monitor_command == MonitorCommands.START.value:
             success = _start_server(args, server_manager)
@@ -61,6 +57,10 @@ def manage_monitor(args):
             success = _restart_server(args, server_manager)
             return 0 if success else 1
 
+        elif args.monitor_command == MonitorCommands.STATUS.value:
+            success = _status_server(args, server_manager)
+            return 0 if success else 1
+
         elif args.monitor_command == MonitorCommands.PORT.value:
             success = _port_server(args, server_manager)
             return 0 if success else 1
@@ -68,7 +68,7 @@ def manage_monitor(args):
         else:
             logger.error(f"Unknown monitor command: {args.monitor_command}")
             print(f"Unknown monitor command: {args.monitor_command}")
-            print("Available commands: start, stop, restart, port")
+            print("Available commands: start, stop, restart, status, port")
             return 1
 
     except ImportError as e:
@@ -267,6 +267,122 @@ def _stop_server(args, server_manager):
 
     except Exception as e:
         print(f"Error stopping server: {e}")
+        return False
+
+
+def _status_server(args, server_manager):
+    """
+    Check the status of Socket.IO monitoring servers.
+
+    WHY: Users need to check if the monitoring server is running, what port
+    it's using, and other diagnostic information without starting/stopping it.
+
+    Args:
+        args: Command arguments with optional verbose flag
+        server_manager: ServerManager instance
+
+    Returns:
+        bool: True if status check succeeded, False otherwise
+    """
+    verbose = getattr(args, "verbose", False)
+    
+    print("Checking Socket.IO monitoring server status...")
+    print()
+    
+    try:
+        # Check for daemon server using socketio_daemon.py
+        daemon_script = server_manager.daemon_script
+        if daemon_script and daemon_script.exists():
+            # Try to get status from daemon
+            result = subprocess.run(
+                [sys.executable, str(daemon_script), "status"],
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0 and result.stdout:
+                # Daemon provided status information
+                print(result.stdout)
+                
+                if verbose:
+                    # Show additional information
+                    print("\nAdditional Details:")
+                    print("─" * 40)
+                    
+                    # List all running servers from ServerManager
+                    running_servers = server_manager.list_running_servers()
+                    if running_servers:
+                        print(f"Found {len(running_servers)} running server(s):")
+                        for server in running_servers:
+                            server_port = server.get("port", "unknown")
+                            server_id = server.get("server_id", "unknown")
+                            server_pid = server.get("pid", "unknown")
+                            print(f"  • Server '{server_id}'")
+                            print(f"    Port: {server_port}")
+                            print(f"    PID: {server_pid}")
+                    else:
+                        print("No additional servers found via ServerManager")
+                
+                return True
+        
+        # Fall back to ServerManager's list_running_servers
+        running_servers = server_manager.list_running_servers()
+        
+        if not running_servers:
+            print("❌ No Socket.IO monitoring servers are currently running")
+            print()
+            print("To start a server:")
+            print("  claude-mpm monitor start")
+            print("  claude-mpm monitor start --port 8765")
+            return True
+        
+        # Display server information
+        print(f"✅ Found {len(running_servers)} running server(s):")
+        print()
+        
+        for server in running_servers:
+            server_port = server.get("port", "unknown")
+            server_id = server.get("server_id", "unknown")
+            server_pid = server.get("pid", "unknown")
+            server_host = server.get("host", "localhost")
+            
+            print(f"Server: {server_id}")
+            print(f"  • PID: {server_pid}")
+            print(f"  • Port: {server_port}")
+            print(f"  • Host: {server_host}")
+            print(f"  • WebSocket URL: ws://{server_host}:{server_port}")
+            
+            if verbose:
+                # Check if port is actually listening
+                try:
+                    import socket
+                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    result = sock.connect_ex((server_host, server_port))
+                    sock.close()
+                    if result == 0:
+                        print(f"  • Status: ✅ Listening")
+                    else:
+                        print(f"  • Status: ⚠️ Not responding on port")
+                except Exception as e:
+                    print(f"  • Status: ❌ Error checking: {e}")
+            
+            print()
+        
+        print("Server management commands:")
+        print("  Stop all:    claude-mpm monitor stop")
+        print("  Restart:     claude-mpm monitor restart")
+        if len(running_servers) == 1:
+            port = running_servers[0].get("port", 8765)
+            print(f"  Stop this:   claude-mpm monitor stop --port {port}")
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error checking server status: {e}")
+        print()
+        print("Try manual checks:")
+        print("  • Process list: ps aux | grep socketio")
+        print("  • Port usage: lsof -i :8765")
         return False
 
 

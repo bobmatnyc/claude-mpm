@@ -71,34 +71,34 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
         "--force", action="store_true", help="Force stop even if clients are connected"
     )
 
+    # Restart monitor
+    restart_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.RESTART.value, help="Restart Socket.IO monitoring server"
+    )
+    restart_monitor_parser.add_argument(
+        "--port", type=int, help="Port to restart on"
+    )
+    restart_monitor_parser.add_argument(
+        "--host", default="localhost", help="Host to bind to (default: localhost)"
+    )
+
     # Status monitor
     status_monitor_parser = monitor_subparsers.add_parser(
-        MonitorCommands.RESTART.value, help="Check monitoring server status"
-    )
-    status_monitor_parser.add_argument(
-        "--port", type=int, default=8765, help="Port to check (default: 8765)"
+        MonitorCommands.STATUS.value, help="Check monitoring server status"
     )
     status_monitor_parser.add_argument(
         "--verbose", action="store_true", help="Show detailed status information"
     )
 
-    # Logs monitor
-    logs_monitor_parser = monitor_subparsers.add_parser(
-        MonitorCommands.PORT.value, help="View monitoring server logs"
+    # Port monitor (start/restart on specific port)
+    port_monitor_parser = monitor_subparsers.add_parser(
+        MonitorCommands.PORT.value, help="Start/restart monitoring server on specific port"
     )
-    logs_monitor_parser.add_argument(
-        "--follow", action="store_true", help="Follow log output in real-time"
+    port_monitor_parser.add_argument(
+        "port", type=int, help="Port number to use"
     )
-    logs_monitor_parser.add_argument(
-        "--lines",
-        type=int,
-        default=50,
-        help="Number of recent log lines to show (default: 50)",
-    )
-    logs_monitor_parser.add_argument(
-        "--level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        help="Filter logs by level",
+    port_monitor_parser.add_argument(
+        "--host", default="localhost", help="Host to bind to (default: localhost)"
     )
 
     return monitor_parser

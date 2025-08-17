@@ -190,7 +190,7 @@ def start_server():
         print(
             f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Received signal {signum}, shutting down..."
         )
-        server.stop()
+        server.stop_sync()
 
         # Clean up instance registration
         port_manager_cleanup = PortManager()
@@ -206,8 +206,8 @@ def start_server():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
-    # Start server
-    server.start()
+    # Start server using synchronous method
+    server.start_sync()
 
     # Keep running
     try:

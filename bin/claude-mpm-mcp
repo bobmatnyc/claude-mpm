@@ -4,17 +4,20 @@ Claude MPM MCP Server Entry Point
 ==================================
 
 This script is the entry point for the Claude MPM MCP server when spawned
-by Claude Desktop/Code. It runs as a stdio-based JSON-RPC server with full
+by Claude Code. It runs as a stdio-based JSON-RPC server with full
 tool support including ticket management.
 
-WHY: Claude Desktop needs a simple executable to spawn MCP servers.
+NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.
+Claude Desktop uses a different system for agent deployment.
+
+WHY: Claude Code needs a simple executable to spawn MCP servers.
 This script provides that entry point with all available tools registered.
 
 DESIGN DECISION: We use the proper MCPGateway class which implements the
 official MCP Server protocol from the Anthropic MCP package, ensuring
-full protocol compliance and compatibility with Claude Desktop.
+full protocol compliance and compatibility with Claude Code.
 
-Usage in Claude Desktop config:
+Usage in Claude Code config (~/.claude.json):
 {
   "mcpServers": {
     "claude-mpm": {

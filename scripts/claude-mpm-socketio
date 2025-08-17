@@ -14,7 +14,7 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Path to the Python daemon script
-DAEMON_SCRIPT="${SCRIPT_DIR}/socketio_daemon.py"
+DAEMON_SCRIPT="${SCRIPT_DIR}/../src/claude_mpm/scripts/socketio_daemon.py"
 
 # Check if the daemon script exists
 if [ ! -f "$DAEMON_SCRIPT" ]; then

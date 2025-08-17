@@ -42,7 +42,7 @@ class GitEventHandler(BaseEventHandler):
                 # Validate and sanitize working directory
                 working_dir = self._sanitize_working_dir(working_dir, "get_git_branch")
 
-                if not self._validate_directory(
+                if not await self._validate_directory(
                     sid, working_dir, "git_branch_response"
                 ):
                     return
@@ -195,7 +195,7 @@ class GitEventHandler(BaseEventHandler):
                     working_dir, "check_git_status"
                 )
 
-                if not self._validate_directory_for_status(
+                if not await self._validate_directory_for_status(
                     sid, working_dir, original_working_dir, file_path
                 ):
                     return
@@ -326,7 +326,7 @@ class GitEventHandler(BaseEventHandler):
                 original_working_dir = working_dir
                 working_dir = self._sanitize_working_dir(working_dir, "git_add_file")
 
-                if not self._validate_directory_for_add(
+                if not await self._validate_directory_for_add(
                     sid, working_dir, original_working_dir, file_path
                 ):
                     return

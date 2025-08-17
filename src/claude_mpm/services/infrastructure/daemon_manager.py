@@ -32,7 +32,7 @@ except ImportError:
     import psutil
 
 # from claude_mpm.core.base_service import BaseService
-from claude_mpm.services.socketio_server import SocketIOServer
+from claude_mpm.services.socketio.server.main import SocketIOServer
 
 logger = logging.getLogger(__name__)
 

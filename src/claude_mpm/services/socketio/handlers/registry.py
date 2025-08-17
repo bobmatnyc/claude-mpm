@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 from .connection import ConnectionEventHandler
 from .file import FileEventHandler
 from .git import GitEventHandler
+from .hook import HookEventHandler
 from .memory import MemoryEventHandler
 from .project import ProjectEventHandler
 
@@ -32,6 +33,7 @@ class EventHandlerRegistry:
     # Default handler classes in registration order
     DEFAULT_HANDLERS: List[Type[BaseEventHandler]] = [
         ConnectionEventHandler,  # Connection management first
+        HookEventHandler,  # Hook events for session tracking
         GitEventHandler,  # Git operations
         FileEventHandler,  # File operations
         ProjectEventHandler,  # Project management (future)

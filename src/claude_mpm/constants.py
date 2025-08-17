@@ -88,6 +88,7 @@ class MonitorCommands(str, Enum):
     START = "start"
     STOP = "stop"
     RESTART = "restart"
+    STATUS = "status"
     PORT = "port"
 
 
