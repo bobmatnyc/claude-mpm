@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_mpm.core.unified_paths import (
-    get_path_manager,
     find_file_upwards,
     get_framework_root,
+    get_path_manager,
     get_project_root,
 )
 

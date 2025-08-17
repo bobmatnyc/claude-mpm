@@ -16,8 +16,8 @@ Commands:
     status  - Show detailed status information
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add src to path for imports
@@ -28,26 +28,30 @@ from claude_mpm.services.infrastructure.daemon_manager import SocketIODaemonMana
 
 def print_status(status_info):
     """Print formatted status information."""
-    if status_info['running']:
+    if status_info["running"]:
         print(f"Socket.IO daemon server is running (PID: {status_info['pid']})")
         print(f"PID file: {status_info['pid_file']}")
-        
-        if status_info.get('port_accessible'):
-            print(f"✅ Server is listening on {status_info['host']}:{status_info['port']}")
+
+        if status_info.get("port_accessible"):
+            print(
+                f"✅ Server is listening on {status_info['host']}:{status_info['port']}"
+            )
         else:
-            print(f"⚠️  WARNING: Server process exists but port {status_info['port']} is not accessible")
-        
+            print(
+                f"⚠️  WARNING: Server process exists but port {status_info['port']} is not accessible"
+            )
+
         print(f"🔧 Management style: {status_info['management_style']}")
-        
-        if status_info.get('conflict_detected'):
+
+        if status_info.get("conflict_detected"):
             print(f"\n⚠️  POTENTIAL CONFLICT: Another server detected")
             print(f"   Conflicting server: {status_info['conflicting_server']}")
             print(f"   Use 'socketio_server_manager.py diagnose' to resolve")
-        
+
         print(f"\n🔧 Management Commands:")
         print(f"   • Stop: {sys.argv[0]} stop")
         print(f"   • Restart: {sys.argv[0]} restart")
-        
+
     else:
         print("Socket.IO daemon server is not running")
         print(f"\n🔧 Start Commands:")
@@ -65,10 +69,10 @@ def main():
         print("  restart - Restart the daemon server")
         print("  status  - Show detailed status information")
         sys.exit(1)
-    
+
     command = sys.argv[1].lower()
     daemon_manager = SocketIODaemonManager()
-    
+
     try:
         if command == "start":
             if daemon_manager.start():
@@ -79,29 +83,29 @@ def main():
             else:
                 print("Failed to start Socket.IO server.")
                 sys.exit(1)
-                
+
         elif command == "stop":
             if daemon_manager.stop():
                 print("Socket.IO server stopped successfully.")
             else:
                 print("Failed to stop Socket.IO server or server was not running.")
-                
+
         elif command == "restart":
             if daemon_manager.restart():
                 print("Socket.IO server restarted successfully.")
             else:
                 print("Failed to restart Socket.IO server.")
                 sys.exit(1)
-                
+
         elif command == "status":
             status_info = daemon_manager.status()
             print_status(status_info)
-            
+
         else:
             print(f"Unknown command: {command}")
             print("Usage: socketio-daemon {start|stop|restart|status}")
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user.")
         sys.exit(1)

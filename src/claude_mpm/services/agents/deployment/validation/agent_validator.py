@@ -161,7 +161,9 @@ class AgentValidator:
         if "description" in frontmatter:
             description = frontmatter["description"]
             if not description or not str(description).strip():
-                result.add_error("Agent description cannot be empty", field_name="description")
+                result.add_error(
+                    "Agent description cannot be empty", field_name="description"
+                )
 
         # Validate author
         if "author" in frontmatter:
@@ -201,7 +203,9 @@ class AgentValidator:
                 # Check for common tool names
                 for tool in tools:
                     if not isinstance(tool, str):
-                        result.add_warning(f"Tool '{tool}' should be a string", field_name="tools")
+                        result.add_warning(
+                            f"Tool '{tool}' should be a string", field_name="tools"
+                        )
 
     def _validate_markdown_structure(self, content: str) -> ValidationResult:
         """Validate markdown structure of agent file.
@@ -215,7 +219,9 @@ class AgentValidator:
         result = ValidationResult(is_valid=True)
 
         # Remove frontmatter for markdown analysis
-        content_without_frontmatter = re.sub(r"^---\n.*?\n---\n", "", content, flags=re.DOTALL)
+        content_without_frontmatter = re.sub(
+            r"^---\n.*?\n---\n", "", content, flags=re.DOTALL
+        )
 
         # Check if there's content after frontmatter
         if not content_without_frontmatter.strip():
@@ -252,7 +258,9 @@ class AgentValidator:
         pattern = r"^\d+\.\d+\.\d+(-[a-zA-Z0-9.-]+)?(\+[a-zA-Z0-9.-]+)?$"
         return bool(re.match(pattern, version))
 
-    def repair_agent_file(self, agent_file: Path, dry_run: bool = True) -> ValidationResult:
+    def repair_agent_file(
+        self, agent_file: Path, dry_run: bool = True
+    ) -> ValidationResult:
         """Attempt to repair common issues in agent file.
 
         Args:

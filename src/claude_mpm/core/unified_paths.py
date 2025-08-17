@@ -5,7 +5,7 @@ Unified Path Management System for Claude MPM
 
 This module consolidates all path management functionality from the duplicate modules:
 - config/paths.py (ClaudeMPMPaths)
-- utils/paths.py (get_path_manager()) 
+- utils/paths.py (get_path_manager())
 - deployment_paths.py (get_path_manager())
 - core/config_paths.py (get_path_manager())
 
@@ -24,19 +24,20 @@ Architecture:
 - Cached properties with smart invalidation
 """
 
+import logging
 import os
 import sys
 from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 from typing import Dict, List, Optional, Union
-import logging
 
 logger = logging.getLogger(__name__)
 
 
 class PathType(Enum):
     """Enumeration of different path types for categorization."""
+
     PROJECT = "project"
     FRAMEWORK = "framework"
     USER = "user"
@@ -52,6 +53,7 @@ class PathType(Enum):
 
 class DeploymentContext(Enum):
     """Enumeration of deployment contexts."""
+
     DEVELOPMENT = "development"
     EDITABLE_INSTALL = "editable_install"
     PIP_INSTALL = "pip_install"
@@ -61,34 +63,38 @@ class DeploymentContext(Enum):
 
 class PathContext:
     """Handles deployment context detection and path resolution."""
-    
+
     @staticmethod
     @lru_cache(maxsize=1)
     def detect_deployment_context() -> DeploymentContext:
         """Detect the current deployment context."""
         try:
             import claude_mpm
+
             module_path = Path(claude_mpm.__file__).parent
-            
+
             # Check for development mode
             if (module_path.parent / "src").exists():
                 return DeploymentContext.DEVELOPMENT
-            
+
             # Check for editable install
-            if "site-packages" in str(module_path) and (module_path.parent.parent / "src").exists():
+            if (
+                "site-packages" in str(module_path)
+                and (module_path.parent.parent / "src").exists()
+            ):
                 return DeploymentContext.EDITABLE_INSTALL
-            
+
             # Check for pipx install
             if "pipx" in str(module_path):
                 return DeploymentContext.PIPX_INSTALL
-            
+
             # Check for system package
             if "dist-packages" in str(module_path):
                 return DeploymentContext.SYSTEM_PACKAGE
-            
+
             # Default to pip install
             return DeploymentContext.PIP_INSTALL
-            
+
         except ImportError:
             return DeploymentContext.DEVELOPMENT
 
@@ -96,51 +102,60 @@ class PathContext:
 class UnifiedPathManager:
     """
     Unified path management system that consolidates all path-related functionality.
-    
+
     This class provides a single, authoritative interface for all path operations
     in Claude MPM, replacing the multiple duplicate path management modules.
     """
-    
+
     _instance: Optional["UnifiedPathManager"] = None
     _cache_invalidated: bool = False
-    
+
     # Configuration constants
     CONFIG_DIR_NAME = ".claude-mpm"
     LEGACY_CONFIG_DIR_NAME = ".claude-pm"  # For migration support
-    
+
     def __new__(cls) -> "UnifiedPathManager":
         """Singleton pattern to ensure single instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         """Initialize the path manager."""
         if self._initialized:
             return
-            
+
         self._deployment_context = PathContext.detect_deployment_context()
         self._project_markers = [
-            ".git", "pyproject.toml", "package.json", "Cargo.toml", 
-            "go.mod", "pom.xml", "build.gradle", self.CONFIG_DIR_NAME
+            ".git",
+            "pyproject.toml",
+            "package.json",
+            "Cargo.toml",
+            "go.mod",
+            "pom.xml",
+            "build.gradle",
+            self.CONFIG_DIR_NAME,
         ]
         self._initialized = True
-        
-        logger.debug(f"UnifiedPathManager initialized with context: {self._deployment_context}")
-    
+
+        logger.debug(
+            f"UnifiedPathManager initialized with context: {self._deployment_context}"
+        )
+
     # ========================================================================
     # Core Path Resolution Methods
     # ========================================================================
-    
+
     @property
     @lru_cache(maxsize=1)
     def framework_root(self) -> Path:
         """Get the framework root directory."""
         try:
             import claude_mpm
+
             module_path = Path(claude_mpm.__file__).parent
-            
+
             if self._deployment_context == DeploymentContext.DEVELOPMENT:
                 # Development: go up to project root
                 current = module_path
@@ -148,10 +163,12 @@ class UnifiedPathManager:
                     if (current / "src" / "claude_mpm").exists():
                         return current
                     current = current.parent
-            
+
             # For installed packages, the module path is the framework root
-            return module_path.parent if module_path.name == "claude_mpm" else module_path
-            
+            return (
+                module_path.parent if module_path.name == "claude_mpm" else module_path
+            )
+
         except ImportError:
             # Fallback: search from current file location
             current = Path(__file__).parent
@@ -159,11 +176,11 @@ class UnifiedPathManager:
                 if (current / "src" / "claude_mpm").exists():
                     return current
                 current = current.parent
-            
+
             raise FileNotFoundError("Could not determine framework root")
-    
+
     @property
-    @lru_cache(maxsize=1) 
+    @lru_cache(maxsize=1)
     def project_root(self) -> Path:
         """Get the current project root directory."""
         current = Path.cwd()
@@ -173,24 +190,25 @@ class UnifiedPathManager:
                     logger.debug(f"Found project root at {current} via {marker}")
                     return current
             current = current.parent
-        
+
         # Fallback to current directory
         logger.warning("Could not find project root, using current directory")
         return Path.cwd()
-    
+
     @property
     def package_root(self) -> Path:
         """Get the claude_mpm package root directory."""
         try:
             import claude_mpm
+
             return Path(claude_mpm.__file__).parent
         except ImportError:
             return self.framework_root / "src" / "claude_mpm"
-    
+
     # ========================================================================
     # Configuration Paths
     # ========================================================================
-    
+
     def get_config_dir(self, scope: str = "project") -> Path:
         """Get configuration directory for specified scope."""
         if scope == "user":
@@ -200,21 +218,23 @@ class UnifiedPathManager:
         elif scope == "framework":
             return self.framework_root / self.CONFIG_DIR_NAME
         else:
-            raise ValueError(f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'")
-    
+            raise ValueError(
+                f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
+            )
+
     def get_user_config_dir(self) -> Path:
         """Get the user-level configuration directory."""
         return Path.home() / self.CONFIG_DIR_NAME
-    
+
     def get_project_config_dir(self, project_root: Optional[Path] = None) -> Path:
         """Get the project-level configuration directory."""
         root = project_root or self.project_root
         return root / self.CONFIG_DIR_NAME
-    
+
     # ========================================================================
     # Agent Paths
     # ========================================================================
-    
+
     def get_agents_dir(self, scope: str = "framework") -> Path:
         """Get agents directory for specified scope."""
         if scope == "user":
@@ -227,20 +247,22 @@ class UnifiedPathManager:
             else:
                 return self.package_root / "agents"
         else:
-            raise ValueError(f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'")
-    
+            raise ValueError(
+                f"Invalid scope: {scope}. Must be 'user', 'project', or 'framework'"
+            )
+
     def get_user_agents_dir(self) -> Path:
         """Get the user-level agents directory."""
         return self.get_user_config_dir() / "agents"
-    
+
     def get_project_agents_dir(self, project_root: Optional[Path] = None) -> Path:
         """Get the project-level agents directory."""
         return self.get_project_config_dir(project_root) / "agents"
-    
+
     def get_system_agents_dir(self) -> Path:
         """Get the system-level agents directory."""
         return self.get_agents_dir("framework")
-    
+
     def get_templates_dir(self) -> Path:
         """Get the agent templates directory."""
         return self.get_agents_dir("framework") / "templates"
@@ -305,7 +327,9 @@ class UnifiedPathManager:
         base_dir = resource_dirs.get(resource_type, self.package_root)
         return base_dir / filename
 
-    def find_file_upwards(self, filename: str, start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_file_upwards(
+        self, filename: str, start_path: Optional[Path] = None
+    ) -> Optional[Path]:
         """Search for a file by traversing up the directory tree."""
         current = start_path or Path.cwd()
 
@@ -360,14 +384,18 @@ class UnifiedPathManager:
         """Check if a path contains the legacy configuration directory name."""
         return self.LEGACY_CONFIG_DIR_NAME not in str(path)
 
-    def get_relative_to_root(self, path: Union[str, Path], root_type: str = "project") -> Path:
+    def get_relative_to_root(
+        self, path: Union[str, Path], root_type: str = "project"
+    ) -> Path:
         """Get a path relative to a specific root."""
         if root_type == "project":
             root = self.project_root
         elif root_type == "framework":
             root = self.framework_root
         else:
-            raise ValueError(f"Invalid root_type: {root_type}. Must be 'project' or 'framework'")
+            raise ValueError(
+                f"Invalid root_type: {root_type}. Must be 'project' or 'framework'"
+            )
 
         return root / path
 
@@ -388,9 +416,13 @@ class UnifiedPathManager:
         # Clear lru_cache instances
         try:
             # Clear property caches if they exist
-            if hasattr(type(self).framework_root, 'fget') and hasattr(type(self).framework_root.fget, 'cache_clear'):
+            if hasattr(type(self).framework_root, "fget") and hasattr(
+                type(self).framework_root.fget, "cache_clear"
+            ):
                 type(self).framework_root.fget.cache_clear()
-            if hasattr(type(self).project_root, 'fget') and hasattr(type(self).project_root.fget, 'cache_clear'):
+            if hasattr(type(self).project_root, "fget") and hasattr(
+                type(self).project_root.fget, "cache_clear"
+            ):
                 type(self).project_root.fget.cache_clear()
         except AttributeError:
             # Properties might not have cache_clear if not using lru_cache
@@ -425,6 +457,7 @@ class UnifiedPathManager:
         # Fallback to package metadata
         try:
             import claude_mpm
+
             return getattr(claude_mpm, "__version__", "unknown")
         except (ImportError, AttributeError):
             return "unknown"
@@ -443,6 +476,7 @@ class UnifiedPathManager:
 # Global singleton instance
 _path_manager: Optional[UnifiedPathManager] = None
 
+
 def get_path_manager() -> UnifiedPathManager:
     """Get the global UnifiedPathManager instance."""
     global _path_manager
@@ -450,34 +484,44 @@ def get_path_manager() -> UnifiedPathManager:
         _path_manager = UnifiedPathManager()
     return _path_manager
 
+
 # Convenience functions for backward compatibility
 def get_project_root() -> Path:
     """Get the current project root directory."""
     return get_path_manager().project_root
 
+
 def get_framework_root() -> Path:
     """Get the framework root directory."""
     return get_path_manager().framework_root
+
 
 def get_package_root() -> Path:
     """Get the claude_mpm package root directory."""
     return get_path_manager().package_root
 
+
 def get_scripts_dir() -> Path:
     """Get the scripts directory."""
     return get_path_manager().get_scripts_dir()
+
 
 def get_agents_dir() -> Path:
     """Get the framework agents directory."""
     return get_path_manager().get_agents_dir("framework")
 
+
 def get_config_dir(scope: str = "project") -> Path:
     """Get configuration directory for specified scope."""
     return get_path_manager().get_config_dir(scope)
 
-def find_file_upwards(filename: str, start_path: Optional[Path] = None) -> Optional[Path]:
+
+def find_file_upwards(
+    filename: str, start_path: Optional[Path] = None
+) -> Optional[Path]:
     """Search for a file by traversing up the directory tree."""
     return get_path_manager().find_file_upwards(filename, start_path)
+
 
 def get_package_resource_path(resource_path: str) -> Path:
     """Get the path to a resource within the claude_mpm package."""

@@ -20,7 +20,9 @@ class DeploymentPipelineExecutor:
         """Initialize the pipeline executor."""
         self.logger = get_logger(__name__)
 
-    def execute(self, steps: List[BaseDeploymentStep], context: PipelineContext) -> Dict[str, Any]:
+    def execute(
+        self, steps: List[BaseDeploymentStep], context: PipelineContext
+    ) -> Dict[str, Any]:
         """Execute a deployment pipeline.
 
         Args:
@@ -73,10 +75,14 @@ class DeploymentPipelineExecutor:
 
                     # Check if we can continue
                     if not step.can_continue_on_failure():
-                        self.logger.error(f"Critical step failed, stopping pipeline: {step.name}")
+                        self.logger.error(
+                            f"Critical step failed, stopping pipeline: {step.name}"
+                        )
                         break
                 elif result.is_skipped:
-                    self.logger.info(f"Step was skipped: {step.name} - {result.message}")
+                    self.logger.info(
+                        f"Step was skipped: {step.name} - {result.message}"
+                    )
                     skipped_steps.append(step.name)
 
                 # Record timing
@@ -123,7 +129,9 @@ class DeploymentPipelineExecutor:
                 f"Pipeline completed successfully in {final_results['deployment_time']:.3f}s"
             )
         else:
-            self.logger.error(f"Pipeline completed with {len(failed_steps)} failed steps")
+            self.logger.error(
+                f"Pipeline completed with {len(failed_steps)} failed steps"
+            )
 
         return final_results
 

@@ -26,10 +26,18 @@ def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
     }
 
     # Tool-specific parameter extraction
-    if tool_name in ["Write", "Edit", "MultiEdit", "Read", "NotebookRead", "NotebookEdit"]:
+    if tool_name in [
+        "Write",
+        "Edit",
+        "MultiEdit",
+        "Read",
+        "NotebookRead",
+        "NotebookEdit",
+    ]:
         params.update(
             {
-                "file_path": tool_input.get("file_path") or tool_input.get("notebook_path"),
+                "file_path": tool_input.get("file_path")
+                or tool_input.get("notebook_path"),
                 "content_length": len(
                     str(tool_input.get("content", tool_input.get("new_string", "")))
                 ),
@@ -71,7 +79,9 @@ def extract_tool_parameters(tool_name: str, tool_input: dict) -> dict:
                 "description": tool_input.get("description", ""),
                 "prompt": tool_input.get("prompt", ""),
                 "prompt_preview": (
-                    tool_input.get("prompt", "")[:200] if tool_input.get("prompt") else ""
+                    tool_input.get("prompt", "")[:200]
+                    if tool_input.get("prompt")
+                    else ""
                 ),
                 "is_pm_delegation": tool_input.get("subagent_type") == "pm",
                 "is_research_delegation": tool_input.get("subagent_type") == "research",
@@ -153,7 +163,15 @@ def assess_security_risk(tool_name: str, tool_input: dict) -> str:
     if tool_name == "Bash":
         command = tool_input.get("command", "").lower()
         # Check for potentially dangerous commands
-        dangerous_patterns = ["rm -rf", "sudo", "chmod 777", "curl", "wget", "> /etc/", "dd if="]
+        dangerous_patterns = [
+            "rm -rf",
+            "sudo",
+            "chmod 777",
+            "curl",
+            "wget",
+            "> /etc/",
+            "dd if=",
+        ]
         if any(pattern in command for pattern in dangerous_patterns):
             return "high"
         elif any(word in command for word in ["install", "delete", "format", "kill"]):
@@ -175,7 +193,11 @@ def assess_security_risk(tool_name: str, tool_input: dict) -> str:
 
 def extract_tool_results(event: dict) -> dict:
     """Extract and summarize tool execution results."""
-    result = {"exit_code": event.get("exit_code", 0), "has_output": False, "has_error": False}
+    result = {
+        "exit_code": event.get("exit_code", 0),
+        "has_output": False,
+        "has_error": False,
+    }
 
     # Extract output if available
     if "output" in event:
@@ -192,7 +214,10 @@ def extract_tool_results(event: dict) -> dict:
     if "error" in event or event.get("exit_code", 0) != 0:
         error = str(event.get("error", ""))
         result.update(
-            {"has_error": True, "error_preview": error[:200] if len(error) > 200 else error}
+            {
+                "has_error": True,
+                "error_preview": error[:200] if len(error) > 200 else error,
+            }
         )
 
     return result

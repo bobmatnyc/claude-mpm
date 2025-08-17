@@ -46,7 +46,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         """Cleanup service resources. No cleanup needed."""
         pass
 
-    def launch_subprocess_interactive(self, cmd: List[str], env: Dict[str, str]) -> None:
+    def launch_subprocess_interactive(
+        self, cmd: List[str], env: Dict[str, str]
+    ) -> None:
         """Launch Claude as a subprocess with PTY for interactive mode.
 
         This method launches Claude as a subprocess when explicitly requested
@@ -91,7 +93,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
             # Notify WebSocket clients
             if self.websocket_server:
                 self.websocket_server.claude_status_changed(
-                    status="running", pid=process.pid, message="Claude subprocess started"
+                    status="running",
+                    pid=process.pid,
+                    message="Claude subprocess started",
                 )
 
             # Set terminal to raw mode for proper interaction

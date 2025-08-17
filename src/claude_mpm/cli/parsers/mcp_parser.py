@@ -58,14 +58,21 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         help="Server mode: stdio for Claude integration, standalone for testing (default: stdio)",
     )
     start_mcp_parser.add_argument(
-        "--port", type=int, default=8766, help="Port for standalone mode (default: 8766)"
+        "--port",
+        type=int,
+        default=8766,
+        help="Port for standalone mode (default: 8766)",
     )
-    start_mcp_parser.add_argument("--config-file", type=Path, help="Path to MCP configuration file")
+    start_mcp_parser.add_argument(
+        "--config-file", type=Path, help="Path to MCP configuration file"
+    )
     start_mcp_parser.add_argument(
         "--test", action="store_true", help="Run in test mode with debug output"
     )
     start_mcp_parser.add_argument(
-        "--instructions", action="store_true", help="Show setup instructions instead of running server"
+        "--instructions",
+        action="store_true",
+        help="Show setup instructions instead of running server",
     )
     start_mcp_parser.add_argument(
         "--daemon", action="store_true", help="Run as daemon (not recommended for MCP)"
@@ -99,7 +106,9 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         "tool_name", nargs="?", help="Tool name for enable/disable actions"
     )
     tools_mcp_parser.add_argument(
-        "--verbose", action="store_true", help="Show detailed tool information including schemas"
+        "--verbose",
+        action="store_true",
+        help="Show detailed tool information including schemas",
     )
 
     # Register new tool
@@ -111,7 +120,9 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
     register_mcp_parser.add_argument(
         "--schema-file", type=Path, help="Path to JSON schema file for tool input"
     )
-    register_mcp_parser.add_argument("--adapter", help="Path to custom tool adapter module")
+    register_mcp_parser.add_argument(
+        "--adapter", help="Path to custom tool adapter module"
+    )
     register_mcp_parser.add_argument(
         "--save", action="store_true", help="Save tool to configuration"
     )

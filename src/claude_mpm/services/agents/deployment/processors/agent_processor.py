@@ -50,7 +50,6 @@ class AgentProcessor:
                 and not needs_update
                 and not context.is_project_deployment()
             ):
-
                 self.logger.debug(f"Skipped up-to-date agent: {context.agent_name}")
                 return AgentDeploymentResult.skipped(
                     context.agent_name,
@@ -99,7 +98,9 @@ class AgentProcessor:
         except AgentDeploymentError as e:
             # Re-raise our custom exceptions
             deployment_time_ms = (time.time() - start_time) * 1000
-            self.logger.error(f"Agent deployment error for {context.agent_name}: {str(e)}")
+            self.logger.error(
+                f"Agent deployment error for {context.agent_name}: {str(e)}"
+            )
             return AgentDeploymentResult.failed(
                 context.agent_name,
                 context.template_file,
@@ -138,7 +139,9 @@ class AgentProcessor:
             if context.target_file.exists():
                 needs_update = True
                 reason = "Project deployment mode"
-                self.logger.debug(f"Project deployment mode: will deploy {context.agent_name}")
+                self.logger.debug(
+                    f"Project deployment mode: will deploy {context.agent_name}"
+                )
             else:
                 needs_update = True
                 reason = "New agent in project mode"
@@ -151,9 +154,13 @@ class AgentProcessor:
                 # Check if this is a migration from old format
                 if "migration needed" in reason:
                     is_migration = True
-                    self.logger.info(f"Migration needed for agent {context.agent_name}: {reason}")
+                    self.logger.info(
+                        f"Migration needed for agent {context.agent_name}: {reason}"
+                    )
                 else:
-                    self.logger.info(f"Agent {context.agent_name} needs update: {reason}")
+                    self.logger.info(
+                        f"Agent {context.agent_name} needs update: {reason}"
+                    )
 
         return needs_update, is_migration, reason
 
@@ -174,9 +181,13 @@ class AgentProcessor:
                 context.agent_name, context.template_file, context.base_agent_data
             )
         except Exception as e:
-            raise AgentDeploymentError(f"Failed to build agent {context.agent_name}: {e}") from e
+            raise AgentDeploymentError(
+                f"Failed to build agent {context.agent_name}: {e}"
+            ) from e
 
-    def _deploy_agent_content(self, context: AgentDeploymentContext, content: str) -> None:
+    def _deploy_agent_content(
+        self, context: AgentDeploymentContext, content: str
+    ) -> None:
         """Deploy agent content to target file.
 
         Args:
@@ -212,18 +223,24 @@ class AgentProcessor:
         try:
             # Check if template file exists and is readable
             if not context.template_file.exists():
-                self.logger.error(f"Template file does not exist: {context.template_file}")
+                self.logger.error(
+                    f"Template file does not exist: {context.template_file}"
+                )
                 return False
 
             if not context.template_file.is_file():
-                self.logger.error(f"Template path is not a file: {context.template_file}")
+                self.logger.error(
+                    f"Template path is not a file: {context.template_file}"
+                )
                 return False
 
             # Check if we can read the template
             try:
                 context.template_file.read_text(encoding="utf-8")
             except Exception as e:
-                self.logger.error(f"Cannot read template file {context.template_file}: {e}")
+                self.logger.error(
+                    f"Cannot read template file {context.template_file}: {e}"
+                )
                 return False
 
             # Check if target directory is writable

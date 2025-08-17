@@ -30,9 +30,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
+from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.router import MemoryRouter
 from claude_mpm.services.project.analyzer import ProjectAnalyzer
-from claude_mpm.core.unified_paths import get_path_manager
 
 
 class MemoryBuilder(LoggerMixin):

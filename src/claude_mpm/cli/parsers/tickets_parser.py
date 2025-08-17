@@ -57,11 +57,18 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
         help="Priority level (default: medium)",
     )
     create_ticket_parser.add_argument(
-        "-d", "--description", nargs="*", help="Ticket description (multiple words allowed)"
+        "-d",
+        "--description",
+        nargs="*",
+        help="Ticket description (multiple words allowed)",
     )
     create_ticket_parser.add_argument("--tags", help="Comma-separated list of tags")
-    create_ticket_parser.add_argument("--parent-epic", help="Parent epic ID for this ticket")
-    create_ticket_parser.add_argument("--parent-issue", help="Parent issue ID for this ticket")
+    create_ticket_parser.add_argument(
+        "--parent-epic", help="Parent epic ID for this ticket"
+    )
+    create_ticket_parser.add_argument(
+        "--parent-issue", help="Parent issue ID for this ticket"
+    )
 
     # List tickets
     list_tickets_parser = tickets_subparsers.add_parser(
@@ -81,16 +88,25 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
         help="Filter by status (default: open)",
     )
     list_tickets_parser.add_argument(
-        "-p", "--priority", choices=["low", "medium", "high", "critical"], help="Filter by priority"
+        "-p",
+        "--priority",
+        choices=["low", "medium", "high", "critical"],
+        help="Filter by priority",
     )
     list_tickets_parser.add_argument(
-        "--limit", type=int, default=20, help="Maximum number of tickets to show (default: 20)"
+        "--limit",
+        type=int,
+        default=20,
+        help="Maximum number of tickets to show (default: 20)",
     )
     list_tickets_parser.add_argument(
         "--page", type=int, default=1, help="Page number for pagination (default: 1)"
     )
     list_tickets_parser.add_argument(
-        "--page-size", type=int, default=20, help="Number of tickets per page (default: 20)"
+        "--page-size",
+        type=int,
+        default=20,
+        help="Number of tickets per page (default: 20)",
     )
     list_tickets_parser.add_argument(
         "--verbose", action="store_true", help="Show detailed ticket information"
@@ -111,15 +127,23 @@ def add_tickets_subparser(subparsers) -> argparse.ArgumentParser:
     )
     update_ticket_parser.add_argument("ticket_id", help="Ticket ID to update")
     update_ticket_parser.add_argument(
-        "-p", "--priority", choices=["low", "medium", "high", "critical"], help="Update priority"
+        "-p",
+        "--priority",
+        choices=["low", "medium", "high", "critical"],
+        help="Update priority",
     )
     update_ticket_parser.add_argument(
-        "-s", "--status", choices=["open", "in_progress", "closed"], help="Update status"
+        "-s",
+        "--status",
+        choices=["open", "in_progress", "closed"],
+        help="Update status",
     )
     update_ticket_parser.add_argument("--title", help="Update title")
     update_ticket_parser.add_argument("--description", help="Update description")
     update_ticket_parser.add_argument("--add-tags", help="Comma-separated tags to add")
-    update_ticket_parser.add_argument("--remove-tags", help="Comma-separated tags to remove")
+    update_ticket_parser.add_argument(
+        "--remove-tags", help="Comma-separated tags to remove"
+    )
 
     # Close ticket
     close_ticket_parser = tickets_subparsers.add_parser(

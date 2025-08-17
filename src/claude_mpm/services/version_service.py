@@ -59,7 +59,9 @@ class VersionService(BaseService, VersionServiceInterface):
                 parts = version.split("+build.")
                 version = parts[0]  # Base version without build
                 build_number = int(parts[1]) if len(parts) > 1 else None
-                self.logger.debug(f"Extracted base version: {version}, build: {build_number}")
+                self.logger.debug(
+                    f"Extracted base version: {version}, build: {build_number}"
+                )
         except ImportError as e:
             self.logger.debug(f"Package import failed: {e}")
         except Exception as e:
@@ -91,7 +93,9 @@ class VersionService(BaseService, VersionServiceInterface):
                     method_used = "version_file"
                     self.logger.debug(f"Version obtained via VERSION file: {version}")
                 else:
-                    self.logger.debug(f"VERSION file not found at: {paths.version_file}")
+                    self.logger.debug(
+                        f"VERSION file not found at: {paths.version_file}"
+                    )
             except Exception as e:
                 self.logger.warning(f"Failed to read VERSION file: {e}")
 

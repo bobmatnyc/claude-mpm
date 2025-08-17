@@ -11,9 +11,9 @@ print("\nParents:")
 
 for i, parent in enumerate(file_path.resolve().parents):
     print(f"  Level {i}: {parent}")
-    
+
 print("\nChecking for markers:")
-markers = ['pyproject.toml', 'setup.py', 'VERSION', '.git']
+markers = ["pyproject.toml", "setup.py", "VERSION", ".git"]
 
 for parent in file_path.resolve().parents:
     found = [m for m in markers if (parent / m).exists()]

@@ -12,24 +12,24 @@ from claude_mpm.services.agents.deployment import AgentDeploymentService
 
 def verify_deployment():
     """Verify agents are properly deployed with author field."""
-    
+
     print("Verifying agent deployment fix...")
     print("=" * 50)
-    
+
     # Check current project agents
     agents_dir = Path(".claude/agents")
-    
+
     if not agents_dir.exists():
         print("❌ No .claude/agents directory found")
         return False
-    
+
     agent_files = list(agents_dir.glob("*.md"))
     print(f"Found {len(agent_files)} deployed agents")
-    
+
     all_valid = True
     missing_author = []
     has_author = []
-    
+
     for agent_file in agent_files:
         content = agent_file.read_text()
         if "author: claude-mpm" in content:
@@ -37,19 +37,19 @@ def verify_deployment():
         else:
             missing_author.append(agent_file.name)
             all_valid = False
-    
+
     if has_author:
         print(f"\n✅ Agents with author field ({len(has_author)}):")
         for name in sorted(has_author):
             print(f"   - {name}")
-    
+
     if missing_author:
         print(f"\n❌ Agents missing author field ({len(missing_author)}):")
         for name in sorted(missing_author):
             print(f"   - {name}")
-    
+
     print("\n" + "=" * 50)
-    
+
     if all_valid:
         print("✅ SUCCESS: All agents have 'author: claude-mpm' field")
         print("\nThis means:")
@@ -59,7 +59,7 @@ def verify_deployment():
     else:
         print("❌ Some agents are missing the author field")
         print("\nTo fix, run: ./claude-mpm agents force-deploy")
-    
+
     return all_valid
 
 

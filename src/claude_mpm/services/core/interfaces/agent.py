@@ -64,7 +64,9 @@ class IAgentRegistry(ABC):
     """Interface for agent discovery and management"""
 
     @abstractmethod
-    async def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
+    async def discover_agents(
+        self, force_refresh: bool = False
+    ) -> Dict[str, AgentMetadata]:
         """Discover all available agents"""
         pass
 
@@ -104,7 +106,9 @@ class AgentDeploymentInterface(ABC):
     """
 
     @abstractmethod
-    def deploy_agents(self, force: bool = False, include_all: bool = False) -> Dict[str, Any]:
+    def deploy_agents(
+        self, force: bool = False, include_all: bool = False
+    ) -> Dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
@@ -240,7 +244,9 @@ class SubprocessLauncherInterface(ABC):
         pass
 
     @abstractmethod
-    async def launch_subprocess_async(self, command: List[str], **kwargs) -> Dict[str, Any]:
+    async def launch_subprocess_async(
+        self, command: List[str], **kwargs
+    ) -> Dict[str, Any]:
         """Launch a subprocess asynchronously with PTY support.
 
         Args:

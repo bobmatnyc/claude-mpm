@@ -24,7 +24,9 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
         self.deployment_service = deployment_service
         self.logger = get_logger(__name__)
 
-    def deploy_agents(self, force: bool = False, include_all: bool = False) -> Dict[str, Any]:
+    def deploy_agents(
+        self, force: bool = False, include_all: bool = False
+    ) -> Dict[str, Any]:
         """Deploy agents to target environment.
 
         This method adapts the interface signature to the actual implementation.
@@ -71,7 +73,9 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
             return results
 
         except Exception as e:
-            self.logger.error(f"Interface adapter deployment failed: {e}", exc_info=True)
+            self.logger.error(
+                f"Interface adapter deployment failed: {e}", exc_info=True
+            )
             return {
                 "success": False,
                 "error": str(e),
@@ -139,7 +143,9 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
         """
         try:
             # Get the working directory from the deployment service
-            working_dir = getattr(self.deployment_service, "working_directory", Path.cwd())
+            working_dir = getattr(
+                self.deployment_service, "working_directory", Path.cwd()
+            )
             agents_dir = working_dir / ".claude" / "agents"
 
             if not agents_dir.exists():
@@ -158,7 +164,9 @@ class AgentDeploymentInterfaceAdapter(AgentDeploymentInterface):
                             "author: claude-mpm" not in content
                             and "author: 'claude-mpm'" not in content
                         ):
-                            self.logger.debug(f"Preserving user agent: {agent_file.name}")
+                            self.logger.debug(
+                                f"Preserving user agent: {agent_file.name}"
+                            )
                             continue
 
                     # Remove the agent file

@@ -12,132 +12,139 @@ including:
 - Raw output formatting
 """
 
-import pytest
 import json
-import tempfile
 import os
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+import sys
+import tempfile
 from argparse import Namespace
 from io import StringIO
-import sys
+from pathlib import Path
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 # Import the functions we're testing
 from claude_mpm.cli.commands.memory import (
-    execute_memory_command,
-    _show_status,
-    _show_memories,
     _add_learning,
-    _clean_memory,
-    _optimize_memory,
     _build_memory,
+    _clean_memory,
     _cross_reference_memory,
-    _route_memory_command,
     _init_memory,
-    _view_memory,
-    _parse_memory_content,
+    _optimize_memory,
+    _output_all_memories_raw,
     _output_single_agent_raw,
-    _output_all_memories_raw
+    _parse_memory_content,
+    _route_memory_command,
+    _show_memories,
+    _show_status,
+    _view_memory,
+    execute_memory_command,
 )
-from claude_mpm.services.agents.memory import AgentMemoryManager
 from claude_mpm.core.config import Config
+from claude_mpm.services.agents.memory import AgentMemoryManager
 
 
 class TestMemoryCommandExecution:
     """Test main memory command execution and routing."""
-    
+
     @pytest.fixture
     def mock_memory_manager(self):
         """Create a mock AgentMemoryManager."""
         manager = Mock(spec=AgentMemoryManager)
         manager.memories_dir = Path("/test/memories")
-        manager.load_agent_memory.return_value = "# Test Memory\n## Patterns\n- Test pattern"
+        manager.load_agent_memory.return_value = (
+            "# Test Memory\n## Patterns\n- Test pattern"
+        )
         manager.get_memory_status.return_value = {
             "total_agents": 3,
             "total_memories": 5,
-            "memory_size_kb": 150
+            "memory_size_kb": 150,
         }
         return manager
-    
+
     @pytest.fixture
     def mock_config(self):
         """Create a mock Config."""
         config = Mock(spec=Config)
         return config
-    
-    @patch('claude_mpm.cli.commands.memory.AgentMemoryManager')
-    @patch('claude_mpm.cli.commands.memory.Config')
+
+    @patch("claude_mpm.cli.commands.memory.AgentMemoryManager")
+    @patch("claude_mpm.cli.commands.memory.Config")
     def test_execute_memory_command_status(self, mock_config_class, mock_manager_class):
         """Test executing memory status command."""
         # Setup mocks
         mock_config = Mock()
         mock_config_class.return_value = mock_config
-        
+
         mock_manager = Mock()
         mock_manager.get_memory_status.return_value = {
             "total_agents": 2,
             "total_memories": 3,
-            "memory_size_kb": 100
+            "memory_size_kb": 100,
         }
         mock_manager_class.return_value = mock_manager
-        
+
         args = Namespace(memory_command="status")
-        
+
         # Capture output
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             result = execute_memory_command(args)
-        
+
         # Verify
         assert result is None  # Success returns None
         output = mock_stdout.getvalue()
         assert "Memory Status" in output
         assert "2 agents" in output
         assert "3 memories" in output
-    
-    @patch('claude_mpm.cli.commands.memory.AgentMemoryManager')
-    @patch('claude_mpm.cli.commands.memory.Config')
-    def test_execute_memory_command_no_subcommand(self, mock_config_class, mock_manager_class):
+
+    @patch("claude_mpm.cli.commands.memory.AgentMemoryManager")
+    @patch("claude_mpm.cli.commands.memory.Config")
+    def test_execute_memory_command_no_subcommand(
+        self, mock_config_class, mock_manager_class
+    ):
         """Test executing memory command without subcommand shows status."""
         # Setup mocks
         mock_config = Mock()
         mock_config_class.return_value = mock_config
-        
+
         mock_manager = Mock()
         mock_manager.get_memory_status.return_value = {
             "total_agents": 1,
             "total_memories": 1,
-            "memory_size_kb": 50
+            "memory_size_kb": 50,
         }
         mock_manager_class.return_value = mock_manager
-        
+
         args = Namespace(memory_command=None)
-        
+
         # Capture output
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             result = execute_memory_command(args)
-        
+
         # Verify
         assert result is None
         output = mock_stdout.getvalue()
         assert "Memory Status" in output
-    
-    @patch('claude_mpm.cli.commands.memory.AgentMemoryManager')
-    @patch('claude_mpm.cli.commands.memory.Config')
-    def test_execute_memory_command_unknown(self, mock_config_class, mock_manager_class):
+
+    @patch("claude_mpm.cli.commands.memory.AgentMemoryManager")
+    @patch("claude_mpm.cli.commands.memory.Config")
+    def test_execute_memory_command_unknown(
+        self, mock_config_class, mock_manager_class
+    ):
         """Test executing unknown memory command."""
         # Setup mocks
         mock_config = Mock()
         mock_config_class.return_value = mock_config
-        
+
         mock_manager = Mock()
         mock_manager_class.return_value = mock_manager
-        
+
         args = Namespace(memory_command="unknown_command")
-        
+
         # Capture output
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             result = execute_memory_command(args)
-        
+
         # Verify
         assert result == 1  # Error return code
         output = mock_stdout.getvalue()
@@ -147,7 +154,7 @@ class TestMemoryCommandExecution:
 
 class TestMemoryStatusCommand:
     """Test memory status command functionality."""
-    
+
     def test_show_status_with_data(self, mock_memory_manager):
         """Test showing status with memory data."""
         mock_memory_manager.get_memory_status.return_value = {
@@ -156,202 +163,201 @@ class TestMemoryStatusCommand:
             "memory_size_kb": 250,
             "agents_with_memory": ["engineer", "qa", "research"],
             "largest_memory_agent": "engineer",
-            "largest_memory_size_kb": 100
+            "largest_memory_size_kb": 100,
         }
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Memory Status" in output
         assert "5 agents" in output
         assert "8 memories" in output
         assert "250 KB" in output
         assert "engineer" in output
-    
+
     def test_show_status_no_data(self, mock_memory_manager):
         """Test showing status with no memory data."""
         mock_memory_manager.get_memory_status.return_value = {
             "total_agents": 0,
             "total_memories": 0,
-            "memory_size_kb": 0
+            "memory_size_kb": 0,
         }
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Memory Status" in output
         assert "0 agents" in output
         assert "0 memories" in output
-    
+
     def test_show_status_error_handling(self, mock_memory_manager):
         """Test status command error handling."""
         mock_memory_manager.get_memory_status.side_effect = Exception("Status error")
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Error" in output or "status error" in output.lower()
 
 
 class TestMemoryViewCommand:
     """Test memory view command functionality."""
-    
+
     def test_view_memory_success(self, mock_memory_manager):
         """Test viewing memory content successfully."""
-        mock_memory_manager.load_agent_memory.return_value = "# Engineer Memory\n## Patterns\n- Use dependency injection"
-        
+        mock_memory_manager.load_agent_memory.return_value = (
+            "# Engineer Memory\n## Patterns\n- Use dependency injection"
+        )
+
         args = Namespace(agent_id="engineer")
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Memory for agent: engineer" in output
         assert "Use dependency injection" in output
-    
+
     def test_view_memory_not_found(self, mock_memory_manager):
         """Test viewing memory when agent has no memory."""
         mock_memory_manager.load_agent_memory.return_value = None
-        
+
         args = Namespace(agent_id="nonexistent")
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "No memory found for agent: nonexistent" in output
-    
+
     def test_view_memory_file_not_found(self, mock_memory_manager):
         """Test viewing memory when file doesn't exist."""
-        mock_memory_manager.load_agent_memory.side_effect = FileNotFoundError("File not found")
-        
+        mock_memory_manager.load_agent_memory.side_effect = FileNotFoundError(
+            "File not found"
+        )
+
         args = Namespace(agent_id="missing")
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "No memory file found for agent: missing" in output
-    
+
     def test_view_memory_error_handling(self, mock_memory_manager):
         """Test view memory error handling."""
         mock_memory_manager.load_agent_memory.side_effect = Exception("Read error")
-        
+
         args = Namespace(agent_id="error_agent")
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _view_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Error viewing memory" in output
 
 
 class TestMemoryAddCommand:
     """Test memory add command functionality."""
-    
+
     def test_add_learning_success(self, mock_memory_manager):
         """Test adding learning successfully."""
         mock_memory_manager.add_learning.return_value = True
-        
+
         args = Namespace(
             agent_id="engineer",
             learning_type="pattern",
-            content="Use factory pattern for object creation"
+            content="Use factory pattern for object creation",
         )
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _add_learning(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Learning added successfully" in output
-        
+
         # Verify the method was called with correct arguments
         mock_memory_manager.add_learning.assert_called_once_with(
             "engineer", "pattern", "Use factory pattern for object creation"
         )
-    
+
     def test_add_learning_failure(self, mock_memory_manager):
         """Test adding learning when it fails."""
         mock_memory_manager.add_learning.return_value = False
-        
+
         args = Namespace(
-            agent_id="engineer",
-            learning_type="pattern",
-            content="Test pattern"
+            agent_id="engineer", learning_type="pattern", content="Test pattern"
         )
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _add_learning(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Failed to add learning" in output
-    
+
     def test_add_learning_error_handling(self, mock_memory_manager):
         """Test add learning error handling."""
         mock_memory_manager.add_learning.side_effect = Exception("Add error")
-        
+
         args = Namespace(
-            agent_id="engineer",
-            learning_type="pattern",
-            content="Test pattern"
+            agent_id="engineer", learning_type="pattern", content="Test pattern"
         )
-        
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _add_learning(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Error adding learning" in output
 
 
 class TestMemoryCleanCommand:
     """Test memory clean command functionality."""
-    
+
     def test_clean_memory_with_files(self, mock_memory_manager):
         """Test cleaning memory when files exist."""
         # Mock memory directory with files
         mock_memory_manager.memories_dir = Path("/test/memories")
-        
-        with patch('pathlib.Path.exists', return_value=True), \
-             patch('pathlib.Path.glob', return_value=[
-                 Path("/test/memories/engineer_agent.md"),
-                 Path("/test/memories/qa_agent.md")
-             ]), \
-             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            
+
+        with patch("pathlib.Path.exists", return_value=True), patch(
+            "pathlib.Path.glob",
+            return_value=[
+                Path("/test/memories/engineer_agent.md"),
+                Path("/test/memories/qa_agent.md"),
+            ],
+        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             args = Namespace()
             _clean_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "Memory cleanup" in output
         assert "2 memory files found" in output
-    
+
     def test_clean_memory_no_directory(self, mock_memory_manager):
         """Test cleaning memory when directory doesn't exist."""
         mock_memory_manager.memories_dir = Path("/test/nonexistent")
-        
-        with patch('pathlib.Path.exists', return_value=False), \
-             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            
+
+        with patch("pathlib.Path.exists", return_value=False), patch(
+            "sys.stdout", new_callable=StringIO
+        ) as mock_stdout:
             args = Namespace()
             _clean_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "No memory directory found" in output
-    
+
     def test_clean_memory_no_files(self, mock_memory_manager):
         """Test cleaning memory when no files exist."""
         mock_memory_manager.memories_dir = Path("/test/memories")
-        
-        with patch('pathlib.Path.exists', return_value=True), \
-             patch('pathlib.Path.glob', return_value=[]), \
-             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-            
+
+        with patch("pathlib.Path.exists", return_value=True), patch(
+            "pathlib.Path.glob", return_value=[]
+        ), patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             args = Namespace()
             _clean_memory(args, mock_memory_manager)
-        
+
         output = mock_stdout.getvalue()
         assert "No memory files found" in output
 
@@ -365,12 +371,12 @@ class TestMemoryBuildCommand:
             "success": True,
             "agents_updated": ["engineer", "qa"],
             "patterns_extracted": 15,
-            "total_learnings": 25
+            "total_learnings": 25,
         }
 
         args = Namespace(force_rebuild=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _build_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -385,12 +391,12 @@ class TestMemoryBuildCommand:
             "success": True,
             "agents_updated": ["engineer"],
             "patterns_extracted": 5,
-            "total_learnings": 10
+            "total_learnings": 10,
         }
 
         args = Namespace(force_rebuild=True)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _build_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -403,12 +409,12 @@ class TestMemoryBuildCommand:
         """Test building memory when it fails."""
         mock_memory_manager.build_memories_from_docs.return_value = {
             "success": False,
-            "error": "No documentation found"
+            "error": "No documentation found",
         }
 
         args = Namespace(force_rebuild=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _build_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -417,11 +423,13 @@ class TestMemoryBuildCommand:
 
     def test_build_memory_error_handling(self, mock_memory_manager):
         """Test build memory error handling."""
-        mock_memory_manager.build_memories_from_docs.side_effect = Exception("Build error")
+        mock_memory_manager.build_memories_from_docs.side_effect = Exception(
+            "Build error"
+        )
 
         args = Namespace(force_rebuild=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _build_memory(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -444,7 +452,7 @@ class TestMemoryShowCommand:
 
         args = Namespace(agent_id="engineer", format="detailed", raw=False)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -456,17 +464,22 @@ class TestMemoryShowCommand:
         """Test showing memories for all agents in summary format."""
         mock_memory_manager.memories_dir = Path("/test/memories")
 
-        with patch('pathlib.Path.exists', return_value=True), \
-             patch('pathlib.Path.glob', return_value=[
-                 Path("/test/memories/engineer_agent.md"),
-                 Path("/test/memories/qa_agent.md")
-             ]), \
-             patch.object(mock_memory_manager, 'load_agent_memory', side_effect=[
-                 "# Engineer\n## Patterns\n- Pattern 1\n- Pattern 2",
-                 "# QA\n## Context\n- Context 1"
-             ]), \
-             patch('sys.stdout', new_callable=StringIO) as mock_stdout:
-
+        with patch("pathlib.Path.exists", return_value=True), patch(
+            "pathlib.Path.glob",
+            return_value=[
+                Path("/test/memories/engineer_agent.md"),
+                Path("/test/memories/qa_agent.md"),
+            ],
+        ), patch.object(
+            mock_memory_manager,
+            "load_agent_memory",
+            side_effect=[
+                "# Engineer\n## Patterns\n- Pattern 1\n- Pattern 2",
+                "# QA\n## Context\n- Context 1",
+            ],
+        ), patch(
+            "sys.stdout", new_callable=StringIO
+        ) as mock_stdout:
             args = Namespace(agent_id=None, format="summary", raw=False)
             _show_memories(args, mock_memory_manager)
 
@@ -481,17 +494,14 @@ class TestMemoryShowCommand:
             "agent_id": "engineer",
             "sections": {
                 "patterns": ["Pattern 1", "Pattern 2"],
-                "context": ["Context 1"]
+                "context": ["Context 1"],
             },
-            "metadata": {
-                "last_updated": "2024-01-01T00:00:00Z",
-                "total_items": 3
-            }
+            "metadata": {"last_updated": "2024-01-01T00:00:00Z", "total_items": 3},
         }
 
         args = Namespace(agent_id="engineer", raw=True)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -506,22 +516,19 @@ class TestMemoryShowCommand:
             "agents": {
                 "engineer": {
                     "sections": {"patterns": ["Pattern 1"]},
-                    "metadata": {"total_items": 1}
+                    "metadata": {"total_items": 1},
                 },
                 "qa": {
                     "sections": {"context": ["Context 1"]},
-                    "metadata": {"total_items": 1}
-                }
+                    "metadata": {"total_items": 1},
+                },
             },
-            "summary": {
-                "total_agents": 2,
-                "total_items": 2
-            }
+            "summary": {"total_agents": 2, "total_items": 2},
         }
 
         args = Namespace(agent_id=None, raw=True)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -537,7 +544,7 @@ class TestMemoryShowCommand:
 
         args = Namespace(agent_id="engineer", raw=True)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _show_memories(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -556,12 +563,12 @@ class TestMemoryRouteCommand:
             "target_agent": "engineer",
             "section": "patterns",
             "confidence": 0.85,
-            "reasoning": "Content mentions design patterns and code structure"
+            "reasoning": "Content mentions design patterns and code structure",
         }
 
         args = Namespace(content="Use factory pattern for object creation")
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _route_memory_command(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -575,7 +582,7 @@ class TestMemoryRouteCommand:
         """Test routing memory command without content."""
         args = Namespace(content=None)
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _route_memory_command(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -586,12 +593,12 @@ class TestMemoryRouteCommand:
         """Test routing memory command when routing fails."""
         mock_memory_manager.route_memory_command.return_value = {
             "success": False,
-            "error": "Unable to determine target agent"
+            "error": "Unable to determine target agent",
         }
 
         args = Namespace(content="Ambiguous content")
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _route_memory_command(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()
@@ -604,7 +611,7 @@ class TestMemoryRouteCommand:
 
         args = Namespace(content="Test content")
 
-        with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
+        with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
             _route_memory_command(args, mock_memory_manager)
 
         output = mock_stdout.getvalue()

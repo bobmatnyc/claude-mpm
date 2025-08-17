@@ -51,7 +51,9 @@ class AgentDiscoveryService:
         agents = []
 
         if not self.templates_dir.exists():
-            self.logger.warning(f"Templates directory does not exist: {self.templates_dir}")
+            self.logger.warning(
+                f"Templates directory does not exist: {self.templates_dir}"
+            )
             return agents
 
         # Find all JSON template files
@@ -64,7 +66,9 @@ class AgentDiscoveryService:
                     agents.append(agent_info)
 
             except Exception as e:
-                self.logger.error(f"Failed to process template {template_file.name}: {e}")
+                self.logger.error(
+                    f"Failed to process template {template_file.name}: {e}"
+                )
                 continue
 
         # Sort by agent name for consistent ordering
@@ -197,7 +201,9 @@ class AgentDiscoveryService:
                     "agent_version", template_data.get("version", "1.0.0")
                 ),
                 "tools": capabilities.get("tools", []),
-                "specializations": metadata.get("tags", []),  # Use tags as specializations
+                "specializations": metadata.get(
+                    "tags", []
+                ),  # Use tags as specializations
                 "file": template_file.name,
                 "path": str(template_file),
                 "file_path": str(template_file),  # Keep for backward compatibility
@@ -217,11 +223,16 @@ class AgentDiscoveryService:
             self.logger.error(f"Invalid JSON in template {template_file.name}: {e}")
             return None
         except Exception as e:
-            self.logger.error(f"Failed to extract metadata from {template_file.name}: {e}")
+            self.logger.error(
+                f"Failed to extract metadata from {template_file.name}: {e}"
+            )
             return None
 
     def _is_agent_excluded(
-        self, agent_name: str, excluded_agents: List[str], config: Optional[Config] = None
+        self,
+        agent_name: str,
+        excluded_agents: List[str],
+        config: Optional[Config] = None,
     ) -> bool:
         """
         Check if an agent should be excluded from deployment.
@@ -239,7 +250,9 @@ class AgentDiscoveryService:
             # Determine case sensitivity from config
             case_sensitive = True
             if config:
-                case_sensitive = config.get("agent_deployment.case_sensitive_exclusion", True)
+                case_sensitive = config.get(
+                    "agent_deployment.case_sensitive_exclusion", True
+                )
 
             if case_sensitive:
                 if agent_name in excluded_agents:
@@ -261,7 +274,9 @@ class AgentDiscoveryService:
 
             # Check environment-specific exclusions
             environment = config.get("environment", "development")
-            env_exclusions = config.get(f"agent_deployment.{environment}_exclusions", [])
+            env_exclusions = config.get(
+                f"agent_deployment.{environment}_exclusions", []
+            )
             if agent_name in env_exclusions:
                 return True
 
@@ -300,7 +315,9 @@ class AgentDiscoveryService:
             # Use agent_id for validation, not the display name
             agent_id = template_data.get("agent_id", "")
             if not self._is_valid_agent_name(agent_id):
-                self.logger.warning(f"Invalid agent ID format in {template_file.name}: {agent_id}")
+                self.logger.warning(
+                    f"Invalid agent ID format in {template_file.name}: {agent_id}"
+                )
                 return False
 
             return True
@@ -309,7 +326,9 @@ class AgentDiscoveryService:
             self.logger.error(f"Invalid JSON in template: {template_file.name}")
             return False
         except Exception as e:
-            self.logger.error(f"Template validation failed for {template_file.name}: {e}")
+            self.logger.error(
+                f"Template validation failed for {template_file.name}: {e}"
+            )
             return False
 
     def _is_valid_agent_name(self, agent_name: str) -> bool:

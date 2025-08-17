@@ -36,7 +36,9 @@ class ProjectAgentDeploymentStrategy(BaseDeploymentStrategy):
         if context.target_dir:
             try:
                 # Check if target is within working directory
-                context.target_dir.resolve().relative_to(context.working_directory.resolve())
+                context.target_dir.resolve().relative_to(
+                    context.working_directory.resolve()
+                )
                 return True
             except ValueError:
                 # target_dir is not within working_directory
@@ -46,7 +48,9 @@ class ProjectAgentDeploymentStrategy(BaseDeploymentStrategy):
         if context.templates_dir:
             project_agents_dir = context.working_directory / ".claude-mpm" / "agents"
             try:
-                context.templates_dir.resolve().relative_to(project_agents_dir.resolve())
+                context.templates_dir.resolve().relative_to(
+                    project_agents_dir.resolve()
+                )
                 return True
             except ValueError:
                 # templates_dir is not within project agents directory

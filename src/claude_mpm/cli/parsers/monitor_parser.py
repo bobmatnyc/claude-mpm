@@ -51,7 +51,10 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
         "--dashboard", action="store_true", help="Enable web dashboard interface"
     )
     start_monitor_parser.add_argument(
-        "--dashboard-port", type=int, default=8766, help="Dashboard port (default: 8766)"
+        "--dashboard-port",
+        type=int,
+        default=8766,
+        help="Dashboard port (default: 8766)",
     )
     start_monitor_parser.add_argument(
         "--background", action="store_true", help="Run server in background"
@@ -87,10 +90,15 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
         "--follow", action="store_true", help="Follow log output in real-time"
     )
     logs_monitor_parser.add_argument(
-        "--lines", type=int, default=50, help="Number of recent log lines to show (default: 50)"
+        "--lines",
+        type=int,
+        default=50,
+        help="Number of recent log lines to show (default: 50)",
     )
     logs_monitor_parser.add_argument(
-        "--level", choices=["DEBUG", "INFO", "WARNING", "ERROR"], help="Filter logs by level"
+        "--level",
+        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+        help="Filter logs by level",
     )
 
     return monitor_parser

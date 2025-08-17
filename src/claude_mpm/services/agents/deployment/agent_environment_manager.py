@@ -29,7 +29,9 @@ class AgentEnvironmentManager:
         """Initialize the environment manager."""
         self.logger = get_logger(__name__)
 
-    def set_claude_environment(self, config_dir: Optional[Path] = None) -> Dict[str, str]:
+    def set_claude_environment(
+        self, config_dir: Optional[Path] = None
+    ) -> Dict[str, str]:
         """
         Set Claude environment variables for agent discovery.
 
@@ -60,7 +62,9 @@ class AgentEnvironmentManager:
             os.environ[key] = value
             self.logger.debug(f"Set environment variable: {key}={value}")
 
-        self.logger.info(f"Claude environment configured for agent discovery in {config_dir}")
+        self.logger.info(
+            f"Claude environment configured for agent discovery in {config_dir}"
+        )
         return env_vars
 
     def get_current_environment(self) -> Dict[str, str]:
@@ -110,7 +114,9 @@ class AgentEnvironmentManager:
             self.logger.debug(f"Config directory exists: {config_dir}")
         else:
             validation_results["valid"] = False
-            validation_results["errors"].append(f"Config directory does not exist: {config_dir}")
+            validation_results["errors"].append(
+                f"Config directory does not exist: {config_dir}"
+            )
 
         # Check if agents directory exists
         agents_dir = config_dir / "agents"
@@ -118,7 +124,9 @@ class AgentEnvironmentManager:
             validation_results["agents_dir_exists"] = True
             self.logger.debug(f"Agents directory exists: {agents_dir}")
         else:
-            validation_results["warnings"].append(f"Agents directory does not exist: {agents_dir}")
+            validation_results["warnings"].append(
+                f"Agents directory does not exist: {agents_dir}"
+            )
 
         # Check environment variables
         current_env = self.get_current_environment()
@@ -128,7 +136,9 @@ class AgentEnvironmentManager:
         required_vars = ["CLAUDE_CONFIG_DIR"]
         for var in required_vars:
             if var not in current_env:
-                validation_results["warnings"].append(f"Missing environment variable: {var}")
+                validation_results["warnings"].append(
+                    f"Missing environment variable: {var}"
+                )
                 validation_results["recommendations"].append(
                     f"Set {var} to point to your Claude config directory"
                 )
@@ -154,7 +164,9 @@ class AgentEnvironmentManager:
 
         return validation_results
 
-    def setup_development_environment(self, config_dir: Optional[Path] = None) -> Dict[str, Any]:
+    def setup_development_environment(
+        self, config_dir: Optional[Path] = None
+    ) -> Dict[str, Any]:
         """
         Set up a complete development environment for Claude agents.
 
@@ -245,7 +257,9 @@ cache/
 
         try:
             # Remove Claude-specific environment variables
-            claude_vars = [key for key in os.environ.keys() if key.startswith("CLAUDE_")]
+            claude_vars = [
+                key for key in os.environ.keys() if key.startswith("CLAUDE_")
+            ]
 
             for var in claude_vars:
                 if var in os.environ:

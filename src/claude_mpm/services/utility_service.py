@@ -176,7 +176,9 @@ class UtilityService(BaseService, UtilityServiceInterface):
         else:
             return f"{error_type}: {error_msg}"
 
-    def truncate_text(self, text: str, max_length: int = 100, suffix: str = "...") -> str:
+    def truncate_text(
+        self, text: str, max_length: int = 100, suffix: str = "..."
+    ) -> str:
         """Truncate text to a maximum length.
 
         Args:

@@ -39,12 +39,17 @@ def add_memory_subparser(subparsers) -> argparse.ArgumentParser:
 
     # Init command
     init_parser = memory_subparsers.add_parser(
-        MemoryCommands.INIT.value, help="Initialize project-specific memories via PM agent"
+        MemoryCommands.INIT.value,
+        help="Initialize project-specific memories via PM agent",
     )
     init_parser.add_argument(
-        "--force", action="store_true", help="Force initialization even if memories already exist"
+        "--force",
+        action="store_true",
+        help="Force initialization even if memories already exist",
     )
-    init_parser.add_argument("--template", help="Memory template to use for initialization")
+    init_parser.add_argument(
+        "--template", help="Memory template to use for initialization"
+    )
 
     # List command
     list_parser = memory_subparsers.add_parser(
@@ -67,7 +72,9 @@ def add_memory_subparser(subparsers) -> argparse.ArgumentParser:
     )
 
     # Edit command
-    edit_parser = memory_subparsers.add_parser(MemoryCommands.ADD.value, help="Edit memory file")
+    edit_parser = memory_subparsers.add_parser(
+        MemoryCommands.ADD.value, help="Edit memory file"
+    )
     edit_parser.add_argument("memory_name", help="Name of the memory file to edit")
     edit_parser.add_argument("--editor", help="Editor to use (overrides default)")
 
@@ -102,13 +109,17 @@ def add_memory_subparser(subparsers) -> argparse.ArgumentParser:
         MemoryCommands.OPTIMIZE.value, help="Sync memory files across environments"
     )
     sync_parser.add_argument(
-        "--source", choices=["project", "user", "system"], help="Source memory type to sync from"
+        "--source",
+        choices=["project", "user", "system"],
+        help="Source memory type to sync from",
     )
     sync_parser.add_argument(
         "--target", choices=["project", "user"], help="Target memory type to sync to"
     )
     sync_parser.add_argument(
-        "--dry-run", action="store_true", help="Show what would be synced without actually syncing"
+        "--dry-run",
+        action="store_true",
+        help="Show what would be synced without actually syncing",
     )
 
     # Validate command
@@ -116,7 +127,9 @@ def add_memory_subparser(subparsers) -> argparse.ArgumentParser:
         MemoryCommands.STATUS.value, help="Validate memory file format and content"
     )
     validate_parser.add_argument(
-        "memory_name", nargs="?", help="Name of specific memory file to validate (default: all)"
+        "memory_name",
+        nargs="?",
+        help="Name of specific memory file to validate (default: all)",
     )
     validate_parser.add_argument(
         "--strict", action="store_true", help="Use strict validation rules"

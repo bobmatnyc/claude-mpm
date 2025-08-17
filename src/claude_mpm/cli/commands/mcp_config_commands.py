@@ -7,11 +7,11 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 
 class MCPConfigCommands:
     """Handles MCP config commands."""
-    
+
     def __init__(self, logger):
         """Initialize the MCP config commands handler."""
         self.logger = logger
-    
+
     def manage_config(self, args):
         """Manage MCP configuration command."""
         self.logger.info("MCP configuration management command called")

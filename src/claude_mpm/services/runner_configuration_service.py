@@ -139,7 +139,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             return user_working_dir
         return None
 
-    def register_core_services(self, container, user_working_dir: Optional[Path] = None):
+    def register_core_services(
+        self, container, user_working_dir: Optional[Path] = None
+    ):
         """Register core services in the DI container.
 
         Args:
@@ -213,17 +215,25 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import AgentCapabilitiesInterface
 
         if not container.is_registered(AgentCapabilitiesInterface):
-            from claude_mpm.services.agent_capabilities_service import AgentCapabilitiesService
+            from claude_mpm.services.agent_capabilities_service import (
+                AgentCapabilitiesService,
+            )
 
-            container.register_singleton(AgentCapabilitiesInterface, AgentCapabilitiesService)
+            container.register_singleton(
+                AgentCapabilitiesInterface, AgentCapabilitiesService
+            )
 
         try:
             return container.get(AgentCapabilitiesInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize agent capabilities service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize agent capabilities service", exc_info=True
+            )
             return None
 
-    def register_system_instructions_service(self, container, agent_capabilities_service):
+    def register_system_instructions_service(
+        self, container, agent_capabilities_service
+    ):
         """Register system instructions service in the DI container.
 
         Args:
@@ -236,7 +246,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import SystemInstructionsInterface
 
         if not container.is_registered(SystemInstructionsInterface):
-            from claude_mpm.services.system_instructions_service import SystemInstructionsService
+            from claude_mpm.services.system_instructions_service import (
+                SystemInstructionsService,
+            )
 
             container.register_factory(
                 SystemInstructionsInterface,
@@ -249,10 +261,14 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             return container.get(SystemInstructionsInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize system instructions service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize system instructions service", exc_info=True
+            )
             return None
 
-    def register_subprocess_launcher_service(self, container, project_logger, websocket_server):
+    def register_subprocess_launcher_service(
+        self, container, project_logger, websocket_server
+    ):
         """Register subprocess launcher service in the DI container.
 
         Args:
@@ -266,7 +282,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
 
         if not container.is_registered(SubprocessLauncherInterface):
-            from claude_mpm.services.subprocess_launcher_service import SubprocessLauncherService
+            from claude_mpm.services.subprocess_launcher_service import (
+                SubprocessLauncherService,
+            )
 
             container.register_factory(
                 SubprocessLauncherInterface,
@@ -279,7 +297,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             return container.get(SubprocessLauncherInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize subprocess launcher service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize subprocess launcher service", exc_info=True
+            )
             return None
 
     def register_version_service(self, container):
@@ -317,7 +337,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import CommandHandlerInterface
 
         if not container.is_registered(CommandHandlerInterface):
-            from claude_mpm.services.command_handler_service import CommandHandlerService
+            from claude_mpm.services.command_handler_service import (
+                CommandHandlerService,
+            )
 
             container.register_factory(
                 CommandHandlerInterface,
@@ -328,7 +350,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             return container.get(CommandHandlerInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize command handler service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize command handler service", exc_info=True
+            )
             return None
 
     def register_memory_hook_service(self, container, hook_service):
@@ -355,7 +379,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             return container.get(MemoryHookInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize memory hook service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize memory hook service", exc_info=True
+            )
             return None
 
     def register_session_management_service(self, container, runner):
@@ -371,7 +397,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         from claude_mpm.services.core.interfaces import SessionManagementInterface
 
         if not container.is_registered(SessionManagementInterface):
-            from claude_mpm.services.session_management_service import SessionManagementService
+            from claude_mpm.services.session_management_service import (
+                SessionManagementService,
+            )
 
             container.register_factory(
                 SessionManagementInterface,
@@ -382,7 +410,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         try:
             return container.get(SessionManagementInterface)
         except Exception as e:
-            self.logger.warning("Failed to initialize session management service", exc_info=True)
+            self.logger.warning(
+                "Failed to initialize session management service", exc_info=True
+            )
             return None
 
     def register_utility_service(self, container):

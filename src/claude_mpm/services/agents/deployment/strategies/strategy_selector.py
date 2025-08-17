@@ -29,7 +29,9 @@ class DeploymentStrategySelector:
         # Sort strategies by priority (lower number = higher priority)
         self._strategies.sort(key=lambda s: s.get_deployment_priority())
 
-        self.logger.debug(f"Initialized with {len(self._strategies)} deployment strategies")
+        self.logger.debug(
+            f"Initialized with {len(self._strategies)} deployment strategies"
+        )
         for strategy in self._strategies:
             self.logger.debug(f"  - {strategy}")
 
@@ -88,7 +90,9 @@ class DeploymentStrategySelector:
             True if strategy was removed, False if not found
         """
         original_count = len(self._strategies)
-        self._strategies = [s for s in self._strategies if not isinstance(s, strategy_class)]
+        self._strategies = [
+            s for s in self._strategies if not isinstance(s, strategy_class)
+        ]
         removed = len(self._strategies) < original_count
 
         if removed:

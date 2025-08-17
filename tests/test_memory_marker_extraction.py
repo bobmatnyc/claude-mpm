@@ -73,7 +73,9 @@ def test_multiple_memory_extraction():
         learnings["pattern"][0]
         == "All services use dependency injection for flexibility"
     )
-    assert learnings["mistake"][0] == "Never hardcode paths, always use get_path_manager()"
+    assert (
+        learnings["mistake"][0] == "Never hardcode paths, always use get_path_manager()"
+    )
     assert (
         learnings["architecture"][0]
         == "The system uses a layered architecture with clear boundaries"

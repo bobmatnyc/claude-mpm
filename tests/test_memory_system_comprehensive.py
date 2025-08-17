@@ -62,7 +62,9 @@ class MemorySystemTester:
         print(f"   Test directory: {self.temp_dir}")
 
         # Override project root for testing
-        with patch("claude_mpm.utils.paths.get_path_manager().get_project_root") as mock_root:
+        with patch(
+            "claude_mpm.utils.paths.get_path_manager().get_project_root"
+        ) as mock_root:
             mock_root.return_value = Path(self.temp_dir)
             self.memory_manager = AgentMemoryManager(self.config)
 

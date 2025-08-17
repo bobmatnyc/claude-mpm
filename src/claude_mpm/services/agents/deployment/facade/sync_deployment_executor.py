@@ -122,7 +122,9 @@ class SyncDeploymentExecutor(DeploymentExecutor):
         return {
             "success": pipeline_exec.get("success", False),
             "target_dir": (
-                str(context.actual_target_dir) if hasattr(context, "actual_target_dir") else None
+                str(context.actual_target_dir)
+                if hasattr(context, "actual_target_dir")
+                else None
             ),
             "deployed": deployed,
             "updated": updated,

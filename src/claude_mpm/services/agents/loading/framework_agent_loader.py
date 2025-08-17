@@ -51,7 +51,9 @@ class FrameworkAgentLoader:
         # Find project .claude-mpm directory (highest precedence)
         project_dir = self._find_project_directory()
         if project_dir:
-            self.project_agents_dir = project_dir / get_path_manager().CONFIG_DIR / "agents"
+            self.project_agents_dir = (
+                project_dir / get_path_manager().CONFIG_DIR / "agents"
+            )
             logger.info(f"Project agents directory: {self.project_agents_dir}")
 
         # Find user .claude-mpm directory (medium precedence)
@@ -70,7 +72,9 @@ class FrameworkAgentLoader:
             framework_dir = self._find_framework_directory()
 
         if framework_dir:
-            self.system_agents_dir = framework_dir / get_path_manager().CONFIG_DIR / "agents"
+            self.system_agents_dir = (
+                framework_dir / get_path_manager().CONFIG_DIR / "agents"
+            )
             logger.info(f"System agents directory: {self.system_agents_dir}")
 
     def _find_framework_directory(self) -> Optional[Path]:

@@ -116,7 +116,9 @@ class AgentVersionManager:
         # Any other format is considered old
         return True
 
-    def compare_versions(self, v1: Tuple[int, int, int], v2: Tuple[int, int, int]) -> int:
+    def compare_versions(
+        self, v1: Tuple[int, int, int], v2: Tuple[int, int, int]
+    ) -> int:
         """
         Compare two version tuples.
 
@@ -167,7 +169,9 @@ class AgentVersionManager:
         version_string = None
 
         # Try legacy combined format (e.g., "0002-0005")
-        legacy_match = re.search(r'^version:\s*["\']?(\d+)-(\d+)["\']?', content, re.MULTILINE)
+        legacy_match = re.search(
+            r'^version:\s*["\']?(\d+)-(\d+)["\']?', content, re.MULTILINE
+        )
         if legacy_match:
             is_old_format = True
             version_string = f"{legacy_match.group(1)}-{legacy_match.group(2)}"
@@ -187,13 +191,13 @@ class AgentVersionManager:
                 int(version_match.group(2)),
                 int(version_match.group(3)),
             )
-            version_string = (
-                f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
-            )
+            version_string = f"{version_match.group(1)}.{version_match.group(2)}.{version_match.group(3)}"
             return version_tuple, is_old_format, version_string
 
         # Fallback: try separate fields (very old format)
-        agent_version_match = re.search(r"^agent_version:\s*(\d+)", content, re.MULTILINE)
+        agent_version_match = re.search(
+            r"^agent_version:\s*(\d+)", content, re.MULTILINE
+        )
         if agent_version_match:
             is_old_format = True
             version_string = f"agent_version: {agent_version_match.group(1)}"
@@ -213,7 +217,10 @@ class AgentVersionManager:
         return (0, 0, 0), False, "0.0.0"
 
     def check_agent_needs_update(
-        self, deployed_file: Path, template_file: Path, current_base_version: Tuple[int, int, int]
+        self,
+        deployed_file: Path,
+        template_file: Path,
+        current_base_version: Tuple[int, int, int],
     ) -> Tuple[bool, str]:
         """
         Check if a deployed agent needs to be updated.
@@ -235,9 +242,11 @@ class AgentVersionManager:
                 return (False, "not a system agent")
 
             # Extract version info from YAML frontmatter
-            deployed_version, is_old_format, old_version_str = (
-                self.extract_version_from_frontmatter(deployed_content)
-            )
+            (
+                deployed_version,
+                is_old_format,
+                old_version_str,
+            ) = self.extract_version_from_frontmatter(deployed_content)
 
             # Read template to get current agent version
             import json
@@ -261,7 +270,10 @@ class AgentVersionManager:
             if self.compare_versions(current_agent_version, deployed_version) > 0:
                 deployed_str = self.format_version_display(deployed_version)
                 current_str = self.format_version_display(current_agent_version)
-                return (True, f"agent template updated ({deployed_str} -> {current_str})")
+                return (
+                    True,
+                    f"agent template updated ({deployed_str} -> {current_str})",
+                )
 
             return (False, "up to date")
 
@@ -288,7 +300,9 @@ class AgentVersionManager:
             return False, errors
 
         # Extract and validate version
-        version_match = re.search(r'^version:\s*["\']?(.+?)["\']?$', content, re.MULTILINE)
+        version_match = re.search(
+            r'^version:\s*["\']?(.+?)["\']?$', content, re.MULTILINE
+        )
         if not version_match:
             errors.append("Missing version field in frontmatter")
         else:

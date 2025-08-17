@@ -54,7 +54,9 @@ class SocketIOConnectionPool:
         if len(self.connections) < self.max_connections:
             client = self._create_connection(port)
             if client:
-                self.connections.append({"port": port, "client": client, "created": time.time()})
+                self.connections.append(
+                    {"port": port, "client": client, "created": time.time()}
+                )
                 return client
 
         if self.connections:
@@ -73,7 +75,9 @@ class SocketIOConnectionPool:
             return None
         try:
             client = socketio.Client(
-                reconnection=False, logger=False, engineio_logger=False  # Disable auto-reconnect
+                reconnection=False,
+                logger=False,
+                engineio_logger=False,  # Disable auto-reconnect
             )
             client.connect(
                 f"http://localhost:{port}",
@@ -104,7 +108,9 @@ class SocketIOConnectionPool:
     def _cleanup_dead_connections(self) -> None:
         """Remove dead connections from the pool."""
         self.connections = [
-            conn for conn in self.connections if self._is_connection_alive(conn.get("client"))
+            conn
+            for conn in self.connections
+            if self._is_connection_alive(conn.get("client"))
         ]
 
     def close_all(self) -> None:

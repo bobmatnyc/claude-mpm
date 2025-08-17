@@ -23,7 +23,9 @@ class DeploymentValidator:
         self.template_validator = TemplateValidator()
         self.agent_validator = AgentValidator()
 
-    def validate_template_files(self, template_files: List[Path]) -> Dict[str, ValidationResult]:
+    def validate_template_files(
+        self, template_files: List[Path]
+    ) -> Dict[str, ValidationResult]:
         """Validate multiple template files.
 
         Args:
@@ -40,7 +42,9 @@ class DeploymentValidator:
             results[str(template_file)] = result
 
             if not result.is_valid:
-                self.logger.warning(f"Template validation failed for {template_file}: {result}")
+                self.logger.warning(
+                    f"Template validation failed for {template_file}: {result}"
+                )
             elif result.has_warnings:
                 self.logger.info(
                     f"Template validation warnings for {template_file}: {result.warning_count} warnings"
@@ -48,7 +52,9 @@ class DeploymentValidator:
 
         return results
 
-    def validate_agent_files(self, agent_files: List[Path]) -> Dict[str, ValidationResult]:
+    def validate_agent_files(
+        self, agent_files: List[Path]
+    ) -> Dict[str, ValidationResult]:
         """Validate multiple agent files.
 
         Args:
@@ -65,7 +71,9 @@ class DeploymentValidator:
             results[str(agent_file)] = result
 
             if not result.is_valid:
-                self.logger.warning(f"Agent validation failed for {agent_file}: {result}")
+                self.logger.warning(
+                    f"Agent validation failed for {agent_file}: {result}"
+                )
             elif result.has_warnings:
                 self.logger.info(
                     f"Agent validation warnings for {agent_file}: {result.warning_count} warnings"
@@ -159,7 +167,9 @@ class DeploymentValidator:
                 result.add_info(f"All {total_templates} templates are valid")
             else:
                 invalid_count = total_templates - valid_templates
-                result.add_error(f"{invalid_count} of {total_templates} templates are invalid")
+                result.add_error(
+                    f"{invalid_count} of {total_templates} templates are invalid"
+                )
 
             # Add template validation details to metadata
             result.metadata["template_validation"] = {
@@ -199,7 +209,9 @@ class DeploymentValidator:
 
         return results
 
-    def get_validation_summary(self, results: Dict[str, ValidationResult]) -> Dict[str, Any]:
+    def get_validation_summary(
+        self, results: Dict[str, ValidationResult]
+    ) -> Dict[str, Any]:
         """Get summary of validation results.
 
         Args:

@@ -47,7 +47,9 @@ class DeploymentConfigManager:
         # Validate configuration
         self._validate_config(deployment_config)
 
-        self.logger.debug(f"Loaded deployment configuration: {deployment_config.environment} mode")
+        self.logger.debug(
+            f"Loaded deployment configuration: {deployment_config.environment} mode"
+        )
         return deployment_config
 
     def _extract_deployment_config(self, config: Config) -> Dict[str, Any]:
@@ -62,7 +64,9 @@ class DeploymentConfigManager:
         config_dict = {}
 
         # Extract agent deployment settings
-        config_dict["excluded_agents"] = config.get("agent_deployment.excluded_agents", [])
+        config_dict["excluded_agents"] = config.get(
+            "agent_deployment.excluded_agents", []
+        )
         config_dict["case_sensitive_exclusion"] = config.get(
             "agent_deployment.case_sensitive_exclusion", True
         )
@@ -82,21 +86,27 @@ class DeploymentConfigManager:
         config_dict["repair_existing_agents"] = config.get(
             "agent_deployment.repair_existing_agents", True
         )
-        config_dict["validate_agents"] = config.get("agent_deployment.validate_agents", True)
+        config_dict["validate_agents"] = config.get(
+            "agent_deployment.validate_agents", True
+        )
 
         # Extract performance settings
         config_dict["use_async"] = config.get("agent_deployment.use_async", False)
         config_dict["max_concurrent_operations"] = config.get(
             "agent_deployment.max_concurrent_operations", 10
         )
-        config_dict["timeout_seconds"] = config.get("agent_deployment.timeout_seconds", 300)
+        config_dict["timeout_seconds"] = config.get(
+            "agent_deployment.timeout_seconds", 300
+        )
 
         # Extract environment settings
         config_dict["environment"] = config.get("environment", "production")
         config_dict["log_level"] = config.get("logging.level", "INFO")
 
         # Extract metrics settings
-        config_dict["collect_metrics"] = config.get("agent_deployment.collect_metrics", True)
+        config_dict["collect_metrics"] = config.get(
+            "agent_deployment.collect_metrics", True
+        )
 
         return config_dict
 
@@ -134,13 +144,17 @@ class DeploymentConfigManager:
             try:
                 config.templates_dir = Path(config.templates_dir)
             except Exception as e:
-                raise ValueError(f"Invalid templates_dir path: {config.templates_dir}") from e
+                raise ValueError(
+                    f"Invalid templates_dir path: {config.templates_dir}"
+                ) from e
 
         if config.base_agent_path and not isinstance(config.base_agent_path, Path):
             try:
                 config.base_agent_path = Path(config.base_agent_path)
             except Exception as e:
-                raise ValueError(f"Invalid base_agent_path: {config.base_agent_path}") from e
+                raise ValueError(
+                    f"Invalid base_agent_path: {config.base_agent_path}"
+                ) from e
 
         if config.working_directory and not isinstance(config.working_directory, Path):
             try:
@@ -181,4 +195,6 @@ class DeploymentConfigManager:
         # Remove None values
         config_dict = {k: v for k, v in config_dict.items() if v is not None}
 
-        return self.load_deployment_config(config=getattr(context, "config", None), **config_dict)
+        return self.load_deployment_config(
+            config=getattr(context, "config", None), **config_dict
+        )

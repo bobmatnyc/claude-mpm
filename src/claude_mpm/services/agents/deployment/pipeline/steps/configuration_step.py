@@ -34,7 +34,9 @@ class ConfigurationLoadStep(BaseDeploymentStep):
                 context.config = Config()
 
             # Extract excluded agents
-            context.excluded_agents = context.config.get("agent_deployment.excluded_agents", [])
+            context.excluded_agents = context.config.get(
+                "agent_deployment.excluded_agents", []
+            )
 
             # Extract case sensitivity setting
             context.case_sensitive_exclusion = context.config.get(
@@ -66,7 +68,10 @@ class ConfigurationLoadStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE, message=error_msg, error=e, execution_time=execution_time
+                status=StepStatus.FAILURE,
+                message=error_msg,
+                error=e,
+                execution_time=execution_time,
             )
 
     def can_continue_on_failure(self) -> bool:

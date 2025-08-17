@@ -380,7 +380,9 @@ class HookServiceInterface(ABC):
     """
 
     @abstractmethod
-    def register_hook(self, hook_name: str, callback: callable, priority: int = 0) -> str:
+    def register_hook(
+        self, hook_name: str, callback: callable, priority: int = 0
+    ) -> str:
         """Register a hook callback.
 
         Args:

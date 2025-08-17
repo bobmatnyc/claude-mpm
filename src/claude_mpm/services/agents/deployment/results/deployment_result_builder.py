@@ -175,7 +175,9 @@ class DeploymentResultBuilder:
         self.metrics.add_warning(warning)
         return self
 
-    def add_step_timing(self, step_name: str, duration: float) -> "DeploymentResultBuilder":
+    def add_step_timing(
+        self, step_name: str, duration: float
+    ) -> "DeploymentResultBuilder":
         """Add timing information for a step.
 
         Args:

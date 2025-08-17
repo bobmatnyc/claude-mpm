@@ -1,11 +1,8 @@
 """Agent registry services for discovery and tracking."""
 
-from claude_mpm.core.unified_agent_registry import (
-    AgentMetadata,
-    UnifiedAgentRegistry as AgentRegistry,
-    AgentTier,
-    AgentType,
-)
+from claude_mpm.core.unified_agent_registry import AgentMetadata, AgentTier, AgentType
+from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
+
 from .deployed_agent_discovery import DeployedAgentDiscovery
 from .modification_tracker import (
     AgentModification,

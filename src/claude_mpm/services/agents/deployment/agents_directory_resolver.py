@@ -11,11 +11,16 @@ from typing import Optional
 
 class AgentsDirectoryResolver:
     """Resolves the correct agents directory for deployment."""
-    
-    def __init__(self, working_directory: Path, is_system_deployment: bool, is_project_specific: bool):
+
+    def __init__(
+        self,
+        working_directory: Path,
+        is_system_deployment: bool,
+        is_project_specific: bool,
+    ):
         """
         Initialize the resolver.
-        
+
         Args:
             working_directory: Current working directory
             is_system_deployment: Whether this is a system agent deployment
@@ -24,22 +29,22 @@ class AgentsDirectoryResolver:
         self.working_directory = working_directory
         self.is_system_deployment = is_system_deployment
         self.is_project_specific = is_project_specific
-    
+
     def determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
         """
         Determine the correct agents directory based on input.
-        
+
         Different deployment scenarios require different directory
         structures. This method centralizes the logic for consistency.
-        
+
         HIERARCHY:
         - System agents → Deploy to ~/.claude/agents/ (user's home directory)
         - User custom agents from ~/.claude-mpm/agents/ → Deploy to ~/.claude/agents/
         - Project-specific agents from <project>/.claude-mpm/agents/ → Deploy to <project>/.claude/agents/
-        
+
         Args:
             target_dir: Optional target directory
-            
+
         Returns:
             Path to agents directory
         """
@@ -55,10 +60,10 @@ class AgentsDirectoryResolver:
             else:
                 # Default: User custom agents go to home ~/.claude/agents/
                 return Path.home() / ".claude" / "agents"
-        
+
         # If target_dir provided, use it directly (caller decides structure)
         target_dir = Path(target_dir)
-        
+
         # Check if this is already an agents directory
         if target_dir.name == "agents":
             # Already an agents directory, use as-is

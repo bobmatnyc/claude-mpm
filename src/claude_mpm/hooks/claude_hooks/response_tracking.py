@@ -33,7 +33,9 @@ class ResponseTrackingManager:
     def __init__(self):
         self.response_tracker: Optional[ResponseTracker] = None
         self.response_tracking_enabled = False
-        self.track_all_interactions = False  # Track all Claude interactions, not just delegations
+        self.track_all_interactions = (
+            False  # Track all Claude interactions, not just delegations
+        )
 
         if RESPONSE_TRACKING_AVAILABLE:
             self._initialize_response_tracking()
@@ -61,7 +63,10 @@ class ResponseTrackingManager:
 
             if not (response_tracking_enabled or response_logging_enabled):
                 if DEBUG:
-                    print("Response tracking disabled - skipping initialization", file=sys.stderr)
+                    print(
+                        "Response tracking disabled - skipping initialization",
+                        file=sys.stderr,
+                    )
                 return
 
             # Initialize response tracker with config
@@ -75,9 +80,13 @@ class ResponseTrackingManager:
 
             if DEBUG:
                 mode = (
-                    "all interactions" if self.track_all_interactions else "Task delegations only"
+                    "all interactions"
+                    if self.track_all_interactions
+                    else "Task delegations only"
                 )
-                print(f"✅ Response tracking initialized (mode: {mode})", file=sys.stderr)
+                print(
+                    f"✅ Response tracking initialized (mode: {mode})", file=sys.stderr
+                )
 
         except Exception as e:
             if DEBUG:
@@ -129,7 +138,9 @@ class ResponseTrackingManager:
             structured_response = None
             try:
                 # Look for JSON block in the response (agents should return JSON at the end)
-                json_match = re.search(r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL)
+                json_match = re.search(
+                    r"```json\s*(\{.*?\})\s*```", response_text, re.DOTALL
+                )
                 if json_match:
                     structured_response = json.loads(json_match.group(1))
                     if DEBUG:
@@ -190,7 +201,9 @@ class ResponseTrackingManager:
                 # Log files modified for debugging
                 if DEBUG and structured_response.get("files_modified"):
                     files = [f["file"] for f in structured_response["files_modified"]]
-                    print(f"Agent {agent_type} modified files: {files}", file=sys.stderr)
+                    print(
+                        f"Agent {agent_type} modified files: {files}", file=sys.stderr
+                    )
 
             # Track the response
             file_path = self.response_tracker.track_response(
@@ -291,7 +304,9 @@ class ResponseTrackingManager:
         try:
             # Extract response content from event
             response_content = (
-                event.get("response", "") or event.get("content", "") or event.get("text", "")
+                event.get("response", "")
+                or event.get("content", "")
+                or event.get("text", "")
             )
 
             if not response_content:
