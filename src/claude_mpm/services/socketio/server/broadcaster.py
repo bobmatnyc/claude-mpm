@@ -38,6 +38,7 @@ class SocketIOEventBroadcaster:
         self.buffer_lock = buffer_lock
         self.stats = stats
         self.logger = logger
+        self.loop = None  # Will be set by main server
 
     def broadcast_event(self, event_type: str, data: Dict[str, Any]):
         """Broadcast an event to all connected clients."""
@@ -209,3 +210,35 @@ class SocketIOEventBroadcaster:
     def system_status(self, status: Dict[str, Any]):
         """Broadcast system status information."""
         self.broadcast_event("system_status", status)
+    
+    def broadcast_system_heartbeat(self, heartbeat_data: Dict[str, Any]):
+        """Broadcast system heartbeat event.
+        
+        WHY: System events are separate from hook events to provide
+        server health monitoring independent of Claude activity.
+        """
+        if not self.sio:
+            return
+            
+        # Create system event with consistent format
+        event = {
+            "type": "system",
+            "event": "heartbeat",
+            "timestamp": datetime.now().isoformat(),
+            "data": heartbeat_data,
+        }
+        
+        # Broadcast to all connected clients
+        try:
+            if self.loop and not self.loop.is_closed():
+                future = asyncio.run_coroutine_threadsafe(
+                    self.sio.emit("system_event", event), self.loop
+                )
+                self.logger.debug(
+                    f"Broadcasted system heartbeat - clients: {len(self.connected_clients)}, "
+                    f"uptime: {heartbeat_data.get('uptime_seconds', 0)}s"
+                )
+            else:
+                self.logger.warning("Cannot broadcast heartbeat: server loop not available")
+        except Exception as e:
+            self.logger.error(f"Failed to broadcast system heartbeat: {e}")

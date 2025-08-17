@@ -2,14 +2,17 @@
 
 ## Overview
 
-The MCP Gateway is a standards-compliant implementation of the Model Context Protocol (MCP) for Claude MPM. It provides a simple, stdio-based server that enables seamless integration with Claude Desktop and other MCP clients.
+The MCP Gateway is a standards-compliant implementation of the Model Context Protocol (MCP) for Claude MPM. It provides a simple, stdio-based server that enables seamless integration with Claude Code.
+
+**NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.**
+Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 
 The MCP Gateway uses the official Anthropic MCP Python SDK with:
 
 - **Standards compliance** with the official MCP specification
-- **Stdio-based communication** for Claude Desktop integration
+- **Stdio-based communication** for Claude Code integration
 - **Simple JSON-RPC protocol** over stdin/stdout
 - **Tool registry system** for extensible functionality
 - **Comprehensive error handling** and logging
@@ -44,7 +47,7 @@ mcp_gateway/
 
 ### Key Features
 - **Protocol Handler** - Stdio-based MCP protocol handler, not a background service
-- **Claude Desktop Ready** - Direct integration with Claude Desktop MCP client
+- **Claude Code Ready** - Direct integration with Claude Code MCP client
 - **Extensible** - Easy to add new tools and capabilities
 - **Standards Compliant** - Follows official MCP specification exactly
 
@@ -69,14 +72,14 @@ claude-mpm mcp test system_info
 
 ### 3. Start MCP Gateway Handler
 ```bash
-# Start gateway handler for Claude Desktop integration
+# Start gateway handler for Claude Code integration
 claude-mpm mcp start
 ```
 
-The gateway handler will listen for MCP protocol messages via stdin/stdout. This is typically invoked by Claude Desktop, not run directly by users.
+The gateway handler will listen for MCP protocol messages via stdin/stdout. This is typically invoked by Claude Code, not run directly by users.
 
-### 4. Claude Desktop Integration
-Add to your Claude Desktop MCP configuration:
+### 4. Claude Code Integration
+Add to your Claude Code configuration (~/.claude.json):
 ```json
 {
   "mcpServers": {

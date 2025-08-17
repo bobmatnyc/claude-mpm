@@ -137,25 +137,9 @@ class UnifiedTicketTool(BaseToolAdapter):
                     },
                 },
                 "required": ["operation"],
-                # Additional validation per operation
-                "allOf": [
-                    {
-                        "if": {"properties": {"operation": {"const": "create"}}},
-                        "then": {"required": ["operation", "type", "title"]},
-                    },
-                    {
-                        "if": {"properties": {"operation": {"const": "update"}}},
-                        "then": {"required": ["operation", "ticket_id"]},
-                    },
-                    {
-                        "if": {"properties": {"operation": {"const": "view"}}},
-                        "then": {"required": ["operation", "ticket_id"]},
-                    },
-                    {
-                        "if": {"properties": {"operation": {"const": "search"}}},
-                        "then": {"required": ["operation", "query"]},
-                    },
-                ],
+                # Note: Additional validation is handled in the invoke method
+                # to avoid using allOf/oneOf/anyOf at the top level which is not
+                # supported by the Claude API
             },
         )
         super().__init__(definition)
@@ -179,6 +163,15 @@ class UnifiedTicketTool(BaseToolAdapter):
                 execution_time=0.0,
             )
 
+        # Validate required parameters based on operation type
+        validation_error = self._validate_parameters(operation, invocation.parameters)
+        if validation_error:
+            return MCPToolResult(
+                success=False,
+                error=validation_error,
+                execution_time=0.0,
+            )
+
         # Route to appropriate handler based on operation
         handlers = {
             "create": self._handle_create,
@@ -197,6 +190,46 @@ class UnifiedTicketTool(BaseToolAdapter):
             )
 
         return await handler(invocation.parameters)
+
+    def _validate_parameters(self, operation: str, params: Dict[str, Any]) -> Optional[str]:
+        """
+        Validate parameters based on the operation type.
+
+        Args:
+            operation: The operation being performed
+            params: Parameters provided for the operation
+
+        Returns:
+            Error message if validation fails, None if valid
+        """
+        if operation == "create":
+            if "type" not in params:
+                return "'type' parameter is required for create operation"
+            if "title" not in params:
+                return "'title' parameter is required for create operation"
+            if params["type"] not in ["task", "issue", "epic"]:
+                return f"Invalid type '{params['type']}'. Must be 'task', 'issue', or 'epic'"
+        
+        elif operation == "update":
+            if "ticket_id" not in params:
+                return "'ticket_id' parameter is required for update operation"
+        
+        elif operation == "view":
+            if "ticket_id" not in params:
+                return "'ticket_id' parameter is required for view operation"
+        
+        elif operation == "search":
+            if "query" not in params:
+                return "'query' parameter is required for search operation"
+        
+        elif operation == "list":
+            # List operation has no required parameters beyond operation itself
+            pass
+        
+        else:
+            return f"Unknown operation: {operation}"
+        
+        return None
 
     async def _handle_create(self, params: Dict[str, Any]) -> MCPToolResult:
         """

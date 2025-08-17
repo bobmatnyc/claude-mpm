@@ -48,7 +48,7 @@ export default defineConfig({
         format: 'es',
 
         // Entry point naming pattern
-        entryFileNames: '[name].[hash].js',
+        entryFileNames: '[name].js',
 
         // Chunk naming for code splitting
         chunkFileNames: 'chunks/[name].[hash].js',
