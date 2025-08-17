@@ -8,6 +8,8 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+from typing import Any, Dict
+
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import MemoryHookInterface
 
@@ -23,6 +25,7 @@ class MemoryHookService(BaseService, MemoryHookInterface):
         """
         super().__init__(name="memory_hook_service")
         self.hook_service = hook_service
+        self.registered_hooks = []  # Track registered hook IDs
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
@@ -51,37 +54,57 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             return
 
         try:
-            # Register pre-interaction hook for memory loading
-            self.hook_service.register_hook(
-                "before_claude_interaction",
-                self._load_relevant_memories,
-                priority=10,  # High priority to load memories early
+            # Create hook objects for the actual HookService interface
+            from claude_mpm.hooks.base_hook import (
+                HookContext,
+                HookResult,
+                PostDelegationHook,
+                PreDelegationHook,
             )
 
-            # Register post-interaction hook for memory saving
-            self.hook_service.register_hook(
-                "after_claude_interaction",
-                self._save_new_memories,
-                priority=90,  # Lower priority to save after other processing
-            )
+            # Create memory loading hook
+            class MemoryLoadHook(PreDelegationHook):
+                def __init__(self, memory_service):
+                    super().__init__(name="memory_load", priority=10)
+                    self.memory_service = memory_service
 
-            # Register error hook for memory preservation
-            self.hook_service.register_hook(
-                "on_interaction_error",
-                self._preserve_memory_state,
-                priority=50,  # Medium priority for error handling
-            )
+                def execute(self, context: HookContext) -> HookResult:
+                    return self.memory_service._load_relevant_memories_hook(context)
+
+            # Create memory saving hook
+            class MemorySaveHook(PostDelegationHook):
+                def __init__(self, memory_service):
+                    super().__init__(name="memory_save", priority=90)
+                    self.memory_service = memory_service
+
+                def execute(self, context: HookContext) -> HookResult:
+                    return self.memory_service._save_new_memories_hook(context)
+
+            # Register the hook objects
+            load_hook = MemoryLoadHook(self)
+            save_hook = MemorySaveHook(self)
+
+            success1 = self.hook_service.register_hook(load_hook)
+            success2 = self.hook_service.register_hook(save_hook)
+
+            if success1:
+                self.registered_hooks.append("memory_load")
+            if success2:
+                self.registered_hooks.append("memory_save")
 
             self.logger.debug("Memory hooks registered successfully")
 
         except Exception as e:
             self.logger.warning(f"Failed to register memory hooks: {e}")
 
-    def _load_relevant_memories(self, context):
+    def _load_relevant_memories_hook(self, context):
         """Hook function to load relevant memories before Claude interaction.
 
         Args:
             context: Hook context containing interaction details
+
+        Returns:
+            HookResult with success status and any modifications
         """
         try:
             # This would integrate with a memory service to load relevant memories
@@ -93,22 +116,53 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             #     relevant_memories = memory_service.search_memories(context.prompt)
             #     context.memories = relevant_memories
 
+            from claude_mpm.hooks.base_hook import HookResult
+
+            return HookResult(success=True, data=context.data, modified=False)
+
         except Exception as e:
             self.logger.warning(f"Failed to load memories: {e}")
+            from claude_mpm.hooks.base_hook import HookResult
 
-    def _save_new_memories(self, context):
+            return HookResult(
+                success=False, data=context.data, modified=False, error=str(e)
+            )
+
+    def _load_relevant_memories(self, context):
+        """Legacy hook function for backward compatibility."""
+        result = self._load_relevant_memories_hook(context)
+        return result.data
+
+    def _save_new_memories_hook(self, context):
         """Hook function to save new memories after Claude interaction.
 
         Args:
             context: Hook context containing interaction results
+
+        Returns:
+            HookResult with success status and any modifications
         """
         try:
             # This would integrate with a memory service to save new memories
             # For now, this is a placeholder for future memory integration
             self.logger.debug("Saving new memories from interaction")
 
+            from claude_mpm.hooks.base_hook import HookResult
+
+            return HookResult(success=True, data=context.data, modified=False)
+
         except Exception as e:
             self.logger.warning(f"Failed to save memories: {e}")
+            from claude_mpm.hooks.base_hook import HookResult
+
+            return HookResult(
+                success=False, data=context.data, modified=False, error=str(e)
+            )
+
+    def _save_new_memories(self, context):
+        """Legacy hook function for backward compatibility."""
+        result = self._save_new_memories_hook(context)
+        return result.data
 
     def _preserve_memory_state(self, context):
         """Hook function to preserve memory state on interaction error.
@@ -164,4 +218,37 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "enabled": self.is_memory_enabled(),
             "hooks_registered": self.hook_service is not None,
             "service_available": True,
+        }
+
+    def unregister_memory_hooks(self):
+        """Unregister memory-related hooks from the hook service."""
+        if not self.hook_service:
+            self.logger.debug(
+                "Hook service not available, skipping memory hook unregistration"
+            )
+            return
+
+        try:
+            # Unregister all tracked hooks by name
+            for hook_name in self.registered_hooks:
+                self.hook_service.remove_hook(hook_name)
+
+            self.registered_hooks.clear()
+            self.logger.debug("Memory hooks unregistered successfully")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to unregister memory hooks: {e}")
+
+    def get_hook_status(self) -> Dict[str, Any]:
+        """Get status of registered memory hooks.
+
+        Returns:
+            Dictionary with hook status information
+        """
+        return {
+            "hooks_registered": len(self.registered_hooks),
+            "hook_ids": self.registered_hooks.copy(),
+            "hook_service_available": self.hook_service is not None,
+            "memory_enabled": self.is_memory_enabled(),
+            "service_status": "active" if self.hook_service else "inactive",
         }

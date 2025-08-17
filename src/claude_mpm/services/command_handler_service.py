@@ -9,6 +9,8 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+from typing import Any, Dict, List
+
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import CommandHandlerInterface
 
@@ -146,10 +148,70 @@ class CommandHandlerService(BaseService, CommandHandlerInterface):
         """
         return prompt.strip().startswith("/mpm:")
 
-    def get_available_commands(self) -> list:
+    def get_available_commands(self) -> List[str]:
         """Get list of available MPM commands.
 
         Returns:
-            list: List of available command names
+            List: List of available command names
         """
         return ["test", "agents"]
+
+    # Implementation of abstract methods from CommandHandlerInterface
+
+    def handle_command(self, command: str, args: List[str]) -> Dict[str, Any]:
+        """Handle an MPM command.
+
+        Args:
+            command: Command name to execute
+            args: Command arguments
+
+        Returns:
+            Dictionary with command execution results
+        """
+        try:
+            if command == "test":
+                success = self._handle_test_command(args)
+                return {
+                    "success": success,
+                    "command": command,
+                    "args": args,
+                    "message": "Test command executed"
+                    if success
+                    else "Test command failed",
+                }
+            elif command == "agents":
+                success = self._handle_agents_command(args)
+                return {
+                    "success": success,
+                    "command": command,
+                    "args": args,
+                    "message": "Agents command executed"
+                    if success
+                    else "Agents command failed",
+                }
+            else:
+                return {
+                    "success": False,
+                    "command": command,
+                    "args": args,
+                    "error": f"Unknown command: {command}",
+                    "available_commands": self.get_available_commands(),
+                }
+        except Exception as e:
+            return {"success": False, "command": command, "args": args, "error": str(e)}
+
+    def get_command_help(self, command: str) -> str:
+        """Get help text for a specific command.
+
+        Args:
+            command: Command name
+
+        Returns:
+            Help text for the command
+        """
+        help_text = {
+            "test": "Test command - prints 'Hello World' to verify MPM command functionality",
+            "agents": "Agents command - displays information about deployed agents and their versions",
+        }
+
+        return help_text.get(command, f"No help available for command: {command}")
