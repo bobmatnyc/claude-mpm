@@ -2,18 +2,19 @@
 """Migration script to help transition from HTTP-based hooks to JSON-RPC hooks."""
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
 def check_hook_service_running():
     """Check if the old HTTP hook service is running."""
     try:
         import requests
+
         response = requests.get("http://localhost:5001/health", timeout=1)
         return response.status_code == 200
     except:
@@ -23,17 +24,15 @@ def check_hook_service_running():
 def stop_hook_service():
     """Attempt to stop the HTTP hook service."""
     print("Attempting to stop HTTP hook service...")
-    
+
     # Try to find and kill the process
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "hook_service.py"],
-            capture_output=True,
-            text=True
+            ["pgrep", "-f", "hook_service.py"], capture_output=True, text=True
         )
-        
+
         if result.returncode == 0:
-            pids = result.stdout.strip().split('\n')
+            pids = result.stdout.strip().split("\n")
             for pid in pids:
                 if pid:
                     subprocess.run(["kill", pid])
@@ -50,16 +49,16 @@ def stop_hook_service():
 def test_json_rpc_hooks():
     """Test that JSON-RPC hooks are working."""
     from claude_mpm.hooks.json_rpc_hook_client import JSONRPCHookClient
-    
+
     print("\nTesting JSON-RPC hooks...")
     try:
         client = JSONRPCHookClient()
         health = client.health_check()
-        
-        if health['status'] == 'healthy':
+
+        if health["status"] == "healthy":
             print(f"  ✓ JSON-RPC hooks are working")
             print(f"  ✓ Found {health['hook_count']} hooks")
-            
+
             # Test execution
             results = client.execute_submit_hook("test prompt")
             print(f"  ✓ Successfully executed {len(results)} hooks")
@@ -75,17 +74,17 @@ def test_json_rpc_hooks():
 def update_environment():
     """Update environment configuration."""
     print("\nUpdating environment configuration...")
-    
+
     # Check for .env file
     env_file = Path(".env")
     if env_file.exists():
         content = env_file.read_text()
-        
+
         # Remove old HTTP hook URL if present
-        lines = content.split('\n')
+        lines = content.split("\n")
         new_lines = []
         updated = False
-        
+
         for line in lines:
             if line.startswith("CLAUDE_MPM_HOOKS_URL="):
                 # Comment out old URL
@@ -97,15 +96,15 @@ def update_environment():
                 updated = True
             else:
                 new_lines.append(line)
-        
+
         # Add JSON-RPC setting if not present
         if not any("CLAUDE_MPM_HOOKS_JSON_RPC" in line for line in lines):
             new_lines.append("\n# Use JSON-RPC hooks (no HTTP server needed)")
             new_lines.append("CLAUDE_MPM_HOOKS_JSON_RPC=true")
             updated = True
-        
+
         if updated:
-            env_file.write_text('\n'.join(new_lines))
+            env_file.write_text("\n".join(new_lines))
             print("  ✓ Updated .env file")
         else:
             print("  ✓ .env file already up to date")
@@ -118,7 +117,7 @@ def main():
     print("claude-mpm Hook System Migration")
     print("HTTP → JSON-RPC")
     print("=" * 50)
-    
+
     # 1. Check if HTTP service is running
     print("\n1. Checking for HTTP hook service...")
     if check_hook_service_running():
@@ -130,16 +129,16 @@ def main():
             print("  Please stop it manually: pkill -f hook_service.py")
     else:
         print("  ✓ No HTTP hook service running")
-    
+
     # 2. Test JSON-RPC hooks
     if not test_json_rpc_hooks():
         print("\n⚠ JSON-RPC hooks test failed!")
         print("Please check your installation and try again.")
         return 1
-    
+
     # 3. Update environment
     update_environment()
-    
+
     # 4. Summary
     print("\n" + "=" * 50)
     print("Migration Summary:")
@@ -152,11 +151,11 @@ def main():
     print("  • No persistent server processes")
     print("  • Better resource efficiency")
     print("  • Simpler deployment")
-    
+
     print("\nTo revert to HTTP hooks (not recommended):")
     print("  export CLAUDE_MPM_HOOKS_JSON_RPC=false")
     print("  python -m claude_mpm.services.hook_service")
-    
+
     return 0
 
 

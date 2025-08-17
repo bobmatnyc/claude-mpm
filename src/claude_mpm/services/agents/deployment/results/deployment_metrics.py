@@ -69,13 +69,17 @@ class DeploymentMetrics:
 
         # Calculate performance metrics
         if self.step_timings:
-            agent_times = [t for name, t in self.step_timings.items() if "agent" in name.lower()]
+            agent_times = [
+                t for name, t in self.step_timings.items() if "agent" in name.lower()
+            ]
             if agent_times:
                 self.average_agent_deployment_time = sum(agent_times) / len(agent_times)
                 self.fastest_agent_deployment = min(agent_times)
                 self.slowest_agent_deployment = max(agent_times)
 
-    def add_deployed_agent(self, agent_name: str, deployment_time: Optional[float] = None) -> None:
+    def add_deployed_agent(
+        self, agent_name: str, deployment_time: Optional[float] = None
+    ) -> None:
         """Add a deployed agent to metrics.
 
         Args:
@@ -88,7 +92,9 @@ class DeploymentMetrics:
         if deployment_time is not None:
             self.step_timings[f"agent_{agent_name}"] = deployment_time
 
-    def add_updated_agent(self, agent_name: str, deployment_time: Optional[float] = None) -> None:
+    def add_updated_agent(
+        self, agent_name: str, deployment_time: Optional[float] = None
+    ) -> None:
         """Add an updated agent to metrics.
 
         Args:

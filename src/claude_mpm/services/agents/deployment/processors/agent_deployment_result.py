@@ -140,7 +140,11 @@ class AgentDeploymentResult:
 
     @classmethod
     def skipped(
-        cls, agent_name: str, template_file: Path, target_file: Path, reason: Optional[str] = None
+        cls,
+        agent_name: str,
+        template_file: Path,
+        target_file: Path,
+        reason: Optional[str] = None,
     ) -> "AgentDeploymentResult":
         """Create a skipped result.
 

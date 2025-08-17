@@ -45,7 +45,9 @@ class MemoryHookService(BaseService, MemoryHookInterface):
         - On error: Ensure memory state is preserved
         """
         if not self.hook_service:
-            self.logger.debug("Hook service not available, skipping memory hook registration")
+            self.logger.debug(
+                "Hook service not available, skipping memory hook registration"
+            )
             return
 
         try:
@@ -130,8 +132,12 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             self.hook_service.unregister_hook(
                 "before_claude_interaction", self._load_relevant_memories
             )
-            self.hook_service.unregister_hook("after_claude_interaction", self._save_new_memories)
-            self.hook_service.unregister_hook("on_interaction_error", self._preserve_memory_state)
+            self.hook_service.unregister_hook(
+                "after_claude_interaction", self._save_new_memories
+            )
+            self.hook_service.unregister_hook(
+                "on_interaction_error", self._preserve_memory_state
+            )
 
             self.logger.debug("Memory hooks unregistered successfully")
 

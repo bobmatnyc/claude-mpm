@@ -17,30 +17,30 @@ from claude_mpm.services.socketio_server import SocketIOServer
 
 def main():
     """Start persistent Socket.IO server."""
-    
+
     print("🚀 Starting persistent Socket.IO server...")
     server = SocketIOServer(host="localhost", port=8765)
-    
+
     try:
         server.start()
         print("✅ Socket.IO server started on port 8765")
         print("🌐 Dashboard: http://localhost:8765/dashboard?autoconnect=true")
         print("💡 Press Ctrl+C to stop the server")
-        
+
         # Keep server running
         import signal
         import time
-        
+
         def signal_handler(sig, frame):
             print("\n🛑 Stopping server...")
             server.stop()
             sys.exit(0)
-        
+
         signal.signal(signal.SIGINT, signal_handler)
-        
+
         while True:
             time.sleep(1)
-            
+
     except KeyboardInterrupt:
         print("\n🛑 Stopping server...")
         server.stop()

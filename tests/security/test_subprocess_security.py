@@ -6,11 +6,12 @@ This module tests that subprocess utilities properly prevent shell injection
 vulnerabilities and handle malicious input safely.
 """
 
-import pytest
 import subprocess
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
-from claude_mpm.utils.subprocess_utils import run_command, SubprocessError
+import pytest
+
+from claude_mpm.utils.subprocess_utils import SubprocessError, run_command
 
 
 class TestSubprocessSecurity:
@@ -41,7 +42,7 @@ class TestSubprocessSecurity:
         # Test with a command that would hang
         with pytest.raises(SubprocessError) as exc_info:
             run_command("sleep 10", timeout=0.1)
-        
+
         assert "failed" in str(exc_info.value).lower()
 
     def test_run_command_error_handling(self):
@@ -49,7 +50,7 @@ class TestSubprocessSecurity:
         # Test with a command that will fail
         with pytest.raises(SubprocessError) as exc_info:
             run_command("false")  # Command that always returns exit code 1
-        
+
         assert "failed" in str(exc_info.value).lower()
 
     def test_run_command_success_case(self):
@@ -58,30 +59,30 @@ class TestSubprocessSecurity:
         result = run_command("echo test")
         assert "test" in result
 
-    @patch('subprocess.run')
+    @patch("subprocess.run")
     def test_run_command_uses_safe_subprocess_call(self, mock_run):
         """Test that run_command uses subprocess.run without shell=True."""
         mock_result = MagicMock()
         mock_result.stdout = "test output"
         mock_run.return_value = mock_result
-        
+
         run_command("echo test")
-        
+
         # Verify subprocess.run was called with a list (not shell=True)
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
-        
+
         # First argument should be a list (from shlex.split)
         assert isinstance(args[0], list)
         assert args[0] == ["echo", "test"]
-        
+
         # Should not use shell=True
-        assert kwargs.get('shell', False) is False
-        
+        assert kwargs.get("shell", False) is False
+
         # Should have security-focused parameters
-        assert kwargs.get('capture_output', False) is True
-        assert kwargs.get('text', False) is True
-        assert kwargs.get('check', False) is True
+        assert kwargs.get("capture_output", False) is True
+        assert kwargs.get("text", False) is True
+        assert kwargs.get("check", False) is True
 
     def test_shell_injection_examples(self):
         """Test various shell injection attack patterns are prevented."""

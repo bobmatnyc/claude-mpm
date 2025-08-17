@@ -53,25 +53,35 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
             # 1. First read system agents (lowest priority)
             system_agents_dirs = [
-                Path.home() / "Library" / "Application Support" / "Claude" / "agents",  # macOS
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Claude"
+                / "agents",  # macOS
                 Path.home() / ".config" / "claude" / "agents",  # Linux
                 Path.home() / "AppData" / "Roaming" / "Claude" / "agents",  # Windows
             ]
 
             for system_dir in system_agents_dirs:
                 if system_dir.exists():
-                    self._discover_agents_from_dir(system_dir, discovered_agents, "system")
+                    self._discover_agents_from_dir(
+                        system_dir, discovered_agents, "system"
+                    )
                     break
 
             # 2. Then read user agents (middle priority, overrides system)
             user_agents_dir = Path.home() / ".config" / "claude" / "agents"
             if user_agents_dir.exists():
-                self._discover_agents_from_dir(user_agents_dir, discovered_agents, "user")
+                self._discover_agents_from_dir(
+                    user_agents_dir, discovered_agents, "user"
+                )
 
             # 3. Finally read project agents (highest priority, overrides all)
             project_agents_dir = Path.cwd() / ".claude" / "agents"
             if project_agents_dir.exists():
-                self._discover_agents_from_dir(project_agents_dir, discovered_agents, "project")
+                self._discover_agents_from_dir(
+                    project_agents_dir, discovered_agents, "project"
+                )
 
             if not discovered_agents:
                 self.logger.warning("No agents found in any tier")
@@ -80,7 +90,7 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
             # Build capabilities section from discovered agents using list and join for better performance
             section_parts = [
                 "\n## Available Agent Capabilities\n\n",
-                "You have the following specialized agents available for delegation:\n\n"
+                "You have the following specialized agents available for delegation:\n\n",
             ]
 
             # Group agents by category
@@ -94,12 +104,20 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
             # Output agents by category
             for category in sorted(agents_by_category.keys()):
                 section_parts.append(f"\n### {category} Agents\n")
-                for agent in sorted(agents_by_category[category], key=lambda x: x["name"]):
-                    tier_indicator = f" [{agent['tier']}]" if agent["tier"] != "project" else ""
-                    section_parts.append(f"- **{agent['name']}** (`{agent['id']}`{tier_indicator}): {agent['description']}\n")
+                for agent in sorted(
+                    agents_by_category[category], key=lambda x: x["name"]
+                ):
+                    tier_indicator = (
+                        f" [{agent['tier']}]" if agent["tier"] != "project" else ""
+                    )
+                    section_parts.append(
+                        f"- **{agent['name']}** (`{agent['id']}`{tier_indicator}): {agent['description']}\n"
+                    )
 
             # Add summary
-            section_parts.append(f"\n**Total Available Agents**: {len(discovered_agents)}\n")
+            section_parts.append(
+                f"\n**Total Available Agents**: {len(discovered_agents)}\n"
+            )
 
             # Show tier distribution
             tier_counts = {}
@@ -115,7 +133,9 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
                         tier_summary.append(f"{tier_counts[tier]} {tier}")
                 section_parts.append(", ".join(tier_summary) + "\n")
 
-            section_parts.append("Use the agent ID in parentheses when delegating tasks via the Task tool.\n")
+            section_parts.append(
+                "Use the agent ID in parentheses when delegating tasks via the Task tool.\n"
+            )
 
             # Join all parts for final section
             section = "".join(section_parts)
@@ -132,7 +152,9 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
             self.logger.error(f"Failed to generate deployed agent capabilities: {e}")
             return self._get_fallback_capabilities()
 
-    def _discover_agents_from_dir(self, agents_dir: Path, discovered_agents: dict, tier: str):
+    def _discover_agents_from_dir(
+        self, agents_dir: Path, discovered_agents: dict, tier: str
+    ):
         """Discover agents from a specific directory and add/override in discovered_agents.
 
         Args:
@@ -194,7 +216,11 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
             return "Development"
         elif "research" in agent_id_lower or "research" in content_lower:
             return "Research"
-        elif "qa" in agent_id_lower or "test" in agent_id_lower or "quality" in content_lower:
+        elif (
+            "qa" in agent_id_lower
+            or "test" in agent_id_lower
+            or "quality" in content_lower
+        ):
             return "Quality Assurance"
         elif "doc" in agent_id_lower or "documentation" in content_lower:
             return "Documentation"
@@ -202,7 +228,11 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
             return "Security"
         elif "data" in agent_id_lower or "database" in content_lower:
             return "Data"
-        elif "ops" in agent_id_lower or "deploy" in agent_id_lower or "operations" in content_lower:
+        elif (
+            "ops" in agent_id_lower
+            or "deploy" in agent_id_lower
+            or "operations" in content_lower
+        ):
             return "Operations"
         elif "git" in agent_id_lower or "version" in content_lower:
             return "Version Control"

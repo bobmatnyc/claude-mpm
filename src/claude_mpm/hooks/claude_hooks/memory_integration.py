@@ -66,7 +66,10 @@ class MemoryHookManager:
             # Only initialize if memory system is enabled
             if not config.get("memory.enabled", True):
                 if DEBUG:
-                    print("Memory system disabled - skipping hook initialization", file=sys.stderr)
+                    print(
+                        "Memory system disabled - skipping hook initialization",
+                        file=sys.stderr,
+                    )
                 return
 
             # Initialize pre-delegation hook for memory injection
@@ -84,14 +87,19 @@ class MemoryHookManager:
                     hooks_info.append("pre-delegation")
                 if self.post_delegation_hook:
                     hooks_info.append("post-delegation")
-                print(f"✅ Memory hooks initialized: {', '.join(hooks_info)}", file=sys.stderr)
+                print(
+                    f"✅ Memory hooks initialized: {', '.join(hooks_info)}",
+                    file=sys.stderr,
+                )
 
         except Exception as e:
             if DEBUG:
                 print(f"❌ Failed to initialize memory hooks: {e}", file=sys.stderr)
             # Don't fail the entire handler - memory system is optional
 
-    def trigger_pre_delegation_hook(self, agent_type: str, tool_input: dict, session_id: str):
+    def trigger_pre_delegation_hook(
+        self, agent_type: str, tool_input: dict, session_id: str
+    ):
         """Trigger memory pre-delegation hook for agent memory injection.
 
         WHY: This connects Claude Code's Task delegation events to our memory system.
@@ -108,7 +116,11 @@ class MemoryHookManager:
             # Create hook context for memory injection
             hook_context = HookContext(
                 hook_type=HookType.PRE_DELEGATION,
-                data={"agent": agent_type, "context": tool_input, "session_id": session_id},
+                data={
+                    "agent": agent_type,
+                    "context": tool_input,
+                    "session_id": session_id,
+                },
                 metadata={"source": "claude_hook_handler", "tool_name": "Task"},
                 timestamp=datetime.now().isoformat(),
                 session_id=session_id,
@@ -141,7 +153,9 @@ class MemoryHookManager:
                 print(f"❌ Memory pre-delegation hook failed: {e}", file=sys.stderr)
             # Don't fail the delegation - memory is optional
 
-    def trigger_post_delegation_hook(self, agent_type: str, event: dict, session_id: str):
+    def trigger_post_delegation_hook(
+        self, agent_type: str, event: dict, session_id: str
+    ):
         """Trigger memory post-delegation hook for learning extraction.
 
         WHY: This connects Claude Code's Task completion events to our memory system.

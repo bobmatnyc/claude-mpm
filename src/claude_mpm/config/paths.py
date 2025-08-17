@@ -76,6 +76,7 @@ class ClaudeMPMPaths:
     def agents_dir(self) -> Path:
         """Get the agents directory."""
         return self._path_manager.get_agents_dir("framework")
+
     @property
     def services_dir(self) -> Path:
         """Get the services directory."""

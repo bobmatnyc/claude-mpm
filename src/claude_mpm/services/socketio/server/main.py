@@ -30,7 +30,12 @@ except ImportError:
     aiohttp = None
     web = None
 
-from ....core.constants import NetworkConfig, PerformanceConfig, SystemLimits, TimeoutConfig
+from ....core.constants import (
+    NetworkConfig,
+    PerformanceConfig,
+    SystemLimits,
+    TimeoutConfig,
+)
 from ....core.interfaces import SocketIOServiceInterface
 from ....core.logging_config import get_logger, log_operation, log_performance_context
 from ....core.unified_paths import get_project_root, get_scripts_dir
@@ -115,7 +120,9 @@ class SocketIOServer(SocketIOServiceInterface):
         self.running = self.core.running
         self.stats["start_time"] = self.core.stats["start_time"]
 
-        self.logger.info(f"SocketIO server started successfully on {self.host}:{self.port}")
+        self.logger.info(
+            f"SocketIO server started successfully on {self.host}:{self.port}"
+        )
 
     def stop_sync(self):
         """Stop the Socket.IO server (synchronous version)."""
@@ -159,7 +166,9 @@ class SocketIOServer(SocketIOServiceInterface):
         if self.broadcaster:
             self.broadcaster.session_ended()
 
-    def claude_status_changed(self, status: str, pid: Optional[int] = None, message: str = ""):
+    def claude_status_changed(
+        self, status: str, pid: Optional[int] = None, message: str = ""
+    ):
         """Notify Claude status change."""
         self.claude_status = status
         self.claude_pid = pid
@@ -196,7 +205,9 @@ class SocketIOServer(SocketIOServiceInterface):
         if self.broadcaster:
             self.broadcaster.memory_created(agent_id, template_type)
 
-    def memory_updated(self, agent_id: str, learning_type: str, content: str, section: str):
+    def memory_updated(
+        self, agent_id: str, learning_type: str, content: str, section: str
+    ):
         """Notify when learning is added to agent memory."""
         if self.broadcaster:
             self.broadcaster.memory_updated(agent_id, learning_type, content, section)

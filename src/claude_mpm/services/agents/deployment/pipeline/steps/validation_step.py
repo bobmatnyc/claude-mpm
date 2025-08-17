@@ -60,7 +60,9 @@ class ValidationStep(BaseDeploymentStep):
 
             self.logger.info(message)
 
-            return StepResult(status=status, message=message, execution_time=execution_time)
+            return StepResult(
+                status=status, message=message, execution_time=execution_time
+            )
 
         except Exception as e:
             execution_time = time.time() - start_time
@@ -71,7 +73,10 @@ class ValidationStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE, message=error_msg, error=e, execution_time=execution_time
+                status=StepStatus.FAILURE,
+                message=error_msg,
+                error=e,
+                execution_time=execution_time,
             )
 
     def can_continue_on_failure(self) -> bool:

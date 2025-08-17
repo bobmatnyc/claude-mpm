@@ -31,7 +31,6 @@ from claude_mpm.models.agent_definition import (
     AgentWorkflow,
 )
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
-from claude_mpm.core.unified_paths import get_path_manager
 
 from ..deployment.agent_versioning import AgentVersionManager
 

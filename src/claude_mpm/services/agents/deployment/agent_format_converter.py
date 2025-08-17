@@ -77,7 +77,9 @@ class AgentFormatConverter:
                     yaml_content = yaml_file.read_text()
 
                     # Convert to MD format
-                    md_content = self.convert_yaml_content_to_md(yaml_content, yaml_file.stem)
+                    md_content = self.convert_yaml_content_to_md(
+                        yaml_content, yaml_file.stem
+                    )
 
                     # Write MD file
                     md_file.write_text(md_content)
@@ -85,7 +87,9 @@ class AgentFormatConverter:
                     # Remove original YAML file
                     yaml_file.unlink()
 
-                    results["converted"].append({"from": yaml_file.name, "to": md_file.name})
+                    results["converted"].append(
+                        {"from": yaml_file.name, "to": md_file.name}
+                    )
 
                     self.logger.info(f"Converted {yaml_file.name} to {md_file.name}")
 
@@ -120,7 +124,8 @@ class AgentFormatConverter:
         )
         version = self.extract_yaml_field(yaml_content, "version") or "1.0.0"
         tools_line = (
-            self.extract_yaml_field(yaml_content, "tools") or "Read,Write,Edit,Grep,Glob,LS"
+            self.extract_yaml_field(yaml_content, "tools")
+            or "Read,Write,Edit,Grep,Glob,LS"
         )
 
         # Convert tools string to list format if needed
@@ -137,7 +142,10 @@ class AgentFormatConverter:
 
         # Extract additional fields
         model = self.extract_yaml_field(yaml_content, "model") or "sonnet"
-        author = self.extract_yaml_field(yaml_content, "author") or "claude-mpm@anthropic.com"
+        author = (
+            self.extract_yaml_field(yaml_content, "author")
+            or "claude-mpm@anthropic.com"
+        )
 
         # Extract instructions from YAML content
         instructions = self._extract_instructions_from_yaml(yaml_content, agent_name)
@@ -328,7 +336,12 @@ model: "{model}"
 
         # Analyze all agent files
         for file_path in target_dir.glob("*"):
-            if file_path.is_file() and file_path.suffix in [".yaml", ".yml", ".md", ".json"]:
+            if file_path.is_file() and file_path.suffix in [
+                ".yaml",
+                ".yml",
+                ".md",
+                ".json",
+            ]:
                 stats["total_files"] += 1
 
                 if file_path.suffix in [".yaml", ".yml"]:
@@ -346,13 +359,19 @@ model: "{model}"
                 try:
                     content = file_path.read_text()
                     format_type = self.detect_format(content)
-                    stats["formats"][format_type] = stats["formats"].get(format_type, 0) + 1
+                    stats["formats"][format_type] = (
+                        stats["formats"].get(format_type, 0) + 1
+                    )
                 except Exception:
-                    stats["formats"]["unreadable"] = stats["formats"].get("unreadable", 0) + 1
+                    stats["formats"]["unreadable"] = (
+                        stats["formats"].get("unreadable", 0) + 1
+                    )
 
         return stats
 
-    def _extract_instructions_from_yaml(self, yaml_content: str, agent_name: str) -> str:
+    def _extract_instructions_from_yaml(
+        self, yaml_content: str, agent_name: str
+    ) -> str:
         """
         Extract instructions from YAML content.
 
@@ -370,7 +389,9 @@ model: "{model}"
 
         # Try to extract description as instructions
         description = self.extract_yaml_field(yaml_content, "description")
-        if description and len(description) > 50:  # Long description might be instructions
+        if (
+            description and len(description) > 50
+        ):  # Long description might be instructions
             return f"# {agent_name.title()} Agent\n\n{description}"
 
         # Default instructions

@@ -29,7 +29,9 @@ def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -
     """
     # Version - only add to main parser, not subparsers
     if version is not None:
-        parser.add_argument("--version", action="version", version=f"%(prog)s {version}")
+        parser.add_argument(
+            "--version", action="version", version=f"%(prog)s {version}"
+        )
 
     # Logging arguments
     logging_group = parser.add_argument_group("logging options")
@@ -110,7 +112,9 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     run_group = parser.add_argument_group("run options (when no command specified)")
 
     run_group.add_argument(
-        "--no-hooks", action="store_true", help="Disable hook service (runs without hooks)"
+        "--no-hooks",
+        action="store_true",
+        help="Disable hook service (runs without hooks)",
     )
     run_group.add_argument(
         "--no-tickets", action="store_true", help="Disable automatic ticket creation"
@@ -138,7 +142,10 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Enable monitoring and management interface with WebSocket server and dashboard (default port: 8765)",
     )
     run_group.add_argument(
-        "--websocket-port", type=int, default=8765, help="WebSocket server port (default: 8765)"
+        "--websocket-port",
+        type=int,
+        default=8765,
+        help="WebSocket server port (default: 8765)",
     )
     run_group.add_argument(
         "--resume",
@@ -154,7 +161,9 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
     # Dependency checking options (for backward compatibility at top level)
-    dep_group_top = parser.add_argument_group("dependency options (when no command specified)")
+    dep_group_top = parser.add_argument_group(
+        "dependency options (when no command specified)"
+    )
     dep_group_top.add_argument(
         "--no-check-dependencies",
         action="store_false",
@@ -178,9 +187,14 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
     # Input/output options
-    io_group = parser.add_argument_group("input/output options (when no command specified)")
+    io_group = parser.add_argument_group(
+        "input/output options (when no command specified)"
+    )
     io_group.add_argument(
-        "-i", "--input", type=str, help="Input text or file path (for non-interactive mode)"
+        "-i",
+        "--input",
+        type=str,
+        help="Input text or file path (for non-interactive mode)",
     )
     io_group.add_argument(
         "--non-interactive",
@@ -189,7 +203,9 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     )
 
 
-def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argparse.ArgumentParser:
+def create_parser(
+    prog_name: str = "claude-mpm", version: str = "0.0.0"
+) -> argparse.ArgumentParser:
     """
     Create the main argument parser with all subcommands.
 
@@ -214,7 +230,9 @@ def create_parser(prog_name: str = "claude-mpm", version: str = "0.0.0") -> argp
     add_top_level_run_arguments(parser)
 
     # Create subparsers for commands
-    subparsers = parser.add_subparsers(dest="command", help="Available commands", metavar="COMMAND")
+    subparsers = parser.add_subparsers(
+        dest="command", help="Available commands", metavar="COMMAND"
+    )
 
     # Import and add core subparsers one by one to avoid issues
     try:

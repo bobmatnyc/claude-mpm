@@ -44,7 +44,9 @@ class AgentMetricsCollector:
             "deployment_errors": {},  # Track error types and frequencies
         }
 
-    def update_deployment_metrics(self, duration_ms: float, results: Dict[str, Any]) -> None:
+    def update_deployment_metrics(
+        self, duration_ms: float, results: Dict[str, Any]
+    ) -> None:
         """
         Update internal deployment metrics with results from a deployment.
 
@@ -114,18 +116,24 @@ class AgentMetricsCollector:
         total = self._deployment_metrics["total_deployments"]
         success_rate = 0.0
         if total > 0:
-            success_rate = self._deployment_metrics["successful_deployments"] / total * 100
+            success_rate = (
+                self._deployment_metrics["successful_deployments"] / total * 100
+            )
 
         return {
             "total_deployments": self._deployment_metrics["total_deployments"],
-            "successful_deployments": self._deployment_metrics["successful_deployments"],
+            "successful_deployments": self._deployment_metrics[
+                "successful_deployments"
+            ],
             "failed_deployments": self._deployment_metrics["failed_deployments"],
             "success_rate_percent": round(success_rate, 2),
             "average_deployment_time_ms": round(
                 self._deployment_metrics["average_deployment_time_ms"], 2
             ),
             "migrations_performed": self._deployment_metrics["migrations_performed"],
-            "agent_type_distribution": self._deployment_metrics["agent_type_counts"].copy(),
+            "agent_type_distribution": self._deployment_metrics[
+                "agent_type_counts"
+            ].copy(),
             "version_migrations": self._deployment_metrics["version_migration_count"],
             "error_distribution": self._deployment_metrics["deployment_errors"].copy(),
             "recent_deployment_times": self._deployment_metrics["deployment_times"][
@@ -170,7 +178,9 @@ class AgentMetricsCollector:
             agent_name: Name of the agent being validated
             validation_time_ms: Validation time in milliseconds
         """
-        self._deployment_metrics["template_validation_times"][agent_name] = validation_time_ms
+        self._deployment_metrics["template_validation_times"][
+            agent_name
+        ] = validation_time_ms
 
     def get_performance_summary(self) -> Dict[str, Any]:
         """
@@ -255,7 +265,9 @@ class AgentMetricsCollector:
         if not self._deployment_metrics["agent_type_counts"]:
             return "none"
 
-        return max(self._deployment_metrics["agent_type_counts"].items(), key=lambda x: x[1])[0]
+        return max(
+            self._deployment_metrics["agent_type_counts"].items(), key=lambda x: x[1]
+        )[0]
 
     def _calculate_error_rate(self) -> float:
         """Calculate the current error rate percentage."""

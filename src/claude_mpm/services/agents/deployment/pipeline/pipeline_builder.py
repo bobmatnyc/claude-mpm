@@ -120,7 +120,9 @@ class DeploymentPipelineBuilder:
             List of deployment steps in the order they were added
         """
         if not self._steps:
-            self.logger.warning("No steps added to pipeline, creating standard pipeline")
+            self.logger.warning(
+                "No steps added to pipeline, creating standard pipeline"
+            )
             return self.create_standard_pipeline()
 
         # Sort steps based on dependencies (simplified for now)

@@ -21,4 +21,9 @@ DESIGN DECISION: Each parser module handles a specific command domain:
 from .base_parser import add_common_arguments, create_parser, preprocess_args
 from .run_parser import add_run_arguments
 
-__all__ = ["create_parser", "add_common_arguments", "add_run_arguments", "preprocess_args"]
+__all__ = [
+    "create_parser",
+    "add_common_arguments",
+    "add_run_arguments",
+    "preprocess_args",
+]

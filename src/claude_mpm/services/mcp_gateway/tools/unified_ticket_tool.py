@@ -106,7 +106,17 @@ class UnifiedTicketTool(BaseToolAdapter):
                     },
                     "status": {
                         "type": "string",
-                        "enum": ["all", "open", "in-progress", "ready", "tested", "done", "waiting", "closed", "blocked"],
+                        "enum": [
+                            "all",
+                            "open",
+                            "in-progress",
+                            "ready",
+                            "tested",
+                            "done",
+                            "waiting",
+                            "closed",
+                            "blocked",
+                        ],
                         "description": "Status filter or new status",
                     },
                     "comment": {
@@ -161,7 +171,7 @@ class UnifiedTicketTool(BaseToolAdapter):
             Tool execution result from the specific operation
         """
         operation = invocation.parameters.get("operation")
-        
+
         if not operation:
             return MCPToolResult(
                 success=False,
@@ -393,7 +403,9 @@ class UnifiedTicketTool(BaseToolAdapter):
                     success=True,
                     data={
                         "ticket_id": ticket_id,
-                        "updated_fields": [k for k in ["status", "priority"] if k in params],
+                        "updated_fields": [
+                            k for k in ["status", "priority"] if k in params
+                        ],
                         "message": stdout.decode().strip(),
                     },
                     execution_time=execution_time,
@@ -463,7 +475,11 @@ class UnifiedTicketTool(BaseToolAdapter):
                     success=True,
                     data=ticket_data,
                     execution_time=execution_time,
-                    metadata={"tool": "ticket", "operation": "view", "ticket_id": ticket_id},
+                    metadata={
+                        "tool": "ticket",
+                        "operation": "view",
+                        "ticket_id": ticket_id,
+                    },
                 )
             else:
                 error_msg = stderr.decode() if stderr else stdout.decode()

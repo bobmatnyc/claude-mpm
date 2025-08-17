@@ -270,12 +270,12 @@
             .main-content {
                 grid-template-columns: 1fr;
             }
-            
+
             .connection-controls {
                 flex-direction: column;
                 align-items: stretch;
             }
-            
+
             .connection-controls input,
             .connection-controls button {
                 width: 100%;
@@ -298,10 +298,10 @@
             <div class="connection-controls">
                 <label for="port">Server Port:</label>
                 <input type="number" id="port" value="8765" min="1" max="65535">
-                
+
                 <button id="connectBtn" class="btn-connect">Connect</button>
                 <button id="disconnectBtn" class="btn-disconnect" style="display: none;">Disconnect</button>
-                
+
                 <div id="status" class="status disconnected">Disconnected</div>
             </div>
         </div>
@@ -379,9 +379,9 @@
         function connect() {
             const port = document.getElementById('port').value;
             const serverUrl = `http://localhost:${port}`;
-            
+
             updateStatus('connecting', 'Connecting...');
-            
+
             socket = io(serverUrl, {
                 transports: ['websocket', 'polling'],
                 timeout: 10000,
@@ -397,10 +397,10 @@
                 connectionStartTime = Date.now();
                 updateStatus('connected', `Connected to ${serverUrl}`);
                 startUptimeTimer();
-                
+
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('disconnectBtn').style.display = 'inline-block';
-                
+
                 addEvent('system', 'Connected to server', { port, url: serverUrl });
             });
 
@@ -408,17 +408,17 @@
                 isConnected = false;
                 updateStatus('disconnected', `Disconnected: ${reason}`);
                 stopUptimeTimer();
-                
+
                 document.getElementById('connectBtn').style.display = 'inline-block';
                 document.getElementById('disconnectBtn').style.display = 'none';
-                
+
                 addEvent('system', 'Disconnected from server', { reason });
             });
 
             socket.on('connect_error', (error) => {
                 updateStatus('disconnected', `Connection failed: ${error.message}`);
                 addEvent('error', 'Connection failed', { error: error.message });
-                
+
                 document.getElementById('connectBtn').style.display = 'inline-block';
                 document.getElementById('disconnectBtn').style.display = 'none';
             });
@@ -428,7 +428,7 @@
                 if (['connect', 'disconnect', 'connect_error'].includes(eventName)) {
                     return; // Skip connection events, already handled
                 }
-                
+
                 let eventType = 'system';
                 if (eventName.includes('hook')) {
                     eventType = 'hook';
@@ -437,12 +437,12 @@
                     eventType = 'memory';
                     stats.memoryEvents++;
                 }
-                
+
                 stats.totalEvents++;
                 updateStats();
-                
+
                 addEvent(eventType, eventName, data);
-                
+
                 // Update memory display for memory events
                 if (eventType === 'memory' && data) {
                     updateMemoryDisplay(data);
@@ -467,18 +467,18 @@
             const eventLog = document.getElementById('eventLog');
             const eventItem = document.createElement('div');
             eventItem.className = `event-item ${type}`;
-            
+
             const timestamp = new Date().toLocaleTimeString();
             const dataStr = data ? JSON.stringify(data, null, 2) : '';
-            
+
             eventItem.innerHTML = `
                 <div class="event-timestamp">[${timestamp}]</div>
                 <div class="event-type">${name}</div>
                 ${dataStr ? `<div class="event-data">${dataStr}</div>` : ''}
             `;
-            
+
             eventLog.insertBefore(eventItem, eventLog.firstChild);
-            
+
             // Keep only last 100 events
             while (eventLog.children.length > 100) {
                 eventLog.removeChild(eventLog.lastChild);
@@ -487,7 +487,7 @@
 
         function updateMemoryDisplay(data) {
             const memoryLog = document.getElementById('memoryLog');
-            
+
             if (data.agent && data.memory) {
                 // Find existing memory item for this agent or create new one
                 let memoryItem = memoryLog.querySelector(`[data-agent="${data.agent}"]`);
@@ -497,7 +497,7 @@
                     memoryItem.setAttribute('data-agent', data.agent);
                     memoryLog.appendChild(memoryItem);
                 }
-                
+
                 const timestamp = new Date().toLocaleTimeString();
                 memoryItem.innerHTML = `
                     <div class="memory-agent">${data.agent} <span style="font-size: 12px; color: #6c757d;">[${timestamp}]</span></div>
@@ -516,13 +516,13 @@
             if (uptimeInterval) {
                 clearInterval(uptimeInterval);
             }
-            
+
             uptimeInterval = setInterval(() => {
                 if (connectionStartTime) {
                     const uptime = Date.now() - connectionStartTime;
                     const minutes = Math.floor(uptime / 60000);
                     const seconds = Math.floor((uptime % 60000) / 1000);
-                    document.getElementById('uptime').textContent = 
+                    document.getElementById('uptime').textContent =
                         `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
                 }
             }, 1000);
@@ -549,7 +549,7 @@
         // Event listeners
         document.getElementById('connectBtn').addEventListener('click', connect);
         document.getElementById('disconnectBtn').addEventListener('click', disconnect);
-        
+
         document.getElementById('port').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 connect();

@@ -159,8 +159,12 @@ class DeploymentConfig:
             "use_async": self.use_async,
             "target_dir": str(self.target_dir) if self.target_dir else None,
             "templates_dir": str(self.templates_dir) if self.templates_dir else None,
-            "base_agent_path": str(self.base_agent_path) if self.base_agent_path else None,
-            "working_directory": str(self.working_directory) if self.working_directory else None,
+            "base_agent_path": str(self.base_agent_path)
+            if self.base_agent_path
+            else None,
+            "working_directory": str(self.working_directory)
+            if self.working_directory
+            else None,
             "deploy_system_instructions": self.deploy_system_instructions,
             "deploy_user_instructions": self.deploy_user_instructions,
             "repair_existing_agents": self.repair_existing_agents,

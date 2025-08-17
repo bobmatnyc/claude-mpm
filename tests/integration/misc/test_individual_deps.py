@@ -7,21 +7,21 @@ as a transitive dependency to properly separate them.
 """
 
 import subprocess
-import tempfile
 import sys
+import tempfile
 from pathlib import Path
+
 
 def test_package_crypto_dep(package_name):
     """Test if a package requires cryptography as a dependency."""
     with tempfile.TemporaryDirectory() as tmpdir:
         venv_path = Path(tmpdir) / "test_venv"
-        
+
         # Create venv
         subprocess.run(
-            [sys.executable, "-m", "venv", str(venv_path)],
-            capture_output=True
+            [sys.executable, "-m", "venv", str(venv_path)], capture_output=True
         )
-        
+
         # Get pip path
         if sys.platform == "win32":
             pip_path = venv_path / "Scripts" / "pip"
@@ -29,29 +29,29 @@ def test_package_crypto_dep(package_name):
         else:
             pip_path = venv_path / "bin" / "pip"
             python_path = venv_path / "bin" / "python"
-        
+
         # Upgrade pip
         subprocess.run(
-            [str(pip_path), "install", "--upgrade", "pip"],
-            capture_output=True
+            [str(pip_path), "install", "--upgrade", "pip"], capture_output=True
         )
-        
+
         # Try to install the package
         result = subprocess.run(
             [str(pip_path), "install", "--dry-run", package_name],
             capture_output=True,
-            text=True
+            text=True,
         )
-        
+
         # Check if cryptography is in the output
         has_crypto = "cryptography" in result.stdout.lower()
-        
+
         return has_crypto
+
 
 # Test suspicious packages
 suspicious_packages = [
     "ydata-profiling",
-    "great-expectations", 
+    "great-expectations",
     "safety",
     "pip-audit",
     "detect-secrets",

@@ -94,10 +94,18 @@ class MemoryAnalyzer:
                 try:
                     content = file_path.read_text()
                     section_count = len(
-                        [line for line in content.splitlines() if line.startswith("## ")]
+                        [
+                            line
+                            for line in content.splitlines()
+                            if line.startswith("## ")
+                        ]
                     )
                     learning_count = len(
-                        [line for line in content.splitlines() if line.strip().startswith("- ")]
+                        [
+                            line
+                            for line in content.splitlines()
+                            if line.strip().startswith("- ")
+                        ]
                     )
 
                     agent_status = {
@@ -108,7 +116,9 @@ class MemoryAnalyzer:
                         ),
                         "sections": section_count,
                         "items": learning_count,
-                        "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                        "last_modified": datetime.fromtimestamp(
+                            stat.st_mtime
+                        ).isoformat(),
                         "auto_learning": self._get_agent_auto_learning(agent_id),
                     }
 
@@ -186,7 +196,9 @@ class MemoryAnalyzer:
 
             for agent_id, content in agent_memories.items():
                 lines = [
-                    line.strip() for line in content.splitlines() if line.strip().startswith("- ")
+                    line.strip()
+                    for line in content.splitlines()
+                    if line.strip().startswith("- ")
                 ]
                 agent_lines[agent_id] = lines
                 all_lines.extend([(line, agent_id) for line in lines])
@@ -223,7 +235,10 @@ class MemoryAnalyzer:
 
                     if matches:
                         cross_refs["query_matches"].append(
-                            {"agent": agent_id, "matches": matches[:5]}  # Limit to first 5 matches
+                            {
+                                "agent": agent_id,
+                                "matches": matches[:5],
+                            }  # Limit to first 5 matches
                         )
 
             # Calculate agent correlations (agents with similar knowledge domains)
@@ -240,7 +255,9 @@ class MemoryAnalyzer:
 
                         if common_count > 0:
                             correlation_key = f"{agent_a}+{agent_b}"
-                            cross_refs["agent_correlations"][correlation_key] = common_count
+                            cross_refs["agent_correlations"][
+                                correlation_key
+                            ] = common_count
 
             return cross_refs
 
@@ -296,7 +313,9 @@ class MemoryAnalyzer:
                     memory_content = file_path.read_text(encoding="utf-8")
 
                     if memory_content:
-                        sections = self.content_manager.parse_memory_content_to_dict(memory_content)
+                        sections = self.content_manager.parse_memory_content_to_dict(
+                            memory_content
+                        )
 
                         # Count total items across all sections
                         total_items = sum(len(items) for items in sections.values())
@@ -306,7 +325,9 @@ class MemoryAnalyzer:
                             "file_path": str(file_path),
                             "file_size_bytes": file_size,
                             "file_size_kb": round(file_size / 1024, 2),
-                            "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                            "last_modified": datetime.fromtimestamp(
+                                stat.st_mtime
+                            ).isoformat(),
                             "sections_count": len(sections),
                             "total_items": total_items,
                             "auto_learning": self._get_agent_auto_learning(agent_id),
@@ -320,14 +341,18 @@ class MemoryAnalyzer:
                             "file_path": str(file_path),
                             "file_size_bytes": file_size,
                             "file_size_kb": round(file_size / 1024, 2),
-                            "last_modified": datetime.fromtimestamp(stat.st_mtime).isoformat(),
+                            "last_modified": datetime.fromtimestamp(
+                                stat.st_mtime
+                            ).isoformat(),
                             "error": "Could not load memory content",
                             "sections": {},
                             "raw_content": "",
                         }
 
                 except Exception as e:
-                    self.logger.error(f"Error processing memory for agent {agent_id}: {e}")
+                    self.logger.error(
+                        f"Error processing memory for agent {agent_id}: {e}"
+                    )
                     result["agents"][agent_id] = {
                         "agent_id": agent_id,
                         "file_path": str(file_path),
@@ -341,7 +366,11 @@ class MemoryAnalyzer:
 
         except Exception as e:
             self.logger.error(f"Error getting all memories raw: {e}")
-            return {"success": False, "error": str(e), "timestamp": datetime.now().isoformat()}
+            return {
+                "success": False,
+                "error": str(e),
+                "timestamp": datetime.now().isoformat(),
+            }
 
     def get_memory_metrics(self, agent_id: Optional[str] = None) -> Dict[str, Any]:
         """Get memory usage metrics.

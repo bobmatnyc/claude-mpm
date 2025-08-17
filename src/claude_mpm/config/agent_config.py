@@ -216,7 +216,9 @@ class AgentConfig:
         # Look for config file if not already configured
         if not config.project_agents_dir and not config.user_agents_dir:
             # Check for project config file
-            project_config = Path.cwd() / get_path_manager().CONFIG_DIR / "agent_config.yaml"
+            project_config = (
+                Path.cwd() / get_path_manager().CONFIG_DIR / "agent_config.yaml"
+            )
             if project_config.exists():
                 logger.info(f"Loading project agent config from {project_config}")
                 file_config = cls.from_file(project_config)

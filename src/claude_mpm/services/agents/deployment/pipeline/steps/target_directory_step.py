@@ -73,7 +73,10 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE, message=error_msg, error=e, execution_time=execution_time
+                status=StepStatus.FAILURE,
+                message=error_msg,
+                error=e,
+                execution_time=execution_time,
             )
 
     def can_continue_on_failure(self) -> bool:

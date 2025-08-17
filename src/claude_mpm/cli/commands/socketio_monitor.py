@@ -17,15 +17,15 @@ from ...services.port_manager import PortManager
 
 class SocketIOMonitor:
     """Handles Socket.IO monitoring and server management."""
-    
+
     def __init__(self, logger):
         """Initialize the Socket.IO monitor."""
         self.logger = logger
-    
+
     def launch_monitor(self, port):
         """
         Launch the Socket.IO monitoring dashboard using static HTML file.
-        
+
         Returns:
             tuple: (success: bool, browser_opened: bool)
         """
@@ -35,6 +35,7 @@ class SocketIOMonitor:
                 import aiohttp
                 import engineio
                 import socketio
+
                 self.logger.debug("Socket.IO dependencies verified")
             except ImportError as e:
                 self.logger.error(f"Socket.IO dependencies not available: {e}")
@@ -54,11 +55,11 @@ class SocketIOMonitor:
                 # Use the first active instance (prefer port 8765 if available)
                 socketio_port = None
                 for instance in active_instances:
-                    if instance.get('port') == 8765:
+                    if instance.get("port") == 8765:
                         socketio_port = 8765
                         break
                 if not socketio_port:
-                    socketio_port = active_instances[0].get('port')
+                    socketio_port = active_instances[0].get("port")
 
                 print(f"🔍 Found existing SocketIO server on port {socketio_port}")
                 server_running = True
@@ -83,7 +84,9 @@ class SocketIOMonitor:
                         self.logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
                     else:
                         print(f"🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)")
-                        self.logger.info(f"Browser opening suppressed by environment variable")
+                        self.logger.info(
+                            f"Browser opening suppressed by environment variable"
+                        )
                     return True, True
                 except Exception as e:
                     self.logger.warning(f"Failed to open browser: {e}")
@@ -104,9 +107,13 @@ class SocketIOMonitor:
                         if os.environ.get("CLAUDE_MPM_NO_BROWSER") != "1":
                             print(f"🌐 Opening dashboard in browser...")
                             self.open_in_browser_tab(dashboard_url)
-                            self.logger.info(f"Socket.IO dashboard opened: {dashboard_url}")
+                            self.logger.info(
+                                f"Socket.IO dashboard opened: {dashboard_url}"
+                            )
                         else:
-                            print(f"🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)")
+                            print(
+                                f"🌐 Browser opening suppressed (CLAUDE_MPM_NO_BROWSER=1)"
+                            )
                         return True, True
                     except Exception as e:
                         self.logger.warning(f"Failed to open browser: {e}")
@@ -117,7 +124,9 @@ class SocketIOMonitor:
                     print(f"❌ Failed to start Socket.IO server")
                     print(f"💡 Troubleshooting tips:")
                     print(f"   - Check if port {socketio_port} is already in use")
-                    print(f"   - Verify Socket.IO dependencies: pip install python-socketio aiohttp")
+                    print(
+                        f"   - Verify Socket.IO dependencies: pip install python-socketio aiohttp"
+                    )
                     print(f"   - Try a different port with --websocket-port")
                     return False, False
 
@@ -125,7 +134,7 @@ class SocketIOMonitor:
             self.logger.error(f"Failed to launch Socket.IO monitor: {e}")
             print(f"❌ Failed to launch Socket.IO monitor: {e}")
             return False, False
-    
+
     def check_server_running(self, port):
         """Check if a Socket.IO server is running on the specified port."""
         try:
@@ -147,18 +156,24 @@ class SocketIOMonitor:
 
             # If TCP connection succeeds, try HTTP health check
             try:
-                response = urllib.request.urlopen(f"http://localhost:{port}/status", timeout=5)
+                response = urllib.request.urlopen(
+                    f"http://localhost:{port}/status", timeout=5
+                )
                 if response.getcode() == 200:
-                    self.logger.debug(f"✅ Socket.IO server health check passed on port {port}")
+                    self.logger.debug(
+                        f"✅ Socket.IO server health check passed on port {port}"
+                    )
                     return True
             except Exception as e:
                 self.logger.debug(f"HTTP health check failed for port {port}: {e}")
 
         except Exception as e:
-            self.logger.debug(f"❌ Unexpected error checking Socket.IO server on port {port}: {e}")
+            self.logger.debug(
+                f"❌ Unexpected error checking Socket.IO server on port {port}: {e}"
+            )
 
         return False
-    
+
     def start_standalone_server(self, port):
         """Start a standalone Socket.IO server using the Python daemon."""
         try:
@@ -172,11 +187,13 @@ class SocketIOMonitor:
                 [sys.executable, str(daemon_script), "start", "--port", str(port)],
                 capture_output=True,
                 text=True,
-                timeout=30
+                timeout=30,
             )
 
             if result.returncode == 0:
-                self.logger.info(f"Socket.IO daemon started successfully on port {port}")
+                self.logger.info(
+                    f"Socket.IO daemon started successfully on port {port}"
+                )
                 return True
             else:
                 self.logger.error(f"Failed to start Socket.IO daemon: {result.stderr}")
@@ -185,14 +202,15 @@ class SocketIOMonitor:
         except Exception as e:
             self.logger.error(f"Failed to start standalone Socket.IO server: {e}")
             return False
-    
+
     def open_in_browser_tab(self, url):
         """Open URL in browser, attempting to reuse existing tabs when possible."""
         try:
             # Try different methods based on platform
             import platform
+
             system = platform.system().lower()
-            
+
             if system == "darwin":  # macOS
                 try:
                     # Try to open in existing tab
@@ -207,10 +225,10 @@ class SocketIOMonitor:
                     return
                 except Exception:
                     pass
-            
+
             # Fallback to standard webbrowser
             webbrowser.open(url)
-            
+
         except Exception as e:
             self.logger.warning(f"Browser opening failed: {e}")
             # Final fallback

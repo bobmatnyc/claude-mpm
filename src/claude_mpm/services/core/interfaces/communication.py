@@ -54,7 +54,9 @@ class SocketIOServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def send_to_client(self, client_id: str, event_type: str, data: Dict[str, Any]) -> bool:
+    def send_to_client(
+        self, client_id: str, event_type: str, data: Dict[str, Any]
+    ) -> bool:
         """Send an event to a specific client.
 
         Args:
@@ -86,7 +88,9 @@ class SocketIOServiceInterface(ABC):
         pass
 
     @abstractmethod
-    def session_started(self, session_id: str, launch_method: str, working_dir: str) -> None:
+    def session_started(
+        self, session_id: str, launch_method: str, working_dir: str
+    ) -> None:
         """Notify that a session has started.
 
         Args:
@@ -236,7 +240,9 @@ class TicketManagerInterface(ABC):
     """
 
     @abstractmethod
-    def create_ticket(self, title: str, description: str, priority: str = "medium") -> str:
+    def create_ticket(
+        self, title: str, description: str, priority: str = "medium"
+    ) -> str:
         """Create a new ticket.
 
         Args:

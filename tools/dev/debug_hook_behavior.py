@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Debug script to understand agent name normalization behavior."""
 
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
@@ -23,8 +24,9 @@ print("-" * 50)
 for todo in test_todos:
     # Check if todo already has a prefix
     import re
-    has_prefix = bool(re.match(r'^\[[^\]]+\]', todo))
-    
+
+    has_prefix = bool(re.match(r"^\[[^\]]+\]", todo))
+
     if has_prefix:
         print(f"Todo: '{todo}'")
         print(f"  Already has prefix: Yes")
@@ -32,7 +34,7 @@ for todo in test_todos:
         # Try to determine agent based on keywords
         todo_lower = todo.lower()
         agent = "Engineer"  # default
-        
+
         if "research" in todo_lower or "analyze" in todo_lower:
             agent = "Research"
         elif "test" in todo_lower or "qa" in todo_lower:
@@ -43,14 +45,14 @@ for todo in test_todos:
             agent = "Ops"
         elif "security" in todo_lower or "audit" in todo_lower:
             agent = "Security"
-        
+
         prefix = AgentNameNormalizer.to_todo_prefix(agent)
         new_todo = f"{prefix} {todo}"
-        
+
         print(f"Todo: '{todo}'")
         print(f"  Detected agent: {agent}")
         print(f"  With prefix: '{new_todo}'")
-    
+
     print()
 
 print("\nAgent Name Normalization Examples:")

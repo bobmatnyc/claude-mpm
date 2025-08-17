@@ -103,7 +103,9 @@ class TemplateValidator:
             result.metadata["agent_id"] = template_data.get("agent_id", "unknown")
 
         except json.JSONDecodeError as e:
-            result.add_error(f"Invalid JSON syntax: {e}", line_number=getattr(e, "lineno", None))
+            result.add_error(
+                f"Invalid JSON syntax: {e}", line_number=getattr(e, "lineno", None)
+            )
         except UnicodeDecodeError as e:
             result.add_error(f"File encoding error: {e}")
         except Exception as e:
@@ -142,7 +144,9 @@ class TemplateValidator:
                     suggestion="Use schema version 1.x.x",
                 )
 
-    def _validate_metadata(self, metadata: Dict[str, Any], result: ValidationResult) -> None:
+    def _validate_metadata(
+        self, metadata: Dict[str, Any], result: ValidationResult
+    ) -> None:
         """Validate metadata section.
 
         Args:
@@ -152,7 +156,8 @@ class TemplateValidator:
         for field, expected_type in self.required_metadata_fields.items():
             if field not in metadata:
                 result.add_error(
-                    f"Missing required metadata field: {field}", field_name=f"metadata.{field}"
+                    f"Missing required metadata field: {field}",
+                    field_name=f"metadata.{field}",
                 )
             else:
                 value = metadata[field]
@@ -166,13 +171,16 @@ class TemplateValidator:
         if "name" in metadata:
             name = metadata["name"]
             if not name or not name.strip():
-                result.add_error("Agent name cannot be empty", field_name="metadata.name")
+                result.add_error(
+                    "Agent name cannot be empty", field_name="metadata.name"
+                )
 
         if "description" in metadata:
             description = metadata["description"]
             if not description or not description.strip():
                 result.add_error(
-                    "Agent description cannot be empty", field_name="metadata.description"
+                    "Agent description cannot be empty",
+                    field_name="metadata.description",
                 )
             elif len(description) < 10:
                 result.add_warning(
@@ -226,9 +234,13 @@ class TemplateValidator:
         if "tools" in capabilities:
             tools = capabilities["tools"]
             if not isinstance(tools, list):
-                result.add_error("Tools should be a list", field_name="capabilities.tools")
+                result.add_error(
+                    "Tools should be a list", field_name="capabilities.tools"
+                )
             elif len(tools) == 0:
-                result.add_warning("No tools specified", field_name="capabilities.tools")
+                result.add_warning(
+                    "No tools specified", field_name="capabilities.tools"
+                )
 
     def _validate_instructions(
         self, instructions: Dict[str, Any], result: ValidationResult
@@ -258,7 +270,8 @@ class TemplateValidator:
             system_prompt = instructions["system_prompt"]
             if not system_prompt or not system_prompt.strip():
                 result.add_error(
-                    "System prompt cannot be empty", field_name="instructions.system_prompt"
+                    "System prompt cannot be empty",
+                    field_name="instructions.system_prompt",
                 )
             elif len(system_prompt) < 20:
                 result.add_warning(

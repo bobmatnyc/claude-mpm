@@ -44,20 +44,26 @@ def add_config_subparser(subparsers) -> argparse.ArgumentParser:
         ConfigCommands.VALIDATE.value, help="Validate configuration files"
     )
     validate_config_parser.add_argument(
-        "--config-file", type=Path, help="Specific config file to validate (default: all)"
+        "--config-file",
+        type=Path,
+        help="Specific config file to validate (default: all)",
     )
     validate_config_parser.add_argument(
         "--strict", action="store_true", help="Use strict validation rules"
     )
     validate_config_parser.add_argument(
-        "--fix", action="store_true", help="Attempt to fix validation errors automatically"
+        "--fix",
+        action="store_true",
+        help="Attempt to fix validation errors automatically",
     )
 
     # View config
     view_config_parser = config_subparsers.add_parser(
         ConfigCommands.VIEW.value, help="View current configuration"
     )
-    view_config_parser.add_argument("--section", help="Specific configuration section to view")
+    view_config_parser.add_argument(
+        "--section", help="Specific configuration section to view"
+    )
     view_config_parser.add_argument(
         "--format",
         choices=["yaml", "json", "table"],

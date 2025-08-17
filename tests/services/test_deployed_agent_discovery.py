@@ -52,7 +52,9 @@ class TestDeployedAgentDiscovery:
     @pytest.fixture
     def mock_path_resolver(self):
         """Create a mock path resolver."""
-        with patch("claude_mpm.services.deployed_agent_discovery.get_path_manager()") as mock:
+        with patch(
+            "claude_mpm.services.deployed_agent_discovery.get_path_manager()"
+        ) as mock:
             mock.get_project_root.return_value = Path("/test/project")
             yield mock
 

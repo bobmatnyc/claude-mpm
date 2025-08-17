@@ -27,8 +27,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.interfaces import MemoryServiceInterface
-from claude_mpm.services.project.analyzer import ProjectAnalyzer
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.project.analyzer import ProjectAnalyzer
 
 from .analyzer import MemoryAnalyzer
 from .content_manager import MemoryContentManager

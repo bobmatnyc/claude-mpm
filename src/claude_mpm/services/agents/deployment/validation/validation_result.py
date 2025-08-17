@@ -60,12 +60,18 @@ class ValidationResult:
     @property
     def warnings(self) -> List[ValidationIssue]:
         """Get all warning-level issues."""
-        return [issue for issue in self.issues if issue.severity == ValidationSeverity.WARNING]
+        return [
+            issue
+            for issue in self.issues
+            if issue.severity == ValidationSeverity.WARNING
+        ]
 
     @property
     def infos(self) -> List[ValidationIssue]:
         """Get all info-level issues."""
-        return [issue for issue in self.issues if issue.severity == ValidationSeverity.INFO]
+        return [
+            issue for issue in self.issues if issue.severity == ValidationSeverity.INFO
+        ]
 
     @property
     def has_errors(self) -> bool:
@@ -139,7 +145,10 @@ class ValidationResult:
         )
 
     def add_info(
-        self, message: str, field_name: Optional[str] = None, line_number: Optional[int] = None
+        self,
+        message: str,
+        field_name: Optional[str] = None,
+        line_number: Optional[int] = None,
     ) -> None:
         """Add an info message to the validation result.
 

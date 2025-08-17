@@ -16,7 +16,8 @@ class AgentProcessingStep(BaseDeploymentStep):
 
     def __init__(self, template_builder, version_manager):
         super().__init__(
-            name="Agent Processing", description="Process and deploy individual agent templates"
+            name="Agent Processing",
+            description="Process and deploy individual agent templates",
         )
         self.processor = AgentProcessor(template_builder, version_manager)
 
@@ -81,7 +82,9 @@ class AgentProcessingStep(BaseDeploymentStep):
                         failed_count += 1
 
                 except Exception as e:
-                    error_msg = f"Failed to process agent {template_file.stem}: {str(e)}"
+                    error_msg = (
+                        f"Failed to process agent {template_file.stem}: {str(e)}"
+                    )
                     self.logger.error(error_msg, exc_info=True)
                     context.add_error(error_msg)
                     failed_count += 1
@@ -93,9 +96,7 @@ class AgentProcessingStep(BaseDeploymentStep):
             # Determine step status
             if failed_count == 0:
                 status = StepStatus.SUCCESS
-                message = (
-                    f"Successfully processed {processed_count} agents in {execution_time:.3f}s"
-                )
+                message = f"Successfully processed {processed_count} agents in {execution_time:.3f}s"
             elif processed_count > 0:
                 status = StepStatus.WARNING
                 message = f"Processed {processed_count} agents with {failed_count} failures in {execution_time:.3f}s"
@@ -105,7 +106,9 @@ class AgentProcessingStep(BaseDeploymentStep):
 
             self.logger.info(message)
 
-            return StepResult(status=status, message=message, execution_time=execution_time)
+            return StepResult(
+                status=status, message=message, execution_time=execution_time
+            )
 
         except Exception as e:
             execution_time = time.time() - start_time
@@ -116,10 +119,15 @@ class AgentProcessingStep(BaseDeploymentStep):
             context.add_error(error_msg)
 
             return StepResult(
-                status=StepStatus.FAILURE, message=error_msg, error=e, execution_time=execution_time
+                status=StepStatus.FAILURE,
+                message=error_msg,
+                error=e,
+                execution_time=execution_time,
             )
 
-    def _update_context_with_result(self, context, result: AgentDeploymentResult) -> None:
+    def _update_context_with_result(
+        self, context, result: AgentDeploymentResult
+    ) -> None:
         """Update pipeline context with agent deployment result.
 
         Args:

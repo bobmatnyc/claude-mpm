@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import yaml
 
 from ..utils.config_manager import ConfigurationManager
-from .unified_paths import get_path_manager
 from .exceptions import ConfigurationError, FileOperationError
+from .unified_paths import get_path_manager
 
 logger = logging.getLogger(__name__)
 

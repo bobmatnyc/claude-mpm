@@ -16,35 +16,38 @@ from flask import Flask
 # This helps Flask know where to look for resources like templates and static files
 app = Flask(__name__)
 
+
 # Define a route using the @app.route decorator
 # This tells Flask what URL should trigger our function
-@app.route('/')
+@app.route("/")
 def hello_world():
     """
     Route handler for the root URL ('/').
-    
+
     Returns a simple "Hello World" message when users visit the home page.
     This function is called whenever someone navigates to the root URL of our application.
     """
-    return 'Hello World!'
+    return "Hello World!"
+
 
 # Optional: Add another route to demonstrate routing
-@app.route('/hello/<name>')
+@app.route("/hello/<name>")
 def hello_name(name):
     """
     Route handler with URL parameter.
-    
+
     Demonstrates dynamic routing where <name> is a variable part of the URL.
     For example: /hello/Claude would return "Hello, Claude!"
     """
-    return f'Hello, {name}!'
+    return f"Hello, {name}!"
+
 
 # The main block - this code only runs when the script is executed directly
 # (not when imported as a module)
-if __name__ == '__main__':
+if __name__ == "__main__":
     """
     Start the Flask development server.
-    
+
     - debug=True enables debug mode, which provides detailed error messages
       and automatically reloads the server when code changes are detected
     - host='127.0.0.1' makes the app accessible only from localhost
@@ -54,5 +57,5 @@ if __name__ == '__main__':
     print("Visit http://127.0.0.1:5000 to see 'Hello World!'")
     print("Visit http://127.0.0.1:5000/hello/YourName to see a personalized greeting")
     print("Press Ctrl+C to stop the server")
-    
-    app.run(debug=True, host='127.0.0.1', port=5000)
+
+    app.run(debug=True, host="127.0.0.1", port=5000)

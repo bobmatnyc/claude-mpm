@@ -28,7 +28,9 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     run_group = parser.add_argument_group("run options")
 
     run_group.add_argument(
-        "--no-hooks", action="store_true", help="Disable hook service (runs without hooks)"
+        "--no-hooks",
+        action="store_true",
+        help="Disable hook service (runs without hooks)",
     )
     run_group.add_argument(
         "--no-tickets", action="store_true", help="Disable automatic ticket creation"
@@ -56,7 +58,10 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Enable monitoring and management interface with WebSocket server and dashboard (default port: 8765)",
     )
     run_group.add_argument(
-        "--websocket-port", type=int, default=8765, help="WebSocket server port (default: 8765)"
+        "--websocket-port",
+        type=int,
+        default=8765,
+        help="WebSocket server port (default: 8765)",
     )
     run_group.add_argument(
         "--force",
@@ -98,7 +103,10 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     # Input/output options
     io_group = parser.add_argument_group("input/output options")
     io_group.add_argument(
-        "-i", "--input", type=str, help="Input text or file path (for non-interactive mode)"
+        "-i",
+        "--input",
+        type=str,
+        help="Input text or file path (for non-interactive mode)",
     )
     io_group.add_argument(
         "--non-interactive",
