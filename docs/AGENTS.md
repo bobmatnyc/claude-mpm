@@ -42,12 +42,15 @@ This document serves as the main index for agent documentation. For detailed inf
 
 Claude MPM's agent system provides a flexible framework for defining AI assistant behaviors through structured templates. The system supports multiple agent types (Engineer, QA, Research, etc.) with a three-tier precedence system that allows for project-specific customization.
 
+**Important**: Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
+
 ### Key Features
 
 - **Three-tier precedence**: PROJECT > USER > SYSTEM
 - **Hot-reload capability**: Changes detected automatically
 - **Multiple formats**: Supports `.md`, `.json`, and `.yaml` files
 - **Schema validation**: Ensures consistency and correctness
+- **Project-level customization**: Override system agents with project-specific implementations
 - **Intelligent caching**: Performance optimization with cache invalidation
 - **Dynamic model selection**: Task complexity-based model assignment
 
