@@ -2,7 +2,10 @@
 
 ## Overview
 
-The Claude MPM MCP Gateway is now properly configured to use the official MCP protocol from the Anthropic MCP package. This ensures full protocol compliance and compatibility with Claude Desktop/Code.
+The Claude MPM MCP Gateway is properly configured to use the official MCP protocol from the Anthropic MCP package. This ensures full protocol compliance and compatibility with Claude Code.
+
+**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
+Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 
@@ -76,35 +79,30 @@ async def handle_call_tool(name: str, arguments: Dict) -> List[TextContent]:
    - `ticket_view` - View ticket details
    - `ticket_search` - Search tickets
 
-## Configuration for Claude Desktop
+## Configuration for Claude Code
 
-Add to your Claude Desktop configuration:
+Add to your Claude Code configuration (~/.claude.json):
 
 ```json
 {
   "mcpServers": {
-    "claude-mpm": {
-      "command": "claude-mpm-mcp"
+    "claude-mpm-gateway": {
+      "command": "python",
+      "args": ["-m", "claude_mpm.cli", "mcp", "start"],
+      "cwd": "/path/to/claude-mpm"
     }
   }
 }
 ```
 
-Or for the simplified version:
-
-```json
-{
-  "mcpServers": {
-    "claude-mpm": {
-      "command": "claude-mpm-mcp-simple"
-    }
-  }
-}
+Or use the registration script:
+```bash
+python scripts/register_mcp_gateway.py
 ```
 
 ## Protocol Flow
 
-1. Claude Desktop spawns the MCP server process
+1. Claude Code spawns the MCP server process
 2. Server initializes with stdio communication
 3. Claude sends initialization request
 4. Server responds with capabilities and available tools

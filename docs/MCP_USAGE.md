@@ -2,7 +2,10 @@
 
 ## Overview
 
-The Claude MPM MCP Gateway is now a proper stdio-based JSON-RPC server that integrates seamlessly with Claude Desktop/Code. It follows the MCP (Model Context Protocol) specification for tool invocation.
+The Claude MPM MCP Gateway is a proper stdio-based JSON-RPC server that integrates with Claude Code. It follows the MCP (Model Context Protocol) specification for tool invocation.
+
+**IMPORTANT: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
+Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Key Changes from Previous Implementation
 
@@ -33,20 +36,25 @@ pip install -e .
 which claude-mpm-mcp
 ```
 
-## Configuration for Claude Desktop
+## Configuration for Claude Code
 
-Add the following to your Claude Desktop configuration:
+Add the following to your Claude Code configuration (~/.claude.json):
 
 ```json
 {
   "mcpServers": {
-    "claude-mpm": {
-      "command": "claude-mpm-mcp",
-      "args": [],
-      "env": {}
+    "claude-mpm-gateway": {
+      "command": "python",
+      "args": ["-m", "claude_mpm.cli", "mcp", "start"],
+      "cwd": "/path/to/claude-mpm"
     }
   }
 }
+```
+
+Or use the registration script:
+```bash
+python scripts/register_mcp_gateway.py
 ```
 
 Or if using the full path:

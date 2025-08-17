@@ -4,7 +4,10 @@ MCP Gateway Implementation
 
 MCP protocol gateway using Anthropic's official MCP package.
 Handles stdio-based communication, request routing, and tool invocation.
-Acts as a bridge between Claude Desktop and internal tools.
+Acts as a bridge between Claude Code and internal tools.
+
+NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.
+Claude Desktop uses a different system for agent deployment.
 
 Part of ISS-0035: MCP Gateway Implementation - Core Gateway and Tool Registry
 """
@@ -40,8 +43,8 @@ class MCPGateway(BaseMCPService, IMCPGateway):
     MCP Protocol Gateway implementation using Anthropic's official MCP package.
 
     WHY: We use the official MCP package to ensure protocol compliance and
-    compatibility with Claude Desktop. The stdio-based communication model allows
-    seamless integration with Claude Desktop's MCP client as a protocol bridge.
+    compatibility with Claude Code. The stdio-based communication model allows
+    seamless integration with Claude Code's MCP client as a protocol bridge.
 
     DESIGN DECISIONS:
     - Use asyncio for all I/O operations to handle concurrent requests efficiently

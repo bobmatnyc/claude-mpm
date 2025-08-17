@@ -2,7 +2,10 @@
 
 ## Overview
 
-The MCP Gateway is a production-ready implementation of the Model Context Protocol (MCP) that enables seamless integration between Claude Desktop and Claude MPM tools. It provides a stdio-based protocol handler that acts as a bridge between MCP clients and internal tool implementations.
+The MCP Gateway is a production-ready implementation of the Model Context Protocol (MCP) that enables seamless integration between Claude Code and Claude MPM tools. It provides a stdio-based protocol handler that acts as a bridge between MCP clients and internal tool implementations.
+
+**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
+Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 
@@ -38,13 +41,13 @@ claude-mpm mcp status
 claude-mpm mcp test echo --args '{"message": "Hello MCP!"}'
 claude-mpm mcp test calculator --args '{"operation": "add", "a": 5, "b": 3}'
 
-# Start gateway for Claude Desktop
+# Start gateway for Claude Code
 claude-mpm mcp start
 ```
 
-### Claude Desktop Integration
+### Claude Code Integration
 
-Add to your Claude Desktop MCP configuration:
+Add to your Claude Code configuration (~/.claude.json):
 
 ```json
 {
@@ -395,7 +398,7 @@ class CustomCache:
 - [MCP Gateway Service README](../../src/claude_mpm/services/mcp_gateway/README.md)
 - [MCP Gateway Singleton Implementation](../mcp_gateway_singleton.md)
 - [MCP Protocol Specification](https://modelcontextprotocol.org)
-- [Claude Desktop MCP Configuration](https://claude.ai/docs/mcp)
+- [Claude Code MCP Configuration](https://claude.ai/docs/mcp)
 
 ## API Reference
 

@@ -132,13 +132,13 @@ def main():
         "context7",
     ]
 
-    print(f"\n📦 Verifying MCP Servers:")
+    print(f"\n📦 Verifying Required MCP Servers:")
     print("-" * 40)
 
     all_valid = True
     for server_name in required_servers:
         if server_name in servers:
-            print(f"\n✅ {server_name}")
+            print(f"\n✅ {server_name} (REQUIRED)")
             server_config = servers[server_name]
 
             # Show basic info
@@ -157,13 +157,23 @@ def main():
             if not verify_server(server_name, server_config):
                 all_valid = False
         else:
-            print(f"\n❌ {server_name} - NOT CONFIGURED")
+            print(f"\n❌ {server_name} (REQUIRED) - NOT CONFIGURED")
             all_valid = False
 
-    # Check for extra servers
-    extra_servers = set(servers.keys()) - set(required_servers)
+    # Check for optional servers
+    print(f"\n📄 Optional MCP Servers:")
+    print("-" * 40)
+    for server_name in optional_servers:
+        if server_name in servers:
+            print(f"✅ {server_name} - configured")
+        else:
+            print(f"ℹ️  {server_name} - not configured (optional)")
+    
+    # Check for extra servers not in our lists
+    all_known_servers = set(required_servers + optional_servers)
+    extra_servers = set(servers.keys()) - all_known_servers
     if extra_servers:
-        print(f"\n📌 Additional servers configured:")
+        print(f"\n🎆 Additional custom servers:")
         for server_name in extra_servers:
             print(f"  - {server_name}")
 
