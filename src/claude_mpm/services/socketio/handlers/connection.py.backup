@@ -147,21 +147,6 @@ class ConnectionEventHandler(BaseEventHandler):
             WHY: Client proxies send events that need to be stored
             in history and re-broadcast to other clients.
             """
-            # Check if this is a hook event and route to HookEventHandler
-            if isinstance(data, dict) and data.get("type") == "hook":
-                # Get the hook handler if available
-                hook_handler = None
-                for handler in self.server.handlers:
-                    if handler.__class__.__name__ == "HookEventHandler":
-                        hook_handler = handler
-                        break
-                
-                if hook_handler and hasattr(hook_handler, "process_hook_event"):
-                    # Let the hook handler process this event
-                    await hook_handler.process_hook_event(data)
-                    # Don't double-store or double-broadcast, return early
-                    return
-            
             # Store in history
             self.event_history.append(data)
             self.logger.debug(

@@ -21,9 +21,38 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 import ijson  # For streaming JSON parsing
+from dataclasses import dataclass, field
 
-from claude_mpm.models.state_models import ConversationContext, ConversationState
 from claude_mpm.services.core.base import BaseService
+
+
+@dataclass
+class ConversationContext:
+    """Context information for a single conversation."""
+
+    conversation_id: str
+    title: str
+    message_count: int
+    last_message_time: float
+    file_references: List[str] = field(default_factory=list)
+    open_tabs: List[str] = field(default_factory=list)
+    tags: List[str] = field(default_factory=list)
+    is_active: bool = False
+
+
+@dataclass
+class ConversationState:
+    """Claude conversation state and context."""
+
+    active_conversation_id: Optional[str]
+    active_conversation: Optional[ConversationContext]
+    recent_conversations: List[ConversationContext]
+    total_conversations: int
+    total_storage_mb: float
+    preferences: Dict[str, Any]
+    open_files: List[str]
+    recent_files: List[str]
+    pinned_files: List[str]
 
 
 class ContextPreservationService(BaseService):

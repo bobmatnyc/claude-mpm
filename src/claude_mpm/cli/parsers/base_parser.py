@@ -293,10 +293,6 @@ def create_parser(
         from ..commands.cleanup import add_cleanup_parser
 
         add_cleanup_parser(subparsers)
-
-        from ..commands.run_guarded import add_run_guarded_parser
-
-        add_run_guarded_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass

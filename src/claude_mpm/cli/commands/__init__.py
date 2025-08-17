@@ -15,8 +15,7 @@ from .memory import manage_memory
 from .monitor import manage_monitor
 from .run import run_session
 
-# Note: run_guarded is imported separately to avoid loading experimental code
-# from .run_guarded import execute_run_guarded as run_guarded_session
+
 from .tickets import list_tickets, manage_tickets
 
 __all__ = [
