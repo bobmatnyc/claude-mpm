@@ -2,17 +2,18 @@
 Role designation section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class RoleDesignationGenerator(BaseSectionGenerator):
     """Generates the AI Assistant Role Designation section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the role designation section."""
-        deployment_date = data.get('deployment_date', self.get_timestamp())
-        
+        deployment_date = data.get("deployment_date", self.get_timestamp())
+
         return f"""
 ## 🤖 AI ASSISTANT ROLE DESIGNATION
 

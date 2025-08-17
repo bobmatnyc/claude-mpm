@@ -10,109 +10,115 @@ for better structure and maintainability.
 
 # Import from unified agent loader
 from .agent_loader import (
-    get_documentation_agent_prompt,
-    get_version_control_agent_prompt,
-    get_qa_agent_prompt,
-    get_research_agent_prompt,
-    get_ops_agent_prompt,
-    get_security_agent_prompt,
-    get_engineer_agent_prompt,
-    get_data_engineer_agent_prompt,
-    list_available_agents,
     clear_agent_cache,
-    validate_agent_files
+    get_agent_prompt,
+    list_available_agents,
+    validate_agent_files,
 )
 
 # Import agent metadata (previously AGENT_CONFIG)
 from .agents_metadata import (
+    ALL_AGENT_CONFIGS,
+    DATA_ENGINEER_CONFIG,
     DOCUMENTATION_CONFIG,
-    VERSION_CONTROL_CONFIG,
+    ENGINEER_CONFIG,
+    OPS_CONFIG,
     QA_CONFIG,
     RESEARCH_CONFIG,
-    OPS_CONFIG,
     SECURITY_CONFIG,
-    ENGINEER_CONFIG,
-    DATA_ENGINEER_CONFIG,
-    ALL_AGENT_CONFIGS
+    VERSION_CONTROL_CONFIG,
 )
 
 # Available system agents
 __all__ = [
-    # Agent prompt functions
-    'get_documentation_agent_prompt',
-    'get_version_control_agent_prompt',
-    'get_qa_agent_prompt',
-    'get_research_agent_prompt',
-    'get_ops_agent_prompt',
-    'get_security_agent_prompt',
-    'get_engineer_agent_prompt',
-    'get_data_engineer_agent_prompt',
+    # Generic agent interface
+    "get_agent_prompt",
     # Agent utility functions
-    'list_available_agents',
-    'clear_agent_cache',
-    'validate_agent_files',
+    "list_available_agents",
+    "clear_agent_cache",
+    "validate_agent_files",
     # Agent configs
-    'DOCUMENTATION_CONFIG',
-    'VERSION_CONTROL_CONFIG',
-    'QA_CONFIG',
-    'RESEARCH_CONFIG',
-    'OPS_CONFIG',
-    'SECURITY_CONFIG',
-    'ENGINEER_CONFIG',
-    'DATA_ENGINEER_CONFIG',
-    'ALL_AGENT_CONFIGS',
+    "DOCUMENTATION_CONFIG",
+    "VERSION_CONTROL_CONFIG",
+    "QA_CONFIG",
+    "RESEARCH_CONFIG",
+    "OPS_CONFIG",
+    "SECURITY_CONFIG",
+    "ENGINEER_CONFIG",
+    "DATA_ENGINEER_CONFIG",
+    "ALL_AGENT_CONFIGS",
     # System registry
-    'SYSTEM_AGENTS'
+    "SYSTEM_AGENTS",
 ]
 
-# System agent registry
+# System agent registry - using generic agent loading
 SYSTEM_AGENTS = {
-    'documentation': {
-        'prompt_function': get_documentation_agent_prompt,
-        'config': DOCUMENTATION_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "documentation": {
+        "agent_id": "documentation-agent",
+        "config": DOCUMENTATION_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'version_control': {
-        'prompt_function': get_version_control_agent_prompt,
-        'config': VERSION_CONTROL_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "version_control": {
+        "agent_id": "version-control-agent",
+        "config": VERSION_CONTROL_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'qa': {
-        'prompt_function': get_qa_agent_prompt,
-        'config': QA_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "qa": {
+        "agent_id": "qa-agent",
+        "config": QA_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'research': {
-        'prompt_function': get_research_agent_prompt,
-        'config': RESEARCH_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "research": {
+        "agent_id": "research-agent",
+        "config": RESEARCH_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'ops': {
-        'prompt_function': get_ops_agent_prompt,
-        'config': OPS_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "ops": {
+        "agent_id": "ops-agent",
+        "config": OPS_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'security': {
-        'prompt_function': get_security_agent_prompt,
-        'config': SECURITY_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "security": {
+        "agent_id": "security-agent",
+        "config": SECURITY_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'engineer': {
-        'prompt_function': get_engineer_agent_prompt,
-        'config': ENGINEER_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
+    "engineer": {
+        "agent_id": "engineer-agent",
+        "config": ENGINEER_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
     },
-    'data_engineer': {
-        'prompt_function': get_data_engineer_agent_prompt,
-        'config': DATA_ENGINEER_CONFIG,
-        'version': '2.0.0',
-        'integration': 'claude_pm_framework'
-    }
+    "data_engineer": {
+        "agent_id": "data-engineer-agent",
+        "config": DATA_ENGINEER_CONFIG,
+        "version": "2.0.0",
+        "integration": "claude_pm_framework",
+    },
 }
+
+
+def get_system_agent_prompt(agent_type: str) -> str:
+    """
+    Get system agent prompt using the generic interface.
+
+    Args:
+        agent_type: Agent type (e.g., "documentation", "qa", "engineer")
+
+    Returns:
+        Agent prompt string
+
+    Raises:
+        ValueError: If agent type is not found
+    """
+    if agent_type not in SYSTEM_AGENTS:
+        raise ValueError(f"Unknown agent type: {agent_type}")
+
+    agent_id = SYSTEM_AGENTS[agent_type]["agent_id"]
+    return get_agent_prompt(agent_id)

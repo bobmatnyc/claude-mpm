@@ -33,7 +33,7 @@ if [ -d "$RESPONSE_DIR" ]; then
     ls -lt "$RESPONSE_DIR"/*.json 2>/dev/null | head -5 | while read line; do
         echo "   $line"
     done
-    
+
     # Check for files created in the last minute
     echo ""
     echo "   Files created in last 60 seconds:"

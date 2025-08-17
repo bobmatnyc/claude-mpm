@@ -7,11 +7,11 @@ with separated event handlers for improved maintainability.
 from .handlers import (
     BaseEventHandler,
     ConnectionEventHandler,
-    ProjectEventHandler,
-    MemoryEventHandler,
+    EventHandlerRegistry,
     FileEventHandler,
     GitEventHandler,
-    EventHandlerRegistry,
+    MemoryEventHandler,
+    ProjectEventHandler,
 )
 
 __all__ = [

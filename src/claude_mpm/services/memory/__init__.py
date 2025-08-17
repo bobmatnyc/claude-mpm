@@ -7,8 +7,8 @@ This module provides memory management services including:
 """
 
 from .builder import MemoryBuilder
-from .router import MemoryRouter
 from .optimizer import MemoryOptimizer
+from .router import MemoryRouter
 
 __all__ = [
     "MemoryBuilder",

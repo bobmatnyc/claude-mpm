@@ -1,0 +1,244 @@
+"""Subprocess launcher service for launching Claude as a subprocess with PTY.
+
+This service handles:
+1. PTY (pseudo-terminal) creation and management
+2. Subprocess launching with proper I/O handling
+3. Terminal state management and restoration
+4. Signal handling for graceful shutdown
+5. WebSocket integration for status updates
+
+Extracted from ClaudeRunner to follow Single Responsibility Principle.
+"""
+
+import os
+import pty
+import select
+import signal
+import subprocess
+import sys
+import termios
+import tty
+from typing import Any, Dict, List, Optional
+
+from claude_mpm.core.base_service import BaseService
+from claude_mpm.services.core.interfaces import SubprocessLauncherInterface
+
+
+class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
+    """Service for launching Claude as a subprocess with PTY support."""
+
+    def __init__(self, project_logger=None, websocket_server=None):
+        """Initialize the subprocess launcher service.
+
+        Args:
+            project_logger: Optional logger for system events
+            websocket_server: Optional WebSocket server for status updates
+        """
+        super().__init__(name="subprocess_launcher_service")
+        self.project_logger = project_logger
+        self.websocket_server = websocket_server
+
+    async def _initialize(self) -> None:
+        """Initialize the service. No special initialization needed."""
+        pass
+
+    async def _cleanup(self) -> None:
+        """Cleanup service resources. No cleanup needed."""
+        pass
+
+    def launch_subprocess_interactive(self, cmd: List[str], env: Dict[str, str]) -> None:
+        """Launch Claude as a subprocess with PTY for interactive mode.
+
+        This method launches Claude as a subprocess when explicitly requested
+        (via --launch-method subprocess). Subprocess mode maintains the parent process,
+        which can be useful for:
+        1. Maintaining WebSocket connections and monitoring
+        2. Providing proper cleanup and error handling
+        3. Debugging and development scenarios
+
+        Uses PTY (pseudo-terminal) to maintain full interactive capabilities.
+        Response logging is handled through the hook system, not I/O interception,
+        for better performance and compatibility.
+
+        Args:
+            cmd: Command list to execute
+            env: Environment variables for the subprocess
+        """
+        # Save original terminal settings
+        original_tty = None
+        if sys.stdin.isatty():
+            original_tty = termios.tcgetattr(sys.stdin)
+
+        # Create PTY
+        master_fd, slave_fd = pty.openpty()
+
+        try:
+            # Start Claude process
+            process = subprocess.Popen(
+                cmd, stdin=slave_fd, stdout=slave_fd, stderr=slave_fd, env=env
+            )
+
+            # Close slave in parent
+            os.close(slave_fd)
+
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Claude subprocess started with PID {process.pid}",
+                    level="INFO",
+                    component="subprocess",
+                )
+
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="running", pid=process.pid, message="Claude subprocess started"
+                )
+
+            # Set terminal to raw mode for proper interaction
+            if sys.stdin.isatty():
+                tty.setraw(sys.stdin)
+
+            # Handle Ctrl+C gracefully
+            def signal_handler(signum, frame):
+                if process.poll() is None:
+                    process.terminate()
+                raise KeyboardInterrupt()
+
+            signal.signal(signal.SIGINT, signal_handler)
+
+            # I/O loop
+            self._handle_subprocess_io(master_fd, process)
+
+            # Wait for process to complete
+            process.wait()
+
+            # Note: Response logging is handled through the hook system
+
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Claude subprocess exited with code {process.returncode}",
+                    level="INFO",
+                    component="subprocess",
+                )
+
+            # Notify WebSocket clients
+            if self.websocket_server:
+                self.websocket_server.claude_status_changed(
+                    status="stopped",
+                    message=f"Claude subprocess exited with code {process.returncode}",
+                )
+
+        finally:
+            # Restore terminal
+            if original_tty and sys.stdin.isatty():
+                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, original_tty)
+
+            # Close PTY
+            try:
+                os.close(master_fd)
+            except:
+                pass
+
+            # Ensure process is terminated
+            if "process" in locals() and process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    process.wait()
+
+            # End WebSocket session if in subprocess mode
+            if self.websocket_server:
+                self.websocket_server.session_ended()
+
+    def _handle_subprocess_io(self, master_fd: int, process: subprocess.Popen) -> None:
+        """Handle I/O between the subprocess and the terminal.
+
+        Args:
+            master_fd: Master file descriptor for the PTY
+            process: The subprocess instance
+        """
+        while True:
+            # Check if process is still running
+            if process.poll() is not None:
+                break
+
+            # Check for data from Claude or stdin
+            r, _, _ = select.select([master_fd, sys.stdin], [], [], 0)
+
+            if master_fd in r:
+                try:
+                    data = os.read(master_fd, 4096)
+                    if data:
+                        os.write(sys.stdout.fileno(), data)
+                        # Broadcast output to WebSocket clients
+                        if self.websocket_server:
+                            try:
+                                # Decode and send
+                                output = data.decode("utf-8", errors="replace")
+                                self.websocket_server.claude_output(output, "stdout")
+                            except Exception as e:
+                                self.logger.debug(f"Failed to broadcast output: {e}")
+                    else:
+                        break  # EOF
+                except OSError:
+                    break
+
+            if sys.stdin in r:
+                try:
+                    data = os.read(sys.stdin.fileno(), 4096)
+                    if data:
+                        os.write(master_fd, data)
+                except OSError:
+                    break
+
+    def is_subprocess_mode_available(self) -> bool:
+        """Check if subprocess mode is available on this platform.
+
+        Returns:
+            True if subprocess mode with PTY is available
+        """
+        try:
+            # Check if we can import required modules
+            import pty
+            import select
+            import termios
+            import tty
+
+            return True
+        except ImportError:
+            return False
+
+    def create_subprocess_command(
+        self, base_cmd: List[str], additional_args: Optional[List[str]] = None
+    ) -> List[str]:
+        """Create a subprocess command with proper arguments.
+
+        Args:
+            base_cmd: Base command to execute
+            additional_args: Additional arguments to append
+
+        Returns:
+            Complete command list for subprocess execution
+        """
+        cmd = base_cmd.copy()
+        if additional_args:
+            cmd.extend(additional_args)
+        return cmd
+
+    def prepare_subprocess_environment(
+        self, base_env: Optional[Dict[str, str]] = None
+    ) -> Dict[str, str]:
+        """Prepare environment variables for subprocess execution.
+
+        Args:
+            base_env: Base environment variables to extend
+
+        Returns:
+            Complete environment dictionary for subprocess
+        """
+        env = os.environ.copy()
+        if base_env:
+            env.update(base_env)
+        return env

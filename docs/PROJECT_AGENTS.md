@@ -175,13 +175,67 @@ project_agents = registry.list_agents(tier=AgentTier.PROJECT)
 
 ## Best Practices
 
-1. **Version Control**: Include `.claude-mpm/agents/` (source files) in version control to share project agents with team
-2. **Format Choice**: Choose the format that works best for your team - JSON for structure, YAML for readability, or Markdown for documentation-heavy agents
-3. **Documentation**: Document why project-specific agents are needed
-4. **Naming**: Use descriptive names that indicate project customization
-5. **Testing**: Test project agents thoroughly before deployment
-6. **Deployment**: Let the system auto-convert all formats to Markdown - don't manually edit `.claude/agents/*.md` files
-7. **Maintenance**: Keep source agents updated with framework changes
+### 1. Version Control
+Include `.claude-mpm/agents/` (source files) in version control to share project agents with team:
+
+```bash
+# .gitignore (DO NOT ignore these)
+# .claude-mpm/agents/  # Keep these in git
+
+# Add and commit
+git add .claude-mpm/agents/
+git commit -m "feat: Add project-specific QA agent"
+```
+
+This ensures all team members get the same agent configurations.
+
+### 2. Format Choice
+Choose the format that works best for your team:
+- **JSON** for structure and programmatic generation
+- **YAML** for readability and human editing
+- **Markdown** for documentation-heavy agents
+
+### 3. Version Management
+Always increment the version when updating agents:
+```json
+"version": "1.0.0"  // Initial version
+"version": "1.1.0"  // Minor update
+"version": "2.0.0"  // Major changes
+```
+
+### 4. Clear Instructions
+Be specific in your agent instructions:
+```json
+"instructions": "You are a security-focused engineer for the FinTech project.\n\nAlways:\n- Validate all inputs\n- Use encryption for sensitive data\n- Follow OWASP guidelines\n- Add security tests for new features"
+```
+
+### 5. Tool Selection
+Only include tools the agent needs:
+```json
+"tools": ["Read", "Write", "Edit", "Grep"]  // Minimal for documentation
+"tools": ["Read", "Write", "Edit", "Bash", "WebSearch"]  // Full for engineer
+```
+
+### 6. Model Selection
+Choose appropriate models:
+- `claude-haiku-*` - Fast, simple tasks
+- `claude-sonnet-*` - Balanced performance
+- `claude-opus-*` - Complex reasoning
+
+### 7. Documentation
+Document why project-specific agents are needed and their specific customizations.
+
+### 8. Naming
+Use descriptive names that indicate project customization.
+
+### 9. Testing
+Test project agents thoroughly before deployment.
+
+### 10. Deployment
+Let the system auto-convert all formats to Markdown - don't manually edit `.claude/agents/*.md` files.
+
+### 11. Maintenance
+Keep source agents updated with framework changes.
 
 ## Migration Path
 
@@ -271,6 +325,44 @@ Claude MPM includes several specialized system agents that can be customized at 
 
 Each system agent can be customized or overridden at the project level by creating agent definitions in `.claude-mpm/agents/` with the same agent ID.
 
+## Additional Examples
+
+### Custom Domain Expert
+
+```json
+{
+  "agent_id": "ml_expert",
+  "version": "1.0.0",
+  "metadata": {
+    "name": "Machine Learning Expert",
+    "description": "Specialized agent for ML/AI tasks"
+  },
+  "capabilities": {
+    "model": "claude-opus-4-20250514",
+    "tools": ["Read", "Write", "Edit", "Bash", "WebSearch"]
+  },
+  "instructions": "You are an ML/AI expert. Focus on:\n- Model architecture design\n- Training optimization\n- Data preprocessing\n- Performance metrics\n- Deployment strategies"
+}
+```
+
+### Project-Specific Security Agent
+
+```json
+{
+  "agent_id": "security",
+  "version": "3.0.0",
+  "metadata": {
+    "name": "Project Security Agent",
+    "description": "Enhanced security agent with project rules"
+  },
+  "capabilities": {
+    "model": "claude-opus-4-20250514",
+    "tools": ["Read", "Grep", "Bash", "WebSearch"]
+  },
+  "instructions": "You are the security agent for our healthcare project.\n\nCritical requirements:\n- HIPAA compliance is mandatory\n- All data must be encrypted at rest and in transit\n- Audit all access to patient records\n- Flag any potential PII exposure\n- Validate against our security checklist"
+}
+```
+
 ## Troubleshooting
 
 ### Agent Not Found
@@ -280,16 +372,60 @@ Each system agent can be customized or overridden at the project level by creati
 - Run deployment if needed to generate `.claude/agents/*.md` files
 - **Check exclusions**: Verify agent isn't excluded in `agent_deployment.excluded_agents`
 
+**Diagnostic commands:**
+```bash
+# Check directory structure
+ls -la .claude-mpm/agents/
+
+# Verify JSON format (for JSON files)
+python -m json.tool .claude-mpm/agents/your_agent.json
+
+# Check agent hierarchy
+claude-mpm agents list --by-tier
+```
+
 ### Wrong Agent Version Loaded
 - Check tier precedence with `registry.get_agent(name).tier`
 - Use `force_refresh=True` to bypass cache
 - Verify no naming conflicts
 - **Check exclusions**: Ensure desired agent isn't excluded from deployment
 
+**Verification steps:**
+```bash
+# Check which tier an agent is loaded from
+claude-mpm agents view engineer
+# Should show: Tier: PROJECT (if project agent is active)
+
+# Check for configuration issues
+claude-mpm agents fix --all --dry-run
+```
+
+### Agent Not Overriding System Agent
+1. Ensure the filename matches the agent name:
+   - System agent: `engineer`
+   - Your override: `.claude-mpm/agents/engineer.json` or `.claude-mpm/agents/engineer.md`
+
+2. Verify the agent is in the PROJECT tier:
+   ```bash
+   claude-mpm agents view engineer
+   # Should show: Tier: PROJECT
+   ```
+
 ### Agent Seems Missing After Deployment
 - **Check exclusion configuration**: Agent may be excluded via `agent_deployment.excluded_agents`
 - **Use `--include-all`**: Try deploying with `./claude-mpm agents deploy --include-all`
 - **Case sensitivity**: Check if agent name case matches configuration (when `case_sensitive: true`)
+
+### Updates Not Applying
+1. Check the agent hierarchy after changes:
+   ```bash
+   claude-mpm agents list --by-tier
+   ```
+
+2. Clear agent cache if needed:
+   ```bash
+   python -c "from claude_mpm.agents.agent_loader import clear_agent_cache; clear_agent_cache()"
+   ```
 
 ### Cache Issues
 - Force refresh: `registry.discover_agents(force_refresh=True)`

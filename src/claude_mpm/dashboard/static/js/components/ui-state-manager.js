@@ -1,13 +1,13 @@
 /**
  * UI State Manager Module
- * 
+ *
  * Manages UI state including tab switching, card selection, keyboard navigation,
  * and visual feedback across the dashboard interface.
- * 
+ *
  * WHY: Extracted from main dashboard to centralize UI state management and
  * provide better separation between business logic and UI state. This makes
  * the UI behavior more predictable and easier to test.
- * 
+ *
  * DESIGN DECISION: Maintains centralized state for current tab, selected cards,
  * and navigation context while providing a clean API for other modules to
  * interact with UI state changes.
@@ -16,10 +16,10 @@ class UIStateManager {
     constructor() {
         // Current active tab
         this.currentTab = 'events';
-        
+
         // Auto-scroll behavior
         this.autoScroll = true;
-        
+
         // Selection state - tracks the currently selected card across all tabs
         this.selectedCard = {
             tab: null,        // which tab the selection is in
@@ -27,7 +27,7 @@ class UIStateManager {
             type: null,       // 'event', 'agent', 'tool', 'file'
             data: null        // the actual data object
         };
-        
+
         // Navigation state for each tab
         this.tabNavigation = {
             events: { selectedIndex: -1, items: [] },
@@ -67,7 +67,7 @@ class UIStateManager {
     setupUnifiedKeyboardNavigation() {
         document.addEventListener('keydown', (e) => {
             // Only handle if not in an input field
-            if (document.activeElement && 
+            if (document.activeElement &&
                 ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) {
                 return;
             }
@@ -130,7 +130,7 @@ class UIStateManager {
 
         // Trigger tab change event for other modules
         document.dispatchEvent(new CustomEvent('tabChanged', {
-            detail: { 
+            detail: {
                 newTab: tabName,
                 previousTab: previousTab
             }
@@ -153,10 +153,10 @@ class UIStateManager {
         if (!tabNav) return;
 
         let newIndex = tabNav.selectedIndex + direction;
-        
+
         // Handle bounds
         if (tabNav.items.length === 0) return;
-        
+
         if (newIndex < 0) {
             newIndex = tabNav.items.length - 1;
         } else if (newIndex >= tabNav.items.length) {
@@ -187,7 +187,7 @@ class UIStateManager {
         Object.keys(this.tabNavigation).forEach(tabName => {
             this.tabNavigation[tabName].selectedIndex = -1;
         });
-        
+
         // Clear card selection
         this.clearCardSelection();
     }
@@ -232,7 +232,7 @@ class UIStateManager {
 
         // Update navigation state
         tabNav.selectedIndex = index;
-        
+
         // Update visual selection
         this.updateUnifiedSelectionUI();
 
@@ -288,7 +288,7 @@ class UIStateManager {
     selectCard(tabName, index, type, data) {
         // Clear previous selection
         this.clearCardSelection();
-        
+
         // Update selection state
         this.selectedCard = {
             tab: tabName,
@@ -298,7 +298,7 @@ class UIStateManager {
         };
 
         this.updateCardSelectionUI();
-        
+
         console.log('Card selected:', this.selectedCard);
     }
 
@@ -310,7 +310,7 @@ class UIStateManager {
         document.querySelectorAll('.event-item.selected, .file-item.selected').forEach(el => {
             el.classList.remove('selected');
         });
-        
+
         // Reset selection state
         this.selectedCard = {
             tab: null,
@@ -325,7 +325,7 @@ class UIStateManager {
      */
     updateCardSelectionUI() {
         if (!this.selectedCard.tab || this.selectedCard.index === null) return;
-        
+
         // Get the list container for the selected tab
         let listContainer;
         switch (this.selectedCard.tab) {
@@ -342,7 +342,7 @@ class UIStateManager {
                 listContainer = document.getElementById('files-list');
                 break;
         }
-        
+
         if (listContainer) {
             const items = listContainer.querySelectorAll('.event-item, .file-item');
             if (items[this.selectedCard.index]) {
@@ -425,3 +425,6 @@ class UIStateManager {
         return this.autoScroll;
     }
 }
+// ES6 Module export
+export { UIStateManager };
+export default UIStateManager;

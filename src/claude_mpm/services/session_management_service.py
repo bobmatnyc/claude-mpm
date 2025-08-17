@@ -1,0 +1,205 @@
+from pathlib import Path
+
+"""Session management service for orchestrating Claude sessions.
+
+This service handles:
+1. Interactive session orchestration
+2. Oneshot session orchestration
+3. Session lifecycle management
+4. Session logging and cleanup
+
+Extracted from ClaudeRunner to follow Single Responsibility Principle.
+"""
+
+from typing import Any, Optional, Tuple
+
+from claude_mpm.core.base_service import BaseService
+from claude_mpm.services.core.interfaces import SessionManagementInterface
+
+
+class SessionManagementService(BaseService, SessionManagementInterface):
+    """Service for managing Claude session orchestration."""
+
+    def __init__(self, runner=None):
+        """Initialize the session management service.
+
+        Args:
+            runner: ClaudeRunner instance for delegation
+        """
+        super().__init__(name="session_management_service")
+        self.runner = runner
+
+    async def _initialize(self) -> None:
+        """Initialize the service. No special initialization needed."""
+        pass
+
+    async def _cleanup(self) -> None:
+        """Cleanup service resources. No cleanup needed."""
+        pass
+
+    def run_interactive_session(self, initial_context: Optional[str] = None) -> bool:
+        """Run Claude in interactive mode using session delegation.
+
+        WHY: This method delegates to InteractiveSession class for better
+        maintainability and reduced complexity. The session class handles all
+        the details while this method provides the orchestration interface.
+
+        Args:
+            initial_context: Optional initial context to pass to Claude
+
+        Returns:
+            bool: True if session completed successfully, False otherwise
+        """
+        try:
+            from claude_mpm.core.interactive_session import InteractiveSession
+
+            # Create session handler
+            session = InteractiveSession(self.runner)
+
+            # Step 1: Initialize session
+            success, error = session.initialize_interactive_session()
+            if not success:
+                self.logger.error(f"Failed to initialize interactive session: {error}")
+                return False
+
+            # Step 2: Set up environment
+            success, environment = session.setup_interactive_environment()
+            if not success:
+                self.logger.error("Failed to setup interactive environment")
+                return False
+
+            # Step 3: Handle interactive input/output
+            # This is where the actual Claude process runs
+            session.handle_interactive_input(environment)
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Interactive session failed: {e}")
+            return False
+        finally:
+            # Step 4: Clean up session
+            if "session" in locals():
+                session.cleanup_interactive_session()
+
+    def run_oneshot_session(self, prompt: str, context: Optional[str] = None) -> bool:
+        """Run Claude with a single prompt using session delegation.
+
+        WHY: This method delegates to OneshotSession class for better
+        maintainability and reduced complexity. The session class handles
+        all the details while this method provides the orchestration interface.
+
+        Args:
+            prompt: The command or prompt to execute
+            context: Optional context to prepend to the prompt
+
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from claude_mpm.core.oneshot_session import OneshotSession
+
+            # Create session handler
+            session = OneshotSession(self.runner)
+
+            # Step 1: Initialize session
+            success, error = session.initialize_session(prompt)
+            if not success:
+                return False
+
+            # Special case: MPM commands return early
+            if (
+                error is None
+                and self.runner.command_handler_service
+                and self.runner.command_handler_service.is_mmp_command(prompt)
+            ):
+                return success
+
+            # Step 2: Deploy agents
+            if not session.deploy_agents():
+                self.logger.warning("Agent deployment had issues, continuing...")
+
+            # Step 3: Set up infrastructure
+            infrastructure = session.setup_infrastructure()
+
+            # Step 4: Execute command
+            success, response = session.execute_command(prompt, context, infrastructure)
+
+            return success
+
+        except Exception as e:
+            self.logger.error(f"Oneshot session failed: {e}")
+            return False
+        finally:
+            # Step 5: Clean up session
+            if "session" in locals():
+                session.cleanup_session()
+
+    def create_session_log_file(self) -> Optional[Path]:
+        """Create a session log file for the current session.
+
+        Returns:
+            Path to the created log file, or None if creation failed
+        """
+        try:
+            import uuid
+            from datetime import datetime
+
+            from claude_mpm.config.paths import paths
+
+            # Create session logs directory if it doesn't exist
+            session_logs_dir = paths.project_root / ".claude-mpm" / "logs" / "sessions"
+            session_logs_dir.mkdir(parents=True, exist_ok=True)
+
+            # Generate unique session log filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            session_id = str(uuid.uuid4())[:8]
+            log_filename = f"session_{timestamp}_{session_id}.jsonl"
+            log_file = session_logs_dir / log_filename
+
+            # Create empty log file
+            log_file.touch()
+
+            self.logger.debug(f"Created session log file: {log_file}")
+            return log_file
+
+        except Exception as e:
+            self.logger.warning(f"Failed to create session log file: {e}")
+            return None
+
+    def log_session_event(self, log_file: Path, event_data: dict):
+        """Log an event to the session log file.
+
+        Args:
+            log_file: Path to the session log file
+            event_data: Event data to log
+        """
+        if not log_file or not log_file.exists():
+            return
+
+        try:
+            import json
+            from datetime import datetime
+
+            # Add timestamp to event data
+            event_data["timestamp"] = datetime.now().isoformat()
+
+            # Append to log file as JSONL
+            with open(log_file, "a") as f:
+                f.write(json.dumps(event_data) + "\n")
+
+        except Exception as e:
+            self.logger.warning(f"Failed to log session event: {e}")
+
+    def get_session_status(self) -> dict:
+        """Get current session management status.
+
+        Returns:
+            dict: Session management status information
+        """
+        return {
+            "service_available": True,
+            "runner_available": self.runner is not None,
+            "interactive_session_available": True,
+            "oneshot_session_available": True,
+        }

@@ -29,7 +29,7 @@
         }
       },
       "old_references_cleanup": {
-        "test_id": "qa-2", 
+        "test_id": "qa-2",
         "description": "Check for any remaining web directory references",
         "status": "PASS",
         "details": {
@@ -45,11 +45,11 @@
       },
       "python_imports": {
         "test_id": "qa-3",
-        "description": "Test Python imports for dashboard module", 
+        "description": "Test Python imports for dashboard module",
         "status": "PASS",
         "details": {
           "dashboard_module_import": "PASS",
-          "dashboard_package_import": "PASS", 
+          "dashboard_package_import": "PASS",
           "old_web_imports_fail": "PASS (expected)",
           "socketio_server_import": "PASS",
           "open_dashboard_import": "PASS"
@@ -93,7 +93,7 @@
           ],
           "component_files_verified": [
             "event-viewer.js",
-            "module-viewer.js", 
+            "module-viewer.js",
             "socket-manager.js",
             "agent-inference.js",
             "ui-state-manager.js",
@@ -116,7 +116,7 @@
         }
       },
       "hardcoded_references_scan": {
-        "test_id": "qa-8", 
+        "test_id": "qa-8",
         "description": "Search for any remaining hardcoded web references",
         "status": "PASS",
         "details": {

@@ -2,9 +2,9 @@
 """Debug script to understand what's happening with memory init"""
 
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
 from pathlib import Path
 
 # Create a temporary test directory
@@ -17,7 +17,9 @@ os.chdir(test_dir)
 print(f"Changed to: {os.getcwd()}")
 
 # Get the mpm command path
-project_root = Path(__file__).parent.parent  # Go up one level to the actual project root
+project_root = Path(
+    __file__
+).parent.parent  # Go up one level to the actual project root
 mpm_cmd = str(project_root / "claude-mpm")
 print(f"MPM command: {mpm_cmd}")
 
@@ -30,7 +32,7 @@ try:
     print(f"Return code: {result.returncode}")
     print(f"STDOUT:\n{result.stdout}")
     print(f"STDERR:\n{result.stderr}")
-    
+
     # Check what directories were created
     print(f"\nDirectories in test dir {test_dir}:")
     for item in os.listdir(test_dir):
@@ -43,13 +45,13 @@ try:
                     print(f"    SUBDIR: {subitem}")
                 else:
                     print(f"    FILE: {subitem}")
-    
+
     # Check if memory directory was created in project root instead
     project_memory_dir = project_root / ".claude-mpm" / "memories"
     print(f"\nMemory dir in project root exists: {project_memory_dir.exists()}")
     if project_memory_dir.exists():
         print(f"Project memory dir: {project_memory_dir}")
-    
+
     # Check if memory directory was created in test directory
     test_memory_dir = Path(test_dir) / ".claude-mpm" / "memories"
     print(f"Memory dir in test dir exists: {test_memory_dir.exists()}")
@@ -63,4 +65,5 @@ finally:
     # Cleanup
     os.chdir(original_cwd)
     import shutil
+
     shutil.rmtree(test_dir, ignore_errors=True)

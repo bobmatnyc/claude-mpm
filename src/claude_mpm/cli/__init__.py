@@ -1,3 +1,6 @@
+from pathlib import Path
+from typing import Optional
+
 """
 Claude MPM Command-Line Interface.
 
@@ -11,26 +14,24 @@ remains the primary entry point for both direct execution and package imports.
 """
 
 import sys
-from pathlib import Path
-from typing import Optional
+
+from claude_mpm.config.paths import paths
 
 from ..constants import CLICommands, LogLevel
-from .parser import create_parser, preprocess_args
-from .utils import ensure_directories, setup_logging
-from .commands import (
-    run_session,
-    # run_guarded_session is imported lazily to avoid loading experimental code
-    manage_tickets,
-    show_info,
-    manage_agents,
-    manage_memory,
-    manage_monitor,
-    manage_config,
+from .commands import (  # run_guarded_session is imported lazily to avoid loading experimental code
     aggregate_command,
     cleanup_memory,
-    manage_mcp
+    manage_agents,
+    manage_config,
+    manage_mcp,
+    manage_memory,
+    manage_monitor,
+    manage_tickets,
+    run_session,
+    show_info,
 )
-from claude_mpm.config.paths import paths
+from .parser import create_parser, preprocess_args
+from .utils import ensure_directories, setup_logging
 
 # Get version using centralized path management
 # Try package VERSION file first (for installed packages)
@@ -53,55 +54,78 @@ else:
 def main(argv: Optional[list] = None):
     """
     Main CLI entry point.
-    
+
     WHY: This function orchestrates the entire CLI flow:
     1. Ensures directories exist
     2. Preprocesses arguments (handling --mpm: prefix)
     3. Parses arguments
     4. Sets up logging
     5. Executes the appropriate command
-    
+
     DESIGN DECISION: We keep error handling at this level to provide consistent
     error messages and exit codes across all commands.
-    
+
     Args:
         argv: Optional list of command line arguments for testing
-        
+
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
     # Ensure directories are initialized on first run
     ensure_directories()
-    
+
     # Initialize or update project registry
     _initialize_project_registry()
-    
+
     # Create parser with version
     parser = create_parser(version=__version__)
-    
+
     # Preprocess and parse arguments
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
-    
+
     # Set up logging
-    logger = setup_logging(args)
-    
+    # Special case: For MCP start command, we need minimal logging to avoid stdout interference
+    if (
+        args.command == CLICommands.MCP.value
+        and getattr(args, "mcp_command", None) == "start"
+    ):
+        # For MCP server, configure minimal stderr-only logging
+        import logging
+        import sys
+
+        # Only log errors to stderr for MCP server
+        if not getattr(args, "test", False) and not getattr(
+            args, "instructions", False
+        ):
+            # Production MCP mode - minimal logging
+            logging.basicConfig(
+                level=logging.ERROR, format="%(message)s", stream=sys.stderr, force=True
+            )
+            logger = logging.getLogger("claude_mpm")
+        else:
+            # Test or instructions mode - normal logging
+            logger = setup_logging(args)
+    else:
+        # Normal logging for all other commands
+        logger = setup_logging(args)
+
     # Debug output if requested
-    if hasattr(args, 'debug') and args.debug:
+    if hasattr(args, "debug") and args.debug:
         logger.debug(f"Command: {args.command}")
         logger.debug(f"Arguments: {args}")
-    
+
     # Hook system note: Claude Code hooks are handled externally via the
     # hook_handler.py script installed in ~/.claude/settings.json
     # The --no-hooks flag is kept for backward compatibility but doesn't affect
     # Claude Code hooks which are configured separately.
-    
+
     # Default to run command if no command specified
     if not args.command:
         args.command = CLICommands.RUN.value
         # Ensure run-specific attributes exist when defaulting to run
         _ensure_run_attributes(args)
-    
+
     # Execute command
     try:
         exit_code = _execute_command(args.command, args)
@@ -113,6 +137,7 @@ def main(argv: Optional[list] = None):
         logger.error(f"Error: {e}")
         if args.debug:
             import traceback
+
             traceback.print_exc()
         return 1
 
@@ -120,21 +145,23 @@ def main(argv: Optional[list] = None):
 def _initialize_project_registry():
     """
     Initialize or update the project registry for the current session.
-    
+
     WHY: The project registry tracks all claude-mpm projects and their metadata
     across sessions. This function ensures the current project is properly
     registered and updates session information.
-    
+
     DESIGN DECISION: Registry failures are logged but don't prevent startup
     to ensure claude-mpm remains functional even if registry operations fail.
     """
     try:
-        from ..services.project_registry import ProjectRegistry
+        from ..services.project.registry import ProjectRegistry
+
         registry = ProjectRegistry()
         registry.get_or_create_project_entry()
     except Exception as e:
         # Import logger here to avoid circular imports
         from ..core.logger import get_logger
+
         logger = get_logger("cli")
         logger.debug(f"Failed to initialize project registry: {e}")
         # Continue execution - registry failure shouldn't block startup
@@ -143,52 +170,53 @@ def _initialize_project_registry():
 def _ensure_run_attributes(args):
     """
     Ensure run command attributes exist when defaulting to run.
-    
+
     WHY: When no command is specified, we default to 'run' but the args object
     won't have run-specific attributes from the subparser. This function ensures
     they exist with sensible defaults.
-    
+
     Args:
         args: Parsed arguments object to update
     """
     # Set defaults for run command attributes
-    args.no_tickets = getattr(args, 'no_tickets', False)
-    args.no_hooks = getattr(args, 'no_hooks', False)
-    args.intercept_commands = getattr(args, 'intercept_commands', False)
-    args.input = getattr(args, 'input', None)
-    args.non_interactive = getattr(args, 'non_interactive', False)
-    args.no_native_agents = getattr(args, 'no_native_agents', False)
-    args.claude_args = getattr(args, 'claude_args', [])
-    args.launch_method = getattr(args, 'launch_method', 'exec')
-    args.websocket = getattr(args, 'websocket', False)
-    args.websocket_port = getattr(args, 'websocket_port', 8765)
+    args.no_tickets = getattr(args, "no_tickets", False)
+    args.no_hooks = getattr(args, "no_hooks", False)
+    args.intercept_commands = getattr(args, "intercept_commands", False)
+    args.input = getattr(args, "input", None)
+    args.non_interactive = getattr(args, "non_interactive", False)
+    args.no_native_agents = getattr(args, "no_native_agents", False)
+    args.claude_args = getattr(args, "claude_args", [])
+    args.launch_method = getattr(args, "launch_method", "exec")
+    args.websocket = getattr(args, "websocket", False)
+    args.websocket_port = getattr(args, "websocket_port", 8765)
 
 
 def _execute_command(command: str, args) -> int:
     """
     Execute the specified command.
-    
+
     WHY: This function maps command names to their implementations, providing
     a single place to manage command routing. Experimental commands are imported
     lazily to avoid loading unnecessary code.
-    
+
     DESIGN DECISION: run_guarded is imported only when needed to maintain
     separation between stable and experimental features.
-    
+
     Args:
         command: The command name to execute
         args: Parsed command line arguments
-        
+
     Returns:
         Exit code from the command
     """
     # Handle experimental run-guarded command separately with lazy import
-    if command == 'run-guarded':
+    if command == "run-guarded":
         # Lazy import to avoid loading experimental code unless needed
         from .commands.run_guarded import execute_run_guarded
+
         result = execute_run_guarded(args)
         return result if result is not None else 0
-    
+
     # Map stable commands to their implementations
     command_map = {
         CLICommands.RUN.value: run_session,
@@ -203,7 +231,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.CLEANUP.value: cleanup_memory,
         CLICommands.MCP.value: manage_mcp,
     }
-    
+
     # Execute command if found
     if command in command_map:
         result = command_map[command](args)

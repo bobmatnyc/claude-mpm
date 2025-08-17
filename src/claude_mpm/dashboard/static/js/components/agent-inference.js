@@ -1,13 +1,13 @@
 /**
  * Agent Inference Module
- * 
+ *
  * Handles agent inference and processing logic for determining whether events
  * originate from the main agent or subagents based on event patterns and context.
- * 
+ *
  * WHY: Separated from main dashboard to isolate complex agent inference logic
  * that analyzes event patterns to determine agent context. This provides better
  * maintainability and testability for a critical feature.
- * 
+ *
  * DESIGN DECISION: This module maintains its own state for inference tracking
  * but relies on the event viewer for source data, keeping clear separation of
  * concerns while enabling delegation context tracking across events.
@@ -15,7 +15,7 @@
 class AgentInference {
     constructor(eventViewer) {
         this.eventViewer = eventViewer;
-        
+
         // Agent inference state tracking
         this.state = {
             // Track current subagent delegation context
@@ -29,7 +29,7 @@ class AgentInference {
             // Map of agent events to their PM delegation
             agentToDelegation: new Map() // agent_name -> delegation_id
         };
-        
+
         console.log('Agent inference system initialized');
     }
 
@@ -60,12 +60,12 @@ class AgentInference {
         const eventType = event.hook_event_name || data.hook_event_name || event.type || '';
         const subtype = event.subtype || data.subtype || '';
         const toolName = event.tool_name || data.tool_name || '';
-        
+
         // Debug logging for first few events to understand structure
         if (Math.random() < 0.1) {
             console.log('Agent inference debug:', {
-                eventType, 
-                toolName, 
+                eventType,
+                toolName,
                 hasData: !!event.data,
                 dataKeys: Object.keys(data),
                 eventKeys: Object.keys(event),
@@ -73,7 +73,7 @@ class AgentInference {
                 subagentType: event.subagent_type || data.subagent_type
             });
         }
-        
+
         // Direct event detection (highest confidence) - from design doc
         if (eventType === 'SubagentStop' || subtype === 'subagent_stop') {
             const agentName = this.extractAgentNameFromEvent(event);
@@ -92,7 +92,7 @@ class AgentInference {
                 reason: 'SubagentStop event'
             };
         }
-        
+
         if (eventType === 'Stop' || subtype === 'stop') {
             return {
                 type: 'main_agent',
@@ -101,7 +101,7 @@ class AgentInference {
                 reason: 'Stop event'
             };
         }
-        
+
         // Tool-based detection (high confidence) - from design doc
         if (toolName === 'Task') {
             const agentName = this.extractSubagentTypeFromTask(event);
@@ -120,7 +120,7 @@ class AgentInference {
                 };
             }
         }
-        
+
         // Hook event pattern analysis (high confidence)
         if (eventType === 'PreToolUse' && toolName === 'Task') {
             const agentName = this.extractSubagentTypeFromTask(event);
@@ -133,7 +133,7 @@ class AgentInference {
                 };
             }
         }
-        
+
         // Session pattern analysis (medium confidence) - from design doc
         if (sessionId) {
             const sessionLower = sessionId.toLowerCase();
@@ -146,11 +146,11 @@ class AgentInference {
                 };
             }
         }
-        
+
         // Agent type field analysis - check multiple possible locations
         const agentType = event.agent_type || data.agent_type || event.agent_id || data.agent_id;
         const subagentType = event.subagent_type || data.subagent_type;
-        
+
         if (subagentType && subagentType !== 'unknown') {
             return {
                 type: 'subagent',
@@ -159,7 +159,7 @@ class AgentInference {
                 reason: 'subagent_type field'
             };
         }
-        
+
         if (agentType && agentType !== 'unknown' && agentType !== 'main') {
             return {
                 type: 'subagent',
@@ -168,7 +168,7 @@ class AgentInference {
                 reason: 'agent_type field'
             };
         }
-        
+
         // Check for delegation_details from hook handler
         if (data.delegation_details?.agent_type) {
             return {
@@ -178,12 +178,12 @@ class AgentInference {
                 reason: 'delegation_details'
             };
         }
-        
+
         // Check if this looks like a Hook event from Socket.IO
         if (event.type && event.type.startsWith('hook.')) {
             // Extract the hook type
             const hookType = event.type.replace('hook.', '');
-            
+
             // Handle SubagentStart events
             if (hookType === 'subagent_start' || (data.hook_event_name === 'SubagentStart')) {
                 const rawAgentName = data.agent_type || data.agent_id || 'Subagent';
@@ -199,7 +199,7 @@ class AgentInference {
                     reason: 'Socket.IO hook SubagentStart'
                 };
             }
-            
+
             // Handle SubagentStop events
             if (hookType === 'subagent_stop' || (data.hook_event_name === 'SubagentStop')) {
                 const rawAgentName = data.agent_type || data.agent_id || 'Subagent';
@@ -211,7 +211,7 @@ class AgentInference {
                 };
             }
         }
-        
+
         // Default to main agent (from design doc)
         return {
             type: 'main_agent',
@@ -228,7 +228,7 @@ class AgentInference {
      */
     normalizeAgentName(agentName) {
         if (!agentName) return 'Unknown';
-        
+
         // Agent name mapping from raw format to display format
         const agentNameMap = {
             'engineer': 'Engineer Agent',
@@ -242,13 +242,13 @@ class AgentInference {
             'test_integration': 'Test Integration Agent',
             'pm': 'PM Agent'
         };
-        
+
         // Check if we have a direct mapping
         const normalized = agentNameMap[agentName.toLowerCase()];
         if (normalized) {
             return normalized;
         }
-        
+
         // If no direct mapping, apply basic formatting:
         // Convert underscore to space, capitalize words, and add "Agent" if not present
         let formatted = agentName
@@ -256,12 +256,12 @@ class AgentInference {
             .split(' ')
             .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(' ');
-        
+
         // Add "Agent" suffix if not already present
         if (!formatted.toLowerCase().includes('agent')) {
             formatted += ' Agent';
         }
-        
+
         return formatted;
     }
 
@@ -272,7 +272,7 @@ class AgentInference {
      */
     extractSubagentTypeFromTask(event) {
         let rawAgentName = null;
-        
+
         // Check tool_parameters directly
         if (event.tool_parameters?.subagent_type) {
             rawAgentName = event.tool_parameters.subagent_type;
@@ -289,7 +289,7 @@ class AgentInference {
         else if (event.tool_input?.subagent_type) {
             rawAgentName = event.tool_input.subagent_type;
         }
-        
+
         // Normalize the agent name before returning
         return rawAgentName ? this.normalizeAgentName(rawAgentName) : null;
     }
@@ -302,13 +302,13 @@ class AgentInference {
     extractAgentNameFromEvent(event) {
         // Priority order based on reliability from design doc
         const data = event.data || {};
-        
+
         // 1. Task tool subagent_type (highest priority)
         if (event.tool_name === 'Task' || data.tool_name === 'Task') {
             const taskAgent = this.extractSubagentTypeFromTask(event);
             if (taskAgent) return taskAgent;
         }
-        
+
         // 2. Direct subagent_type field
         if (event.subagent_type && event.subagent_type !== 'unknown') {
             return this.normalizeAgentName(event.subagent_type);
@@ -316,12 +316,12 @@ class AgentInference {
         if (data.subagent_type && data.subagent_type !== 'unknown') {
             return this.normalizeAgentName(data.subagent_type);
         }
-        
+
         // 2.5. Check delegation_details
         if (data.delegation_details?.agent_type && data.delegation_details.agent_type !== 'unknown') {
             return this.normalizeAgentName(data.delegation_details.agent_type);
         }
-        
+
         // 3. Agent type fields (but not 'main' or 'unknown')
         if (event.agent_type && !['main', 'unknown'].includes(event.agent_type)) {
             return this.normalizeAgentName(event.agent_type);
@@ -329,7 +329,7 @@ class AgentInference {
         if (data.agent_type && !['main', 'unknown'].includes(data.agent_type)) {
             return this.normalizeAgentName(data.agent_type);
         }
-        
+
         // 4. Agent ID field as fallback
         if (event.agent_id && !['main', 'unknown'].includes(event.agent_id)) {
             return this.normalizeAgentName(event.agent_id);
@@ -337,16 +337,16 @@ class AgentInference {
         if (data.agent_id && !['main', 'unknown'].includes(data.agent_id)) {
             return this.normalizeAgentName(data.agent_id);
         }
-        
+
         // 5. Other fallbacks
         if (event.agent && event.agent !== 'unknown') {
             return this.normalizeAgentName(event.agent);
         }
-        
+
         if (event.name && event.name !== 'unknown') {
             return this.normalizeAgentName(event.name);
         }
-        
+
         // Default fallback
         return 'Unknown';
     }
@@ -357,37 +357,37 @@ class AgentInference {
      */
     processAgentInference() {
         const events = this.eventViewer.events;
-        
+
         // Reset inference state
         this.state.currentDelegation = null;
         this.state.sessionAgents.clear();
         this.state.eventAgentMap.clear();
         this.state.pmDelegations.clear();
         this.state.agentToDelegation.clear();
-        
+
         console.log('Processing agent inference for', events.length, 'events');
-        
+
         // Early return if no events
         if (!events || events.length === 0) {
             console.log('No events to process for agent inference');
             return;
         }
-        
+
         // Process events chronologically to track delegation context
         events.forEach((event, index) => {
             let finalAgent; // Declare outside try-catch to ensure scope availability
-            
+
             try {
                 const inference = this.inferAgentFromEvent(event);
                 const sessionId = event.session_id || event.data?.session_id || 'default';
-                
+
                 // Determine agent for this event based on context
                 finalAgent = inference;
-                
+
                 // If we're in a delegation context and this event doesn't have high confidence agent info,
                 // inherit from delegation context
-                if (this.state.currentDelegation && 
-                    inference.confidence === 'default' && 
+                if (this.state.currentDelegation &&
+                    inference.confidence === 'default' &&
                     sessionId === this.state.currentDelegation.sessionId) {
                     finalAgent = {
                         type: 'subagent',
@@ -396,7 +396,7 @@ class AgentInference {
                         reason: 'inherited from delegation context'
                     };
                 }
-                
+
                 // Track delegation boundaries and PM delegations
                 if (event.tool_name === 'Task' && inference.type === 'subagent') {
                     // Start of subagent delegation - create PM delegation entry
@@ -411,10 +411,10 @@ class AgentInference {
                         timestamp: event.timestamp,
                         agentEvents: [] // Collect all events from this agent
                     };
-                    
+
                     this.state.pmDelegations.set(delegationId, pmDelegation);
                     this.state.agentToDelegation.set(inference.agentName, delegationId);
-                    
+
                     this.state.currentDelegation = {
                         agentName: inference.agentName,
                         sessionId: sessionId,
@@ -427,18 +427,18 @@ class AgentInference {
                     // End of subagent delegation
                     if (this.state.currentDelegation) {
                         this.state.currentDelegation.endIndex = index;
-                        
+
                         // Update PM delegation end point
                         const pmDelegation = this.state.pmDelegations.get(this.state.currentDelegation.delegationId);
                         if (pmDelegation) {
                             pmDelegation.endIndex = index;
                         }
-                        
+
                         console.log('Delegation ended:', this.state.currentDelegation);
                         this.state.currentDelegation = null;
                     }
                 }
-                
+
                 // Track events within PM delegation context
                 if (this.state.currentDelegation && finalAgent.type === 'subagent') {
                     const pmDelegation = this.state.pmDelegations.get(this.state.currentDelegation.delegationId);
@@ -450,13 +450,13 @@ class AgentInference {
                         });
                     }
                 }
-                
+
                 // Store the inference result
                 this.state.eventAgentMap.set(index, finalAgent);
-                
+
                 // Update session agent tracking
                 this.state.sessionAgents.set(sessionId, finalAgent);
-                
+
                 // Debug first few inferences
                 if (index < 5) {
                     console.log(`Event ${index} agent inference:`, {
@@ -470,7 +470,7 @@ class AgentInference {
                 }
             } catch (error) {
                 console.error(`Error processing event ${index} for agent inference:`, error);
-                
+
                 // Set a default finalAgent if not already set due to error
                 if (!finalAgent) {
                     finalAgent = {
@@ -480,12 +480,12 @@ class AgentInference {
                         reason: 'error during processing'
                     };
                 }
-                
+
                 // Store the default inference for this event
                 this.state.eventAgentMap.set(index, finalAgent);
             }
         });
-        
+
         console.log('Agent inference processing complete. Results:', {
             total_events: events.length,
             inferred_agents: this.state.eventAgentMap.size,
@@ -511,24 +511,24 @@ class AgentInference {
      */
     getInferredAgentForEvent(event) {
         const events = this.eventViewer.events;
-        
+
         // Try to find by exact reference first
         let eventIndex = events.indexOf(event);
-        
+
         // If exact match fails, try to find by timestamp or session_id + timestamp
         if (eventIndex === -1 && event.timestamp) {
-            eventIndex = events.findIndex(e => 
-                e.timestamp === event.timestamp && 
+            eventIndex = events.findIndex(e =>
+                e.timestamp === event.timestamp &&
                 e.session_id === event.session_id
             );
         }
-        
+
         // If we still can't find it, perform inline inference
         if (eventIndex === -1) {
             console.log('Agent inference: Could not find event in events array, performing inline inference');
             return this.inferAgentFromEvent(event);
         }
-        
+
         // Get cached inference or perform new inference
         let inference = this.getInferredAgent(eventIndex);
         if (!inference) {
@@ -536,7 +536,7 @@ class AgentInference {
             // Cache the result
             this.state.eventAgentMap.set(eventIndex, inference);
         }
-        
+
         return inference;
     }
 
@@ -587,11 +587,11 @@ class AgentInference {
      */
     getUniqueAgentInstances() {
         const agentMap = new Map(); // agentName -> consolidated data
-        
+
         // Consolidate all PM delegations by agent name
         for (const [delegationId, delegation] of this.state.pmDelegations) {
             const agentName = delegation.agentName;
-            
+
             if (!agentMap.has(agentName)) {
                 // First delegation for this agent type
                 agentMap.set(agentName, {
@@ -607,7 +607,7 @@ class AgentInference {
                     delegationCount: 1
                 });
             }
-            
+
             // Add this delegation to the consolidated agent
             const agent = agentMap.get(agentName);
             agent.delegations.push({
@@ -619,14 +619,14 @@ class AgentInference {
                 endIndex: delegation.endIndex,
                 events: delegation.agentEvents
             });
-            
+
             if (delegation.pmCall) {
                 agent.pmCalls.push(delegation.pmCall);
             }
-            
+
             // Merge events from all delegations
             agent.allEvents = agent.allEvents.concat(delegation.agentEvents);
-            
+
             // Update consolidated metadata
             if (new Date(delegation.timestamp) < new Date(agent.firstTimestamp)) {
                 agent.firstTimestamp = delegation.timestamp;
@@ -634,11 +634,11 @@ class AgentInference {
             if (new Date(delegation.timestamp) > new Date(agent.lastTimestamp)) {
                 agent.lastTimestamp = delegation.timestamp;
             }
-            
+
             agent.totalEventCount += delegation.agentEvents.length;
             agent.delegationCount++;
         }
-        
+
         // Handle agents that appear without explicit PM delegation (implied PM)
         const events = this.eventViewer.events;
         for (let index = 0; index < events.length; index++) {
@@ -676,11 +676,11 @@ class AgentInference {
                 });
             }
         }
-        
+
         // Convert map to array and sort by first appearance (timestamp)
         const uniqueInstances = Array.from(agentMap.values())
             .sort((a, b) => new Date(a.firstTimestamp) - new Date(b.firstTimestamp));
-        
+
         console.log('Consolidated unique agents:', {
             total_unique_agents: uniqueInstances.length,
             agents: uniqueInstances.map(agent => ({
@@ -689,7 +689,11 @@ class AgentInference {
                 totalEvents: agent.totalEventCount
             }))
         });
-        
+
         return uniqueInstances;
     }
 }
+
+// ES6 Module export
+export { AgentInference };
+export default AgentInference;

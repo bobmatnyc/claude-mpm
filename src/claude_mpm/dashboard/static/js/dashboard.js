@@ -1,24 +1,36 @@
 /**
  * Refactored Dashboard Coordinator
- * 
+ *
  * Main coordinator class that orchestrates all dashboard modules while maintaining
  * backward compatibility with the original dashboard interface.
- * 
+ *
  * WHY: This refactored version breaks down the monolithic 4,133-line dashboard
  * into manageable, focused modules while preserving all existing functionality.
  * Each module handles a specific concern, improving maintainability and testability.
- * 
+ *
  * DESIGN DECISION: Acts as a thin coordinator layer that initializes modules,
  * manages inter-module communication through events, and provides backward
  * compatibility for existing code that depends on the dashboard interface.
  */
+
+// ES6 Module imports
+import { SocketManager } from '@components/socket-manager.js';
+import { EventViewer } from '@components/event-viewer.js';
+import { ModuleViewer } from '@components/module-viewer.js';
+import { SessionManager } from '@components/session-manager.js';
+import { AgentInference } from '@components/agent-inference.js';
+import { UIStateManager } from '@components/ui-state-manager.js';
+import { EventProcessor } from '@components/event-processor.js';
+import { ExportManager } from '@components/export-manager.js';
+import { WorkingDirectoryManager } from '@components/working-directory.js';
+import { FileToolTracker } from '@components/file-tool-tracker.js';
 class Dashboard {
     constructor() {
         // Core components (existing)
         this.eventViewer = null;
         this.moduleViewer = null;
         this.sessionManager = null;
-        
+
         // New modular components
         this.socketManager = null;
         this.agentInference = null;
@@ -27,7 +39,7 @@ class Dashboard {
         this.exportManager = null;
         this.workingDirectoryManager = null;
         this.fileToolTracker = null;
-        
+
         // Initialize the dashboard
         this.init();
     }
@@ -37,7 +49,7 @@ class Dashboard {
      */
     init() {
         console.log('Initializing refactored Claude MPM Dashboard...');
-        
+
         // Initialize modules in dependency order
         this.initializeSocketManager();
         this.initializeCoreComponents();
@@ -47,13 +59,13 @@ class Dashboard {
         this.initializeFileToolTracker();
         this.initializeEventProcessor();
         this.initializeExportManager();
-        
+
         // Set up inter-module communication
         this.setupModuleInteractions();
-        
+
         // Initialize from URL parameters
         this.initializeFromURL();
-        
+
         console.log('Claude MPM Dashboard initialized successfully');
     }
 
@@ -62,10 +74,10 @@ class Dashboard {
      */
     initializeSocketManager() {
         this.socketManager = new SocketManager();
-        
+
         // Set up connection controls
         this.socketManager.setupConnectionControls();
-        
+
         // Backward compatibility
         this.socketClient = this.socketManager.getSocketClient();
         window.socketClient = this.socketClient;
@@ -79,7 +91,7 @@ class Dashboard {
         this.eventViewer = new EventViewer('events-list', this.socketClient);
         this.moduleViewer = new ModuleViewer();
         this.sessionManager = new SessionManager(this.socketClient);
-        
+
         // Backward compatibility
         window.eventViewer = this.eventViewer;
         window.moduleViewer = this.moduleViewer;
@@ -139,15 +151,15 @@ class Dashboard {
         this.socketManager.onEventUpdate((events) => {
             this.fileToolTracker.updateFileOperations(events);
             this.fileToolTracker.updateToolCalls(events);
-            
+
             // Process agent inference for new events
             this.agentInference.processAgentInference();
-            
+
             // Auto-scroll events list if on events tab
             if (this.uiStateManager.getCurrentTab() === 'events') {
                 this.exportManager.scrollListToBottom('events-list');
             }
-            
+
             // Re-render current tab
             this.renderCurrentTab();
         });
@@ -156,14 +168,9 @@ class Dashboard {
         this.socketManager.onConnectionStatusChange((status, type) => {
             // Set up git branch listener when connected
             if (type === 'connected') {
-                console.log('[DASHBOARD-INIT-DEBUG] Connection established, waiting for directory to be ready...');
-                
-                // Wait for working directory to be properly initialized
-                this.workingDirectoryManager.whenDirectoryReady(() => {
-                    const currentDir = this.workingDirectoryManager.getCurrentWorkingDir();
-                    console.log('[DASHBOARD-INIT-DEBUG] Directory ready, requesting git branch for:', currentDir);
-                    this.workingDirectoryManager.updateGitBranch(currentDir);
-                });
+                this.workingDirectoryManager.updateGitBranch(
+                    this.workingDirectoryManager.getCurrentWorkingDir()
+                );
             }
         });
 
@@ -198,13 +205,13 @@ class Dashboard {
         // Agents tab filters
         const agentsSearchInput = document.getElementById('agents-search-input');
         const agentsTypeFilter = document.getElementById('agents-type-filter');
-        
+
         if (agentsSearchInput) {
             agentsSearchInput.addEventListener('input', () => {
                 if (this.uiStateManager.getCurrentTab() === 'agents') this.renderCurrentTab();
             });
         }
-        
+
         if (agentsTypeFilter) {
             agentsTypeFilter.addEventListener('change', () => {
                 if (this.uiStateManager.getCurrentTab() === 'agents') this.renderCurrentTab();
@@ -214,29 +221,29 @@ class Dashboard {
         // Tools tab filters
         const toolsSearchInput = document.getElementById('tools-search-input');
         const toolsTypeFilter = document.getElementById('tools-type-filter');
-        
+
         if (toolsSearchInput) {
             toolsSearchInput.addEventListener('input', () => {
                 if (this.uiStateManager.getCurrentTab() === 'tools') this.renderCurrentTab();
             });
         }
-        
+
         if (toolsTypeFilter) {
             toolsTypeFilter.addEventListener('change', () => {
                 if (this.uiStateManager.getCurrentTab() === 'tools') this.renderCurrentTab();
             });
         }
 
-        // Files tab filters  
+        // Files tab filters
         const filesSearchInput = document.getElementById('files-search-input');
         const filesTypeFilter = document.getElementById('files-type-filter');
-        
+
         if (filesSearchInput) {
             filesSearchInput.addEventListener('input', () => {
                 if (this.uiStateManager.getCurrentTab() === 'files') this.renderCurrentTab();
             });
         }
-        
+
         if (filesTypeFilter) {
             filesTypeFilter.addEventListener('change', () => {
                 if (this.uiStateManager.getCurrentTab() === 'files') this.renderCurrentTab();
@@ -257,7 +264,7 @@ class Dashboard {
      */
     renderCurrentTab() {
         const currentTab = this.uiStateManager.getCurrentTab();
-        
+
         switch (currentTab) {
             case 'events':
                 // Events tab is handled by EventViewer
@@ -272,13 +279,13 @@ class Dashboard {
                 this.renderFiles();
                 break;
         }
-        
+
         // Update selection UI if we have a selected card
         const selectedCard = this.uiStateManager.getSelectedCard();
         if (selectedCard.tab === currentTab) {
             this.uiStateManager.updateCardSelectionUI();
         }
-        
+
         // Update unified selection UI to maintain consistency
         this.uiStateManager.updateUnifiedSelectionUI();
     }
@@ -292,14 +299,14 @@ class Dashboard {
 
         // Process agent inference to get PM delegations
         this.agentInference.processAgentInference();
-        
+
         // Generate HTML for unique agent instances
         const events = this.eventProcessor.getFilteredEventsForTab('agents');
         const agentHTML = this.eventProcessor.generateAgentHTML(events);
-        
+
         agentsList.innerHTML = agentHTML;
         this.exportManager.scrollListToBottom('agents-list');
-        
+
         // Update filter dropdowns with unique instances
         const uniqueInstances = this.agentInference.getUniqueAgentInstances();
         this.updateAgentsFilterDropdowns(uniqueInstances);
@@ -316,10 +323,10 @@ class Dashboard {
         const toolCallsArray = Array.from(toolCalls.entries());
         const uniqueToolInstances = this.eventProcessor.getUniqueToolInstances(toolCallsArray);
         const toolHTML = this.eventProcessor.generateToolHTML(uniqueToolInstances);
-        
+
         toolsList.innerHTML = toolHTML;
         this.exportManager.scrollListToBottom('tools-list');
-        
+
         // Update filter dropdowns
         this.updateToolsFilterDropdowns(uniqueToolInstances);
     }
@@ -335,10 +342,10 @@ class Dashboard {
         const filesArray = Array.from(fileOperations.entries());
         const uniqueFileInstances = this.eventProcessor.getUniqueFileInstances(filesArray);
         const fileHTML = this.eventProcessor.generateFileHTML(uniqueFileInstances);
-        
+
         filesList.innerHTML = fileHTML;
         this.exportManager.scrollListToBottom('files-list');
-        
+
         // Update filter dropdowns
         this.updateFilesFilterDropdowns(filesArray);
     }
@@ -348,22 +355,22 @@ class Dashboard {
      */
     updateAgentsFilterDropdowns(uniqueInstances) {
         const agentTypes = new Set();
-        
+
         // uniqueInstances is already an array of unique agent instances
         uniqueInstances.forEach(instance => {
             if (instance.agentName && instance.agentName !== 'Unknown') {
                 agentTypes.add(instance.agentName);
             }
         });
-        
+
         const sortedTypes = Array.from(agentTypes).filter(type => type && type.trim() !== '');
         this.populateFilterDropdown('agents-type-filter', sortedTypes, 'All Agent Types');
-        
+
         // Debug log
         if (sortedTypes.length > 0) {
             console.log('Agent types found for filter:', sortedTypes);
         } else {
-            console.log('No agent types found for filter. Unique instances:', uniqueInstances.length);
+            console.log('No agent types found for filter. Events:', events.length);
         }
     }
 
@@ -373,7 +380,7 @@ class Dashboard {
     updateToolsFilterDropdowns(toolCallsArray) {
         const toolNames = [...new Set(toolCallsArray.map(([key, toolCall]) => toolCall.tool_name))]
             .filter(name => name);
-        
+
         this.populateFilterDropdown('tools-type-filter', toolNames, 'All Tools');
     }
 
@@ -381,10 +388,10 @@ class Dashboard {
      * Update files filter dropdowns
      */
     updateFilesFilterDropdowns(filesArray) {
-        const operations = [...new Set(filesArray.flatMap(([path, data]) => 
+        const operations = [...new Set(filesArray.flatMap(([path, data]) =>
             data.operations.map(op => op.operation)
         ))].filter(op => op);
-        
+
         this.populateFilterDropdown('files-type-filter', operations, 'All Operations');
     }
 
@@ -397,10 +404,10 @@ class Dashboard {
 
         const currentValue = select.value;
         const sortedValues = values.sort((a, b) => a.localeCompare(b));
-        
+
         // Clear existing options except the first "All" option
         select.innerHTML = `<option value="">${allOption}</option>`;
-        
+
         // Add sorted values
         sortedValues.forEach(value => {
             const option = document.createElement('option');
@@ -408,7 +415,7 @@ class Dashboard {
             option.textContent = value;
             select.appendChild(option);
         });
-        
+
         // Restore previous selection if it still exists
         if (currentValue && sortedValues.includes(currentValue)) {
             select.value = currentValue;
@@ -442,16 +449,16 @@ class Dashboard {
      */
     showAgentDetailsByIndex(index) {
         const events = this.eventProcessor.getFilteredEventsForTab('agents');
-        
+
         // Defensive checks
         if (!events || !Array.isArray(events) || index < 0 || index >= events.length) {
             console.warn('Dashboard: Invalid agent index or events array');
             return;
         }
-        
+
         const filteredSingleEvent = this.eventProcessor.applyAgentsFilters([events[index]]);
-        
-        if (filteredSingleEvent.length > 0 && this.moduleViewer && 
+
+        if (filteredSingleEvent.length > 0 && this.moduleViewer &&
             typeof this.moduleViewer.showAgentEvent === 'function') {
             const event = filteredSingleEvent[0];
             this.moduleViewer.showAgentEvent(event, index);
@@ -465,22 +472,22 @@ class Dashboard {
     showAgentInstanceDetails(instanceId) {
         const pmDelegations = this.agentInference.getPMDelegations();
         const instance = pmDelegations.get(instanceId);
-        
+
         if (!instance) {
             // Check if it's an implied delegation
             const uniqueInstances = this.agentInference.getUniqueAgentInstances();
             const impliedInstance = uniqueInstances.find(inst => inst.id === instanceId);
-            
+
             if (!impliedInstance) {
                 console.error('Agent instance not found:', instanceId);
                 return;
             }
-            
+
             // For implied instances, show basic info
             this.showImpliedAgentDetails(impliedInstance);
             return;
         }
-        
+
         // Show full PM delegation details
         if (this.moduleViewer && typeof this.moduleViewer.showAgentInstance === 'function') {
             this.moduleViewer.showAgentInstance(instance);
@@ -524,7 +531,7 @@ class Dashboard {
         const toolCalls = this.fileToolTracker.getToolCalls();
         const toolCallsArray = Array.from(toolCalls.entries());
         const filteredToolCalls = this.eventProcessor.applyToolCallFilters(toolCallsArray);
-        
+
         if (index >= 0 && index < filteredToolCalls.length) {
             const [toolCallKey] = filteredToolCalls[index];
             this.showToolCallDetails(toolCallKey);
@@ -532,13 +539,13 @@ class Dashboard {
     }
 
     /**
-     * Show file details by index  
+     * Show file details by index
      */
     showFileDetailsByIndex(index) {
         const fileOperations = this.fileToolTracker.getFileOperations();
         let filesArray = Array.from(fileOperations.entries());
         filesArray = this.eventProcessor.applyFilesFilters(filesArray);
-        
+
         if (index >= 0 && index < filesArray.length) {
             const [filePath] = filesArray[index];
             this.showFileDetails(filePath);
@@ -648,7 +655,7 @@ class Dashboard {
 
     /**
      * Get tool calls (backward compatibility)
-     */  
+     */
     get toolCalls() {
         return this.fileToolTracker.getToolCalls();
     }
@@ -693,17 +700,17 @@ window.showFileViewerModal = function(filePath, workingDir) {
     if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
         workingDir = window.dashboard.currentWorkingDir;
     }
-    
+
     // Create modal if it doesn't exist
     let modal = document.getElementById('file-viewer-modal');
     if (!modal) {
         modal = createFileViewerModal();
         document.body.appendChild(modal);
     }
-    
+
     // Update modal content
     updateFileViewerModal(modal, filePath, workingDir);
-    
+
     // Show the modal as flex container
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden'; // Prevent background scrolling
@@ -720,12 +727,12 @@ window.hideFileViewerModal = function() {
 window.copyFileContent = function() {
     const modal = document.getElementById('file-viewer-modal');
     if (!modal) return;
-    
+
     const codeElement = modal.querySelector('.file-content-code');
     if (!codeElement) return;
-    
+
     const text = codeElement.textContent;
-    
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
             // Show brief feedback
@@ -746,7 +753,7 @@ window.copyFileContent = function() {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        
+
         const button = modal.querySelector('.file-content-copy');
         const originalText = button.textContent;
         button.textContent = '✅ Copied!';
@@ -760,7 +767,7 @@ function createFileViewerModal() {
     const modal = document.createElement('div');
     modal.id = 'file-viewer-modal';
     modal.className = 'modal file-viewer-modal';
-    
+
     modal.innerHTML = `
         <div class="modal-content file-viewer-content">
             <div class="file-viewer-header">
@@ -805,21 +812,21 @@ function createFileViewerModal() {
             </div>
         </div>
     `;
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             hideFileViewerModal();
         }
     });
-    
+
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display === 'flex') {
             hideFileViewerModal();
         }
     });
-    
+
     return modal;
 }
 
@@ -827,22 +834,22 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     // Update header info
     const filePathElement = modal.querySelector('.file-viewer-file-path');
     const fileSizeElement = modal.querySelector('.file-viewer-file-size');
-    
+
     filePathElement.textContent = filePath;
     fileSizeElement.textContent = '';
-    
+
     // Show loading state
     modal.querySelector('.file-viewer-loading').style.display = 'flex';
     modal.querySelector('.file-viewer-error').style.display = 'none';
     modal.querySelector('.file-viewer-content-area').style.display = 'none';
-    
+
     try {
         // Get the Socket.IO client
         const socket = window.socket || window.dashboard?.socketClient?.socket;
         if (!socket) {
             throw new Error('No socket connection available');
         }
-        
+
         // Set up one-time listener for file content response
         const responsePromise = new Promise((resolve, reject) => {
             const responseHandler = (data) => {
@@ -855,46 +862,46 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
                     }
                 }
             };
-            
+
             socket.on('file_content_response', responseHandler);
-            
+
             // Timeout after 10 seconds
             setTimeout(() => {
                 socket.off('file_content_response', responseHandler);
                 reject(new Error('Request timeout'));
             }, 10000);
         });
-        
+
         // Send file read request
         socket.emit('read_file', {
             file_path: filePath,
             working_dir: workingDir
         });
-        
+
         console.log('📄 File viewer request sent:', {
             filePath,
             workingDir
         });
-        
+
         // Wait for response
         const result = await responsePromise;
         console.log('📦 File content received:', result);
-        
+
         // Hide loading
         modal.querySelector('.file-viewer-loading').style.display = 'none';
-        
+
         // Show successful content
         displayFileContent(modal, result);
-        
+
     } catch (error) {
         console.error('❌ Failed to fetch file content:', error);
-        
+
         modal.querySelector('.file-viewer-loading').style.display = 'none';
-        
+
         // Create detailed error message
         let errorMessage = error.message || 'Unknown error occurred';
         let suggestions = [];
-        
+
         if (error.message.includes('No socket connection')) {
             errorMessage = 'Failed to connect to the monitoring server';
             suggestions = [
@@ -923,7 +930,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
                 'File access is restricted for security reasons'
             ];
         }
-        
+
         displayFileError(modal, {
             error: errorMessage,
             file_path: filePath,
@@ -940,17 +947,17 @@ function displayFileContent(modal, result) {
     const encodingElement = modal.querySelector('.file-encoding');
     const fileSizeElement = modal.querySelector('.file-viewer-file-size');
     const codeElement = modal.querySelector('.file-content-code');
-    
+
     // Update metadata
     if (extensionElement) extensionElement.textContent = `Type: ${result.extension || 'unknown'}`;
     if (encodingElement) encodingElement.textContent = `Encoding: ${result.encoding || 'unknown'}`;
     if (fileSizeElement) fileSizeElement.textContent = `Size: ${formatFileSize(result.file_size)}`;
-    
+
     // Update content with basic syntax highlighting
     if (codeElement && result.content) {
         console.log('💡 Setting file content, length:', result.content.length);
         codeElement.innerHTML = highlightCode(result.content, result.extension);
-        
+
         // Force scrolling to work by setting explicit heights
         const wrapper = modal.querySelector('.file-viewer-scroll-wrapper');
         if (wrapper) {
@@ -959,20 +966,20 @@ function displayFileContent(modal, result) {
                 const modalContent = modal.querySelector('.modal-content');
                 const header = modal.querySelector('.file-viewer-header');
                 const toolbar = modal.querySelector('.file-viewer-toolbar');
-                
+
                 const modalHeight = modalContent?.offsetHeight || 0;
                 const headerHeight = header?.offsetHeight || 0;
                 const toolbarHeight = toolbar?.offsetHeight || 0;
-                
+
                 const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
-                
+
                 console.log('🎯 Setting file viewer scroll height:', {
                     modalHeight,
                     headerHeight,
                     toolbarHeight,
                     availableHeight
                 });
-                
+
                 wrapper.style.maxHeight = `${availableHeight}px`;
                 wrapper.style.overflowY = 'auto';
             }, 50);
@@ -980,7 +987,7 @@ function displayFileContent(modal, result) {
     } else {
         console.warn('⚠️ Missing codeElement or file content');
     }
-    
+
     // Show content area
     if (contentArea) {
         contentArea.style.display = 'block';
@@ -992,15 +999,15 @@ function displayFileError(modal, result) {
     const errorArea = modal.querySelector('.file-viewer-error');
     const messageElement = modal.querySelector('.error-message');
     const suggestionsElement = modal.querySelector('.error-suggestions');
-    
+
     let errorMessage = result.error || 'Unknown error occurred';
-    
+
     messageElement.innerHTML = `
         <div class="error-main">${errorMessage}</div>
         ${result.file_path ? `<div class="error-file">File: ${result.file_path}</div>` : ''}
         ${result.working_dir ? `<div class="error-dir">Working directory: ${result.working_dir}</div>` : ''}
     `;
-    
+
     if (result.suggestions && result.suggestions.length > 0) {
         suggestionsElement.innerHTML = `
             <h4>Suggestions:</h4>
@@ -1011,13 +1018,13 @@ function displayFileError(modal, result) {
     } else {
         suggestionsElement.innerHTML = '';
     }
-    
+
     console.log('📋 Displaying file viewer error:', {
         originalError: result.error,
         processedMessage: errorMessage,
         suggestions: result.suggestions
     });
-    
+
     errorArea.style.display = 'block';
 }
 
@@ -1028,13 +1035,13 @@ function highlightCode(code, extension) {
      * This is a simple implementation that can be enhanced with full syntax highlighting
      * libraries like highlight.js or Prism.js if needed.
      */
-    
+
     // Escape HTML entities first
     const escaped = code
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;');
-    
+
     // Basic highlighting based on file extension
     switch (extension) {
         case '.js':
@@ -1110,7 +1117,7 @@ function highlightMarkdown(code) {
 
 function addLineNumbers(code) {
     const lines = code.split('\n');
-    return lines.map((line, index) => 
+    return lines.map((line, index) =>
         `<span class="line-number">${String(index + 1).padStart(3, ' ')}</span> ${line || ' '}`
     ).join('\n');
 }
@@ -1129,17 +1136,17 @@ window.showGitDiffModal = function(filePath, timestamp, workingDir) {
     if (!workingDir && window.dashboard && window.dashboard.currentWorkingDir) {
         workingDir = window.dashboard.currentWorkingDir;
     }
-    
+
     // Create modal if it doesn't exist
     let modal = document.getElementById('git-diff-modal');
     if (!modal) {
         modal = createGitDiffModal();
         document.body.appendChild(modal);
     }
-    
+
     // Update modal content
     updateGitDiffModal(modal, filePath, timestamp, workingDir);
-    
+
     // Show the modal as flex container
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden'; // Prevent background scrolling
@@ -1156,12 +1163,12 @@ window.hideGitDiffModal = function() {
 window.copyGitDiff = function() {
     const modal = document.getElementById('git-diff-modal');
     if (!modal) return;
-    
+
     const codeElement = modal.querySelector('.git-diff-code');
     if (!codeElement) return;
-    
+
     const text = codeElement.textContent;
-    
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
             // Show brief feedback
@@ -1182,7 +1189,7 @@ window.copyGitDiff = function() {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        
+
         const button = modal.querySelector('.git-diff-copy');
         const originalText = button.textContent;
         button.textContent = '✅ Copied!';
@@ -1196,7 +1203,7 @@ function createGitDiffModal() {
     const modal = document.createElement('div');
     modal.id = 'git-diff-modal';
     modal.className = 'modal git-diff-modal';
-    
+
     modal.innerHTML = `
         <div class="modal-content git-diff-content">
             <div class="git-diff-header">
@@ -1241,21 +1248,21 @@ function createGitDiffModal() {
             </div>
         </div>
     `;
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             hideGitDiffModal();
         }
     });
-    
+
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display === 'flex') {
             hideGitDiffModal();
         }
     });
-    
+
     return modal;
 }
 
@@ -1263,19 +1270,19 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
     // Update header info
     const filePathElement = modal.querySelector('.git-diff-file-path');
     const timestampElement = modal.querySelector('.git-diff-timestamp');
-    
+
     filePathElement.textContent = filePath;
     timestampElement.textContent = timestamp ? new Date(timestamp).toLocaleString() : 'Latest';
-    
+
     // Show loading state
     modal.querySelector('.git-diff-loading').style.display = 'flex';
     modal.querySelector('.git-diff-error').style.display = 'none';
     modal.querySelector('.git-diff-content-area').style.display = 'none';
-    
+
     try {
         // Get the Socket.IO server port with multiple fallbacks
         let port = 8765; // Default fallback
-        
+
         // Try to get port from socketClient first
         if (window.dashboard && window.dashboard.socketClient && window.dashboard.socketClient.port) {
             port = window.dashboard.socketClient.port;
@@ -1287,19 +1294,19 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
                 port = portInput.value;
             }
         }
-        
+
         // Build URL parameters
         const params = new URLSearchParams({
             file: filePath
         });
-        
+
         if (timestamp) {
             params.append('timestamp', timestamp);
         }
         if (workingDir) {
             params.append('working_dir', workingDir);
         }
-        
+
         const requestUrl = `http://localhost:${port}/api/git-diff?${params}`;
         console.log('🌐 Making git diff request to:', requestUrl);
         console.log('📋 Git diff request parameters:', {
@@ -1308,7 +1315,7 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             workingDir,
             urlParams: params.toString()
         });
-        
+
         // Test server connectivity first
         try {
             const healthResponse = await fetch(`http://localhost:${port}/health`, {
@@ -1319,16 +1326,16 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
                 },
                 mode: 'cors'
             });
-            
+
             if (!healthResponse.ok) {
                 throw new Error(`Server health check failed: ${healthResponse.status} ${healthResponse.statusText}`);
             }
-            
+
             console.log('✅ Server health check passed');
         } catch (healthError) {
             throw new Error(`Cannot reach server at localhost:${port}. Health check failed: ${healthError.message}`);
         }
-        
+
         // Make the actual git diff request
         const response = await fetch(requestUrl, {
             method: 'GET',
@@ -1338,17 +1345,17 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             },
             mode: 'cors'
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const result = await response.json();
         console.log('📦 Git diff response:', result);
-        
+
         // Hide loading
         modal.querySelector('.git-diff-loading').style.display = 'none';
-        
+
         if (result.success) {
             console.log('📊 Displaying successful git diff');
             // Show successful diff
@@ -1358,7 +1365,7 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             // Show error
             displayGitDiffError(modal, result);
         }
-        
+
     } catch (error) {
         console.error('❌ Failed to fetch git diff:', error);
         console.error('Error details:', {
@@ -1369,13 +1376,13 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
             timestamp,
             workingDir
         });
-        
+
         modal.querySelector('.git-diff-loading').style.display = 'none';
-        
+
         // Create detailed error message based on error type
         let errorMessage = `Network error: ${error.message}`;
         let suggestions = [];
-        
+
         if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Failed to connect to the monitoring server';
             suggestions = [
@@ -1399,7 +1406,7 @@ async function updateGitDiffModal(modal, filePath, timestamp, workingDir) {
                 'Try with a different file or working directory'
             ];
         }
-        
+
         displayGitDiffError(modal, {
             error: errorMessage,
             file_path: filePath,
@@ -1420,7 +1427,7 @@ function highlightGitDiff(diffText) {
      * Apply basic syntax highlighting to git diff output
      * WHY: Git diffs have a standard format that can be highlighted for better readability:
      * - Lines starting with '+' are additions (green)
-     * - Lines starting with '-' are deletions (red)  
+     * - Lines starting with '-' are deletions (red)
      * - Lines starting with '@@' are context headers (blue)
      * - File headers and metadata get special formatting
      */
@@ -1432,7 +1439,7 @@ function highlightGitDiff(diffText) {
                 .replace(/&/g, '&amp;')
                 .replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;');
-            
+
             // Apply diff highlighting
             if (line.startsWith('+++') || line.startsWith('---')) {
                 return `<span class="diff-header">${escaped}</span>`;
@@ -1457,23 +1464,23 @@ function displayGitDiff(modal, result) {
     const commitHashElement = modal.querySelector('.commit-hash');
     const methodElement = modal.querySelector('.diff-method');
     const codeElement = modal.querySelector('.git-diff-code');
-    
+
     console.log('🔍 Elements found:', {
         contentArea: !!contentArea,
         commitHashElement: !!commitHashElement,
         methodElement: !!methodElement,
         codeElement: !!codeElement
     });
-    
+
     // Update metadata
     if (commitHashElement) commitHashElement.textContent = `Commit: ${result.commit_hash}`;
     if (methodElement) methodElement.textContent = `Method: ${result.method}`;
-    
+
     // Update diff content with basic syntax highlighting
     if (codeElement && result.diff) {
         console.log('💡 Setting diff content, length:', result.diff.length);
         codeElement.innerHTML = highlightGitDiff(result.diff);
-        
+
         // Force scrolling to work by setting explicit heights
         const wrapper = modal.querySelector('.git-diff-scroll-wrapper');
         if (wrapper) {
@@ -1482,20 +1489,20 @@ function displayGitDiff(modal, result) {
                 const modalContent = modal.querySelector('.modal-content');
                 const header = modal.querySelector('.git-diff-header');
                 const toolbar = modal.querySelector('.git-diff-toolbar');
-                
+
                 const modalHeight = modalContent?.offsetHeight || 0;
                 const headerHeight = header?.offsetHeight || 0;
                 const toolbarHeight = toolbar?.offsetHeight || 0;
-                
+
                 const availableHeight = modalHeight - headerHeight - toolbarHeight - 40; // 40px for padding
-                
+
                 console.log('🎯 Setting explicit scroll height:', {
                     modalHeight,
                     headerHeight,
                     toolbarHeight,
                     availableHeight
                 });
-                
+
                 wrapper.style.maxHeight = `${availableHeight}px`;
                 wrapper.style.overflowY = 'auto';
             }, 50);
@@ -1503,7 +1510,7 @@ function displayGitDiff(modal, result) {
     } else {
         console.warn('⚠️ Missing codeElement or diff data');
     }
-    
+
     // Show content area
     if (contentArea) {
         contentArea.style.display = 'block';
@@ -1515,24 +1522,24 @@ function displayGitDiffError(modal, result) {
     const errorArea = modal.querySelector('.git-diff-error');
     const messageElement = modal.querySelector('.error-message');
     const suggestionsElement = modal.querySelector('.error-suggestions');
-    
+
     // Create more user-friendly error messages
     let errorMessage = result.error || 'Unknown error occurred';
     let isUntracked = false;
-    
+
     if (errorMessage.includes('not tracked by git')) {
         errorMessage = '📝 This file is not tracked by git yet';
         isUntracked = true;
     } else if (errorMessage.includes('No git history found')) {
         errorMessage = '📋 No git history available for this file';
     }
-    
+
     messageElement.innerHTML = `
         <div class="error-main">${errorMessage}</div>
         ${result.file_path ? `<div class="error-file">File: ${result.file_path}</div>` : ''}
         ${result.working_dir ? `<div class="error-dir">Working directory: ${result.working_dir}</div>` : ''}
     `;
-    
+
     if (result.suggestions && result.suggestions.length > 0) {
         const suggestionTitle = isUntracked ? 'How to track this file:' : 'Suggestions:';
         suggestionsElement.innerHTML = `
@@ -1544,14 +1551,14 @@ function displayGitDiffError(modal, result) {
     } else {
         suggestionsElement.innerHTML = '';
     }
-    
+
     console.log('📋 Displaying git diff error:', {
         originalError: result.error,
         processedMessage: errorMessage,
         isUntracked,
         suggestions: result.suggestions
     });
-    
+
     errorArea.style.display = 'block';
 }
 
@@ -1562,17 +1569,17 @@ window.showFileViewerModal = function(filePath) {
     if (window.dashboard && window.dashboard.currentWorkingDir) {
         workingDir = window.dashboard.currentWorkingDir;
     }
-    
+
     // Create modal if it doesn't exist
     let modal = document.getElementById('file-viewer-modal');
     if (!modal) {
         modal = createFileViewerModal();
         document.body.appendChild(modal);
     }
-    
+
     // Update modal content
     updateFileViewerModal(modal, filePath, workingDir);
-    
+
     // Show the modal as flex container
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden'; // Prevent background scrolling
@@ -1589,12 +1596,12 @@ window.hideFileViewerModal = function() {
 window.copyFileContent = function() {
     const modal = document.getElementById('file-viewer-modal');
     if (!modal) return;
-    
+
     const codeElement = modal.querySelector('.file-content-code');
     if (!codeElement) return;
-    
+
     const text = codeElement.textContent;
-    
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
             // Show brief feedback
@@ -1615,7 +1622,7 @@ window.copyFileContent = function() {
         textarea.select();
         document.execCommand('copy');
         document.body.removeChild(textarea);
-        
+
         const button = modal.querySelector('.file-content-copy');
         const originalText = button.textContent;
         button.textContent = '✅ Copied!';
@@ -1629,7 +1636,7 @@ function createFileViewerModal() {
     const modal = document.createElement('div');
     modal.id = 'file-viewer-modal';
     modal.className = 'modal file-viewer-modal';
-    
+
     modal.innerHTML = `
         <div class="modal-content file-viewer-content">
             <div class="file-viewer-header">
@@ -1674,21 +1681,21 @@ function createFileViewerModal() {
             </div>
         </div>
     `;
-    
+
     // Close modal when clicking outside
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             hideFileViewerModal();
         }
     });
-    
+
     // Close modal with Escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display === 'flex') {
             hideFileViewerModal();
         }
     });
-    
+
     return modal;
 }
 
@@ -1697,22 +1704,22 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
     const filePathElement = modal.querySelector('.file-viewer-file-path');
     const fileSizeElement = modal.querySelector('.file-viewer-file-size');
     const fileExtensionElement = modal.querySelector('.file-extension');
-    
+
     filePathElement.textContent = filePath;
-    
+
     // Extract and display file extension
     const extension = filePath.split('.').pop() || 'txt';
     fileExtensionElement.textContent = `Type: ${extension.toUpperCase()}`;
-    
+
     // Show loading state
     modal.querySelector('.file-viewer-loading').style.display = 'flex';
     modal.querySelector('.file-viewer-error').style.display = 'none';
     modal.querySelector('.file-viewer-content-area').style.display = 'none';
-    
+
     try {
         // Get the Socket.IO server port with multiple fallbacks
         let port = 8765; // Default fallback
-        
+
         // Try to get port from socketClient first
         if (window.dashboard && window.dashboard.socketClient && window.dashboard.socketClient.port) {
             port = window.dashboard.socketClient.port;
@@ -1724,14 +1731,14 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
                 port = parseInt(portInput.value);
             }
         }
-        
+
         // Construct API request URL for file content
         const params = new URLSearchParams();
         params.append('file_path', filePath);
         if (workingDir) {
             params.append('working_dir', workingDir);
         }
-        
+
         const requestUrl = `http://localhost:${port}/api/file-content?${params}`;
         console.log('🌐 Making file content request to:', requestUrl);
         console.log('📄 File content request parameters:', {
@@ -1739,7 +1746,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
             workingDir,
             urlParams: params.toString()
         });
-        
+
         // Test server connectivity first
         try {
             const healthResponse = await fetch(`http://localhost:${port}/health`, {
@@ -1747,17 +1754,17 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
                 mode: 'cors',
                 timeout: 5000
             });
-            
+
             if (!healthResponse.ok) {
                 throw new Error(`Health check failed: ${healthResponse.status}`);
             }
-            
+
             console.log('✅ Server health check passed');
         } catch (healthError) {
             console.warn('⚠️ Server health check failed:', healthError);
             throw new Error(`Unable to connect to monitoring server on port ${port}. Please ensure the server is running.`);
         }
-        
+
         // Make the actual file content request
         const response = await fetch(requestUrl, {
             method: 'GET',
@@ -1767,17 +1774,17 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
             },
             mode: 'cors'
         });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const result = await response.json();
         console.log('📦 File content received:', result);
-        
+
         // Hide loading
         modal.querySelector('.file-viewer-loading').style.display = 'none';
-        
+
         if (result.success) {
             console.log('📊 Displaying file content');
             // Show file content
@@ -1787,16 +1794,16 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
             // Show error
             displayFileContentError(modal, result);
         }
-        
+
     } catch (error) {
         console.error('❌ Failed to fetch file content:', error);
-        
+
         modal.querySelector('.file-viewer-loading').style.display = 'none';
-        
+
         // Create detailed error message based on error type
         let errorMessage = `Network error: ${error.message}`;
         let suggestions = [];
-        
+
         if (error.message.includes('Failed to fetch')) {
             errorMessage = 'Failed to connect to the monitoring server';
             suggestions = [
@@ -1826,7 +1833,7 @@ async function updateFileViewerModal(modal, filePath, workingDir) {
                 'Check server logs for performance issues'
             ];
         }
-        
+
         displayFileContentError(modal, {
             success: false,
             error: errorMessage,
@@ -1840,24 +1847,24 @@ function displayFileContent(modal, result, extension) {
     const contentArea = modal.querySelector('.file-viewer-content-area');
     const fileSizeElement = modal.querySelector('.file-viewer-file-size');
     const codeElement = modal.querySelector('.file-content-code');
-    
+
     console.log('🔍 File content elements found:', {
         contentArea: !!contentArea,
         fileSizeElement: !!fileSizeElement,
         codeElement: !!codeElement
     });
-    
+
     // Update file size
     if (fileSizeElement && result.file_size) {
         const sizeInBytes = result.file_size;
-        const sizeFormatted = sizeInBytes < 1024 
+        const sizeFormatted = sizeInBytes < 1024
             ? `${sizeInBytes} bytes`
             : sizeInBytes < 1024 * 1024
             ? `${(sizeInBytes / 1024).toFixed(1)} KB`
             : `${(sizeInBytes / (1024 * 1024)).toFixed(1)} MB`;
         fileSizeElement.textContent = `Size: ${sizeFormatted}`;
     }
-    
+
     // Set up content with syntax highlighting
     if (codeElement && result.content) {
         // Determine language for Prism.js
@@ -1890,24 +1897,24 @@ function displayFileContent(modal, result, extension) {
             'h': 'c',
             'hpp': 'cpp'
         };
-        
+
         const language = languageMap[extension.toLowerCase()] || 'text';
-        
+
         // Set up code element with Prism.js classes
         codeElement.className = `file-content-code language-${language}`;
         codeElement.textContent = result.content;
-        
+
         // Apply syntax highlighting with Prism.js if available
         if (window.Prism) {
             // Add line numbers
             codeElement.parentElement.className = 'file-content-display line-numbers';
-            
+
             // Apply highlighting
             window.Prism.highlightElement(codeElement);
         }
-        
+
         contentArea.style.display = 'flex';
-        
+
         console.log('✅ File content displayed successfully');
     } else {
         console.error('❌ Missing code element or content');
@@ -1918,10 +1925,10 @@ function displayFileContentError(modal, result) {
     const errorArea = modal.querySelector('.file-viewer-error');
     const messageElement = modal.querySelector('.error-message');
     const suggestionsElement = modal.querySelector('.error-suggestions');
-    
+
     // Create user-friendly error messages
     let errorMessage = result.error || 'Unknown error occurred';
-    
+
     if (errorMessage.includes('not found')) {
         errorMessage = '📁 File not found or not accessible';
     } else if (errorMessage.includes('permission')) {
@@ -1931,9 +1938,9 @@ function displayFileContentError(modal, result) {
     } else if (!errorMessage.includes('📁') && !errorMessage.includes('🔒') && !errorMessage.includes('📏')) {
         errorMessage = `⚠️ ${errorMessage}`;
     }
-    
+
     messageElement.textContent = errorMessage;
-    
+
     // Add suggestions if available
     if (result.suggestions && result.suggestions.length > 0) {
         suggestionsElement.innerHTML = `
@@ -1952,13 +1959,13 @@ function displayFileContentError(modal, result) {
             </ul>
         `;
     }
-    
+
     console.log('📋 Displaying file content error:', {
         originalError: result.error,
         processedMessage: errorMessage,
         suggestions: result.suggestions
     });
-    
+
     errorArea.style.display = 'block';
 }
 
@@ -1976,3 +1983,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.dashboard = new Dashboard();
     console.log('Dashboard loaded and initialized');
 });
+
+// ES6 Module export
+export { Dashboard };
+export default Dashboard;

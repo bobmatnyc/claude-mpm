@@ -11,7 +11,7 @@ Frontmatter Validator
    :undoc-members:
    :show-inheritance:
 
-Agent Validator  
+Agent Validator
 ---------------
 
 .. automodule:: claude_mpm.validation.agent_validator

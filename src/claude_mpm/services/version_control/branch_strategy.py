@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Branch Strategy Manager - Branch strategy implementations for Version Control Agent.
 
@@ -9,15 +11,14 @@ This module provides comprehensive branch strategy management including:
 5. Branch lifecycle management
 """
 
-from enum import Enum
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
 import logging
 import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
-from claude_mpm.core.config_paths import ConfigPaths
+from claude_mpm.core.unified_paths import get_path_manager
 
 
 class BranchStrategyType(Enum):
@@ -266,7 +267,11 @@ class BranchStrategyManager:
             development_branch="develop",
             naming_rules=naming_rules,
             lifecycle_rules=lifecycle_rules,
-            merge_targets={"feature/*": "develop", "release/*": "main", "hotfix/*": "main"},
+            merge_targets={
+                "feature/*": "develop",
+                "release/*": "main",
+                "hotfix/*": "main",
+            },
             quality_gates=["testing", "code_review"],
         )
 
@@ -305,7 +310,7 @@ class BranchStrategyManager:
         """Load strategy configuration from project files."""
         # Try to load from configuration files
         config_files = [
-            f"{ConfigPaths.CONFIG_DIR}/config.json",
+            f"{get_path_manager().CONFIG_DIR}/config.json",
             "workflow.md",
             ".github/workflows/branch-strategy.yml",
             "branch-strategy.json",
@@ -439,7 +444,10 @@ class BranchStrategyManager:
 
                 # Check length
                 if rule.max_length and len(branch_name) > rule.max_length:
-                    return False, f"Branch name exceeds maximum length: {rule.max_length}"
+                    return (
+                        False,
+                        f"Branch name exceeds maximum length: {rule.max_length}",
+                    )
 
                 return True, "Valid branch name"
 
@@ -614,7 +622,9 @@ class BranchStrategyManager:
         strategy = self.get_current_strategy()
         return strategy.quality_gates
 
-    def create_custom_strategy(self, name: str, config: Dict[str, Any]) -> BranchWorkflow:
+    def create_custom_strategy(
+        self, name: str, config: Dict[str, Any]
+    ) -> BranchWorkflow:
         """
         Create a custom branch strategy.
 

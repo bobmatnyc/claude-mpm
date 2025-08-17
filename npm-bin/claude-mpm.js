@@ -17,7 +17,7 @@ function askYesNo(question) {
     input: process.stdin,
     output: process.stdout
   });
-  
+
   return new Promise((resolve) => {
     rl.question(`${question} (y/n): `, (answer) => {
       rl.close();
@@ -108,7 +108,7 @@ function getPythonCommand() {
 function isExternallyManaged() {
   const python = getPythonCommand();
   if (!python) return false;
-  
+
   try {
     // Try to install a dummy package to check
     execSync(`${python} -m pip install --dry-run pip 2>&1`, { encoding: 'utf8' });
@@ -121,7 +121,7 @@ function isExternallyManaged() {
 // Install pipx if needed
 async function installPipx() {
   info('Installing pipx for isolated Python app management...');
-  
+
   try {
     if (process.platform === 'darwin' && commandExists('brew')) {
       execSync('brew install pipx', { stdio: 'inherit' });
@@ -151,7 +151,7 @@ async function installPipx() {
 // Install UV if needed
 async function installUv() {
   info('Installing UV for fast Python package management...');
-  
+
   try {
     if (process.platform === 'darwin' && commandExists('brew')) {
       execSync('brew install uv', { stdio: 'inherit' });
@@ -177,7 +177,7 @@ async function installUv() {
 // Install claude-mpm
 async function installClaudeMpm() {
   info('Installing claude-mpm Python package...');
-  
+
   const python = getPythonCommand();
   if (!python) {
     error('Python is not installed. Please install Python 3.8 or later.');
@@ -214,7 +214,7 @@ async function installClaudeMpm() {
   // Check if environment is externally managed
   if (isExternallyManaged()) {
     warn('Python environment is externally managed (PEP 668).');
-    
+
     // Try pipx first
     if (commandExists('pipx')) {
       info('Using pipx for installation...');
@@ -244,8 +244,8 @@ async function installClaudeMpm() {
 
   // Try regular pip install
   try {
-    execSync(`${python} -m pip install --upgrade claude-mpm`, { 
-      stdio: 'inherit' 
+    execSync(`${python} -m pip install --upgrade claude-mpm`, {
+      stdio: 'inherit'
     });
     success('claude-mpm installed successfully!');
   } catch (e) {
@@ -272,7 +272,7 @@ function checkClaude() {
     error('Visit: https://claude.ai/code');
     process.exit(1);
   }
-  
+
   // Check version
   try {
     const version = execSync('claude --version', { encoding: 'utf8' }).trim();
@@ -321,7 +321,7 @@ function findClaudeMpmCommand() {
 async function main() {
   // Check prerequisites
   checkClaude();
-  
+
   const python = getPythonCommand();
   if (!python) {
     error('Python is not installed. Please install Python 3.8 or later.');
@@ -330,11 +330,11 @@ async function main() {
 
   // Check if claude-mpm is installed
   let claudeMpmCommand = findClaudeMpmCommand();
-  
+
   if (!claudeMpmCommand && !isClaudeMpmInstalledUv() && !isClaudeMpmInstalledPip() && !isClaudeMpmInstalledPipx()) {
     await installClaudeMpm();
     claudeMpmCommand = findClaudeMpmCommand();
-    
+
     if (!claudeMpmCommand) {
       error('claude-mpm was installed but cannot be found in PATH.');
       console.log('\nPlease ensure your PATH includes:');
@@ -353,9 +353,9 @@ async function main() {
 
   // Run claude-mpm with all arguments
   const args = process.argv.slice(2);
-  const child = spawn(claudeMpmCommand, args, { 
+  const child = spawn(claudeMpmCommand, args, {
     stdio: 'inherit',
-    shell: true 
+    shell: true
   });
 
   child.on('error', (err) => {

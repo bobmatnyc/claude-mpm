@@ -1,14 +1,14 @@
 /**
  * HUD Manager Module
- * 
+ *
  * Manages HUD (Heads-Up Display) visualization mode, including toggling between
  * normal and HUD views, processing events for visualization, and coordinating
  * with the HUD visualizer component.
- * 
+ *
  * WHY: Extracted from main dashboard to isolate HUD-specific functionality
  * and provide better separation between standard event viewing and advanced
  * HUD visualization modes. This improves maintainability of complex visualization logic.
- * 
+ *
  * DESIGN DECISION: Acts as a coordinator between the dashboard state and the
  * HUD visualizer component, managing mode switching and event processing
  * while maintaining clean separation from core dashboard functionality.
@@ -20,15 +20,15 @@ class HUDManager {
         this.hudVisualizer = null;
         this.hudMode = false;
         this.isInitialized = false;
-        
+
         this.initializeHUDVisualizer();
         this.setupEventHandlers();
-        
+
         // Initial button state update with a small delay to ensure all components are ready
         setTimeout(() => {
             this.updateHUDButtonState();
         }, 100);
-        
+
         console.log('HUD manager initialized');
     }
 
@@ -39,11 +39,11 @@ class HUDManager {
         try {
             this.hudVisualizer = new HUDVisualizer();
             window.hudVisualizer = this.hudVisualizer; // Backward compatibility
-            
+
             // Initialize HUD visualizer
             this.hudVisualizer.initialize();
             this.isInitialized = true;
-            
+
             console.log('HUD visualizer initialized successfully');
         } catch (error) {
             console.error('Failed to initialize HUD visualizer:', error);
@@ -56,7 +56,7 @@ class HUDManager {
      */
     setupEventHandlers() {
         console.log('[HUD-DEBUG] Setting up HUD event handlers');
-        
+
         // HUD toggle button
         const hudToggleBtn = document.getElementById('hud-toggle-btn');
         if (hudToggleBtn) {
@@ -84,7 +84,7 @@ class HUDManager {
             console.log('[HUD-DEBUG] sessionChanged event received:', e.detail);
             this.updateHUDButtonState();
         });
-        
+
         // Also listen for sessionFilterChanged for backward compatibility
         console.log('[HUD-DEBUG] Adding sessionFilterChanged event listener');
         document.addEventListener('sessionFilterChanged', (e) => {
@@ -98,7 +98,7 @@ class HUDManager {
      */
     toggleHUD() {
         console.log('[HUD-DEBUG] toggleHUD called');
-        
+
         if (!this.isSessionSelected()) {
             console.log('[HUD-DEBUG] Cannot toggle HUD: No session selected');
             return;
@@ -112,9 +112,9 @@ class HUDManager {
         const oldMode = this.hudMode;
         this.hudMode = !this.hudMode;
         console.log('[HUD-DEBUG] HUD mode changed from', oldMode, 'to', this.hudMode);
-        
+
         this.updateHUDDisplay();
-        
+
         console.log('[HUD-DEBUG] HUD mode toggled:', this.hudMode ? 'ON' : 'OFF');
     }
 
@@ -126,14 +126,14 @@ class HUDManager {
         const hasManager = !!this.sessionManager;
         const selectedId = this.sessionManager?.selectedSessionId;
         const isValidSelection = selectedId && selectedId !== 'all' && selectedId !== '';
-        
+
         console.log('[HUD-DEBUG] isSessionSelected check:', {
             hasManager: hasManager,
             selectedId: selectedId,
             isValidSelection: isValidSelection,
             finalResult: hasManager && isValidSelection
         });
-        
+
         return hasManager && isValidSelection;
     }
 
@@ -142,16 +142,16 @@ class HUDManager {
      */
     updateHUDDisplay() {
         console.log('[HUD-DEBUG] updateHUDDisplay called, hudMode:', this.hudMode);
-        
+
         const eventsWrapper = document.querySelector('.events-wrapper');
         const hudToggleBtn = document.getElementById('hud-toggle-btn');
-        
+
         console.log('[HUD-DEBUG] DOM elements found:', {
             eventsWrapper: !!eventsWrapper,
             hudToggleBtn: !!hudToggleBtn,
             hudVisualizer: !!this.hudVisualizer
         });
-        
+
         if (!eventsWrapper || !hudToggleBtn) {
             console.error('[HUD-DEBUG] Missing DOM elements for HUD display update');
             return;
@@ -163,13 +163,13 @@ class HUDManager {
             eventsWrapper.classList.add('hud-mode');
             hudToggleBtn.classList.add('btn-hud-active');
             hudToggleBtn.textContent = 'Normal View';
-            
+
             // Activate HUD visualizer and process events
             if (this.hudVisualizer) {
                 console.log('[HUD-DEBUG] Activating HUD visualizer...');
                 this.hudVisualizer.activate().then(() => {
                     console.log('[HUD-DEBUG] HUD visualizer activated successfully, processing existing events...');
-                    
+
                     // Additional resize attempts after DOM settles
                     setTimeout(() => {
                         console.log('[HUD-DEBUG] Post-activation resize check...');
@@ -177,7 +177,7 @@ class HUDManager {
                             this.hudVisualizer.ensureContainerResize();
                         }
                     }, 100);
-                    
+
                     // Process existing events after libraries are loaded
                     this.processExistingEventsForHUD();
                 }).catch((error) => {
@@ -196,7 +196,7 @@ class HUDManager {
             eventsWrapper.classList.remove('hud-mode');
             hudToggleBtn.classList.remove('btn-hud-active');
             hudToggleBtn.textContent = 'HUD View';
-            
+
             // Deactivate HUD visualizer
             if (this.hudVisualizer) {
                 console.log('[HUD-DEBUG] Deactivating HUD visualizer...');
@@ -210,7 +210,7 @@ class HUDManager {
      */
     updateHUDButtonState() {
         console.log('[HUD-DEBUG] updateHUDButtonState called');
-        
+
         const hudToggleBtn = document.getElementById('hud-toggle-btn');
         if (!hudToggleBtn) {
             console.warn('[HUD-DEBUG] HUD toggle button not found in DOM');
@@ -219,7 +219,7 @@ class HUDManager {
             console.log('[HUD-DEBUG] Available buttons:', Array.from(allButtons).map(btn => ({ id: btn.id, className: btn.className, text: btn.textContent })));
             return;
         }
-        
+
         console.log('[HUD-DEBUG] HUD button found:', {
             id: hudToggleBtn.id,
             className: hudToggleBtn.className,
@@ -230,7 +230,7 @@ class HUDManager {
 
         const sessionSelected = this.isSessionSelected();
         const selectedSessionId = this.sessionManager?.selectedSessionId;
-        
+
         console.log('[HUD-DEBUG] HUD Button State Update:', {
             sessionSelected,
             selectedSessionId,
@@ -246,7 +246,7 @@ class HUDManager {
             hudToggleBtn.disabled = true;
             hudToggleBtn.title = 'Select a session to enable HUD mode';
             console.log('[HUD-DEBUG] HUD button disabled - no session selected');
-            
+
             // Disable HUD mode if currently active
             if (this.hudMode) {
                 console.log('[HUD-DEBUG] Disabling HUD mode because no session selected');
@@ -254,7 +254,7 @@ class HUDManager {
                 this.updateHUDDisplay();
             }
         }
-        
+
         console.log('[HUD-DEBUG] Final HUD button state:', {
             disabled: hudToggleBtn.disabled,
             title: hudToggleBtn.title
@@ -267,49 +267,49 @@ class HUDManager {
      */
     processExistingEventsForHUD() {
         console.log('[HUD-MANAGER-DEBUG] processExistingEventsForHUD called');
-        
+
         if (!this.hudVisualizer) {
             console.error('[HUD-MANAGER-DEBUG] No HUD visualizer available');
             return;
         }
-        
+
         if (!this.eventViewer) {
             console.error('[HUD-MANAGER-DEBUG] No event viewer available');
             return;
         }
-        
+
         console.log('[HUD-MANAGER-DEBUG] 🔄 Processing existing events for HUD visualization...');
-        
+
         // Clear existing visualization
         this.hudVisualizer.clear();
-        
+
         // Get all events (not just filtered ones) to build complete tree structure
         const allEvents = this.eventViewer.getAllEvents();
         console.log(`[HUD-MANAGER-DEBUG] Retrieved ${allEvents ? allEvents.length : 0} events from event viewer`);
-        
+
         if (!allEvents) {
             console.error('[HUD-MANAGER-DEBUG] Event viewer returned null/undefined events');
             return;
         }
-        
+
         if (!Array.isArray(allEvents)) {
             console.error('[HUD-MANAGER-DEBUG] Event viewer returned non-array:', typeof allEvents);
             return;
         }
-        
+
         if (allEvents.length === 0) {
             console.log('⚠️ No events available for HUD processing');
             return;
         }
-        
+
         console.log(`[HUD-MANAGER-DEBUG] 📊 Found ${allEvents.length} total events for HUD processing`);
-        
+
         // Check if we should filter by selected session
         const selectedSessionId = this.sessionManager?.selectedSessionId;
         console.log(`[HUD-MANAGER-DEBUG] Selected session ID: ${selectedSessionId}`);
-        
+
         let eventsToProcess = allEvents;
-        
+
         if (selectedSessionId && selectedSessionId !== '' && selectedSessionId !== 'all') {
             console.log(`[HUD-MANAGER-DEBUG] Filtering events for session: ${selectedSessionId}`);
             eventsToProcess = allEvents.filter(event => {
@@ -324,27 +324,27 @@ class HUDManager {
         } else {
             console.log('[HUD-MANAGER-DEBUG] No session filtering - processing all events');
         }
-        
+
         // Sort events by timestamp to ensure chronological processing
         const sortedEvents = eventsToProcess.slice().sort((a, b) => {
             const timeA = new Date(a.timestamp).getTime();
             const timeB = new Date(b.timestamp).getTime();
             return timeA - timeB;
         });
-        
+
         console.log(`[HUD-MANAGER-DEBUG] Sorted ${sortedEvents.length} events chronologically`);
-        
+
         // Process events in chronological order
         console.log(`[HUD-MANAGER-DEBUG] Calling hudVisualizer.processExistingEvents with ${sortedEvents.length} events`);
         this.hudVisualizer.processExistingEvents(sortedEvents);
-        
+
         console.log(`[HUD-MANAGER-DEBUG] ✅ Processed ${sortedEvents.length} events for HUD visualization`);
-        
+
         // After processing, check if nodes were created
         setTimeout(() => {
             const nodeCount = this.hudVisualizer?.nodes?.size || 0;
             console.log(`[HUD-MANAGER-DEBUG] HUD visualizer now has ${nodeCount} nodes`);
-            
+
             if (nodeCount === 0) {
                 console.warn(`[HUD-MANAGER-DEBUG] No nodes created! Check event processing logic`);
                 console.log(`[HUD-MANAGER-DEBUG] Sample processed events:`, sortedEvents.slice(0, 3));
@@ -424,7 +424,7 @@ class HUDManager {
         console.log('Reinitializing HUD manager...');
         this.isInitialized = false;
         this.hudMode = false;
-        
+
         this.initializeHUDVisualizer();
         this.updateHUDDisplay();
         this.updateHUDButtonState();
@@ -445,12 +445,12 @@ class HUDManager {
             selectedSessionId: this.sessionManager?.selectedSessionId,
             isSessionSelected: this.isSessionSelected()
         });
-        
+
         if (!this.isSessionSelected()) {
             console.error('[HUD-DEBUG] Cannot debug HUD: No session selected');
             return;
         }
-        
+
         // Force HUD mode and call updateHUDDisplay
         this.hudMode = true;
         this.updateHUDDisplay();
@@ -464,7 +464,7 @@ class HUDManager {
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] ===============================');
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] COMPREHENSIVE HUD DEBUG START');
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] ===============================');
-        
+
         // 1. Check HUD Manager state
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 1. HUD Manager State:');
         const managerState = {
@@ -477,7 +477,7 @@ class HUDManager {
             isSessionSelected: this.isSessionSelected()
         };
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG]', managerState);
-        
+
         // 2. Check DOM elements
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 2. DOM Elements:');
         const domElements = {
@@ -488,7 +488,7 @@ class HUDManager {
             normalView: !!document.getElementById('normal-view')
         };
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG]', domElements);
-        
+
         // 3. Force activate HUD if not active
         if (!this.hudMode) {
             console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 3. HUD not active, forcing activation...');
@@ -501,13 +501,13 @@ class HUDManager {
                     this.sessionManager.selectedSessionId = firstSession;
                 }
             }
-            
+
             this.hudMode = true;
             this.updateHUDDisplay();
         } else {
             console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 3. HUD already active');
         }
-        
+
         // 4. Wait for HUD activation, then run visualizer debug
         setTimeout(() => {
             console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 4. Running HUD Visualizer Debug...');
@@ -517,13 +517,13 @@ class HUDManager {
                 console.error('[HUD-MANAGER-COMPREHENSIVE-DEBUG] HUD Visualizer debug method not available');
             }
         }, 1000);
-        
+
         // 5. Add test events if event viewer has no events
         setTimeout(() => {
             console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] 5. Checking event data...');
             const allEvents = this.eventViewer?.getAllEvents();
             console.log(`[HUD-MANAGER-COMPREHENSIVE-DEBUG] Found ${allEvents ? allEvents.length : 0} events`);
-            
+
             if (!allEvents || allEvents.length === 0) {
                 console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] No events found, adding test events...');
                 this.debugAddTestEvents();
@@ -532,7 +532,7 @@ class HUDManager {
                 this.processExistingEventsForHUD();
             }
         }, 1500);
-        
+
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] Comprehensive debug initiated. Check logs above.');
     }
 
@@ -544,9 +544,9 @@ class HUDManager {
             console.error('[HUD-MANAGER-COMPREHENSIVE-DEBUG] No HUD visualizer for test events');
             return;
         }
-        
+
         console.log('[HUD-MANAGER-COMPREHENSIVE-DEBUG] Adding test events...');
-        
+
         const testEvents = [
             {
                 timestamp: new Date().toISOString(),
@@ -560,7 +560,7 @@ class HUDManager {
                 hook_event_name: 'hook',
                 subtype: 'user_prompt',
                 session_id: 'debug-session-001',
-                data: { 
+                data: {
                     session_id: 'debug-session-001',
                     prompt_preview: 'Debug the HUD rendering issue'
                 }
@@ -570,7 +570,7 @@ class HUDManager {
                 hook_event_name: 'hook',
                 subtype: 'pre_tool',
                 session_id: 'debug-session-001',
-                data: { 
+                data: {
                     session_id: 'debug-session-001',
                     tool_name: 'Read'
                 }
@@ -580,7 +580,7 @@ class HUDManager {
                 hook_event_name: 'agent',
                 subtype: 'activated',
                 session_id: 'debug-session-001',
-                data: { 
+                data: {
                     session_id: 'debug-session-001',
                     agent_type: 'engineer',
                     agent_name: 'Debug Engineer'
@@ -591,15 +591,15 @@ class HUDManager {
                 hook_event_name: 'todo',
                 subtype: 'updated',
                 session_id: 'debug-session-001',
-                data: { 
+                data: {
                     session_id: 'debug-session-001'
                 }
             }
         ];
-        
+
         console.log(`[HUD-MANAGER-COMPREHENSIVE-DEBUG] Processing ${testEvents.length} test events...`);
         this.hudVisualizer.processExistingEvents(testEvents);
-        
+
         // Also add to event viewer if it exists
         if (this.eventViewer && this.eventViewer.addEvent) {
             testEvents.forEach(event => {
@@ -613,25 +613,25 @@ class HUDManager {
      */
     debugForceHUDVisibility() {
         console.log('[HUD-MANAGER-VISIBILITY-DEBUG] Forcing HUD visibility...');
-        
+
         // Force HUD mode DOM changes
         const eventsWrapper = document.querySelector('.events-wrapper');
         const hudVisualizer = document.getElementById('hud-visualizer');
         const hudCytoscape = document.getElementById('hud-cytoscape');
         const normalView = document.getElementById('normal-view');
-        
+
         if (eventsWrapper) {
             eventsWrapper.classList.add('hud-mode');
             console.log('[HUD-MANAGER-VISIBILITY-DEBUG] Added hud-mode class to events-wrapper');
         }
-        
+
         if (hudVisualizer) {
             hudVisualizer.style.display = 'block';
             hudVisualizer.style.visibility = 'visible';
             hudVisualizer.style.opacity = '1';
             console.log('[HUD-MANAGER-VISIBILITY-DEBUG] Forced HUD visualizer visibility');
         }
-        
+
         if (hudCytoscape) {
             hudCytoscape.style.width = '100%';
             hudCytoscape.style.height = '500px';
@@ -639,12 +639,12 @@ class HUDManager {
             hudCytoscape.style.border = '2px solid #007bff';
             console.log('[HUD-MANAGER-VISIBILITY-DEBUG] Forced HUD cytoscape container dimensions and visibility');
         }
-        
+
         if (normalView) {
             normalView.style.display = 'none';
             console.log('[HUD-MANAGER-VISIBILITY-DEBUG] Hidden normal view');
         }
-        
+
         // Wait then test canvas
         setTimeout(() => {
             if (this.hudVisualizer && this.hudVisualizer.debugDrawSimpleShape) {
@@ -662,10 +662,10 @@ class HUDManager {
             this.hudVisualizer.deactivate();
             this.hudVisualizer.clear();
         }
-        
+
         this.hudMode = false;
         this.isInitialized = false;
-        
+
         console.log('HUD manager cleaned up');
     }
 }

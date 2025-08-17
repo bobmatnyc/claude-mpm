@@ -21,12 +21,12 @@ PACKAGE_JSON="$PROJECT_ROOT/package.json"
 if [ -f "$VERSION_FILE" ]; then
     # Read the version from VERSION file
     VERSION=$(cat "$VERSION_FILE" | tr -d '\n')
-    
+
     # Check if package.json exists
     if [ -f "$PACKAGE_JSON" ]; then
         # Get current version from package.json
         CURRENT_PACKAGE_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$PACKAGE_JSON" | grep -o '"[^"]*"$' | tr -d '"')
-        
+
         # Update package.json if versions differ
         if [ "$VERSION" != "$CURRENT_PACKAGE_VERSION" ]; then
             # Update version in package.json
@@ -37,7 +37,7 @@ if [ -f "$VERSION_FILE" ]; then
                 # Fallback to sed for simple replacement
                 sed -i.bak "s/\"version\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"version\": \"$VERSION\"/" "$PACKAGE_JSON" && rm "$PACKAGE_JSON.bak"
             fi
-            
+
             # Stage the change
             git add "$PACKAGE_JSON"
             echo "Updated package.json version to $VERSION"

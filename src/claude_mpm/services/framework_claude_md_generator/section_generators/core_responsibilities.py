@@ -2,13 +2,14 @@
 Core responsibilities section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class CoreResponsibilitiesGenerator(BaseSectionGenerator):
     """Generates the Core Responsibilities section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the core responsibilities section."""
         return """

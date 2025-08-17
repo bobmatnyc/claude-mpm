@@ -1,13 +1,13 @@
 /**
  * Export Manager Module
- * 
+ *
  * Handles export functionality and utility functions for the dashboard.
  * Provides data export capabilities and common utility functions used across modules.
- * 
+ *
  * WHY: Extracted from main dashboard to centralize export logic and utility functions
  * that don't belong to specific functional areas. This provides a clean place for
  * shared utilities while keeping export logic organized and testable.
- * 
+ *
  * DESIGN DECISION: Combines export functionality with general utilities to avoid
  * creating too many small modules while keeping related functionality together.
  * Provides both data export and UI utility functions.
@@ -16,7 +16,7 @@ class ExportManager {
     constructor(eventViewer) {
         this.eventViewer = eventViewer;
         this.setupEventHandlers();
-        
+
         console.log('Export manager initialized');
     }
 
@@ -26,13 +26,13 @@ class ExportManager {
     setupEventHandlers() {
         const clearBtn = document.querySelector('button[onclick="clearEvents()"]');
         const exportBtn = document.getElementById('export-btn');
-        
+
         if (clearBtn) {
             clearBtn.addEventListener('click', () => {
                 this.clearEvents();
             });
         }
-        
+
         if (exportBtn) {
             exportBtn.addEventListener('click', () => {
                 this.exportEvents();
@@ -59,15 +59,15 @@ class ExportManager {
     clearEvents() {
         // Dispatch event to notify other modules
         document.dispatchEvent(new CustomEvent('eventsClearing'));
-        
+
         // Clear events from event viewer
         if (this.eventViewer) {
             this.eventViewer.clearEvents();
         }
-        
+
         // Dispatch event to notify clearing is complete
         document.dispatchEvent(new CustomEvent('eventsCleared'));
-        
+
         console.log('Events cleared');
     }
 
@@ -86,7 +86,7 @@ class ExportManager {
         } = options;
 
         const eventsToExport = events || (this.eventViewer ? this.eventViewer.events : []);
-        
+
         if (eventsToExport.length === 0) {
             console.warn('No events to export');
             return;
@@ -106,19 +106,19 @@ class ExportManager {
                 mimeType = 'application/json';
                 fileExtension = '.json';
                 break;
-            
+
             case 'csv':
                 content = this.convertEventsToCSV(eventsToExport);
                 mimeType = 'text/csv';
                 fileExtension = '.csv';
                 break;
-            
+
             case 'txt':
                 content = this.convertEventsToText(eventsToExport);
                 mimeType = 'text/plain';
                 fileExtension = '.txt';
                 break;
-            
+
             default:
                 console.error('Unsupported export format:', format);
                 return;
@@ -137,7 +137,7 @@ class ExportManager {
 
         // Define CSV headers
         const headers = ['timestamp', 'type', 'subtype', 'tool_name', 'agent_type', 'session_id', 'data'];
-        
+
         // Convert events to CSV rows
         const rows = events.map(event => {
             return [
@@ -173,15 +173,15 @@ class ExportManager {
             const subtype = event.subtype ? ` (${event.subtype})` : '';
             const toolName = event.tool_name ? ` - Tool: ${event.tool_name}` : '';
             const agentType = event.agent_type ? ` - Agent: ${event.agent_type}` : '';
-            
+
             let content = `Event ${index + 1}: ${type}${subtype}${toolName}${agentType}\n`;
             content += `  Time: ${timestamp}\n`;
             content += `  Session: ${event.session_id || 'Unknown'}\n`;
-            
+
             if (event.data && Object.keys(event.data).length > 0) {
                 content += `  Data: ${JSON.stringify(event.data, null, 2)}\n`;
             }
-            
+
             return content;
         }).join('\n' + '='.repeat(80) + '\n');
     }
@@ -196,19 +196,19 @@ class ExportManager {
         try {
             const blob = new Blob([content], { type: mimeType });
             const url = window.URL.createObjectURL(blob);
-            
+
             const link = document.createElement('a');
             link.href = url;
             link.download = filename;
             link.style.display = 'none';
-            
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             // Clean up the URL object
             window.URL.revokeObjectURL(url);
-            
+
             console.log(`File exported: ${filename}`);
         } catch (error) {
             console.error('Failed to export file:', error);
@@ -226,13 +226,13 @@ class ExportManager {
      */
     formatTimestamp(timestamp) {
         if (!timestamp) return 'Unknown time';
-        
+
         try {
             const date = new Date(timestamp);
             if (isNaN(date.getTime())) {
                 return 'Invalid time';
             }
-            
+
             return date.toLocaleTimeString('en-US', {
                 hour12: false,
                 hour: '2-digit',
@@ -252,13 +252,13 @@ class ExportManager {
      */
     formatFullTimestamp(timestamp) {
         if (!timestamp) return 'Unknown time';
-        
+
         try {
             const date = new Date(timestamp);
             if (isNaN(date.getTime())) {
                 return 'Invalid time';
             }
-            
+
             return date.toLocaleString('en-US', {
                 year: 'numeric',
                 month: '2-digit',
@@ -280,12 +280,12 @@ class ExportManager {
      */
     scrollListToBottom(listId) {
         console.log(`[DEBUG] scrollListToBottom called with listId: ${listId}`);
-        
+
         // Use setTimeout to ensure DOM updates are completed
         setTimeout(() => {
             const listElement = document.getElementById(listId);
             console.log(`[DEBUG] Element found for ${listId}:`, listElement);
-            
+
             if (listElement) {
                 console.log(`[DEBUG] Scrolling ${listId} - scrollHeight: ${listElement.scrollHeight}, scrollTop before: ${listElement.scrollTop}`);
                 listElement.scrollTop = listElement.scrollHeight;
@@ -360,3 +360,6 @@ class ExportManager {
         return obj;
     }
 }
+// ES6 Module export
+export { ExportManager };
+export default ExportManager;

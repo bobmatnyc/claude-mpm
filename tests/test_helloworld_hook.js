@@ -46,15 +46,15 @@ hookProcess.stderr.on('data', (data) => {
 hookProcess.on('close', (code) => {
   console.log('\n--- Hook Response ---');
   console.log('Exit code:', code);
-  
+
   if (stderr) {
     console.log('Stderr:', stderr);
   }
-  
+
   try {
     const response = JSON.parse(stdout);
     console.log('Response:', JSON.stringify(response, null, 2));
-    
+
     // Verify the response
     if (response.action === 'block' && response.alternative === 'Hello World') {
       console.log('\n✅ Test PASSED! The hook correctly intercepted /helloworld and returned "Hello World"');

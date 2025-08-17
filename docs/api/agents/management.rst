@@ -6,7 +6,7 @@ Agent management provides comprehensive lifecycle management capabilities for Cl
 Agent Deployment
 ----------------
 
-.. automodule:: claude_mpm.services.agent_deployment  
+.. automodule:: claude_mpm.services.agent_deployment
    :members:
    :undoc-members:
    :show-inheritance:

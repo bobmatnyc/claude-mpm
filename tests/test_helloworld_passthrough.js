@@ -45,15 +45,15 @@ hookProcess.stderr.on('data', (data) => {
 hookProcess.on('close', (code) => {
   console.log('\n--- Hook Response ---');
   console.log('Exit code:', code);
-  
+
   if (stderr) {
     console.log('Stderr:', stderr);
   }
-  
+
   try {
     const response = JSON.parse(stdout);
     console.log('Response:', JSON.stringify(response, null, 2));
-    
+
     // Verify the response
     if (response.action === 'continue') {
       console.log('\n✅ Test PASSED! The hook correctly allowed non-/helloworld prompt to continue');

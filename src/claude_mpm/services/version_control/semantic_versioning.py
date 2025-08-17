@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Semantic Versioning Manager - Version management logic for Version Control Agent.
 
@@ -37,14 +39,13 @@ Change Analysis:
 - Confidence scoring for version bump suggestions
 """
 
-import re
 import json
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Union
-from dataclasses import dataclass, field
-from enum import Enum
 import logging
+import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from ...utils.config_manager import ConfigurationManager
 
@@ -61,20 +62,20 @@ class VersionBumpType(Enum):
 @dataclass
 class SemanticVersion:
     """Represents a semantic version following semver.org specification.
-    
+
     This class encapsulates a semantic version with support for:
     - Major, minor, and patch version numbers
     - Pre-release identifiers (alpha, beta, rc, etc.)
     - Build metadata
     - Version comparison and sorting
     - Version bumping operations
-    
+
     The comparison logic follows semver precedence rules:
     1. Compare major, minor, patch numerically
     2. Pre-release versions have lower precedence than normal versions
     3. Pre-release identifiers are compared alphanumerically
     4. Build metadata is ignored in comparisons
-    
+
     This is used for both project versioning and agent version management.
     """
 
@@ -86,7 +87,7 @@ class SemanticVersion:
 
     def __str__(self) -> str:
         """String representation of version in semver format.
-        
+
         Examples:
         - 1.2.3
         - 1.2.3-alpha.1
@@ -102,13 +103,13 @@ class SemanticVersion:
 
     def __lt__(self, other: "SemanticVersion") -> bool:
         """Compare versions for sorting according to semver precedence.
-        
+
         Comparison Rules:
         1. Version core (major.minor.patch) compared numerically
         2. Version with pre-release < same version without pre-release
         3. Pre-release versions compared alphanumerically
         4. Build metadata ignored (1.0.0+build1 == 1.0.0+build2)
-        
+
         This enables proper version sorting for:
         - Determining latest version
         - Agent deployment decisions
@@ -136,30 +137,30 @@ class SemanticVersion:
 
     def bump(self, bump_type: VersionBumpType) -> "SemanticVersion":
         """Create a new version with the specified bump applied.
-        
+
         Version Bump Rules:
         - MAJOR: Increment major, reset minor and patch to 0
         - MINOR: Increment minor, reset patch to 0
         - PATCH: Increment patch only
         - PRERELEASE: Handle pre-release progression
-        
+
         Pre-release Progression:
         - No prerelease -> alpha.1
         - alpha.1 -> alpha.2
         - beta.1 -> beta.2
         - rc.1 -> rc.2
         - custom -> custom.1
-        
+
         Examples:
         - 1.2.3 + MAJOR -> 2.0.0
         - 1.2.3 + MINOR -> 1.3.0
         - 1.2.3 + PATCH -> 1.2.4
         - 1.2.3 + PRERELEASE -> 1.2.3-alpha.1
         - 1.2.3-alpha.1 + PRERELEASE -> 1.2.3-alpha.2
-        
+
         Args:
             bump_type: Type of version bump to apply
-            
+
         Returns:
             New SemanticVersion instance with bump applied
         """
@@ -186,7 +187,9 @@ class SemanticVersion:
                 # Start new prerelease series
                 new_prerelease = "alpha.1"
 
-            return SemanticVersion(self.major, self.minor, self.patch, prerelease=new_prerelease)
+            return SemanticVersion(
+                self.major, self.minor, self.patch, prerelease=new_prerelease
+            )
 
         return self
 
@@ -287,13 +290,13 @@ class SemanticVersionManager:
         - 1.2.3-alpha.1 (with prerelease and number)
         - 1.2.3-beta.2+build.123 (full format)
         - 1.2.3+20230615 (with build metadata only)
-        
+
         The parser is flexible and handles:
         - Optional 'v' prefix (stripped automatically)
         - Whitespace trimming
         - Full semver specification compliance
         - Graceful failure for invalid formats
-        
+
         This is used for:
         - Parsing versions from files (package.json, etc.)
         - Converting git tags to versions
@@ -335,7 +338,7 @@ class SemanticVersionManager:
     def get_current_version(self) -> Optional[SemanticVersion]:
         """
         Get the current version from multiple sources with intelligent fallback.
-        
+
         Uses the enhanced version parser to check:
         1. Git tags (most recent)
         2. VERSION file
@@ -348,27 +351,33 @@ class SemanticVersionManager:
         """
         try:
             # Import here to avoid circular dependency
-            from claude_mpm.services.version_control.version_parser import get_version_parser
-            
+            from claude_mpm.services.version_control.version_parser import (
+                get_version_parser,
+            )
+
             # Use enhanced parser for current version
             parser = get_version_parser(self.project_root)
             version_meta = parser.get_current_version()
-            
+
             if version_meta:
                 version = self.parse_version(version_meta.version)
                 if version:
-                    self.logger.info(f"Found version {version} from {version_meta.source}")
+                    self.logger.info(
+                        f"Found version {version} from {version_meta.source}"
+                    )
                     # Optionally attach metadata
-                    if hasattr(version, '__dict__'):
+                    if hasattr(version, "__dict__"):
                         version.source = version_meta.source
                     return version
-                
+
         except ImportError:
             # Fallback to original implementation
             self.logger.debug("Enhanced version parser not available, using fallback")
         except Exception as e:
-            self.logger.error(f"Error getting current version with enhanced parser: {e}")
-        
+            self.logger.error(
+                f"Error getting current version with enhanced parser: {e}"
+            )
+
         # Fallback to original implementation
         for filename, parser in self.version_files.items():
             file_path = self.project_root / filename
@@ -415,7 +424,9 @@ class SemanticVersionManager:
             if "project" in data and "version" in data["project"]:
                 return data["project"]["version"]
             elif (
-                "tool" in data and "poetry" in data["tool"] and "version" in data["tool"]["poetry"]
+                "tool" in data
+                and "poetry" in data["tool"]
+                and "version" in data["tool"]["poetry"]
             ):
                 return data["tool"]["poetry"]["version"]
 
@@ -431,7 +442,10 @@ class SemanticVersionManager:
                 content = f.read()
 
             # Look for version = "x.y.z" pattern
-            patterns = [r'version\s*=\s*["\']([^"\']+)["\']', r'version:\s*["\']([^"\']+)["\']']
+            patterns = [
+                r'version\s*=\s*["\']([^"\']+)["\']',
+                r'version:\s*["\']([^"\']+)["\']',
+            ]
 
             for pattern in patterns:
                 match = re.search(pattern, content)
@@ -483,24 +497,24 @@ class SemanticVersionManager:
         3. Determine highest priority change type
         4. Suggest appropriate version bump
         5. Calculate confidence score
-        
+
         Pattern Matching:
         - Breaking: "breaking", "breaking change", "remove api", etc.
         - Features: "add", "new feature", "implement", "enhance"
         - Fixes: "fix", "bug fix", "resolve", "correct"
-        
+
         Version Bump Priority:
         1. Breaking changes -> MAJOR (highest priority)
         2. New features -> MINOR
         3. Bug fixes -> PATCH
         4. Other changes -> PATCH (default)
-        
+
         Confidence Scoring:
         - 0.9: Clear breaking changes detected
         - 0.8: Clear new features detected
         - 0.7: Clear bug fixes detected
         - 0.5: No clear patterns (default to patch)
-        
+
         This analysis is used for:
         - Conventional commit integration
         - Automated version bumping
@@ -521,15 +535,22 @@ class SemanticVersionManager:
             change_lower = change.lower()
 
             # Check for breaking changes (highest priority)
-            if any(re.search(pattern, change_lower) for pattern in self.breaking_change_patterns):
+            if any(
+                re.search(pattern, change_lower)
+                for pattern in self.breaking_change_patterns
+            ):
                 analysis.has_breaking_changes = True
 
             # Check for new features
-            elif any(re.search(pattern, change_lower) for pattern in self.feature_patterns):
+            elif any(
+                re.search(pattern, change_lower) for pattern in self.feature_patterns
+            ):
                 analysis.has_new_features = True
 
             # Check for bug fixes
-            elif any(re.search(pattern, change_lower) for pattern in self.bug_fix_patterns):
+            elif any(
+                re.search(pattern, change_lower) for pattern in self.bug_fix_patterns
+            ):
                 analysis.has_bug_fixes = True
 
         # Determine suggested bump based on priority
@@ -563,7 +584,9 @@ class SemanticVersionManager:
         """
         return current_version.bump(bump_type)
 
-    def suggest_version_bump(self, commit_messages: List[str]) -> Tuple[VersionBumpType, float]:
+    def suggest_version_bump(
+        self, commit_messages: List[str]
+    ) -> Tuple[VersionBumpType, float]:
         """
         Suggest version bump based on commit messages.
 
@@ -603,7 +626,9 @@ class SemanticVersionManager:
                     results[filename] = success
 
                     if success:
-                        self.logger.info(f"Updated version to {version_string} in {filename}")
+                        self.logger.info(
+                            f"Updated version to {version_string} in {filename}"
+                        )
                     else:
                         self.logger.error(f"Failed to update version in {filename}")
 
@@ -740,11 +765,18 @@ class SemanticVersionManager:
         for change in changes:
             change_lower = change.lower()
 
-            if any(re.search(pattern, change_lower) for pattern in self.breaking_change_patterns):
+            if any(
+                re.search(pattern, change_lower)
+                for pattern in self.breaking_change_patterns
+            ):
                 breaking_changes.append(change)
-            elif any(re.search(pattern, change_lower) for pattern in self.feature_patterns):
+            elif any(
+                re.search(pattern, change_lower) for pattern in self.feature_patterns
+            ):
                 features.append(change)
-            elif any(re.search(pattern, change_lower) for pattern in self.bug_fix_patterns):
+            elif any(
+                re.search(pattern, change_lower) for pattern in self.bug_fix_patterns
+            ):
                 fixes.append(change)
             else:
                 other_changes.append(change)
@@ -786,7 +818,10 @@ class SemanticVersionManager:
         return "\n".join(lines)
 
     def update_changelog(
-        self, version: SemanticVersion, changes: List[str], changelog_file: str = "docs/CHANGELOG.md"
+        self,
+        version: SemanticVersion,
+        changes: List[str],
+        changelog_file: str = "docs/CHANGELOG.md",
     ) -> bool:
         """
         Update CHANGELOG.md with new version entry.
@@ -843,7 +878,7 @@ class SemanticVersionManager:
     def get_version_history(self) -> List[SemanticVersion]:
         """
         Get version history from multiple sources with intelligent fallback.
-        
+
         Uses the enhanced version parser to retrieve version history from:
         1. Git tags (primary source)
         2. CHANGELOG.md (fallback)
@@ -854,29 +889,33 @@ class SemanticVersionManager:
         """
         try:
             # Import here to avoid circular dependency
-            from claude_mpm.services.version_control.version_parser import get_version_parser
-            
+            from claude_mpm.services.version_control.version_parser import (
+                get_version_parser,
+            )
+
             # Use enhanced parser for comprehensive version history
             parser = get_version_parser(self.project_root)
             version_metadata = parser.get_version_history(include_prereleases=False)
-            
+
             # Convert to SemanticVersion objects
             versions = []
             for meta in version_metadata:
                 version = self.parse_version(meta.version)
                 if version:
                     # Optionally attach metadata to version
-                    if hasattr(version, '__dict__'):
+                    if hasattr(version, "__dict__"):
                         version.source = meta.source
                         version.release_date = meta.release_date
                         version.commit_hash = meta.commit_hash
                     versions.append(version)
-            
+
             return versions
-            
+
         except ImportError:
             # Fallback to original implementation if enhanced parser not available
-            self.logger.warning("Enhanced version parser not available, falling back to changelog parsing")
+            self.logger.warning(
+                "Enhanced version parser not available, falling back to changelog parsing"
+            )
             return self._parse_changelog_versions_fallback()
         except Exception as e:
             self.logger.error(f"Error getting version history: {e}")
@@ -890,9 +929,9 @@ class SemanticVersionManager:
         # Try to get versions from changelog
         changelog_paths = [
             self.project_root / "CHANGELOG.md",
-            self.project_root / "docs" / "CHANGELOG.md"
+            self.project_root / "docs" / "CHANGELOG.md",
         ]
-        
+
         for changelog_path in changelog_paths:
             if changelog_path.exists():
                 versions.extend(self._parse_changelog_versions(changelog_path))

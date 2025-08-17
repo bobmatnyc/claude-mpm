@@ -20,7 +20,7 @@
     "category": "research"
   },
   "capabilities": {
-    "model": "sonnet",
+    "model": "opus",
     "tools": [
       "Read",
       "Grep",

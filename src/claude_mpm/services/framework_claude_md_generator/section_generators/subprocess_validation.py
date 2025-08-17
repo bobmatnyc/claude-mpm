@@ -2,13 +2,14 @@
 Subprocess validation section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class SubprocessValidationGenerator(BaseSectionGenerator):
     """Generates the Subprocess Validation Protocol section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the subprocess validation section."""
         return """
@@ -35,13 +36,13 @@ class SubprocessValidationGenerator(BaseSectionGenerator):
    # MANDATORY: Test actual CLI commands, not just code existence
    claude-pm --version    # Verify actual version numbers
    claude-pm init         # Test real initialization
-   python3 -c "import claude_pm; print(claude_pm.__version__)"  # Verify imports
+   python3 -c "import claude_mpm; print(claude_mpm.__version__)"  # Verify imports
    ```
 
 2. **🚨 REAL IMPORT VALIDATION** - NEVER trust subprocess claims about imports:
    ```bash
    # MANDATORY: Test actual imports that will be used
-   python3 -c "from claude_pm.services.core import unified_core_service"
+   python3 -c "from claude_mpm.services.core import unified_core_service"
    python3 -c "import asyncio; asyncio.run(test_function())"
    ```
 
@@ -96,14 +97,14 @@ claude-pm --version
 claude-pm --help
 
 # Test actual imports
-python3 -c "import claude_pm; print('✅ Basic import works')"
-python3 -c "from claude_pm.services.core import [specific_function]; print('✅ Specific import works')"
+python3 -c "import claude_mpm; print('✅ Basic import works')"
+python3 -c "from claude_mpm.services.core import [specific_function]; print('✅ Specific import works')"
 
 # Test version consistency
 echo "📋 VERSION VERIFICATION:"
 echo "Package.json: $(grep '"version"' package.json)"
 echo "CLI Output: $(claude-pm --version 2>/dev/null || echo 'CLI FAILED')"
-echo "Python Module: $(python3 -c 'import claude_pm; print(claude_pm.__version__)' 2>/dev/null || echo 'IMPORT FAILED')"
+echo "Python Module: $(python3 -c 'import claude_mpm; print(claude_mpm.__version__)' 2>/dev/null || echo 'IMPORT FAILED')"
 
 # If ANY of the above fail, IMMEDIATELY inform user and fix issues
 ```

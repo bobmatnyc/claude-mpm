@@ -7,7 +7,7 @@
 #   make install  - Install claude-mpm globally
 #   make setup    - Complete setup (install + shell config)
 
-.PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation all
+.PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all
 
 # Default shell
 SHELL := /bin/bash
@@ -252,6 +252,86 @@ info: ## Show installation information
 # Development targets
 dev-install: install-dev ## Alias for install-dev
 dev-setup: setup-dev ## Alias for setup-dev
+
+setup-pre-commit: ## Set up pre-commit hooks for code formatting and quality
+	@echo "$(YELLOW)Setting up pre-commit hooks...$(NC)"
+	@if [ -f "scripts/setup_pre_commit.sh" ]; then \
+		./scripts/setup_pre_commit.sh; \
+	else \
+		echo "$(RED)✗ scripts/setup_pre_commit.sh not found$(NC)"; \
+		exit 1; \
+	fi
+
+format: ## Format code with black and isort
+	@echo "$(YELLOW)Formatting code...$(NC)"
+	@if command -v black &> /dev/null; then \
+		black src/ tests/ scripts/ --line-length=88; \
+		echo "$(GREEN)✓ Code formatted with black$(NC)"; \
+	else \
+		echo "$(RED)✗ black not found. Install with: pip install black$(NC)"; \
+	fi
+	@if command -v isort &> /dev/null; then \
+		isort src/ tests/ scripts/ --profile=black --line-length=88; \
+		echo "$(GREEN)✓ Imports sorted with isort$(NC)"; \
+	else \
+		echo "$(RED)✗ isort not found. Install with: pip install isort$(NC)"; \
+	fi
+
+lint: ## Run linting checks
+	@echo "$(YELLOW)Running linting checks...$(NC)"
+	@if command -v flake8 &> /dev/null; then \
+		flake8 src/ --max-line-length=88 --extend-ignore=E203,W503; \
+		echo "$(GREEN)✓ Linting passed$(NC)"; \
+	else \
+		echo "$(RED)✗ flake8 not found. Install with: pip install flake8$(NC)"; \
+	fi
+
+type-check: ## Run type checking with mypy
+	@echo "$(YELLOW)Running type checks...$(NC)"
+	@if command -v mypy &> /dev/null; then \
+		mypy src/ --config-file=mypy.ini; \
+		echo "$(GREEN)✓ Type checking passed$(NC)"; \
+	else \
+		echo "$(RED)✗ mypy not found. Install with: pip install mypy$(NC)"; \
+	fi
+
+pre-commit-run: ## Run pre-commit on all files
+	@echo "$(YELLOW)Running pre-commit on all files...$(NC)"
+	@if command -v pre-commit &> /dev/null; then \
+		pre-commit run --all-files; \
+	else \
+		echo "$(RED)✗ pre-commit not found. Run 'make setup-pre-commit' first$(NC)"; \
+		exit 1; \
+	fi
+
+dev-complete: setup-dev setup-pre-commit ## Complete development setup with pre-commit hooks
+
+deprecation-check: ## Check for obsolete files according to deprecation policy
+	@echo "$(YELLOW)Checking for obsolete files...$(NC)"
+	@if [ -f "scripts/apply_deprecation_policy.py" ]; then \
+		python scripts/apply_deprecation_policy.py --dry-run; \
+	else \
+		echo "$(RED)✗ scripts/apply_deprecation_policy.py not found$(NC)"; \
+		exit 1; \
+	fi
+
+deprecation-apply: ## Apply deprecation policy (remove obsolete files)
+	@echo "$(YELLOW)Applying deprecation policy...$(NC)"
+	@echo "$(RED)⚠️  This will remove obsolete files. Make sure you have a backup!$(NC)"
+	@read -p "Continue? [y/N] " -n 1 -r; \
+	echo ""; \
+	if [[ $$REPLY =~ ^[Yy]$$ ]]; then \
+		if [ -f "scripts/apply_deprecation_policy.py" ]; then \
+			python scripts/apply_deprecation_policy.py; \
+		else \
+			echo "$(RED)✗ scripts/apply_deprecation_policy.py not found$(NC)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(YELLOW)Deprecation policy application cancelled$(NC)"; \
+	fi
+
+cleanup: deprecation-check ## Alias for deprecation-check
 
 # Quick targets
 quick: setup ## Alias for complete setup

@@ -13,14 +13,15 @@ DESIGN DECISION: Creating a minimal stub because:
 - Allows for future extension if needed
 """
 
+import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Any, Dict
-import time
+from typing import Any, Dict, Optional
 
 
 class PersistenceStrategy(Enum):
     """Agent persistence strategies."""
+
     USER_OVERRIDE = "user_override"
     PROJECT_SPECIFIC = "project_specific"
     SYSTEM_DEFAULT = "system_default"
@@ -28,6 +29,7 @@ class PersistenceStrategy(Enum):
 
 class PersistenceOperation(Enum):
     """Persistence operation types."""
+
     CREATE = "create"
     UPDATE = "update"
     DELETE = "delete"
@@ -38,6 +40,7 @@ class PersistenceOperation(Enum):
 @dataclass
 class PersistenceRecord:
     """Record of a persistence operation."""
+
     operation_id: str
     operation_type: PersistenceOperation
     agent_name: str
@@ -54,31 +57,32 @@ class PersistenceRecord:
 class AgentPersistenceService:
     """
     Stub implementation for agent persistence service.
-    
+
     WHY: Maintains compatibility with AgentLifecycleManager while
     actual persistence is delegated to AgentManager.
     """
-    
-    def __init__(self):
-        """Initialize the persistence service."""
-        pass
-    
+
     async def start(self) -> None:
         """Start the persistence service."""
         # No-op for stub
         pass
-    
+
     async def stop(self) -> None:
         """Stop the persistence service."""
         # No-op for stub
         pass
-    
-    async def persist_agent(self, agent_name: str, agent_content: str,
-                           source_tier: Any, target_tier: Optional[Any] = None,
-                           strategy: Optional[PersistenceStrategy] = None) -> PersistenceRecord:
+
+    async def persist_agent(
+        self,
+        agent_name: str,
+        agent_content: str,
+        source_tier: Any,
+        target_tier: Optional[Any] = None,
+        strategy: Optional[PersistenceStrategy] = None,
+    ) -> PersistenceRecord:
         """
         Create a persistence record (actual persistence handled by AgentManager).
-        
+
         WHY: This method exists for API compatibility but doesn't perform
         actual file operations since AgentManager handles that.
         """
@@ -90,5 +94,5 @@ class AgentPersistenceService:
             target_tier=target_tier or source_tier,
             strategy=strategy or PersistenceStrategy.USER_OVERRIDE,
             success=True,
-            timestamp=time.time()
+            timestamp=time.time(),
         )

@@ -14,7 +14,7 @@ Base Agent Loader
 Agent Loader
 ------------
 
-.. automodule:: claude_mpm.agents.agent_loader  
+.. automodule:: claude_mpm.agents.agent_loader
    :members:
    :undoc-members:
    :show-inheritance:

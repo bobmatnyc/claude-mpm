@@ -10,7 +10,7 @@ Service Container
 Service container and dependency injection capabilities are documented in the
 :doc:`../core/container` section.
 
-Configuration Management  
+Configuration Management
 ------------------------
 
 Configuration management services are documented in the

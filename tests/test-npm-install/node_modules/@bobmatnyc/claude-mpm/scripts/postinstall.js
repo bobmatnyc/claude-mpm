@@ -2,7 +2,7 @@
 
 /**
  * Post-install script for @bobmatnyc/claude-mpm npm package
- * 
+ *
  * This is a wrapper that will install the Python package on first run
  */
 

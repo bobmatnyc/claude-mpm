@@ -46,7 +46,7 @@ if [ -f "$DEST_HOOK" ]; then
     head -n 10 "$DEST_HOOK"
     echo ""
     read -p "Do you want to (r)eplace it, (b)ackup and replace, or (c)ancel? [r/b/c]: " choice
-    
+
     case "$choice" in
         r|R)
             echo "Replacing existing hook..."

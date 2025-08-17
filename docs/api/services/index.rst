@@ -1,7 +1,7 @@
 Services API
 ============
 
-The services API provides the service-oriented architecture layer of Claude MPM, 
+The services API provides the service-oriented architecture layer of Claude MPM,
 organized into five specialized service domains:
 
 .. toctree::
@@ -9,14 +9,14 @@ organized into five specialized service domains:
 
    agent_services
    communication
-   infrastructure  
+   infrastructure
    project_services
    core_services
 
 Overview
 --------
 
-The Claude MPM framework is built around a service-oriented architecture with clear 
+The Claude MPM framework is built around a service-oriented architecture with clear
 separation of concerns:
 
 Service Domains
@@ -27,7 +27,7 @@ Agent Services
 Handle agent lifecycle, deployment, and management operations including:
 
 * Agent deployment and validation
-* Agent lifecycle management  
+* Agent lifecycle management
 * Agent versioning and updates
 * Agent registry and discovery
 
@@ -40,7 +40,7 @@ Provide real-time communication capabilities including:
 * Client connection management
 * Dashboard communication
 
-Infrastructure Services  
+Infrastructure Services
 ~~~~~~~~~~~~~~~~~~~~~~~
 Support framework operations with:
 

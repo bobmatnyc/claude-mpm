@@ -2,9 +2,9 @@
 """Debug script to test memory add command"""
 
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
 from pathlib import Path
 
 # Create a temporary test directory
@@ -21,7 +21,7 @@ try:
     project_root = Path(__file__).parent.parent
     mpm_cmd = str(project_root / "claude-mpm")
     print(f"MPM command: {mpm_cmd}")
-    
+
     # Run memory init first
     print("\n=== Running memory init ===")
     init_cmd = [mpm_cmd, "memory", "init"]
@@ -29,7 +29,7 @@ try:
     print(f"Init return code: {init_result.returncode}")
     if init_result.stderr:
         print(f"Init STDERR: {init_result.stderr}")
-    
+
     # Run memory add
     print("\n=== Running memory add ===")
     test_content = "This is a test memory entry"
@@ -39,16 +39,18 @@ try:
     print(f"Add STDOUT: {add_result.stdout}")
     if add_result.stderr:
         print(f"Add STDERR: {add_result.stderr}")
-    
+
     # Run memory status to see what happened
     print("\n=== Running memory status ===")
     status_cmd = [mpm_cmd, "memory", "status"]
-    status_result = subprocess.run(status_cmd, capture_output=True, text=True, timeout=60)
+    status_result = subprocess.run(
+        status_cmd, capture_output=True, text=True, timeout=60
+    )
     print(f"Status return code: {status_result.returncode}")
     print(f"Status STDOUT: {status_result.stdout}")
     if status_result.stderr:
         print(f"Status STDERR: {status_result.stderr}")
-    
+
     # Check directory contents
     print(f"\nContents of test directory {test_dir}:")
     for item in Path(test_dir).iterdir():
@@ -63,9 +65,11 @@ try:
 except Exception as e:
     print(f"Error: {e}")
     import traceback
+
     traceback.print_exc()
 
 finally:
     os.chdir(original_cwd)
     import shutil
+
     shutil.rmtree(test_dir, ignore_errors=True)

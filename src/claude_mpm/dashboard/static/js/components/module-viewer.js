@@ -10,7 +10,7 @@ class ModuleViewer {
         this.jsonContainer = null;
         this.currentEvent = null;
         this.eventsByClass = new Map();
-        
+
         this.init();
     }
 
@@ -29,7 +29,7 @@ class ModuleViewer {
     setupContainers() {
         this.dataContainer = document.getElementById('module-data-content');
         this.jsonContainer = null; // No longer used - JSON is handled via collapsible sections
-        
+
         if (!this.dataContainer) {
             console.error('Module viewer data container not found');
         }
@@ -67,9 +67,9 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         // JSON container no longer exists - handled via collapsible sections
-        
+
         this.currentEvent = null;
     }
 
@@ -79,10 +79,10 @@ class ModuleViewer {
      */
     showEventDetails(event) {
         this.currentEvent = event;
-        
+
         // Render structured data in top pane
         this.renderStructuredData(event);
-        
+
         // Render JSON in bottom pane
         this.renderJsonData(event);
     }
@@ -93,19 +93,19 @@ class ModuleViewer {
      */
     renderStructuredData(event) {
         if (!this.dataContainer) return;
-        
+
         // Create contextual header
         const contextualHeader = this.createContextualHeader(event);
-        
+
         // Create structured view based on event type
         const structuredView = this.createEventStructuredView(event);
-        
+
         // Create collapsible JSON section
         const collapsibleJsonSection = this.createCollapsibleJsonSection(event);
-        
+
         // Combine all sections in data container
         this.dataContainer.innerHTML = contextualHeader + structuredView + collapsibleJsonSection;
-        
+
         // Initialize JSON toggle functionality
         this.initializeJsonToggle();
     }
@@ -147,7 +147,7 @@ class ModuleViewer {
      */
     updateEventsByClass(events) {
         this.eventsByClass.clear();
-        
+
         events.forEach(event => {
             const eventClass = this.getEventClass(event);
             if (!this.eventsByClass.has(eventClass)) {
@@ -164,7 +164,7 @@ class ModuleViewer {
      */
     getEventClass(event) {
         if (!event.type) return 'unknown';
-        
+
         // Group similar event types
         switch (event.type) {
             case 'session':
@@ -197,7 +197,7 @@ class ModuleViewer {
         const timestamp = this.formatTimestamp(event.timestamp);
         const data = event.data || {};
         let headerText = '';
-        
+
         // Determine header text based on event type
         switch (event.type) {
             case 'hook':
@@ -211,25 +211,25 @@ class ModuleViewer {
                     headerText = `${hookName}: ${agent} ${timestamp}`;
                 }
                 break;
-                
+
             case 'agent':
                 // For Agents: "Agent: [AgentType] [time]"
                 const agentType = data.agent_type || data.name || 'Unknown';
                 headerText = `Agent: ${agentType} ${timestamp}`;
                 break;
-                
+
             case 'todo':
                 // For TodoWrite: "TodoWrite: [Agent] [time]"
                 const todoAgent = this.extractAgent(event) || 'PM';
                 headerText = `TodoWrite: ${todoAgent} ${timestamp}`;
                 break;
-                
+
             case 'memory':
                 // For Memory: "Memory: [Operation] [time]"
                 const operation = data.operation || 'Unknown';
                 headerText = `Memory: ${operation} ${timestamp}`;
                 break;
-                
+
             case 'session':
             case 'claude':
             case 'log':
@@ -239,7 +239,7 @@ class ModuleViewer {
                 const subtype = event.subtype || 'default';
                 headerText = `Event: ${eventType}.${subtype} ${timestamp}`;
                 break;
-                
+
             default:
                 // For Files and other events: "File: [filename] [time]" or generic
                 const fileName = this.extractFileName(data);
@@ -252,7 +252,7 @@ class ModuleViewer {
                 }
                 break;
         }
-        
+
         return `
             <div class="contextual-header">
                 <h3 class="contextual-header-text">${headerText}</h3>
@@ -316,7 +316,7 @@ class ModuleViewer {
     createEventDetailCard(eventType, event, count) {
         const timestamp = new Date(event.timestamp).toLocaleString();
         const eventIcon = this.getEventIcon(eventType);
-        
+
         return `
             <div class="event-detail-card">
                 <div class="event-detail-header">
@@ -329,7 +329,7 @@ class ModuleViewer {
                     ${this.createProperty('Event ID', event.id || 'N/A')}
                     ${this.createProperty('Type', `${eventType}.${event.subtype || 'default'}`)}
                     ${this.createProperty('Class Events', count)}
-                    ${event.data && event.data.session_id ? 
+                    ${event.data && event.data.session_id ?
                         this.createProperty('Session', event.data.session_id) : ''}
                 </div>
             </div>
@@ -341,7 +341,7 @@ class ModuleViewer {
      */
     createAgentStructuredView(event) {
         const data = event.data || {};
-        
+
         // Handle Task delegation events (which appear as hook events but contain agent info)
         if (event.type === 'hook' && data.tool_name === 'Task' && data.tool_parameters?.subagent_type) {
             const taskData = data.tool_parameters;
@@ -371,7 +371,7 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         // Handle regular agent events
         return `
             <div class="structured-view-section">
@@ -392,17 +392,17 @@ class ModuleViewer {
      */
     createHookStructuredView(event) {
         const data = event.data || {};
-        
+
         // Extract file path information from tool parameters
         const filePath = this.extractFilePathFromHook(data);
         const toolInfo = this.extractToolInfoFromHook(data);
-        
+
         // Note: Git diff functionality moved to Files tab only
         // Events tab no longer shows git diff buttons
 
         // Create inline tool result content if available (without separate section header)
         const toolResultContent = this.createInlineToolResultContent(data, event);
-        
+
         return `
             <div class="structured-view-section">
                 <div class="structured-data">
@@ -428,12 +428,12 @@ class ModuleViewer {
      */
     createInlineToolResultContent(data, event = null) {
         const resultSummary = data.result_summary;
-        
+
         // Determine if this is a post-tool event
         // Check multiple possible locations for the event phase
         const eventPhase = event?.subtype || data.event_type || data.phase;
         const isPostTool = eventPhase === 'post_tool' || eventPhase?.includes('post');
-        
+
         // Debug logging to help troubleshoot tool result display issues
         if (window.DEBUG_TOOL_RESULTS) {
             console.log('🔧 createInlineToolResultContent debug:', {
@@ -447,20 +447,20 @@ class ModuleViewer {
                 resultSummaryKeys: resultSummary ? Object.keys(resultSummary) : []
             });
         }
-        
+
         // Only show results if we have result data and this is a post-tool event
         // OR if we have result_summary regardless of phase (some events may not have proper phase info)
         if (!resultSummary) {
             return '';
         }
-        
+
         // If we know this is a pre-tool event, don't show results
         if (eventPhase === 'pre_tool' || (eventPhase?.includes('pre') && !eventPhase?.includes('post'))) {
             return '';
         }
-        
+
         let resultContent = '';
-        
+
         // Add output preview if available
         if (resultSummary.has_output && resultSummary.output_preview) {
             resultContent += `
@@ -468,14 +468,14 @@ class ModuleViewer {
                 ${resultSummary.output_lines ? this.createProperty('Output Lines', resultSummary.output_lines) : ''}
             `;
         }
-        
+
         // Add error preview if available
         if (resultSummary.has_error && resultSummary.error_preview) {
             resultContent += `
                 ${this.createProperty('Error', this.truncateText(resultSummary.error_preview, 200))}
             `;
         }
-        
+
         // If no specific output or error, but we have other result info
         if (!resultSummary.has_output && !resultSummary.has_error && Object.keys(resultSummary).length > 3) {
             // Show other result fields
@@ -483,10 +483,10 @@ class ModuleViewer {
                 .filter(([key, value]) => !['has_output', 'has_error', 'exit_code'].includes(key) && value !== undefined)
                 .map(([key, value]) => this.createProperty(this.formatFieldName(key), String(value)))
                 .join('');
-            
+
             resultContent += otherFields;
         }
-        
+
         return resultContent;
     }
 
@@ -498,12 +498,12 @@ class ModuleViewer {
      */
     createToolResultSection(data, event = null) {
         const resultSummary = data.result_summary;
-        
+
         // Determine if this is a post-tool event
         // Check multiple possible locations for the event phase
         const eventPhase = event?.subtype || data.event_type || data.phase;
         const isPostTool = eventPhase === 'post_tool' || eventPhase?.includes('post');
-        
+
         // Debug logging to help troubleshoot tool result display issues
         if (window.DEBUG_TOOL_RESULTS) {
             console.log('🔧 createToolResultSection debug:', {
@@ -517,23 +517,23 @@ class ModuleViewer {
                 resultSummaryKeys: resultSummary ? Object.keys(resultSummary) : []
             });
         }
-        
+
         // Only show results if we have result data and this is a post-tool event
         // OR if we have result_summary regardless of phase (some events may not have proper phase info)
         if (!resultSummary) {
             return '';
         }
-        
+
         // If we know this is a pre-tool event, don't show results
         if (eventPhase === 'pre_tool' || (eventPhase?.includes('pre') && !eventPhase?.includes('post'))) {
             return '';
         }
-        
+
         // Determine result status and icon
         let statusIcon = '⏳';
         let statusClass = 'tool-running';
         let statusText = 'Unknown';
-        
+
         if (data.success === true) {
             statusIcon = '✅';
             statusClass = 'tool-success';
@@ -555,9 +555,9 @@ class ModuleViewer {
             statusClass = 'tool-failure';
             statusText = 'Error';
         }
-        
+
         let resultContent = '';
-        
+
         // Add basic result info
         resultContent += `
             <div class="tool-result-status ${statusClass}">
@@ -566,7 +566,7 @@ class ModuleViewer {
                 ${data.exit_code !== undefined ? `<span class="tool-exit-code">Exit Code: ${data.exit_code}</span>` : ''}
             </div>
         `;
-        
+
         // Add output preview if available
         if (resultSummary.has_output && resultSummary.output_preview) {
             resultContent += `
@@ -579,7 +579,7 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         // Add error preview if available
         if (resultSummary.has_error && resultSummary.error_preview) {
             resultContent += `
@@ -591,7 +591,7 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         // If no specific output or error, but we have other result info
         if (!resultSummary.has_output && !resultSummary.has_error && Object.keys(resultSummary).length > 3) {
             // Show other result fields
@@ -599,7 +599,7 @@ class ModuleViewer {
                 .filter(([key, value]) => !['has_output', 'has_error', 'exit_code'].includes(key) && value !== undefined)
                 .map(([key, value]) => this.createProperty(this.formatFieldName(key), String(value)))
                 .join('');
-            
+
             if (otherFields) {
                 resultContent += `
                     <div class="tool-result-other">
@@ -611,12 +611,12 @@ class ModuleViewer {
                 `;
             }
         }
-        
+
         // Only return content if we have something to show
         if (!resultContent.trim()) {
             return '';
         }
-        
+
         return `
             <div class="tool-result-section">
                 <div class="contextual-header">
@@ -639,30 +639,30 @@ class ModuleViewer {
         // Common write operation tool names
         const writeTools = [
             'Write',
-            'Edit', 
+            'Edit',
             'MultiEdit',
             'NotebookEdit'
         ];
-        
+
         if (writeTools.includes(toolName)) {
             return true;
         }
-        
+
         // Check for write-related parameters in the data
         if (data.tool_parameters) {
             const params = data.tool_parameters;
-            
+
             // Check for content or editing parameters
             if (params.content || params.new_string || params.edits) {
                 return true;
             }
-            
+
             // Check for file modification indicators
             if (params.edit_mode && params.edit_mode !== 'read') {
                 return true;
             }
         }
-        
+
         // Check event subtype for write operations
         if (data.event_type === 'post_tool' || data.event_type === 'pre_tool') {
             // Additional heuristics based on tool usage patterns
@@ -674,7 +674,7 @@ class ModuleViewer {
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -685,22 +685,22 @@ class ModuleViewer {
      */
     isReadOnlyOperation(operation) {
         if (!operation) return true; // Default to read-only for safety
-        
+
         const readOnlyOperations = ['read'];
         const editOperations = ['write', 'edit', 'multiedit', 'create', 'delete', 'move', 'copy'];
-        
+
         const opLower = operation.toLowerCase();
-        
+
         // Explicitly read-only operations
         if (readOnlyOperations.includes(opLower)) {
             return true;
         }
-        
+
         // Explicitly edit operations
         if (editOperations.includes(opLower)) {
             return false;
         }
-        
+
         // Default to read-only for unknown operations
         return true;
     }
@@ -710,7 +710,7 @@ class ModuleViewer {
      */
     createTodoStructuredView(event) {
         const data = event.data || {};
-        
+
         let content = '';
 
         // Add todo checklist if available - start directly with checklist
@@ -736,7 +736,7 @@ class ModuleViewer {
      */
     createMemoryStructuredView(event) {
         const data = event.data || {};
-        
+
         return `
             <div class="structured-view-section">
                 <div class="structured-data">
@@ -755,7 +755,7 @@ class ModuleViewer {
      */
     createClaudeStructuredView(event) {
         const data = event.data || {};
-        
+
         return `
             <div class="structured-view-section">
                 <div class="structured-data">
@@ -776,7 +776,7 @@ class ModuleViewer {
      */
     createSessionStructuredView(event) {
         const data = event.data || {};
-        
+
         return `
             <div class="structured-view-section">
                 <div class="structured-data">
@@ -796,16 +796,16 @@ class ModuleViewer {
     createGenericStructuredView(event) {
         const data = event.data || {};
         const keys = Object.keys(data);
-        
+
         if (keys.length === 0) {
             return '';
         }
-        
+
         return `
             <div class="structured-view-section">
                 <div class="structured-data">
-                    ${keys.map(key => 
-                        this.createProperty(key, typeof data[key] === 'object' ? 
+                    ${keys.map(key =>
+                        this.createProperty(key, typeof data[key] === 'object' ?
                             '[Object]' : String(data[key]))
                     ).join('')}
                 </div>
@@ -823,10 +823,10 @@ class ModuleViewer {
         const jsonString = this.formatJSON(event);
         return `
             <div class="collapsible-json-section" id="${uniqueId}">
-                <div class="json-toggle-header" 
-                     onclick="window.moduleViewer.toggleJsonSection()" 
-                     role="button" 
-                     tabindex="0" 
+                <div class="json-toggle-header"
+                     onclick="window.moduleViewer.toggleJsonSection()"
+                     role="button"
+                     tabindex="0"
                      aria-expanded="false"
                      onkeydown="if(event.key==='Enter'||event.key===' '){window.moduleViewer.toggleJsonSection();event.preventDefault();}">
                     <span class="json-toggle-text">Raw JSON</span>
@@ -850,7 +850,7 @@ class ModuleViewer {
         const rect = event.currentTarget.getBoundingClientRect();
         const clickX = event.clientX - rect.left;
         const clickY = event.clientY - rect.top;
-        
+
         // Check if click is in the top-right corner (copy icon area)
         if (clickX > rect.width - 50 && clickY < 30) {
             const preElement = event.currentTarget.querySelector('pre');
@@ -873,7 +873,7 @@ class ModuleViewer {
     initializeJsonToggle() {
         // Make sure the moduleViewer is available globally for onclick handlers
         window.moduleViewer = this;
-        
+
         // Add keyboard navigation support
         document.addEventListener('keydown', (e) => {
             if (e.target.classList.contains('json-toggle-header')) {
@@ -892,17 +892,17 @@ class ModuleViewer {
         const jsonContent = document.querySelector('.json-content-collapsible');
         const arrow = document.querySelector('.json-toggle-arrow');
         const toggleHeader = document.querySelector('.json-toggle-header');
-        
+
         if (!jsonContent || !arrow) return;
-        
+
         const isHidden = jsonContent.style.display === 'none' || !jsonContent.style.display;
-        
+
         if (isHidden) {
             // Show JSON content
             jsonContent.style.display = 'block';
             arrow.textContent = '▲';
             toggleHeader.setAttribute('aria-expanded', 'true');
-            
+
             // Scroll the new content into view if needed
             setTimeout(() => {
                 jsonContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -920,7 +920,7 @@ class ModuleViewer {
      */
     createProperty(key, value) {
         const displayValue = this.truncateText(String(value), 300);
-        
+
         // Check if this is a file path property that should be clickable
         if (this.isFilePathProperty(key, value)) {
             return `
@@ -932,7 +932,7 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         return `
             <div class="event-property">
                 <span class="event-property-key">${key}:</span>
@@ -956,16 +956,16 @@ class ModuleViewer {
             'Working Directory',
             'working_directory'
         ];
-        
+
         // Check if key indicates a file path
         if (filePathKeys.some(pathKey => key.toLowerCase().includes(pathKey.toLowerCase()))) {
             // Ensure value looks like a file path (contains / or \\ and has reasonable length)
             const strValue = String(value);
-            return strValue.length > 0 && 
+            return strValue.length > 0 &&
                    (strValue.includes('/') || strValue.includes('\\')) &&
                    strValue.length < 500; // Reasonable path length limit
         }
-        
+
         return false;
     }
 
@@ -977,9 +977,9 @@ class ModuleViewer {
     createClickableFilePath(filePath) {
         const displayPath = this.truncateText(String(filePath), 300);
         const escapedPath = filePath.replace(/'/g, "\\'");
-        
+
         return `
-            <span class="clickable-file-path" 
+            <span class="clickable-file-path"
                   onclick="showFileViewerModal('${escapedPath}')"
                   title="Click to view file contents with syntax highlighting&#10;Path: ${filePath}">
                 ${displayPath}
@@ -1037,24 +1037,24 @@ class ModuleViewer {
         // First check if there's a specific hook name in the data
         if (data.hook_name) return data.hook_name;
         if (data.name) return data.name;
-        
+
         // Use event.subtype or data.event_type to determine hook name
         const eventType = event.subtype || data.event_type;
-        
+
         // Map hook event types to meaningful display names
         const hookNames = {
             'user_prompt': 'User Prompt',
             'pre_tool': 'Tool Execution (Pre)',
-            'post_tool': 'Tool Execution (Post)', 
+            'post_tool': 'Tool Execution (Post)',
             'notification': 'Notification',
             'stop': 'Session Stop',
             'subagent_stop': 'Subagent Stop'
         };
-        
+
         if (hookNames[eventType]) {
             return hookNames[eventType];
         }
-        
+
         // If it's a compound event type like "hook.user_prompt", extract the part after "hook."
         if (typeof event.type === 'string' && event.type.startsWith('hook.')) {
             const hookType = event.type.replace('hook.', '');
@@ -1062,14 +1062,14 @@ class ModuleViewer {
                 return hookNames[hookType];
             }
         }
-        
+
         // Fallback to formatting the event type nicely
         if (eventType) {
             return eventType.split('_')
                 .map(word => word.charAt(0).toUpperCase() + word.slice(1))
                 .join(' ');
         }
-        
+
         return 'Unknown Hook';
     }
 
@@ -1081,22 +1081,22 @@ class ModuleViewer {
         if (data.tool_parameters && data.tool_parameters.file_path) {
             return data.tool_parameters.file_path;
         }
-        
+
         // Check direct file_path field
         if (data.file_path) {
             return data.file_path;
         }
-        
+
         // Check nested in other common locations
         if (data.tool_input && data.tool_input.file_path) {
             return data.tool_input.file_path;
         }
-        
+
         // Check for notebook path (alternative field name)
         if (data.tool_parameters && data.tool_parameters.notebook_path) {
             return data.tool_parameters.notebook_path;
         }
-        
+
         return null;
     }
 
@@ -1136,7 +1136,7 @@ class ModuleViewer {
      */
     formatTimestamp(timestamp) {
         if (!timestamp) return 'Unknown time';
-        
+
         try {
             const date = new Date(timestamp);
             return date.toLocaleTimeString('en-US', {
@@ -1184,7 +1184,7 @@ class ModuleViewer {
         if (data.tool_name) return data.tool_name;
         if (data.tool_parameters && data.tool_parameters.tool_name) return data.tool_parameters.tool_name;
         if (data.tool_input && data.tool_input.tool_name) return data.tool_input.tool_name;
-        
+
         // Try to infer from other fields
         if (data.tool_parameters) {
             // Common tool patterns
@@ -1201,7 +1201,7 @@ class ModuleViewer {
                 return 'TodoWrite';
             }
         }
-        
+
         return null;
     }
 
@@ -1215,17 +1215,17 @@ class ModuleViewer {
         if (data._agentName && data._agentName !== 'Unknown Agent') {
             return data._agentName;
         }
-        
+
         // Check inference data if available
         if (data._inference && data._inference.agentName && data._inference.agentName !== 'Unknown') {
             return data._inference.agentName;
         }
-        
+
         // Check various locations where agent info might be stored
         if (data.agent) return data.agent;
         if (data.agent_type) return data.agent_type;
         if (data.agent_name) return data.agent_name;
-        
+
         // Check session data
         if (data.session_id && typeof data.session_id === 'string') {
             // Extract agent from session ID if it contains agent info
@@ -1234,11 +1234,11 @@ class ModuleViewer {
                 return sessionParts[0].toUpperCase();
             }
         }
-        
+
         // Infer from context
         if (data.todos) return 'PM'; // TodoWrite typically from PM agent
         if (data.tool_name === 'TodoWrite') return 'PM';
-        
+
         return null;
     }
 
@@ -1254,11 +1254,11 @@ class ModuleViewer {
             const pathParts = filePath.split('/');
             return pathParts[pathParts.length - 1];
         }
-        
+
         // Check other common file fields
         if (data.filename) return data.filename;
         if (data.file) return data.file;
-        
+
         return null;
     }
 
@@ -1287,20 +1287,20 @@ class ModuleViewer {
         // Extract information from pre and post events
         const preEvent = toolCall.pre_event;
         const postEvent = toolCall.post_event;
-        
+
         // Get parameters from pre-event
         const parameters = preEvent?.tool_parameters || {};
         const target = preEvent ? this.extractToolTarget(toolName, parameters) : 'Unknown target';
-        
+
         // Get execution results from post-event
         const duration = toolCall.duration_ms ? `${toolCall.duration_ms}ms` : '-';
         const success = toolCall.success !== undefined ? toolCall.success : null;
         const exitCode = toolCall.exit_code !== undefined ? toolCall.exit_code : null;
-        
+
         // Format result summary
         let resultSummary = toolCall.result_summary || 'No summary available';
         let formattedResultSummary = '';
-        
+
         if (typeof resultSummary === 'object' && resultSummary !== null) {
             const parts = [];
             if (resultSummary.exit_code !== undefined) {
@@ -1330,7 +1330,7 @@ class ModuleViewer {
         let statusIcon = '⏳';
         let statusText = 'Running...';
         let statusClass = 'tool-running';
-        
+
         if (postEvent) {
             if (success === true) {
                 statusIcon = '✅';
@@ -1361,7 +1361,7 @@ class ModuleViewer {
                     ${parameters.todos.map(todo => {
                         const statusIcon = this.getTodoStatusIcon(todo.status);
                         const priorityIcon = this.getTodoPriorityIcon(todo.priority);
-                        
+
                         return `
                             <div class="todo-item todo-${todo.status || 'pending'}">
                                 <span class="todo-status">${statusIcon}</span>
@@ -1372,7 +1372,7 @@ class ModuleViewer {
                     }).join('')}
                 </div>
             `;
-            
+
             // Create collapsible JSON section
             const toolCallData = {
                 toolCall: toolCall,
@@ -1380,11 +1380,11 @@ class ModuleViewer {
                 postEvent: postEvent
             };
             const collapsibleJsonSection = this.createCollapsibleJsonSection(toolCallData);
-            
+
             if (this.dataContainer) {
                 this.dataContainer.innerHTML = contextualHeader + todoContent + collapsibleJsonSection;
             }
-            
+
             // Initialize JSON toggle functionality
             this.initializeJsonToggle();
         } else {
@@ -1419,12 +1419,12 @@ class ModuleViewer {
                                 </div>
                             ` : ''}
                         </div>
-                        
+
                         ${this.createToolResultFromToolCall(toolCall)}
                     </div>
                 </div>
             `;
-            
+
             // Create collapsible JSON section
             const toolCallData = {
                 toolCall: toolCall,
@@ -1432,11 +1432,11 @@ class ModuleViewer {
                 postEvent: postEvent
             };
             const collapsibleJsonSection = this.createCollapsibleJsonSection(toolCallData);
-            
+
             if (this.dataContainer) {
                 this.dataContainer.innerHTML = contextualHeader + content + collapsibleJsonSection;
             }
-            
+
             // Initialize JSON toggle functionality
             this.initializeJsonToggle();
         }
@@ -1461,7 +1461,7 @@ class ModuleViewer {
         const operations = fileData.operations || [];
         const lastOp = operations[operations.length - 1];
         const headerTimestamp = lastOp ? this.formatTimestamp(lastOp.timestamp) : '';
-        
+
         // Create contextual header
         const contextualHeader = `
             <div class="contextual-header">
@@ -1487,7 +1487,7 @@ class ModuleViewer {
                                     <span class="operation-timestamp">${new Date(op.timestamp).toLocaleString()}</span>
                                     ${this.isReadOnlyOperation(op.operation) ? `
                                         <!-- Read-only operation: show only file viewer -->
-                                        <span class="file-viewer-icon" 
+                                        <span class="file-viewer-icon"
                                               onclick="showFileViewerModal('${filePath}')"
                                               title="View file contents with syntax highlighting"
                                               style="margin-left: 8px; cursor: pointer; font-size: 16px;">
@@ -1495,13 +1495,13 @@ class ModuleViewer {
                                         </span>
                                     ` : `
                                         <!-- Edit operation: show both file viewer and git diff -->
-                                        <span class="file-viewer-icon" 
+                                        <span class="file-viewer-icon"
                                               onclick="showFileViewerModal('${filePath}')"
                                               title="View file contents with syntax highlighting"
                                               style="margin-left: 8px; cursor: pointer; font-size: 16px;">
                                             👁️
                                         </span>
-                                        <span class="git-diff-icon" 
+                                        <span class="git-diff-icon"
                                               onclick="showGitDiffModal('${filePath}', '${op.timestamp}')"
                                               title="View git diff for this file operation"
                                               style="margin-left: 8px; cursor: pointer; font-size: 16px; display: none;"
@@ -1525,21 +1525,21 @@ class ModuleViewer {
 
         // Check git tracking status and show track control if needed
         this.checkAndShowTrackControl(filePath);
-        
+
         // Check git status and conditionally show git diff icons
         this.checkAndShowGitDiffIcons(filePath);
 
         // Create collapsible JSON section for file data
         const collapsibleJsonSection = this.createCollapsibleJsonSection(fileData);
-        
+
         // Show structured data with JSON section in data pane
         if (this.dataContainer) {
             this.dataContainer.innerHTML = contextualHeader + content + collapsibleJsonSection;
         }
-        
+
         // Initialize JSON toggle functionality
         this.initializeJsonToggle();
-        
+
         // Hide JSON pane since data is integrated above
         // JSON container no longer exists - handled via collapsible sections
     }
@@ -1560,18 +1560,18 @@ class ModuleViewer {
                 </div>
             </div>
         `;
-        
+
         // Create collapsible JSON section for error data
         const errorData = { title, message };
         const collapsibleJsonSection = this.createCollapsibleJsonSection(errorData);
-        
+
         if (this.dataContainer) {
             this.dataContainer.innerHTML = content + collapsibleJsonSection;
         }
-        
+
         // Initialize JSON toggle functionality
         this.initializeJsonToggle();
-        
+
         // JSON container no longer exists - handled via collapsible sections
     }
 
@@ -1599,7 +1599,7 @@ class ModuleViewer {
         // Get agent inference to determine which agent this is
         const agentInference = window.dashboard?.agentInference;
         const eventViewer = window.dashboard?.eventViewer;
-        
+
         if (!agentInference || !eventViewer) {
             console.warn('AgentInference or EventViewer not available, falling back to single event view');
             this.showEventDetails(event);
@@ -1608,16 +1608,16 @@ class ModuleViewer {
 
         const inference = agentInference.getInferredAgentForEvent(event);
         const agentName = inference?.agentName || this.extractAgent(event) || 'Unknown';
-        
+
         // Get all events from this agent
         const allEvents = eventViewer.events || [];
         const agentEvents = this.getAgentSpecificEvents(allEvents, agentName, agentInference);
-        
+
         console.log(`Showing details for agent: ${agentName}, found ${agentEvents.length} related events`);
-        
+
         // Extract agent-specific data
         const agentData = this.extractAgentSpecificData(agentName, agentEvents);
-        
+
         // Render agent-specific view
         this.renderAgentSpecificView(agentName, agentData, event);
     }
@@ -1634,7 +1634,7 @@ class ModuleViewer {
             // Use agent inference to determine if this event belongs to the agent
             const inference = agentInference.getInferredAgentForEvent(event);
             const eventAgentName = inference?.agentName || this.extractAgent(event) || 'Unknown';
-            
+
             // Match agent names (case insensitive)
             return eventAgentName.toLowerCase() === agentName.toLowerCase();
         });
@@ -1662,7 +1662,7 @@ class ModuleViewer {
         agentEvents.forEach(event => {
             const eventData = event.data || {};
             const timestamp = new Date(event.timestamp);
-            
+
             // Track timing
             if (!data.firstSeen || timestamp < data.firstSeen) {
                 data.firstSeen = timestamp;
@@ -1670,16 +1670,16 @@ class ModuleViewer {
             if (!data.lastSeen || timestamp > data.lastSeen) {
                 data.lastSeen = timestamp;
             }
-            
+
             // Track sessions
             if (event.session_id || eventData.session_id) {
                 data.sessions.add(event.session_id || eventData.session_id);
             }
-            
+
             // Track event types
             const eventType = event.hook_event_name || event.type || 'unknown';
             data.eventTypes.add(eventType);
-            
+
             // Extract prompt from Task delegation events
             if (event.type === 'hook' && eventData.tool_name === 'Task' && eventData.tool_parameters) {
                 const taskParams = eventData.tool_parameters;
@@ -1694,12 +1694,12 @@ class ModuleViewer {
                     data.prompt = taskParams.prompt;
                 }
             }
-            
+
             // Also check for agent-specific prompts in other event types
             if (eventData.prompt && (eventData.agent_type === agentName || eventData.subagent_type === agentName)) {
                 data.prompt = eventData.prompt;
             }
-            
+
             // Extract todos from TodoWrite events
             if (event.type === 'todo' || (event.type === 'hook' && eventData.tool_name === 'TodoWrite')) {
                 const todos = eventData.todos || eventData.tool_parameters?.todos;
@@ -1717,12 +1717,12 @@ class ModuleViewer {
                     });
                 }
             }
-            
+
             // Extract tool calls - collect pre and post events separately first
             if (event.type === 'hook' && eventData.tool_name) {
                 const phase = event.subtype || eventData.event_type;
                 const toolCallId = this.generateToolCallId(eventData.tool_name, eventData.tool_parameters, timestamp);
-                
+
                 if (phase === 'pre_tool') {
                     // Store pre-tool event data
                     if (!data._preToolEvents) data._preToolEvents = new Map();
@@ -1746,20 +1746,20 @@ class ModuleViewer {
                 }
             }
         });
-        
+
         // Sort todos by timestamp (most recent first)
         data.todos.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-        
+
         // Consolidate pre and post tool events into single tool calls
         data.toolsCalled = this.consolidateToolCalls(data._preToolEvents, data._postToolEvents);
-        
+
         // Clean up temporary data
         delete data._preToolEvents;
         delete data._postToolEvents;
-        
+
         // Sort tools by timestamp (most recent first)
         data.toolsCalled.sort((a, b) => b.timestamp - a.timestamp);
-        
+
         return data;
     }
 
@@ -1774,7 +1774,7 @@ class ModuleViewer {
         // Create a unique identifier based on tool name, key parameters, and approximate timestamp
         // Use a wider time window to account for timing differences between pre/post events
         const timeWindow = Math.floor(timestamp.getTime() / 5000); // Group by 5-second windows
-        
+
         // Include key parameters that uniquely identify a tool call
         let paramKey = '';
         if (parameters) {
@@ -1787,15 +1787,15 @@ class ModuleViewer {
             if (parameters.notebook_path) keyParams.push(parameters.notebook_path);
             if (parameters.url) keyParams.push(parameters.url);
             if (parameters.prompt) keyParams.push(parameters.prompt.substring(0, 30));
-            
+
             paramKey = keyParams.join('|');
         }
-        
+
         // If no specific parameters, use just tool name and time window
         if (!paramKey) {
             paramKey = 'default';
         }
-        
+
         return `${toolName}:${timeWindow}:${paramKey}`;
     }
 
@@ -1808,16 +1808,16 @@ class ModuleViewer {
     consolidateToolCalls(preToolEvents, postToolEvents) {
         const consolidatedCalls = [];
         const processedIds = new Set();
-        
+
         if (!preToolEvents) preToolEvents = new Map();
         if (!postToolEvents) postToolEvents = new Map();
-        
+
         // Process all pre-tool events first
         for (const [toolCallId, preEvent] of preToolEvents) {
             if (processedIds.has(toolCallId)) continue;
-            
+
             const postEvent = postToolEvents.get(toolCallId);
-            
+
             // Create consolidated tool call
             const consolidatedCall = {
                 toolName: preEvent.toolName,
@@ -1828,7 +1828,7 @@ class ModuleViewer {
                 statusIcon: this.getToolCallStatusIcon(preEvent, postEvent),
                 phase: postEvent ? 'completed' : 'running'
             };
-            
+
             // Add post-event data if available
             if (postEvent) {
                 consolidatedCall.success = postEvent.success;
@@ -1837,15 +1837,15 @@ class ModuleViewer {
                 consolidatedCall.exitCode = postEvent.exitCode;
                 consolidatedCall.completedAt = postEvent.timestamp;
             }
-            
+
             consolidatedCalls.push(consolidatedCall);
             processedIds.add(toolCallId);
         }
-        
+
         // Process any post-tool events that don't have matching pre-tool events (edge case)
         for (const [toolCallId, postEvent] of postToolEvents) {
             if (processedIds.has(toolCallId)) continue;
-            
+
             // This is a post-tool event without a corresponding pre-tool event
             const consolidatedCall = {
                 toolName: postEvent.toolName,
@@ -1861,11 +1861,11 @@ class ModuleViewer {
                 exitCode: postEvent.exitCode,
                 completedAt: postEvent.timestamp
             };
-            
+
             consolidatedCalls.push(consolidatedCall);
             processedIds.add(toolCallId);
         }
-        
+
         return consolidatedCalls;
     }
 
@@ -1879,7 +1879,7 @@ class ModuleViewer {
         if (!postEvent) {
             return 'Running...';
         }
-        
+
         if (postEvent.success === true) {
             return 'Success';
         } else if (postEvent.success === false) {
@@ -1891,7 +1891,7 @@ class ModuleViewer {
         } else if (postEvent.exitCode !== undefined && postEvent.exitCode !== 0) {
             return 'Error';
         }
-        
+
         return 'Completed';
     }
 
@@ -1905,7 +1905,7 @@ class ModuleViewer {
         if (!postEvent) {
             return '⏳'; // Still running
         }
-        
+
         if (postEvent.success === true) {
             return '✅'; // Success
         } else if (postEvent.success === false) {
@@ -1917,7 +1917,7 @@ class ModuleViewer {
         } else if (postEvent.exitCode !== undefined && postEvent.exitCode !== 0) {
             return '❌'; // Error
         }
-        
+
         return '✅'; // Default to success for completed calls
     }
 
@@ -1928,12 +1928,12 @@ class ModuleViewer {
      */
     estimateTokenCount(text) {
         if (!text || typeof text !== 'string') return 0;
-        
+
         // Simple token estimation: words * 1.3 (accounts for subwords)
         // Alternative: characters / 4 (common rule of thumb)
         const wordCount = text.trim().split(/\s+/).length;
         const charBasedEstimate = Math.ceil(text.length / 4);
-        
+
         // Use the higher of the two estimates for safety
         return Math.max(wordCount * 1.3, charBasedEstimate);
     }
@@ -1945,19 +1945,19 @@ class ModuleViewer {
      */
     trimPromptWhitespace(text) {
         if (!text || typeof text !== 'string') return '';
-        
+
         // Remove leading/trailing whitespace from the entire text
         text = text.trim();
-        
+
         // Reduce multiple consecutive newlines to maximum of 2
         text = text.replace(/\n\s*\n\s*\n+/g, '\n\n');
-        
+
         // Trim whitespace from each line while preserving intentional indentation
         text = text.split('\n').map(line => {
             // Only trim trailing whitespace, preserve leading whitespace for structure
             return line.replace(/\s+$/, '');
         }).join('\n');
-        
+
         return text;
     }
 
@@ -1995,7 +1995,7 @@ class ModuleViewer {
             const trimmedPrompt = this.trimPromptWhitespace(agentData.prompt);
             const tokenCount = Math.round(this.estimateTokenCount(trimmedPrompt));
             const wordCount = trimmedPrompt.trim().split(/\s+/).length;
-            
+
             content += `
                 <div class="agent-prompt-section">
                     <div class="contextual-header">
@@ -2049,7 +2049,7 @@ class ModuleViewer {
                             else if (tool.statusIcon === '❌') statusClass = 'status-failed';
                             else if (tool.statusIcon === '⚠️') statusClass = 'status-blocked';
                             else if (tool.statusIcon === '⏳') statusClass = 'status-running';
-                            
+
                             return `
                                 <div class="tool-call-item">
                                     <div class="tool-call-header">
@@ -2080,15 +2080,15 @@ class ModuleViewer {
             originalEvent: originalEvent
         };
         const collapsibleJsonSection = this.createCollapsibleJsonSection(agentJsonData);
-        
+
         // Show structured data with JSON section in data pane
         if (this.dataContainer) {
             this.dataContainer.innerHTML = contextualHeader + content + collapsibleJsonSection;
         }
-        
+
         // Initialize JSON toggle functionality
         this.initializeJsonToggle();
-        
+
         // Hide JSON pane since data is integrated above
         // JSON container no longer exists - handled via collapsible sections
     }
@@ -2119,7 +2119,7 @@ class ModuleViewer {
 
         // Get inline result content
         const inlineContent = this.createInlineToolResultContent(mockData, mockEvent);
-        
+
         // If we have content, wrap it in a simple section
         if (inlineContent.trim()) {
             return `
@@ -2130,7 +2130,7 @@ class ModuleViewer {
                 </div>
             `;
         }
-        
+
         return '';
     }
 
@@ -2143,7 +2143,7 @@ class ModuleViewer {
      */
     extractToolTarget(toolName, parameters, altParameters) {
         const params = parameters || altParameters || {};
-        
+
         switch (toolName?.toLowerCase()) {
             case 'write':
             case 'read':
@@ -2214,7 +2214,7 @@ class ModuleViewer {
 
             // Get working directory from dashboard with proper fallback
             let workingDir = window.dashboard?.currentWorkingDir;
-            
+
             // Don't use 'Unknown' as a working directory
             if (!workingDir || workingDir === 'Unknown' || workingDir.trim() === '') {
                 // Try to get from footer element
@@ -2274,7 +2274,7 @@ class ModuleViewer {
     displayTrackingStatus(filePath, result) {
         const statusElementId = `git-track-status-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`;
         const statusElement = document.getElementById(statusElementId);
-        
+
         if (!statusElement) return;
 
         if (result.success && result.is_tracked === false) {
@@ -2283,7 +2283,7 @@ class ModuleViewer {
                 <div class="untracked-file-notice">
                     <span class="untracked-icon">⚠️</span>
                     <span class="untracked-text">This file is not tracked by git</span>
-                    <button class="track-file-button" 
+                    <button class="track-file-button"
                             onclick="window.moduleViewer.trackFile('${filePath}')"
                             title="Add this file to git tracking">
                         <span class="git-icon">📁</span> Track File
@@ -2326,7 +2326,7 @@ class ModuleViewer {
 
             // Get working directory from dashboard with proper fallback
             let workingDir = window.dashboard?.currentWorkingDir;
-            
+
             // Don't use 'Unknown' as a working directory
             if (!workingDir || workingDir === 'Unknown' || workingDir.trim() === '') {
                 // Try to get from footer element
@@ -2343,7 +2343,7 @@ class ModuleViewer {
             // Update button to show loading state
             const statusElementId = `git-track-status-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`;
             const statusElement = document.getElementById(statusElementId);
-            
+
             if (statusElement) {
                 statusElement.innerHTML = `
                     <div class="tracking-file-notice">
@@ -2396,7 +2396,7 @@ class ModuleViewer {
                         </div>
                     `;
                 }
-                
+
                 // Show success notification
                 this.showNotification('File tracked successfully', 'success');
             } else {
@@ -2405,7 +2405,7 @@ class ModuleViewer {
                         <div class="tracking-error-notice">
                             <span class="error-icon">❌</span>
                             <span class="error-text">Failed to track file: ${result.error || 'Unknown error'}</span>
-                            <button class="track-file-button" 
+                            <button class="track-file-button"
                                     onclick="window.moduleViewer.trackFile('${filePath}')"
                                     title="Try again">
                                 <span class="git-icon">📁</span> Retry
@@ -2413,24 +2413,24 @@ class ModuleViewer {
                         </div>
                     `;
                 }
-                
+
                 // Show error notification
                 this.showNotification(`Failed to track file: ${result.error}`, 'error');
             }
 
         } catch (error) {
             console.error('❌ Failed to track file:', error);
-            
+
             // Update UI to show error
             const statusElementId = `git-track-status-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}`;
             const statusElement = document.getElementById(statusElementId);
-            
+
             if (statusElement) {
                 statusElement.innerHTML = `
                     <div class="tracking-error-notice">
                         <span class="error-icon">❌</span>
                         <span class="error-text">Error: ${error.message}</span>
-                        <button class="track-file-button" 
+                        <button class="track-file-button"
                                 onclick="window.moduleViewer.trackFile('${filePath}')"
                                 title="Try again">
                             <span class="git-icon">📁</span> Retry
@@ -2438,7 +2438,7 @@ class ModuleViewer {
                     </div>
                 `;
             }
-            
+
             // Show error notification
             this.showNotification(`Error tracking file: ${error.message}`, 'error');
         }
@@ -2469,7 +2469,7 @@ class ModuleViewer {
 
             // Get working directory from dashboard with proper fallback
             let workingDir = window.dashboard?.currentWorkingDir;
-            
+
             // Don't use 'Unknown' as a working directory
             if (!workingDir || workingDir === 'Unknown' || workingDir.trim() === '') {
                 // Try to get from footer element
@@ -2517,7 +2517,7 @@ class ModuleViewer {
             // Wait for response
             const result = await responsePromise;
             console.debug('[GIT-DIFF-ICONS] Git status check result:', result);
-            
+
             // Only show git diff icons if git status check was successful
             if (result.success) {
                 console.debug('[GIT-DIFF-ICONS] Git status check successful, showing icons for:', filePath);
@@ -2539,16 +2539,16 @@ class ModuleViewer {
      */
     showGitDiffIconsForFile(filePath) {
         console.debug('[GIT-DIFF-ICONS] Showing git diff icons for file:', filePath);
-        
+
         // Find all git diff icons for this file path and show them
         const gitDiffIcons = document.querySelectorAll(`[data-file-path="${filePath}"]`);
         console.debug('[GIT-DIFF-ICONS] Found', gitDiffIcons.length, 'elements with matching file path');
-        
+
         let shownCount = 0;
         gitDiffIcons.forEach((icon, index) => {
             console.debug('[GIT-DIFF-ICONS] Processing element', index, ':', icon);
             console.debug('[GIT-DIFF-ICONS] Element classes:', icon.classList.toString());
-            
+
             if (icon.classList.contains('git-diff-icon')) {
                 console.debug('[GIT-DIFF-ICONS] Setting display to inline for git-diff-icon');
                 icon.style.display = 'inline';
@@ -2557,7 +2557,7 @@ class ModuleViewer {
                 console.debug('[GIT-DIFF-ICONS] Element is not a git-diff-icon, skipping');
             }
         });
-        
+
         console.debug('[GIT-DIFF-ICONS] Showed', shownCount, 'git diff icons for file:', filePath);
     }
 
@@ -2574,7 +2574,7 @@ class ModuleViewer {
             <span class="notification-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️'}</span>
             <span class="notification-message">${message}</span>
         `;
-        
+
         // Style the notification
         notification.style.cssText = `
             position: fixed;
@@ -2595,7 +2595,7 @@ class ModuleViewer {
             max-width: 400px;
             animation: slideIn 0.3s ease-out;
         `;
-        
+
         // Add animation styles
         const style = document.createElement('style');
         style.textContent = `
@@ -2609,10 +2609,10 @@ class ModuleViewer {
             }
         `;
         document.head.appendChild(style);
-        
+
         // Add to page
         document.body.appendChild(notification);
-        
+
         // Remove after 5 seconds
         setTimeout(() => {
             notification.style.animation = 'slideOut 0.3s ease-in';
@@ -2687,6 +2687,11 @@ class ModuleViewer {
 }
 
 // Export for global use
+// ES6 Module export
+export { ModuleViewer };
+export default ModuleViewer;
+
+// Backward compatibility - keep window export for non-module usage
 window.ModuleViewer = ModuleViewer;
 
 // Debug helper function for troubleshooting tool result display

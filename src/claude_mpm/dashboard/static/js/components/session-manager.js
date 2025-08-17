@@ -9,7 +9,7 @@ class SessionManager {
         this.sessions = new Map();
         this.currentSessionId = null;
         this.selectedSessionId = '';
-        
+
         this.init();
     }
 
@@ -32,7 +32,7 @@ class SessionManager {
             sessionSelect.addEventListener('change', (e) => {
                 this.selectedSessionId = e.target.value;
                 this.onSessionFilterChanged();
-                
+
                 // Load working directory for this session
                 if (window.dashboard && window.dashboard.loadWorkingDirectoryForSession) {
                     window.dashboard.loadWorkingDirectoryForSession(e.target.value);
@@ -93,12 +93,12 @@ class SessionManager {
             sortedSessions.forEach(session => {
                 const option = document.createElement('option');
                 option.value = session.id;
-                
+
                 // Format session display text
                 const startTime = new Date(session.startTime || session.last_activity).toLocaleString();
                 const eventCount = session.eventCount || session.event_count || 0;
                 const isActive = session.id === this.currentSessionId;
-                
+
                 option.textContent = `${session.id.substring(0, 8)}... (${eventCount} events, ${startTime})${isActive ? ' [ACTIVE]' : ''}`;
                 sessionSelect.appendChild(option);
             });
@@ -136,7 +136,7 @@ class SessionManager {
         document.dispatchEvent(new CustomEvent('sessionFilterChanged', {
             detail: { sessionId: this.selectedSessionId }
         }));
-        
+
         // Also dispatch sessionChanged for backward compatibility with other components
         document.dispatchEvent(new CustomEvent('sessionChanged', {
             detail: { sessionId: this.selectedSessionId }
@@ -160,7 +160,7 @@ class SessionManager {
      */
     updateFooterInfo() {
         console.log('[SESSION-DEBUG] updateFooterInfo called, selectedSessionId:', this.selectedSessionId);
-        
+
         const footerSessionEl = document.getElementById('footer-session');
         const footerWorkingDirEl = document.getElementById('footer-working-dir');
         const footerGitBranchEl = document.getElementById('footer-git-branch');
@@ -173,14 +173,14 @@ class SessionManager {
         let sessionInfo = 'All Sessions';
         let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || process?.cwd?.() || '/Users/masa/Projects/claude-mpm';
         let gitBranch = 'Unknown';
-        
+
         console.log('[SESSION-DEBUG] Initial values - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
 
         if (this.selectedSessionId === 'current') {
-            sessionInfo = this.currentSessionId ? 
-                `Current: ${this.currentSessionId.substring(0, 8)}...` : 
+            sessionInfo = this.currentSessionId ?
+                `Current: ${this.currentSessionId.substring(0, 8)}...` :
                 'Current: None';
-            
+
             // For current session, try to extract info from recent events
             if (this.currentSessionId) {
                 const sessionData = this.extractSessionInfoFromEvents(this.currentSessionId);
@@ -193,7 +193,7 @@ class SessionManager {
                 sessionInfo = `${this.selectedSessionId.substring(0, 8)}...`;
                 workingDir = session.working_directory || session.workingDirectory || '';
                 gitBranch = session.git_branch || session.gitBranch || '';
-                
+
                 // If session doesn't have these values, extract from events
                 if (!workingDir || !gitBranch) {
                     const sessionData = this.extractSessionInfoFromEvents(this.selectedSessionId);
@@ -204,7 +204,7 @@ class SessionManager {
         }
 
         console.log('[SESSION-DEBUG] Final values before setting footer - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
-        
+
         footerSessionEl.textContent = sessionInfo;
         if (footerWorkingDirEl) {
             console.log('[SESSION-DEBUG] Setting footer working dir to:', workingDir);
@@ -235,9 +235,9 @@ class SessionManager {
         const socketClient = this.socketClient;
         if (socketClient && socketClient.events) {
             console.log(`[DEBUG] Total events available: ${socketClient.events.length}`);
-            
+
             // Look for session start events or recent events with this session ID
-            const sessionEvents = socketClient.events.filter(event => 
+            const sessionEvents = socketClient.events.filter(event =>
                 event.data && event.data.session_id === sessionId
             );
 
@@ -246,7 +246,7 @@ class SessionManager {
             // Log a few sample events to see their structure
             if (sessionEvents.length > 0) {
                 console.log(`[DEBUG] Sample events for session ${sessionId}:`);
-                
+
                 // Show first 3 events
                 sessionEvents.slice(0, 3).forEach((event, index) => {
                     console.log(`[DEBUG] Event ${index + 1}:`, {
@@ -276,7 +276,7 @@ class SessionManager {
                 const event = sessionEvents[i];
                 if (event.data) {
                     console.log(`[DEBUG] Examining event ${i} data:`, event.data);
-                    
+
                     // Check for working directory info
                     if (!workingDir) {
                         if (event.data.working_directory) {
@@ -295,13 +295,13 @@ class SessionManager {
                     if (!gitBranch) {
                         const possibleBranchFields = [
                             'git_branch',
-                            'gitBranch', 
+                            'gitBranch',
                             'branch',
                             'git.branch',
                             'vcs_branch',
                             'current_branch'
                         ];
-                        
+
                         for (const field of possibleBranchFields) {
                             if (event.data[field]) {
                                 gitBranch = event.data[field];
@@ -309,7 +309,7 @@ class SessionManager {
                                 break;
                             }
                         }
-                        
+
                         // Check nested locations
                         if (!gitBranch) {
                             if (event.data.instance_info) {
@@ -322,7 +322,7 @@ class SessionManager {
                                     }
                                 }
                             }
-                            
+
                             if (!gitBranch && event.data.git) {
                                 console.log(`[DEBUG] Checking git object:`, event.data.git);
                                 if (event.data.git.branch) {
@@ -364,7 +364,7 @@ class SessionManager {
      */
     addSession(sessionData) {
         if (!sessionData.id) return;
-        
+
         const existingSession = this.sessions.get(sessionData.id);
         if (existingSession) {
             // Update existing session
@@ -382,7 +382,7 @@ class SessionManager {
                 ...sessionData
             });
         }
-        
+
         this.updateSessionSelect();
     }
 
@@ -393,7 +393,7 @@ class SessionManager {
     removeSession(sessionId) {
         if (this.sessions.has(sessionId)) {
             this.sessions.delete(sessionId);
-            
+
             // If the removed session was selected, reset to all sessions
             if (this.selectedSessionId === sessionId) {
                 this.selectedSessionId = '';
@@ -403,7 +403,7 @@ class SessionManager {
                 }
                 this.onSessionFilterChanged();
             }
-            
+
             this.updateSessionSelect();
         }
     }
@@ -475,15 +475,15 @@ class SessionManager {
                 this.sessions.set(id, sessionData);
             });
         }
-        
+
         if (data.currentSessionId) {
             this.currentSessionId = data.currentSessionId;
         }
-        
+
         if (data.selectedSessionId !== undefined) {
             this.selectedSessionId = data.selectedSessionId;
         }
-        
+
         this.updateSessionSelect();
         this.updateFooterInfo();
     }
@@ -501,7 +501,7 @@ class SessionManager {
         const allEvents = this.socketClient.events || [];
         return allEvents.filter(event => {
             // Check for session ID in various possible locations
-            const eventSessionId = event.session_id || 
+            const eventSessionId = event.session_id ||
                                  (event.data && event.data.session_id) ||
                                  null;
             return eventSessionId === sessionId;
@@ -518,3 +518,6 @@ window.refreshSessions = function() {
 
 // Export for global use
 window.SessionManager = SessionManager;
+// ES6 Module export
+export { SessionManager };
+export default SessionManager;

@@ -21,13 +21,13 @@ build:
   os: ubuntu-22.04
   tools:
     python: "3.11"
-  
+
   # APT packages for system dependencies (if needed for documentation)
   apt_packages:
     - graphviz  # For generating diagrams
     - libgraphviz-dev
     - pkg-config
-  
+
   # Commands to run at different stages of the build
   # Note: Environment variables are automatically set by Read the Docs
   # READTHEDOCS environment variable is set to True by default
@@ -38,11 +38,11 @@ build:
       # Ensure the VERSION file is available for version detection
       - echo "Preparing build environment..."
       - cp VERSION docs/api/VERSION 2>/dev/null || true
-    
+
     post_install:
       # Additional setup after Python dependencies are installed
       - echo "Python dependencies installed successfully"
-      
+
     pre_build:
       # Generate any dynamic documentation files if needed
       - echo "Running pre-build tasks..."
@@ -59,7 +59,7 @@ python:
       path: .
       extra_requirements:
         - docs
-    
+
     # Install documentation-specific requirements
     - requirements: docs/api/requirements.txt
 
@@ -77,7 +77,7 @@ search:
     api/*: 2
     # Boost ranking for main documentation
     index.html: 3
-  
+
   # Ignore certain files from search
   ignore:
     - search.html
