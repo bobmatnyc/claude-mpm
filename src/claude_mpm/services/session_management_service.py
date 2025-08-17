@@ -11,7 +11,9 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
-from typing import Any, Optional, Tuple
+import time
+import uuid
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import SessionManagementInterface
@@ -28,6 +30,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
         """
         super().__init__(name="session_management_service")
         self.runner = runner
+        self.active_sessions = {}  # Track active sessions
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
@@ -202,4 +205,100 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             "runner_available": self.runner is not None,
             "interactive_session_available": True,
             "oneshot_session_available": True,
+            "active_sessions": len(self.active_sessions),
         }
+
+    # Implementation of abstract methods from SessionManagementInterface
+
+    def start_session(self, session_config: Dict[str, Any]) -> str:
+        """Start a new session.
+
+        Args:
+            session_config: Configuration for the session
+
+        Returns:
+            Session ID
+        """
+        session_id = str(uuid.uuid4())
+        session_info = {
+            "id": session_id,
+            "config": session_config,
+            "start_time": time.time(),
+            "status": "active",
+            "type": session_config.get("type", "interactive"),
+        }
+
+        self.active_sessions[session_id] = session_info
+        self.logger.info(f"Started session {session_id}")
+
+        return session_id
+
+    def end_session(self, session_id: str) -> bool:
+        """End an active session.
+
+        Args:
+            session_id: ID of session to end
+
+        Returns:
+            True if session ended successfully
+        """
+        if session_id in self.active_sessions:
+            session_info = self.active_sessions[session_id]
+            session_info["status"] = "ended"
+            session_info["end_time"] = time.time()
+
+            # Remove from active sessions
+            del self.active_sessions[session_id]
+
+            self.logger.info(f"Ended session {session_id}")
+            return True
+        else:
+            self.logger.warning(f"Session {session_id} not found")
+            return False
+
+    def get_session_status(self, session_id: str) -> Dict[str, Any]:
+        """Get status of a session.
+
+        Args:
+            session_id: ID of session
+
+        Returns:
+            Dictionary with session status information
+        """
+        if session_id in self.active_sessions:
+            return self.active_sessions[session_id].copy()
+        else:
+            return {
+                "id": session_id,
+                "status": "not_found",
+                "error": "Session not found",
+            }
+
+    def list_active_sessions(self) -> List[str]:
+        """List all active session IDs.
+
+        Returns:
+            List of active session IDs
+        """
+        return list(self.active_sessions.keys())
+
+    async def cleanup_sessions(self) -> int:
+        """Clean up inactive or expired sessions.
+
+        Returns:
+            Number of sessions cleaned up
+        """
+        current_time = time.time()
+        expired_sessions = []
+
+        # Find sessions older than 24 hours
+        for session_id, session_info in self.active_sessions.items():
+            if current_time - session_info["start_time"] > 86400:  # 24 hours
+                expired_sessions.append(session_id)
+
+        # Clean up expired sessions
+        for session_id in expired_sessions:
+            self.end_session(session_id)
+
+        self.logger.info(f"Cleaned up {len(expired_sessions)} expired sessions")
+        return len(expired_sessions)
