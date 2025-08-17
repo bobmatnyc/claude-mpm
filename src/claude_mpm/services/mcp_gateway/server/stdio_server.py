@@ -27,7 +27,10 @@ from claude_mpm.core.logger import get_logger
 
 # Import unified ticket tool if available
 try:
-    from claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import UnifiedTicketTool
+    from claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
+        UnifiedTicketTool,
+    )
+
     TICKET_TOOLS_AVAILABLE = True
 except ImportError:
     TICKET_TOOLS_AVAILABLE = False
@@ -65,7 +68,9 @@ class SimpleMCPServer:
         # Register default tools
         self._register_tools()
 
-    async def _summarize_content(self, content: str, style: str, max_length: int) -> str:
+    async def _summarize_content(
+        self, content: str, style: str, max_length: int
+    ) -> str:
         """
         Summarize text content based on style and length constraints.
 
@@ -189,7 +194,9 @@ class SimpleMCPServer:
 
         return " ".join(s[1] for s in selected)
 
-    def _create_detailed_summary(self, sentences: List[str], content: str, max_length: int) -> str:
+    def _create_detailed_summary(
+        self, sentences: List[str], content: str, max_length: int
+    ) -> str:
         """Create a detailed summary preserving document structure."""
         import re
 
@@ -218,7 +225,9 @@ class SimpleMCPServer:
         words = result.split()[:max_length]
         return " ".join(words) + ("..." if len(result.split()) > max_length else "")
 
-    def _create_bullet_summary(self, sentences: List[str], content: str, max_length: int) -> str:
+    def _create_bullet_summary(
+        self, sentences: List[str], content: str, max_length: int
+    ) -> str:
         """Extract key points as a bullet list."""
         import re
 
@@ -260,7 +269,9 @@ class SimpleMCPServer:
 
         return "\n".join(result_lines)
 
-    def _create_executive_summary(self, sentences: List[str], content: str, max_length: int) -> str:
+    def _create_executive_summary(
+        self, sentences: List[str], content: str, max_length: int
+    ) -> str:
         """Create an executive summary with overview, findings, and recommendations."""
         # Allocate words across sections
         overview_words = max_length // 3
@@ -270,7 +281,9 @@ class SimpleMCPServer:
         sections = []
 
         # Overview section
-        overview = self._create_brief_summary(sentences[: len(sentences) // 2], overview_words)
+        overview = self._create_brief_summary(
+            sentences[: len(sentences) // 2], overview_words
+        )
         if overview:
             sections.append(f"OVERVIEW:\n{overview}")
 
@@ -321,7 +334,9 @@ class SimpleMCPServer:
                     break
 
         if recommendations:
-            sections.append(f"\nRECOMMENDATIONS:\n• " + "\n• ".join(recommendations[:3]))
+            sections.append(
+                f"\nRECOMMENDATIONS:\n• " + "\n• ".join(recommendations[:3])
+            )
 
         # If no sections were created, fall back to brief summary
         if not sections:
@@ -361,7 +376,10 @@ class SimpleMCPServer:
                     inputSchema={
                         "type": "object",
                         "properties": {
-                            "message": {"type": "string", "description": "Message to echo"}
+                            "message": {
+                                "type": "string",
+                                "description": "Message to echo",
+                            }
                         },
                         "required": ["message"],
                     },
@@ -426,7 +444,12 @@ class SimpleMCPServer:
                             },
                             "style": {
                                 "type": "string",
-                                "enum": ["brief", "detailed", "bullet_points", "executive"],
+                                "enum": [
+                                    "brief",
+                                    "detailed",
+                                    "bullet_points",
+                                    "executive",
+                                ],
                                 "description": "Summary style",
                                 "default": "brief",
                             },
@@ -440,7 +463,7 @@ class SimpleMCPServer:
                     },
                 ),
             ]
-            
+
             # Add unified ticket tool if available
             if self.unified_ticket_tool:
                 tool_def = self.unified_ticket_tool.get_definition()
@@ -456,7 +479,9 @@ class SimpleMCPServer:
             return tools
 
         @self.server.call_tool()
-        async def handle_call_tool(name: str, arguments: Dict[str, Any]) -> List[TextContent]:
+        async def handle_call_tool(
+            name: str, arguments: Dict[str, Any]
+        ) -> List[TextContent]:
             """Handle tool invocation."""
             self.logger.info(f"Invoking tool: {name} with arguments: {arguments}")
 
@@ -490,7 +515,9 @@ class SimpleMCPServer:
                                 if isinstance(node, ast.Constant):
                                     return node.value
                                 elif isinstance(node, ast.BinOp):
-                                    return ops[type(node.op)](_eval(node.left), _eval(node.right))
+                                    return ops[type(node.op)](
+                                        _eval(node.left), _eval(node.right)
+                                    )
                                 elif isinstance(node, ast.UnaryOp):
                                     return ops[type(node.op)](_eval(node.operand))
                                 else:
@@ -525,8 +552,8 @@ class SimpleMCPServer:
                     command = arguments.get("command", "")
                     timeout = arguments.get("timeout", 30)
 
-                    import subprocess
                     import shlex
+                    import subprocess
 
                     try:
                         # Split command string into a list to avoid shell injection
@@ -537,17 +564,21 @@ class SimpleMCPServer:
                         proc = await asyncio.create_subprocess_exec(
                             *command_parts,
                             stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE
+                            stderr=subprocess.PIPE,
                         )
 
-                        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+                        stdout, stderr = await asyncio.wait_for(
+                            proc.communicate(), timeout=timeout
+                        )
 
                         if proc.returncode == 0:
-                            result = stdout.decode() if stdout else "Command completed successfully"
-                        else:
                             result = (
-                                f"Command failed with code {proc.returncode}: {stderr.decode()}"
+                                stdout.decode()
+                                if stdout
+                                else "Command completed successfully"
                             )
+                        else:
+                            result = f"Command failed with code {proc.returncode}: {stderr.decode()}"
                     except asyncio.TimeoutError:
                         result = f"Command timed out after {timeout} seconds"
                     except ValueError as e:
@@ -565,18 +596,24 @@ class SimpleMCPServer:
 
                 elif name == "ticket" and self.unified_ticket_tool:
                     # Handle unified ticket tool invocations
-                    from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
-                    
+                    from claude_mpm.services.mcp_gateway.core.interfaces import (
+                        MCPToolInvocation,
+                    )
+
                     invocation = MCPToolInvocation(
                         tool_name=name,
                         parameters=arguments,
-                        request_id=f"req_{name}_{id(arguments)}"
+                        request_id=f"req_{name}_{id(arguments)}",
                     )
-                    
+
                     tool_result = await self.unified_ticket_tool.invoke(invocation)
-                    
+
                     if tool_result.success:
-                        result = tool_result.data if isinstance(tool_result.data, str) else str(tool_result.data)
+                        result = (
+                            tool_result.data
+                            if isinstance(tool_result.data, str)
+                            else str(tool_result.data)
+                        )
                     else:
                         result = f"Error: {tool_result.error}"
 
@@ -610,7 +647,8 @@ class SimpleMCPServer:
                     server_name=self.name,
                     server_version=self.version,
                     capabilities=self.server.get_capabilities(
-                        notification_options=NotificationOptions(), experimental_capabilities={}
+                        notification_options=NotificationOptions(),
+                        experimental_capabilities={},
                     ),
                 )
 

@@ -109,7 +109,9 @@ class PipelineContext:
         """Initialize the results dictionary with default structure."""
         if not self.results:
             self.results = {
-                "target_dir": str(self.actual_target_dir) if self.actual_target_dir else "",
+                "target_dir": str(self.actual_target_dir)
+                if self.actual_target_dir
+                else "",
                 "deployed": [],
                 "updated": [],
                 "migrated": [],

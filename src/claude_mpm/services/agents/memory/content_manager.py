@@ -95,12 +95,15 @@ class MemoryContentManager:
         # Add new item (find insertion point after any comments)
         insert_point = section_start + 1
         while insert_point < section_end and (
-            not lines[insert_point].strip() or lines[insert_point].strip().startswith("<!--")
+            not lines[insert_point].strip()
+            or lines[insert_point].strip().startswith("<!--")
         ):
             insert_point += 1
 
         # Ensure line length limit (account for "- " prefix)
-        max_item_length = self.memory_limits["max_line_length"] - 2  # Subtract 2 for "- " prefix
+        max_item_length = (
+            self.memory_limits["max_line_length"] - 2
+        )  # Subtract 2 for "- " prefix
         if len(new_item) > max_item_length:
             new_item = new_item[: max_item_length - 3] + "..."
 
@@ -150,7 +153,9 @@ class MemoryContentManager:
 
         return "\n".join(lines)
 
-    def exceeds_limits(self, content: str, agent_limits: Optional[Dict[str, Any]] = None) -> bool:
+    def exceeds_limits(
+        self, content: str, agent_limits: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """Check if content exceeds size limits.
 
         Args:
@@ -262,7 +267,9 @@ class MemoryContentManager:
                 missing_sections.append(required)
 
         if missing_sections:
-            self.logger.info(f"Adding missing sections to {agent_id} memory: {missing_sections}")
+            self.logger.info(
+                f"Adding missing sections to {agent_id} memory: {missing_sections}"
+            )
 
             # Add missing sections before Recent Learnings
             insert_point = len(lines)
@@ -272,7 +279,12 @@ class MemoryContentManager:
                     break
 
             for section in missing_sections:
-                section_content = ["", f"## {section}", "<!-- Section added by repair -->", ""]
+                section_content = [
+                    "",
+                    f"## {section}",
+                    "<!-- Section added by repair -->",
+                    "",
+                ]
                 for j, line in enumerate(section_content):
                     lines.insert(insert_point + j, line)
                 insert_point += len(section_content)
@@ -338,7 +350,10 @@ class MemoryContentManager:
             max_size_kb = self.memory_limits.get("max_file_size_kb", 8)
 
             if size_kb > max_size_kb:
-                return False, f"Memory size {size_kb:.1f}KB exceeds limit of {max_size_kb}KB"
+                return (
+                    False,
+                    f"Memory size {size_kb:.1f}KB exceeds limit of {max_size_kb}KB",
+                )
 
             # Check section count
             sections = re.findall(r"^##\s+(.+)$", content, re.MULTILINE)

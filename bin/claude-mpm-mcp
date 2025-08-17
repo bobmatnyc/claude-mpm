@@ -24,9 +24,9 @@ Usage in Claude Desktop config:
 }
 """
 
-import sys
 import asyncio
 import logging
+import sys
 from pathlib import Path
 
 # Add the project root to Python path if needed
@@ -34,9 +34,10 @@ project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+from src.claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
+
 # Import the proper MCP Gateway components
 from src.claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
-from src.claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 
 # Import tools to register
 from src.claude_mpm.services.mcp_gateway.tools.base_adapter import (
@@ -44,17 +45,21 @@ from src.claude_mpm.services.mcp_gateway.tools.base_adapter import (
     EchoToolAdapter,
     SystemInfoToolAdapter,
 )
-from src.claude_mpm.services.mcp_gateway.tools.document_summarizer import DocumentSummarizerTool
-from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import UnifiedTicketTool
+from src.claude_mpm.services.mcp_gateway.tools.document_summarizer import (
+    DocumentSummarizerTool,
+)
+from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
+    UnifiedTicketTool,
+)
 
 
 async def main():
     """
     Main entry point for the MCP server.
-    
+
     WHY: This function sets up and runs the proper MCPGateway with the
     official MCP protocol implementation and all available tools.
-    
+
     DESIGN DECISIONS:
     - Use MCPGateway for official MCP protocol compliance
     - Register all available tools through the ToolRegistry
@@ -63,18 +68,18 @@ async def main():
     # Configure logging to stderr so it doesn't interfere with stdio protocol
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        stream=sys.stderr
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        stream=sys.stderr,
     )
-    
+
     logger = logging.getLogger("MCPGatewayMain")
-    
+
     try:
         # Create the tool registry
         registry = ToolRegistry()
         if not await registry.initialize():
             logger.warning("Failed to fully initialize tool registry")
-        
+
         # Register all available tools
         tools = [
             # Basic tools
@@ -86,7 +91,7 @@ async def main():
             # Unified ticket management tool
             UnifiedTicketTool(),
         ]
-        
+
         # Initialize and register each tool
         for tool in tools:
             try:
@@ -94,30 +99,31 @@ async def main():
                     if registry.register_tool(tool, category="builtin"):
                         logger.info(f"Registered tool: {tool.get_definition().name}")
                     else:
-                        logger.warning(f"Failed to register tool: {tool.get_definition().name}")
+                        logger.warning(
+                            f"Failed to register tool: {tool.get_definition().name}"
+                        )
                 else:
-                    logger.warning(f"Failed to initialize tool: {tool.get_definition().name}")
+                    logger.warning(
+                        f"Failed to initialize tool: {tool.get_definition().name}"
+                    )
             except Exception as e:
                 logger.error(f"Error with tool {type(tool).__name__}: {e}")
-        
+
         # Create the MCP Gateway server with official MCP protocol
-        server = MCPGateway(
-            gateway_name="claude-mpm-gateway",
-            version="1.0.0"
-        )
-        
+        server = MCPGateway(gateway_name="claude-mpm-gateway", version="1.0.0")
+
         # Set the tool registry
         server.set_tool_registry(registry)
-        
+
         # Initialize the server
         if not await server.initialize():
             logger.error("Failed to initialize MCP server")
             sys.exit(1)
-        
+
         # Run the server (this handles stdio communication)
         logger.info("Starting MCP Gateway with official protocol")
         await server.run()
-        
+
     except KeyboardInterrupt:
         # Handle graceful shutdown
         logger.info("Received interrupt, shutting down")

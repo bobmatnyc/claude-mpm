@@ -138,7 +138,9 @@ class ProjectAnalyzer(ProjectAnalyzerInterface):
             working_directory: Optional working directory path. If not provided, uses current.
         """
         self.config = config or Config()
-        self.working_directory = working_directory or get_path_manager().get_project_root()
+        self.working_directory = (
+            working_directory or get_path_manager().get_project_root()
+        )
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
         # Cache for analysis results

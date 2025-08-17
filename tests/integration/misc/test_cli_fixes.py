@@ -12,10 +12,11 @@ DESIGN DECISION: We test both the fixes and the verification script logic
 to ensure the Docker container will properly detect and report failures.
 """
 
+import shlex
 import subprocess
 import sys
-import shlex
 from pathlib import Path
+
 
 def run_command(cmd, description):
     """Run a command and return success status and output."""
@@ -26,12 +27,9 @@ def run_command(cmd, description):
         # Split command string into a list to avoid shell=True
         command_parts = shlex.split(cmd)
         result = subprocess.run(
-            command_parts,
-            capture_output=True,
-            text=True,
-            timeout=10
+            command_parts, capture_output=True, text=True, timeout=10
         )
-        
+
         success = result.returncode == 0
         if success:
             print(f"✓ PASSED")
@@ -39,7 +37,7 @@ def run_command(cmd, description):
             print(f"✗ FAILED (exit code: {result.returncode})")
             if result.stderr:
                 print(f"  Error: {result.stderr[:200]}")
-        
+
         return success, result.stdout, result.stderr
     except subprocess.TimeoutExpired:
         print(f"✗ FAILED (timeout)")
@@ -52,11 +50,11 @@ def run_command(cmd, description):
 def main():
     """Run all tests and report results."""
     print("=== CLI Execution Fixes Verification ===")
-    
+
     tests_run = 0
     tests_passed = 0
     failed_tests = []
-    
+
     # Test 1: Check __main__.py exists
     tests_run += 1
     main_file = Path(__file__).parent.parent / "src/claude_mpm/cli/__main__.py"
@@ -66,74 +64,72 @@ def main():
     else:
         print(f"\n✗ Test 1: __main__.py file missing at {main_file}")
         failed_tests.append("__main__.py file missing")
-    
+
     # Test 2: CLI module execution with --version
     tests_run += 1
     success, stdout, stderr = run_command(
-        "python -m claude_mpm.cli --version",
-        "CLI module execution with --version"
+        "python -m claude_mpm.cli --version", "CLI module execution with --version"
     )
     if success and "claude-mpm" in stdout.lower():
         tests_passed += 1
     else:
         failed_tests.append("CLI module execution with --version")
-    
+
     # Test 3: CLI module execution with --help
     tests_run += 1
     success, stdout, stderr = run_command(
-        "python -m claude_mpm.cli --help",
-        "CLI module execution with --help"
+        "python -m claude_mpm.cli --help", "CLI module execution with --help"
     )
     if success and "usage:" in stdout.lower():
         tests_passed += 1
     else:
         failed_tests.append("CLI module execution with --help")
-    
+
     # Test 4: Memory system imports (general)
     tests_run += 1
     success, stdout, stderr = run_command(
-        'python -c "from claude_mpm.services.memory import MemoryBuilder, MemoryRouter, MemoryOptimizer; print(\'Memory imports OK\')"',
-        "General memory system imports"
+        "python -c \"from claude_mpm.services.memory import MemoryBuilder, MemoryRouter, MemoryOptimizer; print('Memory imports OK')\"",
+        "General memory system imports",
     )
     if success and "Memory imports OK" in stdout:
         tests_passed += 1
     else:
         failed_tests.append("General memory system imports")
-    
+
     # Test 5: Agent memory imports
     tests_run += 1
     success, stdout, stderr = run_command(
-        'python -c "from claude_mpm.services.agents.memory import AgentMemoryManager, get_memory_manager; print(\'Agent memory imports OK\')"',
-        "Agent-specific memory imports"
+        "python -c \"from claude_mpm.services.agents.memory import AgentMemoryManager, get_memory_manager; print('Agent memory imports OK')\"",
+        "Agent-specific memory imports",
     )
     if success and "Agent memory imports OK" in stdout:
         tests_passed += 1
     else:
         failed_tests.append("Agent-specific memory imports")
-    
+
     # Test 6: Agent services imports
     tests_run += 1
     success, stdout, stderr = run_command(
-        'python -c "from claude_mpm.services.agents.deployment import AgentDeploymentService; from claude_mpm.services.agents.registry import AgentRegistry; print(\'Agent services imports OK\')"',
-        "Agent services imports"
+        "python -c \"from claude_mpm.services.agents.deployment import AgentDeploymentService; from claude_mpm.services.agents.registry import AgentRegistry; print('Agent services imports OK')\"",
+        "Agent services imports",
     )
     if success and "Agent services imports OK" in stdout:
         tests_passed += 1
     else:
         failed_tests.append("Agent services imports")
-    
+
     # Print results
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("=== Test Results ===")
     print(f"Tests run: {tests_run}")
     print(f"Tests passed: {tests_passed}")
     print(f"Tests failed: {tests_run - tests_passed}")
-    
+
     if failed_tests:
         print("\nFailed tests:")
         for test in failed_tests:
             print(f"  - {test}")
-    
+
     # Exit with appropriate code
     if tests_passed == tests_run:
         print("\n✓ All tests passed successfully!")

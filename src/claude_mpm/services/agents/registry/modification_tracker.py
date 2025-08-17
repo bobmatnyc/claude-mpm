@@ -39,12 +39,11 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from claude_mpm.core.base_service import BaseService
+from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
 from claude_mpm.utils.config_manager import ConfigurationManager
 from claude_mpm.utils.path_operations import path_ops
-
-from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
 
 # ============================================================================
 # Data Models

@@ -31,7 +31,9 @@ class IServiceContainer(ABC):
     """Service container interface for dependency injection"""
 
     @abstractmethod
-    def register(self, service_type: type, implementation: type, singleton: bool = True) -> None:
+    def register(
+        self, service_type: type, implementation: type, singleton: bool = True
+    ) -> None:
         """Register a service implementation"""
         pass
 
@@ -247,7 +249,9 @@ class ITemplateManager(ABC):
     """Interface for template processing and rendering"""
 
     @abstractmethod
-    async def render_template(self, template_content: str, context: TemplateRenderContext) -> str:
+    async def render_template(
+        self, template_content: str, context: TemplateRenderContext
+    ) -> str:
         """Render template with given context"""
         pass
 
@@ -372,7 +376,9 @@ class IPerformanceMonitor(ABC):
         pass
 
     @abstractmethod
-    def record_metric(self, name: str, value: float, tags: Optional[Dict[str, str]] = None) -> None:
+    def record_metric(
+        self, name: str, value: float, tags: Optional[Dict[str, str]] = None
+    ) -> None:
         """Record a performance metric"""
         pass
 

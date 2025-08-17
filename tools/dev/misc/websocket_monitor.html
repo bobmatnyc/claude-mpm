@@ -12,32 +12,32 @@
             background: #1e1e1e;
             color: #d4d4d4;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         h1 {
             color: #4ec9b0;
             margin-bottom: 20px;
         }
-        
+
         .status {
             padding: 10px;
             background: #2d2d2d;
             border-radius: 5px;
             margin-bottom: 20px;
         }
-        
+
         .connected {
             color: #4ec9b0;
         }
-        
+
         .disconnected {
             color: #f44747;
         }
-        
+
         .events {
             background: #2d2d2d;
             border-radius: 5px;
@@ -47,7 +47,7 @@
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
             font-size: 12px;
         }
-        
+
         .event {
             margin-bottom: 10px;
             padding: 10px;
@@ -55,55 +55,55 @@
             border-radius: 3px;
             border-left: 3px solid #569cd6;
         }
-        
+
         .event.session {
             border-left-color: #4ec9b0;
         }
-        
+
         .event.claude {
             border-left-color: #c586c0;
         }
-        
+
         .event.agent {
             border-left-color: #dcdcaa;
         }
-        
+
         .event.todo {
             border-left-color: #ce9178;
         }
-        
+
         .event.system {
             border-left-color: #608b4e;
         }
-        
+
         .event-header {
             display: flex;
             justify-content: space-between;
             margin-bottom: 5px;
             font-weight: bold;
         }
-        
+
         .event-type {
             color: #569cd6;
         }
-        
+
         .event-time {
             color: #808080;
             font-size: 11px;
         }
-        
+
         .event-data {
             white-space: pre-wrap;
             word-wrap: break-word;
         }
-        
+
         .claude-output {
             background: #1a1a1a;
             padding: 5px;
             border-radius: 3px;
             margin-top: 5px;
         }
-        
+
         button {
             background: #0e639c;
             color: white;
@@ -113,11 +113,11 @@
             cursor: pointer;
             margin-right: 10px;
         }
-        
+
         button:hover {
             background: #1177bb;
         }
-        
+
         button:disabled {
             background: #3c3c3c;
             cursor: not-allowed;
@@ -127,7 +127,7 @@
 <body>
     <div class="container">
         <h1>Claude MPM WebSocket Monitor</h1>
-        
+
         <div class="status">
             <strong>Status:</strong> <span id="status" class="disconnected">Disconnected</span>
             <strong style="margin-left: 20px;">Port:</strong>
@@ -137,7 +137,7 @@
             <button onclick="clearEvents()">Clear</button>
             <span id="instance-info" style="margin-left: 20px; color: #4ec9b0;"></span>
         </div>
-        
+
         <div class="events" id="events"></div>
     </div>
 
@@ -147,7 +147,7 @@
         const statusSpan = document.getElementById('status');
         const connectBtn = document.getElementById('connect-btn');
         const disconnectBtn = document.getElementById('disconnect-btn');
-        
+
         function updateStatus(connected) {
             if (connected) {
                 statusSpan.textContent = 'Connected';
@@ -161,36 +161,36 @@
                 disconnectBtn.disabled = true;
             }
         }
-        
+
         function addEvent(event) {
             const eventDiv = document.createElement('div');
             eventDiv.className = 'event';
-            
+
             // Add type-specific class
             const eventType = event.type || 'unknown';
             const category = eventType.split('.')[0];
             eventDiv.classList.add(category);
-            
+
             // Create header
             const header = document.createElement('div');
             header.className = 'event-header';
-            
+
             const typeSpan = document.createElement('span');
             typeSpan.className = 'event-type';
             typeSpan.textContent = eventType;
-            
+
             const timeSpan = document.createElement('span');
             timeSpan.className = 'event-time';
             timeSpan.textContent = new Date(event.timestamp).toLocaleTimeString();
-            
+
             header.appendChild(typeSpan);
             header.appendChild(timeSpan);
             eventDiv.appendChild(header);
-            
+
             // Create data section
             const dataDiv = document.createElement('div');
             dataDiv.className = 'event-data';
-            
+
             if (eventType === 'claude.output' && event.data) {
                 // Special handling for Claude output
                 const content = event.data.content || '';
@@ -200,19 +200,19 @@
                 // Regular JSON display
                 dataDiv.textContent = JSON.stringify(event.data, null, 2);
             }
-            
+
             eventDiv.appendChild(dataDiv);
             eventsDiv.appendChild(eventDiv);
-            
+
             // Auto-scroll to bottom
             eventsDiv.scrollTop = eventsDiv.scrollHeight;
-            
+
             // Limit to 1000 events
             while (eventsDiv.children.length > 1000) {
                 eventsDiv.removeChild(eventsDiv.firstChild);
             }
         }
-        
+
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -221,13 +221,13 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
-        
+
         function connect() {
             if (ws) return;
-            
+
             const port = document.getElementById('port').value || 8765;
             ws = new WebSocket(`ws://localhost:${port}`);
-            
+
             ws.onopen = () => {
                 updateStatus(true);
                 addEvent({
@@ -235,24 +235,24 @@
                     timestamp: new Date().toISOString(),
                     data: { message: 'Connected to WebSocket server' }
                 });
-                
+
                 // Subscribe to all events
                 ws.send(JSON.stringify({
                     command: 'subscribe',
                     channels: ['*']
                 }));
             };
-            
+
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
                     addEvent(data);
-                    
+
                     // Update instance info if this is a status or session event
                     if (data.type === 'system.status' || data.type === 'session.start') {
                         const instanceInfo = data.data.instance_info;
                         if (instanceInfo) {
-                            document.getElementById('instance-info').textContent = 
+                            document.getElementById('instance-info').textContent =
                                 `Instance: ${instanceInfo.working_dir || 'unknown'} (port ${instanceInfo.port})`;
                         }
                     }
@@ -260,7 +260,7 @@
                     console.error('Failed to parse message:', e);
                 }
             };
-            
+
             ws.onerror = (error) => {
                 addEvent({
                     type: 'system.error',
@@ -268,7 +268,7 @@
                     data: { message: 'WebSocket error', error: error.toString() }
                 });
             };
-            
+
             ws.onclose = () => {
                 ws = null;
                 updateStatus(false);
@@ -279,18 +279,18 @@
                 });
             };
         }
-        
+
         function disconnect() {
             if (ws) {
                 ws.close();
                 ws = null;
             }
         }
-        
+
         function clearEvents() {
             eventsDiv.innerHTML = '';
         }
-        
+
         // Auto-connect on load
         window.onload = () => {
             connect();

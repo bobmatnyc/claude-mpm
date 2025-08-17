@@ -10,9 +10,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+
 def test_mcp_commands():
     """Test all MCP CLI commands are accessible."""
-    
+
     # Test command list
     commands = [
         ["mcp", "--help"],
@@ -25,31 +26,26 @@ def test_mcp_commands():
         ["mcp", "test", "--help"],
         ["mcp", "config", "--help"],
     ]
-    
+
     print("Testing MCP CLI Commands")
     print("=" * 50)
-    
+
     all_passed = True
-    
+
     for cmd_parts in commands:
         cmd = ["python", "-m", "claude_mpm.cli"] + cmd_parts
         cmd_str = " ".join(cmd_parts)
-        
+
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=5
-            )
-            
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+
             if result.returncode == 0:
                 print(f"✅ {cmd_str}")
             else:
                 print(f"❌ {cmd_str}")
                 print(f"   Error: {result.stderr}")
                 all_passed = False
-                
+
         except subprocess.TimeoutExpired:
             print(f"❌ {cmd_str} (timeout)")
             all_passed = False
@@ -57,13 +53,13 @@ def test_mcp_commands():
             print(f"❌ {cmd_str}")
             print(f"   Exception: {e}")
             all_passed = False
-    
+
     print()
-    
+
     # Test actual command execution (non-destructive)
     print("Testing MCP Command Execution")
     print("=" * 50)
-    
+
     # Test status command
     cmd = ["python", "-m", "claude_mpm.cli", "mcp", "status"]
     try:
@@ -79,7 +75,7 @@ def test_mcp_commands():
     except Exception as e:
         print(f"❌ mcp status exception: {e}")
         all_passed = False
-    
+
     print()
     if all_passed:
         print("✅ All MCP CLI commands are working correctly!")
@@ -87,6 +83,7 @@ def test_mcp_commands():
     else:
         print("❌ Some MCP CLI commands failed!")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(test_mcp_commands())

@@ -50,11 +50,15 @@ class AgentValidator:
             content = agent_path.read_text()
 
             # Validate YAML frontmatter
-            frontmatter_valid, frontmatter_errors = self._validate_yaml_frontmatter(content)
+            frontmatter_valid, frontmatter_errors = self._validate_yaml_frontmatter(
+                content
+            )
             errors.extend(frontmatter_errors)
 
             # Validate required fields
-            required_fields_valid, field_errors = self._validate_required_fields(content)
+            required_fields_valid, field_errors = self._validate_required_fields(
+                content
+            )
             errors.extend(field_errors)
 
             # Validate agent name format
@@ -65,7 +69,12 @@ class AgentValidator:
             tools_valid, tools_errors = self._validate_tools_format(content)
             errors.extend(tools_errors)
 
-            is_valid = frontmatter_valid and required_fields_valid and name_valid and tools_valid
+            is_valid = (
+                frontmatter_valid
+                and required_fields_valid
+                and name_valid
+                and tools_valid
+            )
 
         except Exception as e:
             errors.append(f"Error validating agent: {e}")
@@ -112,7 +121,10 @@ class AgentValidator:
                     # Write repaired content back to file
                     agent_file.write_text(repaired_content)
 
-                    repair_info = {"file": agent_file.name, "issues_fixed": repair_issues}
+                    repair_info = {
+                        "file": agent_file.name,
+                        "issues_fixed": repair_issues,
+                    }
                     results["repaired"].append(repair_info)
                     self.logger.info(
                         f"Repaired agent file: {agent_file.name} (fixed: {', '.join(repair_issues)})"
@@ -181,7 +193,9 @@ class AgentValidator:
                 results["agents_found"].append(agent_info)
 
             except Exception as e:
-                self.logger.warning(f"Could not process agent file {agent_file.name}: {e}")
+                self.logger.warning(
+                    f"Could not process agent file {agent_file.name}: {e}"
+                )
 
         # Add environment information
         import os
@@ -297,7 +311,8 @@ class AgentValidator:
             if name_match:
                 name_line = name_match.group(1)
                 repaired_content = repaired_content.replace(
-                    name_line, f'{name_line}\ndescription: "Agent for specialized tasks"'
+                    name_line,
+                    f'{name_line}\ndescription: "Agent for specialized tasks"',
                 )
                 issues_fixed.append("missing_description")
                 was_repaired = True
@@ -327,7 +342,9 @@ class AgentValidator:
 
     def _needs_version_migration(self, content: str) -> bool:
         """Check if agent needs version migration."""
-        version_match = re.search(r'^version:\s*["\']?(.+?)["\']?$', content, re.MULTILINE)
+        version_match = re.search(
+            r'^version:\s*["\']?(.+?)["\']?$', content, re.MULTILINE
+        )
         if version_match:
             version_str = version_match.group(1)
             # Check for old format (contains hyphen and all digits)

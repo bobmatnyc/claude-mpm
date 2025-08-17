@@ -39,11 +39,12 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+# Import modular components
+from claude_mpm.core.unified_agent_registry import AgentTier
+from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry
+
 from ..core.agent_name_normalizer import AgentNameNormalizer
 from .base_agent_loader import prepend_base_instructions
-
-# Import modular components
-from claude_mpm.core.unified_agent_registry import UnifiedAgentRegistry as AgentRegistry, AgentTier
 
 # Module-level logger
 logger = logging.getLogger(__name__)

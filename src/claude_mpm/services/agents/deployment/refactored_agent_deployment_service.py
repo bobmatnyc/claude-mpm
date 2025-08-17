@@ -9,7 +9,11 @@ from claude_mpm.core.logger import get_logger
 
 from .config import DeploymentConfigManager
 from .facade import DeploymentFacade
-from .pipeline import DeploymentPipelineBuilder, DeploymentPipelineExecutor, PipelineContext
+from .pipeline import (
+    DeploymentPipelineBuilder,
+    DeploymentPipelineExecutor,
+    PipelineContext,
+)
 from .processors import AgentProcessor
 from .results import DeploymentMetrics, DeploymentResultBuilder
 
@@ -46,7 +50,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
         # Set up directories
         self.working_directory = working_directory or Path.cwd()
         self.templates_dir = templates_dir or self.working_directory / "agents"
-        self.base_agent_path = base_agent_path or self.working_directory / "base_agent.md"
+        self.base_agent_path = (
+            base_agent_path or self.working_directory / "base_agent.md"
+        )
 
         # Initialize components
         self.strategy_selector = DeploymentStrategySelector()
@@ -59,14 +65,18 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
         self.pipeline_executor = DeploymentPipelineExecutor()
 
         # Initialize facade for async/sync execution
-        self.deployment_facade = DeploymentFacade(self.pipeline_builder, self.pipeline_executor)
+        self.deployment_facade = DeploymentFacade(
+            self.pipeline_builder, self.pipeline_executor
+        )
 
         self.logger.info(f"Refactored deployment service initialized")
         self.logger.info(f"Templates directory: {self.templates_dir}")
         self.logger.info(f"Base agent path: {self.base_agent_path}")
         self.logger.info(f"Working directory: {self.working_directory}")
 
-    def deploy_agents(self, force: bool = False, include_all: bool = False) -> Dict[str, Any]:
+    def deploy_agents(
+        self, force: bool = False, include_all: bool = False
+    ) -> Dict[str, Any]:
         """Deploy agents to target environment.
 
         Args:
@@ -92,7 +102,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
             # Select deployment strategy
             strategy = self.strategy_selector.select_strategy(deployment_context)
-            self.logger.info(f"Selected deployment strategy: {strategy.__class__.__name__}")
+            self.logger.info(
+                f"Selected deployment strategy: {strategy.__class__.__name__}"
+            )
 
             # Use facade to execute deployment
             results = self.deployment_facade.deploy_agents(
@@ -123,7 +135,10 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                 "migrated": [],
                 "skipped": [],
                 "errors": [str(e)],
-                "metadata": {"service_version": "refactored-1.0.0", "error_type": type(e).__name__},
+                "metadata": {
+                    "service_version": "refactored-1.0.0",
+                    "error_type": type(e).__name__,
+                },
             }
 
     def validate_agent(self, agent_path: Path) -> Tuple[bool, List[str]]:
@@ -139,7 +154,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             # Use the validation service
             if agent_path.suffix == ".json":
                 # Template file validation
-                result = self.validator.template_validator.validate_template_file(agent_path)
+                result = self.validator.template_validator.validate_template_file(
+                    agent_path
+                )
             else:
                 # Agent file validation
                 result = self.validator.agent_validator.validate_agent_file(agent_path)
@@ -162,7 +179,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
             True if cleanup successful
         """
         try:
-            self.logger.info(f"Cleaning deployment (preserve_user_agents={preserve_user_agents})")
+            self.logger.info(
+                f"Cleaning deployment (preserve_user_agents={preserve_user_agents})"
+            )
 
             # Find agents directory
             agents_dir = self.working_directory / ".claude" / "agents"
@@ -183,7 +202,9 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
                             "author: claude-mpm" not in content
                             and "author: 'claude-mpm'" not in content
                         ):
-                            self.logger.debug(f"Preserving user agent: {agent_file.name}")
+                            self.logger.debug(
+                                f"Preserving user agent: {agent_file.name}"
+                            )
                             continue
 
                     # Remove the agent file
@@ -237,11 +258,17 @@ class RefactoredAgentDeploymentService(AgentDeploymentInterface):
 
         except Exception as e:
             self.logger.error(f"Failed to get deployment status: {e}", exc_info=True)
-            return {"service_version": "refactored-1.0.0", "status": "error", "error": str(e)}
+            return {
+                "service_version": "refactored-1.0.0",
+                "status": "error",
+                "error": str(e),
+            }
 
     # Additional convenience methods for enhanced functionality
 
-    def deploy_agents_async(self, force: bool = False, include_all: bool = False) -> Dict[str, Any]:
+    def deploy_agents_async(
+        self, force: bool = False, include_all: bool = False
+    ) -> Dict[str, Any]:
         """Deploy agents using async execution if available.
 
         Args:

@@ -19,20 +19,19 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 # Import from the unified agent registry system
+from .unified_agent_registry import AgentMetadata as UnifiedAgentMetadata
+from .unified_agent_registry import AgentTier, AgentType
+from .unified_agent_registry import discover_agents as unified_discover_agents
+from .unified_agent_registry import get_agent as unified_get_agent
+from .unified_agent_registry import get_agent_names as unified_get_agent_names
+from .unified_agent_registry import get_agent_registry
+from .unified_agent_registry import get_core_agents as unified_get_core_agents
+from .unified_agent_registry import get_project_agents as unified_get_project_agents
+from .unified_agent_registry import get_registry_stats as unified_get_registry_stats
 from .unified_agent_registry import (
-    get_agent_registry,
-    AgentMetadata as UnifiedAgentMetadata,
-    AgentTier,
-    AgentType,
-    discover_agents as unified_discover_agents,
-    list_agents as unified_list_agents,
-    get_agent as unified_get_agent,
-    get_core_agents as unified_get_core_agents,
     get_specialized_agents as unified_get_specialized_agents,
-    get_project_agents as unified_get_project_agents,
-    get_agent_names as unified_get_agent_names,
-    get_registry_stats as unified_get_registry_stats,
 )
+from .unified_agent_registry import list_agents as unified_list_agents
 
 try:
     from ..core.logger import get_logger
@@ -40,11 +39,10 @@ except ImportError:
     from core.logger import get_logger
 
 
-
-
 # ============================================================================
 # Compatibility Classes - Delegate to Unified Agent Registry
 # ============================================================================
+
 
 @dataclass
 class AgentMetadata:
@@ -53,6 +51,7 @@ class AgentMetadata:
 
     This class now delegates to the UnifiedAgentRegistry system.
     """
+
     name: str
     type: str
     path: str
@@ -113,7 +112,11 @@ class SimpleAgentRegistry:
     def _determine_tier(self, agent_path: Path) -> str:
         """Determine agent tier based on path (compatibility method)."""
         # Delegate to unified registry logic
-        if "project" in str(agent_path) or ".claude-mpm" in str(agent_path) or ".claude/agents" in str(agent_path):
+        if (
+            "project" in str(agent_path)
+            or ".claude-mpm" in str(agent_path)
+            or ".claude/agents" in str(agent_path)
+        ):
             return "project"
         elif "user" in str(agent_path) or str(Path.home()) in str(agent_path):
             return "user"
@@ -179,8 +182,7 @@ class SimpleAgentRegistry:
                 unified_agent_type = None
 
         unified_agents = self._unified_registry.list_agents(
-            tier=unified_tier,
-            agent_type=unified_agent_type
+            tier=unified_tier, agent_type=unified_agent_type
         )
 
         return [AgentMetadata.from_unified(agent) for agent in unified_agents]
@@ -194,7 +196,9 @@ class SimpleAgentRegistry:
 
     def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
         """Discover agents (compatibility method)."""
-        unified_agents = self._unified_registry.discover_agents(force_refresh=force_refresh)
+        unified_agents = self._unified_registry.discover_agents(
+            force_refresh=force_refresh
+        )
 
         # Update internal agents dict for compatibility
         self.agents = {}
@@ -254,6 +258,7 @@ class AgentRegistryAdapter:
         """Find claude-mpm installation (compatibility method)."""
         # Delegate to unified path manager
         from .unified_paths import get_path_manager
+
         return get_path_manager().framework_root
 
     def _is_valid_framework_path(self, path: Path) -> bool:
@@ -319,7 +324,7 @@ class AgentRegistryAdapter:
                     "tier": agent.tier.value,
                     "specializations": agent.specializations,
                     "description": agent.description,
-                }
+                },
             }
 
         except Exception as e:
@@ -398,6 +403,7 @@ TEMPORAL CONTEXT: Today is {today}. Apply date awareness to task execution.
 # Export main class as AgentRegistry for compatibility
 AgentRegistry = SimpleAgentRegistry
 
+
 def create_agent_registry(
     cache_service: Any = None, framework_path: Optional[Path] = None
 ) -> AgentRegistry:
@@ -405,19 +411,23 @@ def create_agent_registry(
     # Ignore parameters and use unified registry
     return AgentRegistry(framework_path)
 
+
 def discover_agents(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
     """Convenience function for synchronous agent discovery (compatibility function)."""
     return unified_discover_agents()
+
 
 def get_core_agent_types() -> Set[str]:
     """Get the set of core agent types (compatibility function)."""
     core_agents = unified_get_core_agents()
     return {agent.name for agent in core_agents}
 
+
 def get_specialized_agent_types() -> Set[str]:
     """Get the set of specialized agent types (compatibility function)."""
     specialized_agents = unified_get_specialized_agents()
     return {agent.name for agent in specialized_agents}
+
 
 def list_agents_all() -> Dict[str, Dict[str, Any]]:
     """Synchronous function for listing all agents (compatibility function)."""
@@ -435,6 +445,7 @@ def list_agents_all() -> Dict[str, Dict[str, Any]]:
         for name, metadata in unified_agents.items()
     }
 
+
 def listAgents() -> Dict[str, Dict[str, Any]]:
     """DEPRECATED: Use list_agents_all() instead (compatibility function)."""
     warnings.warn(
@@ -443,6 +454,7 @@ def listAgents() -> Dict[str, Dict[str, Any]]:
         stacklevel=2,
     )
     return list_agents_all()
+
 
 def list_agents(
     agent_type: Optional[str] = None, tier: Optional[str] = None
@@ -464,12 +476,16 @@ def list_agents(
         except ValueError:
             pass
 
-    unified_agents = unified_list_agents(tier=unified_tier, agent_type=unified_agent_type)
+    unified_agents = unified_list_agents(
+        tier=unified_tier, agent_type=unified_agent_type
+    )
     return [AgentMetadata.from_unified(agent) for agent in unified_agents]
+
 
 def discover_agents_sync(force_refresh: bool = False) -> Dict[str, AgentMetadata]:
     """Synchronous function for agent discovery (compatibility function)."""
     return discover_agents(force_refresh)
+
 
 def get_agent(agent_name: str) -> Optional[Dict[str, Any]]:
     """Synchronous function to get a specific agent (compatibility function)."""
@@ -485,6 +501,7 @@ def get_agent(agent_name: str) -> Optional[Dict[str, Any]]:
             "description": unified_agent.description,
         }
     return None
+
 
 def get_registry_stats() -> Dict[str, Any]:
     """Synchronous function to get registry statistics (compatibility function)."""

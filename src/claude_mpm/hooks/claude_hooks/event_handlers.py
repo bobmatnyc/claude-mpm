@@ -74,7 +74,8 @@ class EventHandlers:
             "urgency": (
                 "high"
                 if any(
-                    word in prompt.lower() for word in ["urgent", "error", "bug", "fix", "broken"]
+                    word in prompt.lower()
+                    for word in ["urgent", "error", "bug", "fix", "broken"]
                 )
                 else "normal"
             ),
@@ -112,9 +113,9 @@ class EventHandlers:
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
-
             print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr
+                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
+                file=sys.stderr,
             )
             print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
 
@@ -140,7 +141,8 @@ class EventHandlers:
             "git_branch": git_branch,
             "timestamp": datetime.now().isoformat(),
             "parameter_count": len(tool_input) if isinstance(tool_input, dict) else 0,
-            "is_file_operation": tool_name in ["Write", "Edit", "MultiEdit", "Read", "LS", "Glob"],
+            "is_file_operation": tool_name
+            in ["Write", "Edit", "MultiEdit", "Read", "LS", "Glob"],
             "is_execution": tool_name in ["Bash", "NotebookEdit"],
             "is_delegation": tool_name == "Task",
             "security_risk": assess_security_risk(tool_name, tool_input),
@@ -152,7 +154,9 @@ class EventHandlers:
 
         self.hook_handler._emit_socketio_event("/hook", "pre_tool", pre_tool_data)
 
-    def _handle_task_delegation(self, tool_input: dict, pre_tool_data: dict, session_id: str):
+    def _handle_task_delegation(
+        self, tool_input: dict, pre_tool_data: dict, session_id: str
+    ):
         """Handle Task delegation specific processing."""
         # Normalize agent type to handle capitalized names like "Research", "Engineer", etc.
         raw_agent_type = tool_input.get("subagent_type", "unknown")
@@ -181,16 +185,16 @@ class EventHandlers:
             "original_agent_type": raw_agent_type,  # Keep original for debugging
             "prompt": tool_input.get("prompt", ""),
             "description": tool_input.get("description", ""),
-            "task_preview": (tool_input.get("prompt", "") or tool_input.get("description", ""))[
-                :100
-            ],
+            "task_preview": (
+                tool_input.get("prompt", "") or tool_input.get("description", "")
+            )[:100],
         }
 
         # Track this delegation for SubagentStop correlation and response tracking
         if DEBUG:
-
             print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr
+                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
+                file=sys.stderr,
             )
             print(f"  - agent_type: {agent_type}", file=sys.stderr)
             print(f"  - raw_agent_type: {raw_agent_type}", file=sys.stderr)
@@ -206,7 +210,10 @@ class EventHandlers:
 
             if DEBUG:
                 print(f"  - Delegation tracked successfully", file=sys.stderr)
-                print(f"  - Request data keys: {list(request_data.keys())}", file=sys.stderr)
+                print(
+                    f"  - Request data keys: {list(request_data.keys())}",
+                    file=sys.stderr,
+                )
                 print(
                     f"  - delegation_requests size: {len(self.hook_handler.delegation_requests)}",
                     file=sys.stderr,
@@ -234,7 +241,9 @@ class EventHandlers:
             "timestamp": datetime.now().isoformat(),
             "hook_event_name": "SubagentStart",  # For dashboard compatibility
         }
-        self.hook_handler._emit_socketio_event("/hook", "subagent_start", subagent_start_data)
+        self.hook_handler._emit_socketio_event(
+            "/hook", "subagent_start", subagent_start_data
+        )
 
     def _get_git_branch(self, working_dir: str = None) -> str:
         """Get git branch for the given directory with caching."""
@@ -318,7 +327,11 @@ class EventHandlers:
             "tool_name": tool_name,
             "exit_code": exit_code,
             "success": exit_code == 0,
-            "status": "success" if exit_code == 0 else "blocked" if exit_code == 2 else "error",
+            "status": "success"
+            if exit_code == 0
+            else "blocked"
+            if exit_code == 2
+            else "error",
             "duration_ms": duration,
             "result_summary": result_data,
             "session_id": event.get("session_id", ""),
@@ -328,7 +341,9 @@ class EventHandlers:
             "has_output": bool(result_data.get("output")),
             "has_error": bool(result_data.get("error")),
             "output_size": (
-                len(str(result_data.get("output", ""))) if result_data.get("output") else 0
+                len(str(result_data.get("output", "")))
+                if result_data.get("output")
+                else 0
             ),
         }
 
@@ -374,8 +389,10 @@ class EventHandlers:
             "working_directory": working_dir,
             "git_branch": git_branch,
             "timestamp": datetime.now().isoformat(),
-            "is_user_input_request": "input" in message.lower() or "waiting" in message.lower(),
-            "is_error_notification": "error" in message.lower() or "failed" in message.lower(),
+            "is_user_input_request": "input" in message.lower()
+            or "waiting" in message.lower(),
+            "is_error_notification": "error" in message.lower()
+            or "failed" in message.lower(),
             "is_status_update": any(
                 word in message.lower()
                 for word in ["processing", "analyzing", "working", "thinking"]
@@ -383,7 +400,9 @@ class EventHandlers:
         }
 
         # Emit to /hook namespace
-        self.hook_handler._emit_socketio_event("/hook", "notification", notification_data)
+        self.hook_handler._emit_socketio_event(
+            "/hook", "notification", notification_data
+        )
 
     def handle_stop_fast(self, event):
         """Handle stop events when Claude processing stops.
@@ -417,13 +436,17 @@ class EventHandlers:
         return {
             "timestamp": datetime.now().isoformat(),
             "working_directory": working_dir,
-            "git_branch": self._get_git_branch(working_dir) if working_dir else "Unknown",
+            "git_branch": self._get_git_branch(working_dir)
+            if working_dir
+            else "Unknown",
             "event_type": "stop",
             "reason": event.get("reason", "unknown"),
             "stop_type": event.get("stop_type", "normal"),
         }
 
-    def _log_stop_event_debug(self, event: dict, session_id: str, metadata: dict) -> None:
+    def _log_stop_event_debug(
+        self, event: dict, session_id: str, metadata: dict
+    ) -> None:
         """Log debug information for stop events."""
 
         print(
@@ -434,7 +457,10 @@ class EventHandlers:
             f"  - response_tracker exists: {self.hook_handler.response_tracking_manager.response_tracker is not None}",
             file=sys.stderr,
         )
-        print(f"  - session_id: {session_id[:8] if session_id else 'None'}...", file=sys.stderr)
+        print(
+            f"  - session_id: {session_id[:8] if session_id else 'None'}...",
+            file=sys.stderr,
+        )
         print(f"  - reason: {metadata['reason']}", file=sys.stderr)
         print(f"  - stop_type: {metadata['stop_type']}", file=sys.stderr)
 
@@ -447,9 +473,11 @@ class EventHandlers:
             "working_directory": metadata["working_directory"],
             "git_branch": metadata["git_branch"],
             "timestamp": metadata["timestamp"],
-            "is_user_initiated": metadata["reason"] in ["user_stop", "user_cancel", "interrupt"],
+            "is_user_initiated": metadata["reason"]
+            in ["user_stop", "user_cancel", "interrupt"],
             "is_error_stop": metadata["reason"] in ["error", "timeout", "failed"],
-            "is_completion_stop": metadata["reason"] in ["completed", "finished", "done"],
+            "is_completion_stop": metadata["reason"]
+            in ["completed", "finished", "done"],
             "has_output": bool(event.get("final_output")),
         }
 
@@ -461,9 +489,9 @@ class EventHandlers:
         # Enhanced debug logging for session correlation
         session_id = event.get("session_id", "")
         if DEBUG:
-
             print(
-                f"  - session_id: {session_id[:16] if session_id else 'None'}...", file=sys.stderr
+                f"  - session_id: {session_id[:16] if session_id else 'None'}...",
+                file=sys.stderr,
             )
             print(f"  - event keys: {list(event.keys())}", file=sys.stderr)
             print(
@@ -473,7 +501,9 @@ class EventHandlers:
 
         # First try to get agent type from our tracking
         agent_type = (
-            self.hook_handler._get_delegation_agent_type(session_id) if session_id else "unknown"
+            self.hook_handler._get_delegation_agent_type(session_id)
+            if session_id
+            else "unknown"
         )
 
         # Fall back to event data if tracking didn't have it
@@ -509,7 +539,9 @@ class EventHandlers:
         structured_response = None
         if output:
             try:
-                json_match = re.search(r"```json\s*(\{.*?\})\s*```", str(output), re.DOTALL)
+                json_match = re.search(
+                    r"```json\s*(\{.*?\})\s*```", str(output), re.DOTALL
+                )
                 if json_match:
                     structured_response = json.loads(json_match.group(1))
                     if DEBUG:
@@ -522,7 +554,13 @@ class EventHandlers:
 
         # Handle response tracking with fuzzy matching
         self._handle_subagent_response_tracking(
-            session_id, agent_type, reason, output, structured_response, working_dir, git_branch
+            session_id,
+            agent_type,
+            reason,
+            output,
+            structured_response,
+            working_dir,
+            git_branch,
         )
 
         # Prepare subagent stop data
@@ -562,7 +600,9 @@ class EventHandlers:
             )
 
         # Emit to /hook namespace with high priority
-        self.hook_handler._emit_socketio_event("/hook", "subagent_stop", subagent_stop_data)
+        self.hook_handler._emit_socketio_event(
+            "/hook", "subagent_stop", subagent_stop_data
+        )
 
     def _handle_subagent_response_tracking(
         self,
@@ -589,7 +629,8 @@ class EventHandlers:
             if not request_info and session_id:
                 if DEBUG:
                     print(
-                        f"  - Trying fuzzy match for session {session_id[:16]}...", file=sys.stderr
+                        f"  - Trying fuzzy match for session {session_id[:16]}...",
+                        file=sys.stderr,
                     )
                 # Try to find a session that matches the first 8-16 characters
                 for stored_sid in list(self.hook_handler.delegation_requests.keys()):
@@ -604,12 +645,17 @@ class EventHandlers:
                     ):
                         if DEBUG:
                             print(
-                                f"  - ✅ Fuzzy match found: {stored_sid[:16]}...", file=sys.stderr
+                                f"  - ✅ Fuzzy match found: {stored_sid[:16]}...",
+                                file=sys.stderr,
                             )
-                        request_info = self.hook_handler.delegation_requests.get(stored_sid)
+                        request_info = self.hook_handler.delegation_requests.get(
+                            stored_sid
+                        )
                         # Update the key to use the current session_id for consistency
                         if request_info:
-                            self.hook_handler.delegation_requests[session_id] = request_info
+                            self.hook_handler.delegation_requests[
+                                session_id
+                            ] = request_info
                             # Optionally remove the old key to avoid duplicates
                             if stored_sid != session_id:
                                 del self.hook_handler.delegation_requests[stored_sid]
@@ -618,7 +664,9 @@ class EventHandlers:
             if request_info:
                 # Use the output as the response
                 response_text = (
-                    str(output) if output else f"Agent {agent_type} completed with reason: {reason}"
+                    str(output)
+                    if output
+                    else f"Agent {agent_type} completed with reason: {reason}"
                 )
 
                 # Get the original request
@@ -653,17 +701,17 @@ class EventHandlers:
                 # Add structured response if available
                 if structured_response:
                     metadata["structured_response"] = structured_response
-                    metadata["task_completed"] = structured_response.get("task_completed", False)
+                    metadata["task_completed"] = structured_response.get(
+                        "task_completed", False
+                    )
 
                 # Track the response
-                file_path = (
-                    self.hook_handler.response_tracking_manager.response_tracker.track_response(
-                        agent_name=agent_type,
-                        request=full_request,
-                        response=response_text,
-                        session_id=session_id,
-                        metadata=metadata,
-                    )
+                file_path = self.hook_handler.response_tracking_manager.response_tracker.track_response(
+                    agent_name=agent_type,
+                    request=full_request,
+                    response=response_text,
+                    session_id=session_id,
+                    metadata=metadata,
                 )
 
                 if file_path and DEBUG:
@@ -684,7 +732,9 @@ class EventHandlers:
 
         except Exception as e:
             if DEBUG:
-                print(f"❌ Failed to track response on SubagentStop: {e}", file=sys.stderr)
+                print(
+                    f"❌ Failed to track response on SubagentStop: {e}", file=sys.stderr
+                )
 
     def handle_assistant_response(self, event):
         """Handle assistant response events for comprehensive response tracking."""

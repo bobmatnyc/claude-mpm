@@ -28,7 +28,7 @@ Architecture:
 import json
 import logging
 import time
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -41,22 +41,25 @@ logger = logging.getLogger(__name__)
 
 class AgentTier(Enum):
     """Agent tier hierarchy for precedence resolution."""
+
     PROJECT = "project"  # Highest precedence
-    USER = "user"        # Medium precedence  
-    SYSTEM = "system"    # Lowest precedence
+    USER = "user"  # Medium precedence
+    SYSTEM = "system"  # Lowest precedence
 
 
 class AgentType(Enum):
     """Agent type classification."""
-    CORE = "core"                    # Core framework agents
-    SPECIALIZED = "specialized"      # Specialized domain agents
-    USER_DEFINED = "user_defined"    # User-created agents
-    PROJECT = "project"              # Project-specific agents
-    MEMORY_AWARE = "memory_aware"    # Memory-enhanced agents
+
+    CORE = "core"  # Core framework agents
+    SPECIALIZED = "specialized"  # Specialized domain agents
+    USER_DEFINED = "user_defined"  # User-created agents
+    PROJECT = "project"  # Project-specific agents
+    MEMORY_AWARE = "memory_aware"  # Memory-enhanced agents
 
 
 class AgentFormat(Enum):
     """Supported agent file formats."""
+
     MARKDOWN = "markdown"
     JSON = "json"
     YAML = "yaml"
@@ -65,6 +68,7 @@ class AgentFormat(Enum):
 @dataclass
 class AgentMetadata:
     """Standardized agent metadata model."""
+
     name: str
     agent_type: AgentType
     tier: AgentTier
@@ -78,7 +82,7 @@ class AgentMetadata:
     version: str = "1.0.0"
     author: str = ""
     tags: List[str] = None
-    
+
     def __post_init__(self):
         """Initialize default values for mutable fields."""
         if self.specializations is None:
@@ -89,7 +93,7 @@ class AgentMetadata:
             self.dependencies = []
         if self.tags is None:
             self.tags = []
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         data = asdict(self)
@@ -97,7 +101,7 @@ class AgentMetadata:
         data["tier"] = self.tier.value
         data["format"] = self.format.value
         return data
-    
+
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "AgentMetadata":
         """Create from dictionary representation."""
@@ -110,29 +114,29 @@ class AgentMetadata:
 class UnifiedAgentRegistry:
     """
     Unified agent registry system that consolidates all agent-related functionality.
-    
+
     This class provides a single, authoritative interface for all agent operations
     in Claude MPM, replacing the multiple duplicate agent registry modules.
     """
-    
+
     def __init__(self, cache_enabled: bool = True, cache_ttl: int = 3600):
         """Initialize the unified agent registry."""
         self.path_manager = get_path_manager()
-        
+
         # Registry storage
         self.registry: Dict[str, AgentMetadata] = {}
         self.discovery_paths: List[Path] = []
         self.discovered_files: Set[Path] = set()
-        
+
         # Cache configuration
         self.cache_enabled = cache_enabled
         self.cache_ttl = cache_ttl
         self.cache_prefix = "unified_agent_registry"
-        
+
         # Discovery configuration
         self.file_extensions = {".md", ".json", ".yaml", ".yml"}
         self.ignore_patterns = {"__pycache__", ".git", "node_modules", ".pytest_cache"}
-        
+
         # Statistics
         self.discovery_stats = {
             "last_discovery": None,
@@ -141,132 +145,140 @@ class UnifiedAgentRegistry:
             "cache_misses": 0,
             "discovery_duration": 0.0,
         }
-        
+
         # Setup discovery paths
         self._setup_discovery_paths()
-        
-        logger.info(f"UnifiedAgentRegistry initialized with cache={'enabled' if cache_enabled else 'disabled'}")
-    
+
+        logger.info(
+            f"UnifiedAgentRegistry initialized with cache={'enabled' if cache_enabled else 'disabled'}"
+        )
+
     def _setup_discovery_paths(self) -> None:
         """Setup standard discovery paths for agent files."""
         # Project-level agents (highest priority)
         project_path = self.path_manager.get_project_agents_dir()
         if project_path.exists():
             self.discovery_paths.append(project_path)
-        
+
         # User-level agents
         user_path = self.path_manager.get_user_agents_dir()
         if user_path.exists():
             self.discovery_paths.append(user_path)
-        
+
         # System-level agents
         system_path = self.path_manager.get_system_agents_dir()
         if system_path.exists():
             self.discovery_paths.append(system_path)
-        
+
         # Templates directory
         templates_path = self.path_manager.get_templates_dir()
         if templates_path.exists():
             self.discovery_paths.append(templates_path)
-        
-        logger.debug(f"Discovery paths configured: {[str(p) for p in self.discovery_paths]}")
-    
+
+        logger.debug(
+            f"Discovery paths configured: {[str(p) for p in self.discovery_paths]}"
+        )
+
     def discover_agents(self, force_refresh: bool = False) -> Dict[str, AgentMetadata]:
         """
         Discover all agents from configured paths with tier precedence.
-        
+
         Args:
             force_refresh: Force re-discovery even if cache is valid
-            
+
         Returns:
             Dictionary mapping agent names to their metadata
         """
         start_time = time.time()
-        
+
         # Check cache first (if enabled and not forcing refresh)
         if self.cache_enabled and not force_refresh and self._is_cache_valid():
             self.discovery_stats["cache_hits"] += 1
             logger.debug("Using cached agent registry")
             return self.registry
-        
+
         self.discovery_stats["cache_misses"] += 1
-        
+
         # Clear existing registry and discovered files
         self.registry.clear()
         self.discovered_files.clear()
-        
+
         # Discover agents from all paths
         for discovery_path in self.discovery_paths:
             tier = self._determine_tier(discovery_path)
             self._discover_path(discovery_path, tier)
-        
+
         # Handle tier precedence
         self._apply_tier_precedence()
-        
+
         # Discover and integrate memory files
         self._discover_memory_integration()
-        
+
         # Cache the results
         if self.cache_enabled:
             self._cache_registry()
-        
+
         # Update statistics
         self.discovery_stats["last_discovery"] = time.time()
         self.discovery_stats["total_discovered"] = len(self.registry)
         self.discovery_stats["discovery_duration"] = time.time() - start_time
-        
+
         logger.info(
             f"Discovered {len(self.registry)} agents in {self.discovery_stats['discovery_duration']:.2f}s"
         )
-        
+
         return self.registry
-    
+
     def _discover_path(self, path: Path, tier: AgentTier) -> None:
         """Discover agents in a specific path."""
         if not path.exists():
             return
-        
+
         for file_path in path.rglob("*"):
             # Skip directories and ignored patterns
             if file_path.is_dir():
                 continue
-            
+
             if any(pattern in str(file_path) for pattern in self.ignore_patterns):
                 continue
-            
+
             # Check file extension
             if file_path.suffix not in self.file_extensions:
                 continue
-            
+
             # Extract agent name
             agent_name = self._extract_agent_name(file_path)
             if not agent_name:
                 continue
-            
+
             # Create agent metadata
             try:
                 metadata = self._create_agent_metadata(file_path, agent_name, tier)
                 if metadata:
                     self.registry[agent_name] = metadata
                     self.discovered_files.add(file_path)
-                    logger.debug(f"Discovered agent: {agent_name} ({tier.value}) at {file_path}")
+                    logger.debug(
+                        f"Discovered agent: {agent_name} ({tier.value}) at {file_path}"
+                    )
             except Exception as e:
                 logger.warning(f"Failed to process agent file {file_path}: {e}")
-    
+
     def _extract_agent_name(self, file_path: Path) -> Optional[str]:
         """Extract agent name from file path."""
         # Remove extension and use filename as agent name
         name = file_path.stem
-        
+
         # Skip certain files
         skip_files = {"README", "INSTRUCTIONS", "template", "example"}
         if name.upper() in skip_files:
             return None
-        
+
         # Normalize name
         return name.lower().replace("-", "_").replace(" ", "_")
-    
-    def _create_agent_metadata(self, file_path: Path, agent_name: str, tier: AgentTier) -> Optional[AgentMetadata]:
+
+    def _create_agent_metadata(
+        self, file_path: Path, agent_name: str, tier: AgentTier
+    ) -> Optional[AgentMetadata]:
         """Create agent metadata from file."""
         try:
             # Determine format
@@ -277,13 +289,15 @@ class UnifiedAgentRegistry:
                 ".yml": AgentFormat.YAML,
             }
             agent_format = format_map.get(file_path.suffix, AgentFormat.MARKDOWN)
-            
+
             # Determine agent type
             agent_type = self._determine_agent_type(file_path, tier)
-            
+
             # Extract metadata from file content
-            description, specializations = self._extract_file_metadata(file_path, agent_format)
-            
+            description, specializations = self._extract_file_metadata(
+                file_path, agent_format
+            )
+
             return AgentMetadata(
                 name=agent_name,
                 agent_type=agent_type,
@@ -294,7 +308,7 @@ class UnifiedAgentRegistry:
                 description=description,
                 specializations=specializations,
             )
-            
+
         except Exception as e:
             logger.error(f"Failed to create metadata for {file_path}: {e}")
             return None
@@ -303,9 +317,15 @@ class UnifiedAgentRegistry:
         """Determine agent tier based on path."""
         path_str = str(path)
 
-        if "project" in path_str or str(self.path_manager.get_project_agents_dir()) in path_str:
+        if (
+            "project" in path_str
+            or str(self.path_manager.get_project_agents_dir()) in path_str
+        ):
             return AgentTier.PROJECT
-        elif "user" in path_str or str(self.path_manager.get_user_agents_dir()) in path_str:
+        elif (
+            "user" in path_str
+            or str(self.path_manager.get_user_agents_dir()) in path_str
+        ):
             return AgentTier.USER
         else:
             return AgentTier.SYSTEM
@@ -329,7 +349,9 @@ class UnifiedAgentRegistry:
         # Specialized agents
         return AgentType.SPECIALIZED
 
-    def _extract_file_metadata(self, file_path: Path, agent_format: AgentFormat) -> tuple[str, List[str]]:
+    def _extract_file_metadata(
+        self, file_path: Path, agent_format: AgentFormat
+    ) -> tuple[str, List[str]]:
         """Extract description and specializations from agent file."""
         try:
             content = file_path.read_text(encoding="utf-8")
@@ -341,6 +363,7 @@ class UnifiedAgentRegistry:
             elif agent_format in [AgentFormat.YAML, AgentFormat.YAML]:
                 try:
                     import yaml
+
                     data = yaml.safe_load(content)
                     description = data.get("description", "")
                     specializations = data.get("specializations", [])
@@ -361,21 +384,21 @@ class UnifiedAgentRegistry:
 
     def _extract_markdown_description(self, content: str) -> str:
         """Extract description from markdown content."""
-        lines = content.split('\n')
+        lines = content.split("\n")
 
         # Look for frontmatter
-        if lines and lines[0].strip() == '---':
+        if lines and lines[0].strip() == "---":
             in_frontmatter = True
             for i, line in enumerate(lines[1:], 1):
-                if line.strip() == '---':
+                if line.strip() == "---":
                     break
-                if line.startswith('description:'):
-                    return line.split(':', 1)[1].strip().strip('"\'')
+                if line.startswith("description:"):
+                    return line.split(":", 1)[1].strip().strip("\"'")
 
         # Look for first paragraph
         for line in lines:
             line = line.strip()
-            if line and not line.startswith('#') and not line.startswith('---'):
+            if line and not line.startswith("#") and not line.startswith("---"):
                 return line
 
         return ""
@@ -385,16 +408,16 @@ class UnifiedAgentRegistry:
         specializations = []
 
         # Look for frontmatter
-        lines = content.split('\n')
-        if lines and lines[0].strip() == '---':
+        lines = content.split("\n")
+        if lines and lines[0].strip() == "---":
             in_frontmatter = True
             for i, line in enumerate(lines[1:], 1):
-                if line.strip() == '---':
+                if line.strip() == "---":
                     break
-                if line.startswith('specializations:'):
+                if line.startswith("specializations:"):
                     # Parse YAML list
-                    spec_content = line.split(':', 1)[1].strip()
-                    if spec_content.startswith('[') and spec_content.endswith(']'):
+                    spec_content = line.split(":", 1)[1].strip()
+                    if spec_content.startswith("[") and spec_content.endswith("]"):
                         # JSON-style list
                         try:
                             specializations = json.loads(spec_content)
@@ -425,7 +448,9 @@ class UnifiedAgentRegistry:
                     for agent in agents:
                         if agent.tier == tier:
                             resolved_registry[name] = agent
-                            logger.debug(f"Resolved conflict for {name}: using {tier.value} tier")
+                            logger.debug(
+                                f"Resolved conflict for {name}: using {tier.value} tier"
+                            )
                             break
                     if name in resolved_registry:
                         break
@@ -446,7 +471,9 @@ class UnifiedAgentRegistry:
                 if agent_name == memory_name or memory_name in agent_name:
                     metadata.memory_files.append(str(memory_file))
                     metadata.agent_type = AgentType.MEMORY_AWARE
-                    logger.debug(f"Integrated memory file {memory_file} with agent {agent_name}")
+                    logger.debug(
+                        f"Integrated memory file {memory_file} with agent {agent_name}"
+                    )
 
     def _is_cache_valid(self) -> bool:
         """Check if the current cache is still valid."""
@@ -490,7 +517,7 @@ class UnifiedAgentRegistry:
         self,
         tier: Optional[AgentTier] = None,
         agent_type: Optional[AgentType] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ) -> List[AgentMetadata]:
         """List agents with optional filtering."""
         if not self.registry:
@@ -566,7 +593,9 @@ class UnifiedAgentRegistry:
                 "total_agents": len(self.registry),
                 "discovery_paths": [str(p) for p in self.discovery_paths],
             },
-            "agents": {name: metadata.to_dict() for name, metadata in self.registry.items()}
+            "agents": {
+                name: metadata.to_dict() for name, metadata in self.registry.items()
+            },
         }
 
         with open(output_path, "w") as f:
@@ -598,6 +627,7 @@ class UnifiedAgentRegistry:
 # Global singleton instance
 _agent_registry: Optional[UnifiedAgentRegistry] = None
 
+
 def get_agent_registry() -> UnifiedAgentRegistry:
     """Get the global UnifiedAgentRegistry instance."""
     global _agent_registry
@@ -605,50 +635,60 @@ def get_agent_registry() -> UnifiedAgentRegistry:
         _agent_registry = UnifiedAgentRegistry()
     return _agent_registry
 
+
 # Convenience functions for backward compatibility
 def discover_agents() -> Dict[str, AgentMetadata]:
     """Discover all agents."""
     return get_agent_registry().discover_agents()
 
+
 def list_agents(
-    tier: Optional[AgentTier] = None,
-    agent_type: Optional[AgentType] = None
+    tier: Optional[AgentTier] = None, agent_type: Optional[AgentType] = None
 ) -> List[AgentMetadata]:
     """List agents with optional filtering."""
     return get_agent_registry().list_agents(tier=tier, agent_type=agent_type)
+
 
 def get_agent(name: str) -> Optional[AgentMetadata]:
     """Get agent metadata by name."""
     return get_agent_registry().get_agent(name)
 
+
 def get_core_agents() -> List[AgentMetadata]:
     """Get all core framework agents."""
     return get_agent_registry().get_core_agents()
+
 
 def get_specialized_agents() -> List[AgentMetadata]:
     """Get all specialized agents."""
     return get_agent_registry().get_specialized_agents()
 
+
 def get_project_agents() -> List[AgentMetadata]:
     """Get all project-specific agents."""
     return get_agent_registry().get_project_agents()
+
 
 def get_agent_names() -> List[str]:
     """Get list of all agent names."""
     return get_agent_registry().get_agent_names()
 
+
 def get_registry_stats() -> Dict[str, Any]:
     """Get registry statistics."""
     return get_agent_registry().get_registry_stats()
+
 
 # Legacy function names for backward compatibility
 def listAgents() -> List[str]:
     """Legacy function: Get list of agent names."""
     return get_agent_names()
 
+
 def discover_agents_sync() -> Dict[str, AgentMetadata]:
     """Legacy function: Synchronous agent discovery."""
     return discover_agents()
+
 
 def list_agents_all() -> List[AgentMetadata]:
     """Legacy function: List all agents."""

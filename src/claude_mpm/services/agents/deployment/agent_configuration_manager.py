@@ -100,7 +100,16 @@ class AgentConfigurationManager:
             List of tool names
         """
         # Base tools all agents should have
-        base_tools = ["Read", "Write", "Edit", "MultiEdit", "Grep", "Glob", "LS", "TodoWrite"]
+        base_tools = [
+            "Read",
+            "Write",
+            "Edit",
+            "MultiEdit",
+            "Grep",
+            "Glob",
+            "LS",
+            "TodoWrite",
+        ]
 
         # Agent-specific tools based on name patterns
         agent_tools = {
@@ -339,7 +348,9 @@ class AgentConfigurationManager:
         base_agent_data, base_agent_version = self.load_base_agent()
 
         return {
-            "base_agent_path": str(self.base_agent_path) if self.base_agent_path else None,
+            "base_agent_path": str(self.base_agent_path)
+            if self.base_agent_path
+            else None,
             "base_agent_loaded": self._base_agent_cache is not None,
             "base_agent_version": base_agent_version,
             "base_agent_name": base_agent_data.get("name", "unknown"),

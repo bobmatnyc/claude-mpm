@@ -6,16 +6,17 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 
 import asyncio
 from typing import Any
+
 from ...constants import MCPCommands
 
 
 class MCPCommandRouter:
     """Routes MCP commands to appropriate handlers."""
-    
+
     def __init__(self, logger):
         """Initialize the command router."""
         self.logger = logger
-    
+
     def route_command(self, args) -> int:
         """Route command to appropriate handler."""
         if args.mcp_command == MCPCommands.START.value:
@@ -50,61 +51,70 @@ class MCPCommandRouter:
             print(f"Unknown MCP command: {args.mcp_command}")
             self._show_help()
             return 1
-    
+
     async def _start_server(self, args) -> int:
         """Start server command handler."""
         from .mcp_server_commands import MCPServerCommands
+
         handler = MCPServerCommands(self.logger)
         return await handler.start_server(args)
-    
+
     def _stop_server(self, args) -> int:
         """Stop server command handler."""
         from .mcp_server_commands import MCPServerCommands
+
         handler = MCPServerCommands(self.logger)
         return handler.stop_server(args)
-    
+
     def _show_status(self, args) -> int:
         """Show status command handler."""
         from .mcp_server_commands import MCPServerCommands
+
         handler = MCPServerCommands(self.logger)
         return handler.show_status(args)
-    
+
     def _manage_tools(self, args) -> int:
         """Manage tools command handler."""
         from .mcp_tool_commands import MCPToolCommands
+
         handler = MCPToolCommands(self.logger)
         return handler.manage_tools(args)
-    
+
     def _register_tool(self, args) -> int:
         """Register tool command handler."""
         from .mcp_tool_commands import MCPToolCommands
+
         handler = MCPToolCommands(self.logger)
         return handler.register_tool(args)
-    
+
     def _test_tool(self, args) -> int:
         """Test tool command handler."""
         from .mcp_tool_commands import MCPToolCommands
+
         handler = MCPToolCommands(self.logger)
         return handler.test_tool(args)
-    
+
     def _install_gateway(self, args) -> int:
         """Install gateway command handler."""
         from .mcp_install_commands import MCPInstallCommands
+
         handler = MCPInstallCommands(self.logger)
         return handler.install_gateway(args)
-    
+
     def _manage_config(self, args) -> int:
         """Manage config command handler."""
         from .mcp_config_commands import MCPConfigCommands
+
         handler = MCPConfigCommands(self.logger)
         return handler.manage_config(args)
-    
+
     def _cleanup_locks(self, args) -> int:
         """Cleanup locks command handler."""
         from .mcp_server_commands import MCPServerCommands
+
         handler = MCPServerCommands(self.logger)
         return handler.cleanup_locks(args)
-    
+
     def _show_help(self):
         """Show available MCP commands."""
         print("\nAvailable MCP commands:")

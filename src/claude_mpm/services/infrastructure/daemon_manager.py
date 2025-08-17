@@ -102,7 +102,9 @@ class SocketIODaemonManager:
         try:
             import requests
 
-            response = requests.get(f"http://{self.host}:{self.port}/health", timeout=1.0)
+            response = requests.get(
+                f"http://{self.host}:{self.port}/health", timeout=1.0
+            )
             if response.status_code == 200:
                 return response.json()
         except:
@@ -123,7 +125,9 @@ class SocketIODaemonManager:
         # Check for port conflicts
         conflict_info = self._check_port_conflict()
         if conflict_info and "server_id" in conflict_info:
-            logger.warning(f"Port {self.port} already in use by: {conflict_info.get('server_id')}")
+            logger.warning(
+                f"Port {self.port} already in use by: {conflict_info.get('server_id')}"
+            )
             return False
 
         try:

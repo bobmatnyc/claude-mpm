@@ -101,7 +101,10 @@ class DeploymentFacade:
             )
 
             # If async failed and we have a fallback option, try sync
-            if executor.get_executor_name() == "async" and self.sync_executor.is_available():
+            if (
+                executor.get_executor_name() == "async"
+                and self.sync_executor.is_available()
+            ):
                 self.logger.info("Falling back to synchronous deployment")
                 return self._fallback_to_sync(
                     templates_dir,

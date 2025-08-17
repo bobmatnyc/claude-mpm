@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Debug script #2 for agent name normalization behavior."""
 
-import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import sys
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from claude_mpm.core.agent_name_normalizer import AgentNameNormalizer
 
@@ -22,8 +23,17 @@ for key, name in AgentNameNormalizer.CANONICAL_NAMES.items():
 # Test aliases
 print("\nAgent Aliases:")
 test_aliases = [
-    "researcher", "dev", "developer", "quality", "sec",
-    "docs", "devops", "vcs", "data", "arch", "project_manager"
+    "researcher",
+    "dev",
+    "developer",
+    "quality",
+    "sec",
+    "docs",
+    "devops",
+    "vcs",
+    "data",
+    "arch",
+    "project_manager",
 ]
 for alias in test_aliases:
     normalized = AgentNameNormalizer.normalize(alias)

@@ -44,7 +44,11 @@ class SocketIOEventBroadcaster:
         if not self.sio:
             return
 
-        event = {"type": event_type, "timestamp": datetime.now().isoformat(), "data": data}
+        event = {
+            "type": event_type,
+            "timestamp": datetime.now().isoformat(),
+            "data": data,
+        }
 
         # Buffer the event for reliability
         with self.buffer_lock:
@@ -62,7 +66,9 @@ class SocketIOEventBroadcaster:
                 self.stats["events_sent"] += 1
                 self.logger.debug(f"Broadcasted event: {event_type}")
             else:
-                self.logger.warning(f"Cannot broadcast {event_type}: server loop not available")
+                self.logger.warning(
+                    f"Cannot broadcast {event_type}: server loop not available"
+                )
 
         except Exception as e:
             self.logger.error(f"Failed to broadcast event {event_type}: {e}")
@@ -83,9 +89,13 @@ class SocketIOEventBroadcaster:
         """Notify that a session has ended."""
         self.broadcast_event("session_ended", {"timestamp": datetime.now().isoformat()})
 
-    def claude_status_changed(self, status: str, pid: Optional[int] = None, message: str = ""):
+    def claude_status_changed(
+        self, status: str, pid: Optional[int] = None, message: str = ""
+    ):
         """Notify Claude status change."""
-        self.broadcast_event("claude_status", {"status": status, "pid": pid, "message": message})
+        self.broadcast_event(
+            "claude_status", {"status": status, "pid": pid, "message": message}
+        )
 
     def claude_output(self, content: str, stream: str = "stdout"):
         """Broadcast Claude output."""
@@ -93,7 +103,9 @@ class SocketIOEventBroadcaster:
 
     def agent_delegated(self, agent: str, task: str, status: str = "started"):
         """Notify agent delegation."""
-        self.broadcast_event("agent_delegated", {"agent": agent, "task": task, "status": status})
+        self.broadcast_event(
+            "agent_delegated", {"agent": agent, "task": task, "status": status}
+        )
 
     def todo_updated(self, todos: List[Dict[str, Any]]):
         """Notify todo list update."""
@@ -102,20 +114,29 @@ class SocketIOEventBroadcaster:
 
         self.broadcast_event(
             "todo_updated",
-            {"todos": limited_todos, "total_count": len(todos), "truncated": len(todos) > 50},
+            {
+                "todos": limited_todos,
+                "total_count": len(todos),
+                "truncated": len(todos) > 50,
+            },
         )
 
     def ticket_created(self, ticket_id: str, title: str, priority: str = "medium"):
         """Notify ticket creation."""
         self.broadcast_event(
-            "ticket_created", {"ticket_id": ticket_id, "title": title, "priority": priority}
+            "ticket_created",
+            {"ticket_id": ticket_id, "title": title, "priority": priority},
         )
 
     def memory_loaded(self, agent_id: str, memory_size: int, sections_count: int):
         """Notify when agent memory is loaded from file."""
         self.broadcast_event(
             "memory_loaded",
-            {"agent_id": agent_id, "memory_size": memory_size, "sections_count": sections_count},
+            {
+                "agent_id": agent_id,
+                "memory_size": memory_size,
+                "sections_count": sections_count,
+            },
         )
 
     def memory_created(self, agent_id: str, template_type: str):
@@ -124,7 +145,9 @@ class SocketIOEventBroadcaster:
             "memory_created", {"agent_id": agent_id, "template_type": template_type}
         )
 
-    def memory_updated(self, agent_id: str, learning_type: str, content: str, section: str):
+    def memory_updated(
+        self, agent_id: str, learning_type: str, content: str, section: str
+    ):
         """Notify when learning is added to agent memory."""
         # Truncate content if too long to prevent large payloads
         truncated_content = content[:500] + "..." if len(content) > 500 else content
@@ -147,7 +170,9 @@ class SocketIOEventBroadcaster:
             "memory_injected", {"agent_id": agent_id, "context_size": context_size}
         )
 
-    def file_changed(self, file_path: str, change_type: str, content: Optional[str] = None):
+    def file_changed(
+        self, file_path: str, change_type: str, content: Optional[str] = None
+    ):
         """Notify file system changes."""
         event_data = {"file_path": file_path, "change_type": change_type}
 
@@ -162,19 +187,24 @@ class SocketIOEventBroadcaster:
 
     def git_operation(self, operation: str, details: Dict[str, Any]):
         """Notify Git operations."""
-        self.broadcast_event("git_operation", {"operation": operation, "details": details})
+        self.broadcast_event(
+            "git_operation", {"operation": operation, "details": details}
+        )
 
     def error_occurred(
         self, error_type: str, message: str, details: Optional[Dict[str, Any]] = None
     ):
         """Notify when errors occur."""
         self.broadcast_event(
-            "error", {"error_type": error_type, "message": message, "details": details or {}}
+            "error",
+            {"error_type": error_type, "message": message, "details": details or {}},
         )
 
     def performance_metric(self, metric_name: str, value: float, unit: str = ""):
         """Broadcast performance metrics."""
-        self.broadcast_event("performance", {"metric": metric_name, "value": value, "unit": unit})
+        self.broadcast_event(
+            "performance", {"metric": metric_name, "value": value, "unit": unit}
+        )
 
     def system_status(self, status: Dict[str, Any]):
         """Broadcast system status information."""

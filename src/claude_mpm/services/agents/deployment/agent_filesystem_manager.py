@@ -130,7 +130,9 @@ class AgentFileSystemManager:
                     yaml_content = yaml_file.read_text()
 
                     # Convert to Markdown format
-                    md_content = self._convert_yaml_to_markdown(yaml_content, yaml_file.stem)
+                    md_content = self._convert_yaml_to_markdown(
+                        yaml_content, yaml_file.stem
+                    )
 
                     # Write MD file
                     md_file.write_text(md_content)
@@ -138,7 +140,9 @@ class AgentFileSystemManager:
                     # Remove original YAML file
                     yaml_file.unlink()
 
-                    results["converted"].append({"from": yaml_file.name, "to": md_file.name})
+                    results["converted"].append(
+                        {"from": yaml_file.name, "to": md_file.name}
+                    )
 
                     self.logger.info(f"Converted {yaml_file.name} to {md_file.name}")
 
@@ -167,7 +171,12 @@ class AgentFileSystemManager:
         Returns:
             Dictionary with backup results
         """
-        results = {"success": False, "backup_path": None, "files_backed_up": 0, "errors": []}
+        results = {
+            "success": False,
+            "backup_path": None,
+            "files_backed_up": 0,
+            "errors": [],
+        }
 
         if not agents_dir.exists():
             results["errors"].append(f"Source directory does not exist: {agents_dir}")
@@ -189,10 +198,16 @@ class AgentFileSystemManager:
             file_count = len([f for f in backup_files if f.is_file()])
 
             results.update(
-                {"success": True, "backup_path": str(backup_dir), "files_backed_up": file_count}
+                {
+                    "success": True,
+                    "backup_path": str(backup_dir),
+                    "files_backed_up": file_count,
+                }
             )
 
-            self.logger.info(f"Successfully backed up {file_count} files to {backup_dir}")
+            self.logger.info(
+                f"Successfully backed up {file_count} files to {backup_dir}"
+            )
 
         except Exception as e:
             error_msg = f"Backup failed: {e}"
@@ -201,7 +216,9 @@ class AgentFileSystemManager:
 
         return results
 
-    def restore_agents_from_backup(self, backup_dir: Path, agents_dir: Path) -> Dict[str, Any]:
+    def restore_agents_from_backup(
+        self, backup_dir: Path, agents_dir: Path
+    ) -> Dict[str, Any]:
         """
         Restore agents from a backup directory.
 
@@ -232,7 +249,9 @@ class AgentFileSystemManager:
 
             results.update({"success": True, "files_restored": file_count})
 
-            self.logger.info(f"Successfully restored {file_count} files from {backup_dir}")
+            self.logger.info(
+                f"Successfully restored {file_count} files from {backup_dir}"
+            )
 
         except Exception as e:
             error_msg = f"Restore failed: {e}"
@@ -317,7 +336,8 @@ class AgentFileSystemManager:
         )
         version = self._extract_yaml_field(yaml_content, "version") or "1.0.0"
         tools_line = (
-            self._extract_yaml_field(yaml_content, "tools") or "Read, Write, Edit, Grep, Glob, LS"
+            self._extract_yaml_field(yaml_content, "tools")
+            or "Read, Write, Edit, Grep, Glob, LS"
         )
 
         # Convert tools string to list format

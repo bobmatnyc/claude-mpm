@@ -263,7 +263,9 @@ class AgentLifecycleManager(BaseService):
     async def _load_agent_records(self) -> None:
         """Load existing agent lifecycle records."""
         try:
-            records_file = get_path_manager().get_tracking_dir() / "lifecycle_records.json"
+            records_file = (
+                get_path_manager().get_tracking_dir() / "lifecycle_records.json"
+            )
             if path_ops.validate_exists(records_file):
                 data = self.config_mgr.load_json(records_file)
 
@@ -282,7 +284,9 @@ class AgentLifecycleManager(BaseService):
     async def _save_agent_records(self) -> None:
         """Save agent lifecycle records to disk."""
         try:
-            records_file = get_path_manager().get_tracking_dir() / "lifecycle_records.json"
+            records_file = (
+                get_path_manager().get_tracking_dir() / "lifecycle_records.json"
+            )
             path_ops.ensure_dir(records_file.parent)
 
             data = {}

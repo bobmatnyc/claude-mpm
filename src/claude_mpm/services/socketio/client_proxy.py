@@ -47,7 +47,9 @@ class SocketIOClientProxy:
 
     def start_sync(self):
         """Start the Socket.IO client connection to the persistent server."""
-        self.logger.debug(f"SocketIOClientProxy: Connecting to server on {self.host}:{self.port}")
+        self.logger.debug(
+            f"SocketIOClientProxy: Connecting to server on {self.host}:{self.port}"
+        )
         if SOCKETIO_AVAILABLE:
             self._start_client()
 
@@ -113,7 +115,11 @@ class SocketIOClientProxy:
 
         if self._sio_client and self._sio_client.connected:
             try:
-                event = {"type": event_type, "timestamp": datetime.now().isoformat(), "data": data}
+                event = {
+                    "type": event_type,
+                    "timestamp": datetime.now().isoformat(),
+                    "data": data,
+                }
 
                 # Send event safely using run_coroutine_threadsafe
                 if (
@@ -123,10 +129,13 @@ class SocketIOClientProxy:
                 ):
                     try:
                         future = asyncio.run_coroutine_threadsafe(
-                            self._sio_client.emit("claude_event", event), self._client_loop
+                            self._sio_client.emit("claude_event", event),
+                            self._client_loop,
                         )
                         # Don't wait for the result to avoid blocking
-                        self.logger.debug(f"SocketIOClientProxy: Scheduled emit for {event_type}")
+                        self.logger.debug(
+                            f"SocketIOClientProxy: Scheduled emit for {event_type}"
+                        )
                     except Exception as e:
                         self.logger.error(
                             f"SocketIOClientProxy: Failed to schedule emit for {event_type}: {e}"
@@ -138,9 +147,13 @@ class SocketIOClientProxy:
 
                 self.logger.debug(f"SocketIOClientProxy: Sent event {event_type}")
             except Exception as e:
-                self.logger.error(f"SocketIOClientProxy: Failed to send event {event_type}: {e}")
+                self.logger.error(
+                    f"SocketIOClientProxy: Failed to send event {event_type}: {e}"
+                )
         else:
-            self.logger.warning(f"SocketIOClientProxy: Client not ready for {event_type}")
+            self.logger.warning(
+                f"SocketIOClientProxy: Client not ready for {event_type}"
+            )
 
     # Compatibility methods for WebSocketServer interface
     def session_started(self, session_id: str, launch_method: str, working_dir: str):
@@ -149,7 +162,9 @@ class SocketIOClientProxy:
     def session_ended(self):
         self.logger.debug(f"SocketIOClientProxy: Session ended")
 
-    def claude_status_changed(self, status: str, pid: Optional[int] = None, message: str = ""):
+    def claude_status_changed(
+        self, status: str, pid: Optional[int] = None, message: str = ""
+    ):
         self.logger.debug(f"SocketIOClientProxy: Claude status {status}")
 
     def agent_delegated(self, agent: str, task: str, status: str = "started"):

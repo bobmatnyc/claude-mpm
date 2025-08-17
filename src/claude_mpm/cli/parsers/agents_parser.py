@@ -43,8 +43,12 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
     list_agents_parser = agents_subparsers.add_parser(
         AgentCommands.LIST.value, help="List available agents"
     )
-    list_agents_parser.add_argument("--system", action="store_true", help="List system agents")
-    list_agents_parser.add_argument("--deployed", action="store_true", help="List deployed agents")
+    list_agents_parser.add_argument(
+        "--system", action="store_true", help="List system agents"
+    )
+    list_agents_parser.add_argument(
+        "--deployed", action="store_true", help="List deployed agents"
+    )
     list_agents_parser.add_argument(
         "--by-tier",
         action="store_true",
@@ -53,7 +57,8 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
 
     # View agent details
     view_agent_parser = agents_subparsers.add_parser(
-        AgentCommands.VIEW.value, help="View detailed information about a specific agent"
+        AgentCommands.VIEW.value,
+        help="View detailed information about a specific agent",
     )
     view_agent_parser.add_argument("agent_name", help="Name of the agent to view")
     view_agent_parser.add_argument(
@@ -122,7 +127,10 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         "deps-fix", help="Fix missing agent dependencies with robust retry logic"
     )
     deps_fix_parser.add_argument(
-        "--max-retries", type=int, default=3, help="Maximum retry attempts per package (default: 3)"
+        "--max-retries",
+        type=int,
+        default=3,
+        help="Maximum retry attempts per package (default: 3)",
     )
 
     return agents_parser

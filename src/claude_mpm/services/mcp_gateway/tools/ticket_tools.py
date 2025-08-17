@@ -67,7 +67,10 @@ class TicketCreateTool(BaseToolAdapter):
                         "items": {"type": "string"},
                         "description": "Tags to associate with the ticket",
                     },
-                    "parent_epic": {"type": "string", "description": "Parent epic ID (for issues)"},
+                    "parent_epic": {
+                        "type": "string",
+                        "description": "Parent epic ID (for issues)",
+                    },
                     "parent_issue": {
                         "type": "string",
                         "description": "Parent issue ID (for tasks)",
@@ -199,7 +202,14 @@ class TicketListTool(BaseToolAdapter):
                     },
                     "status": {
                         "type": "string",
-                        "enum": ["all", "open", "in_progress", "done", "closed", "blocked"],
+                        "enum": [
+                            "all",
+                            "open",
+                            "in_progress",
+                            "done",
+                            "closed",
+                            "blocked",
+                        ],
                         "description": "Filter by status",
                         "default": "all",
                     },
@@ -311,7 +321,14 @@ class TicketUpdateTool(BaseToolAdapter):
                     },
                     "status": {
                         "type": "string",
-                        "enum": ["open", "in-progress", "ready", "tested", "done", "waiting"],
+                        "enum": [
+                            "open",
+                            "in-progress",
+                            "ready",
+                            "tested",
+                            "done",
+                            "waiting",
+                        ],
                         "description": "New status for the ticket (workflow state)",
                     },
                     "priority": {
@@ -319,7 +336,10 @@ class TicketUpdateTool(BaseToolAdapter):
                         "enum": ["low", "medium", "high", "critical"],
                         "description": "New priority for the ticket",
                     },
-                    "comment": {"type": "string", "description": "Optional comment for the update"},
+                    "comment": {
+                        "type": "string",
+                        "description": "Optional comment for the update",
+                    },
                 },
                 "required": ["ticket_id"],
             },
@@ -380,7 +400,9 @@ class TicketUpdateTool(BaseToolAdapter):
                     success=True,
                     data={
                         "ticket_id": ticket_id,
-                        "updated_fields": [k for k in ["status", "priority"] if k in params],
+                        "updated_fields": [
+                            k for k in ["status", "priority"] if k in params
+                        ],
                         "message": stdout.decode().strip(),
                     },
                     execution_time=execution_time,
@@ -485,7 +507,11 @@ class TicketViewTool(BaseToolAdapter):
                     success=True,
                     data=ticket_data,
                     execution_time=execution_time,
-                    metadata={"tool": "ticket_view", "operation": "view", "ticket_id": ticket_id},
+                    metadata={
+                        "tool": "ticket_view",
+                        "operation": "view",
+                        "ticket_id": ticket_id,
+                    },
                 )
             else:
                 error_msg = stderr.decode() if stderr else stdout.decode()
@@ -502,7 +528,9 @@ class TicketViewTool(BaseToolAdapter):
             self._update_metrics(False, execution_time)
 
             return MCPToolResult(
-                success=False, error=f"Ticket view failed: {str(e)}", execution_time=execution_time
+                success=False,
+                error=f"Ticket view failed: {str(e)}",
+                execution_time=execution_time,
             )
 
 
@@ -587,7 +615,11 @@ class TicketSearchTool(BaseToolAdapter):
                     success=True,
                     data=results,
                     execution_time=execution_time,
-                    metadata={"tool": "ticket_search", "operation": "search", "query": query},
+                    metadata={
+                        "tool": "ticket_search",
+                        "operation": "search",
+                        "query": query,
+                    },
                 )
             else:
                 error_msg = stderr.decode() if stderr else stdout.decode()

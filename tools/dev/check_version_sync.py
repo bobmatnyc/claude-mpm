@@ -2,7 +2,7 @@
 """
 Check version synchronization across all version files.
 
-This script verifies that version numbers are consistent across all 
+This script verifies that version numbers are consistent across all
 distribution channels and configuration files.
 
 Version Synchronization Points:
@@ -36,31 +36,31 @@ from pathlib import Path
 
 def check_versions():
     """Check that all version files are in sync.
-    
+
     Version Checking Process:
     1. Read root VERSION file (Python/PyPI version source)
     2. Read package VERSION file (distribution version)
     3. Read package.json (npm version)
     4. Compare all found versions
     5. Report mismatches or missing files
-    
+
     Version Format:
     - Must be semantic version (X.Y.Z)
     - No suffixes or prefixes allowed
     - Must match exactly across all files
-    
+
     Error Handling:
     - Missing files are reported as errors
     - Version mismatches show all versions
     - Clear indication of which file has which version
-    
+
     Returns:
         bool: True if all versions match, False otherwise
     """
     project_root = Path(__file__).parent.parent
     errors = []
     versions = {}
-    
+
     # Check root VERSION file (Python/PyPI version source)
     # This file is managed by manage_version.py and git hooks
     root_version_file = project_root / "VERSION"
@@ -70,7 +70,7 @@ def check_versions():
         print(f"✓ Root VERSION file: {version}")
     else:
         errors.append("Root VERSION file not found")
-    
+
     # Check package VERSION file (distribution version)
     # This file should always match the root VERSION file
     package_version_file = project_root / "src/claude_mpm/VERSION"
@@ -80,7 +80,7 @@ def check_versions():
         print(f"✓ Package VERSION file: {version}")
     else:
         errors.append("Package VERSION file not found (src/claude_mpm/VERSION)")
-    
+
     # Check package.json (npm version)
     # This file is updated by release.py during release process
     package_json_file = project_root / "package.json"
@@ -92,7 +92,7 @@ def check_versions():
         print(f"✓ package.json: {version}")
     else:
         errors.append("package.json not found")
-    
+
     # Check if all versions match
     # All versions should be identical for consistency
     unique_versions = set(versions.values())
@@ -102,14 +102,14 @@ def check_versions():
     elif len(unique_versions) == 1:
         # All versions match - success!
         print(f"\n✅ All versions are synchronized: {list(unique_versions)[0]}")
-    
+
     # Report errors with clear formatting
     if errors:
         print("\n❌ Errors found:")
         for error in errors:
             print(f"  - {error}")
         return False
-    
+
     return True
 
 

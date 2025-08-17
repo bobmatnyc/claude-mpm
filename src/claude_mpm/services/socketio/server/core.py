@@ -31,7 +31,12 @@ except ImportError:
     aiohttp = None
     web = None
 
-from ....core.constants import NetworkConfig, PerformanceConfig, SystemLimits, TimeoutConfig
+from ....core.constants import (
+    NetworkConfig,
+    PerformanceConfig,
+    SystemLimits,
+    TimeoutConfig,
+)
 from ....core.interfaces import SocketIOServiceInterface
 from ....core.logging_config import get_logger, log_operation, log_performance_context
 from ....core.unified_paths import get_project_root, get_scripts_dir
@@ -64,7 +69,9 @@ class SocketIOServerCore:
         self.client_info: Dict[str, Dict[str, Any]] = {}
 
         # Event buffering for reliability
-        self.event_buffer = deque(maxlen=getattr(SystemLimits, 'MAX_EVENTS_BUFFER', 1000))
+        self.event_buffer = deque(
+            maxlen=getattr(SystemLimits, "MAX_EVENTS_BUFFER", 1000)
+        )
         self.buffer_lock = threading.Lock()
 
         # Performance tracking
@@ -95,16 +102,20 @@ class SocketIOServerCore:
         self.server_thread.start()
 
         # Wait for server to start
-        max_wait = getattr(TimeoutConfig, 'SERVER_START_TIMEOUT', 30)
+        max_wait = getattr(TimeoutConfig, "SERVER_START_TIMEOUT", 30)
         wait_time = 0
         while not self.running and wait_time < max_wait:
             time.sleep(0.1)
             wait_time += 0.1
 
         if not self.running:
-            raise MPMConnectionError(f"Failed to start Socket.IO server within {max_wait}s")
+            raise MPMConnectionError(
+                f"Failed to start Socket.IO server within {max_wait}s"
+            )
 
-        self.logger.info(f"Socket.IO server started successfully on {self.host}:{self.port}")
+        self.logger.info(
+            f"Socket.IO server started successfully on {self.host}:{self.port}"
+        )
 
     def stop_sync(self):
         """Stop the Socket.IO server (synchronous version)."""
@@ -164,7 +175,9 @@ class SocketIOServerCore:
             self.running = True
             self.stats["start_time"] = datetime.now()
 
-            self.logger.info(f"Socket.IO server listening on http://{self.host}:{self.port}")
+            self.logger.info(
+                f"Socket.IO server listening on http://{self.host}:{self.port}"
+            )
             if self.static_path:
                 self.logger.info(f"Serving static files from: {self.static_path}")
 
@@ -209,15 +222,20 @@ class SocketIOServerCore:
             self.app.router.add_get("/", index_handler)
 
             # Serve static assets (CSS, JS) from the dashboard static directory
-            dashboard_static_path = get_project_root() / "src" / "claude_mpm" / "dashboard" / "static"
+            dashboard_static_path = (
+                get_project_root() / "src" / "claude_mpm" / "dashboard" / "static"
+            )
             if dashboard_static_path.exists():
-                self.app.router.add_static("/static/", dashboard_static_path, name="dashboard_static")
+                self.app.router.add_static(
+                    "/static/", dashboard_static_path, name="dashboard_static"
+                )
 
         else:
             # Fallback handler
             async def fallback_handler(request):
                 return web.Response(
-                    text="Socket.IO server running - Dashboard not available", status=200
+                    text="Socket.IO server running - Dashboard not available",
+                    status=200,
                 )
 
             self.app.router.add_get("/", fallback_handler)
@@ -235,7 +253,12 @@ class SocketIOServerCore:
             get_project_root() / "dashboard" / "templates",
             # Static file directories
             get_project_root() / "src" / "claude_mpm" / "services" / "static",
-            get_project_root() / "src" / "claude_mpm" / "services" / "socketio" / "static",
+            get_project_root()
+            / "src"
+            / "claude_mpm"
+            / "services"
+            / "socketio"
+            / "static",
             get_project_root() / "static",
             get_project_root() / "src" / "static",
             # Package installation locations

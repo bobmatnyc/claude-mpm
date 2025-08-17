@@ -83,7 +83,9 @@ class AgentTemplateBuilder:
         # Validate tools format - CRITICAL: No spaces allowed!
         if ", " in tools_str:
             self.logger.error(f"Tools contain spaces: '{tools_str}'")
-            raise ValueError(f"Tools must be comma-separated WITHOUT spaces: {tools_str}")
+            raise ValueError(
+                f"Tools must be comma-separated WITHOUT spaces: {tools_str}"
+            )
 
         # Map model names to Claude Code format
         model_map = {
@@ -212,7 +214,9 @@ class AgentTemplateBuilder:
 
         return frontmatter + content
 
-    def build_agent_yaml(self, agent_name: str, template_path: Path, base_agent_data: dict) -> str:
+    def build_agent_yaml(
+        self, agent_name: str, template_path: Path, base_agent_data: dict
+    ) -> str:
         """
         Build a complete agent YAML file by combining base agent and template.
         Only includes essential fields for Claude Code best practices.
@@ -245,7 +249,9 @@ class AgentTemplateBuilder:
 
         # Extract essential fields for Claude Code
         name = template_data.get("name", agent_name)
-        description = template_data.get("description", f"{name} agent for specialized tasks")
+        description = template_data.get(
+            "description", f"{name} agent for specialized tasks"
+        )
 
         # Get tools and model with fallbacks
         tools = merged_config.get("tools", ["Read", "Write", "Edit"])
@@ -278,7 +284,11 @@ tools:
         merged = {}
 
         # Fields that should be combined (arrays)
-        combinable_fields = ["when_to_use", "specialized_knowledge", "unique_capabilities"]
+        combinable_fields = [
+            "when_to_use",
+            "specialized_knowledge",
+            "unique_capabilities",
+        ]
 
         for field in combinable_fields:
             base_value = base_data.get(field, [])

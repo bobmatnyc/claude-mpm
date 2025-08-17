@@ -36,7 +36,9 @@ class MemoryTemplateGenerator:
         "Current Technical Context",
     ]
 
-    def __init__(self, config: Config, working_directory: Path, project_analyzer: ProjectAnalyzer):
+    def __init__(
+        self, config: Config, working_directory: Path, project_analyzer: ProjectAnalyzer
+    ):
         """Initialize the template generator.
 
         Args:
@@ -78,8 +80,12 @@ class MemoryTemplateGenerator:
             return self._create_basic_memory_template(agent_id, limits)
 
         # Create project-specific sections
-        architecture_items = self._generate_architecture_section(project_characteristics)
-        coding_patterns = self._generate_coding_patterns_section(project_characteristics)
+        architecture_items = self._generate_architecture_section(
+            project_characteristics
+        )
+        coding_patterns = self._generate_coding_patterns_section(
+            project_characteristics
+        )
         implementation_guidelines = self._generate_implementation_guidelines(
             project_characteristics
         )
@@ -128,7 +134,9 @@ class MemoryTemplateGenerator:
 
         return template
 
-    def _create_basic_memory_template(self, agent_id: str, limits: Dict[str, Any]) -> str:
+    def _create_basic_memory_template(
+        self, agent_id: str, limits: Dict[str, Any]
+    ) -> str:
         """Create basic memory template when project analysis fails.
 
         Args:
@@ -222,7 +230,9 @@ class MemoryTemplateGenerator:
             if "django" in [fw.lower() for fw in characteristics.web_frameworks]:
                 items.append("Django patterns: models, views, templates separation")
             elif "flask" in [fw.lower() for fw in characteristics.web_frameworks]:
-                items.append("Flask patterns: blueprint organization, app factory pattern")
+                items.append(
+                    "Flask patterns: blueprint organization, app factory pattern"
+                )
         elif characteristics.primary_language == "node_js":
             items.append("Node.js project: use async/await, ES6+ features")
             if "express" in [fw.lower() for fw in characteristics.web_frameworks]:
@@ -247,7 +257,9 @@ class MemoryTemplateGenerator:
 
         # Package manager guidance
         if characteristics.package_manager:
-            items.append(f"Use {characteristics.package_manager} for dependency management")
+            items.append(
+                f"Use {characteristics.package_manager} for dependency management"
+            )
 
         # Testing guidelines
         if characteristics.testing_framework:
@@ -345,7 +357,9 @@ class MemoryTemplateGenerator:
         # Language-specific mistakes
         if characteristics.primary_language == "python":
             items.append("Avoid circular imports - use late imports when needed")
-            items.append("Don't ignore virtual environment - always activate before work")
+            items.append(
+                "Don't ignore virtual environment - always activate before work"
+            )
         elif characteristics.primary_language == "node_js":
             items.append("Avoid callback hell - use async/await consistently")
             items.append("Don't commit node_modules - ensure .gitignore is correct")
@@ -363,7 +377,9 @@ class MemoryTemplateGenerator:
 
         # Testing mistakes
         if characteristics.testing_framework:
-            items.append("Don't skip test isolation - ensure tests can run independently")
+            items.append(
+                "Don't skip test isolation - ensure tests can run independently"
+            )
 
         return items[:8]
 
@@ -395,7 +411,9 @@ class MemoryTemplateGenerator:
 
         return items[:6]
 
-    def _generate_domain_knowledge_starters(self, characteristics, agent_id: str) -> str:
+    def _generate_domain_knowledge_starters(
+        self, characteristics, agent_id: str
+    ) -> str:
         """Generate domain-specific knowledge starters based on project and agent type."""
         items = []
 
@@ -406,18 +424,34 @@ class MemoryTemplateGenerator:
 
         # Agent-specific starters
         if "research" in agent_id.lower():
-            items.append("- Focus on code analysis, pattern discovery, and architectural insights")
+            items.append(
+                "- Focus on code analysis, pattern discovery, and architectural insights"
+            )
             if characteristics.documentation_files:
-                items.append("- Prioritize documentation analysis for comprehensive understanding")
+                items.append(
+                    "- Prioritize documentation analysis for comprehensive understanding"
+                )
         elif "engineer" in agent_id.lower():
-            items.append("- Focus on implementation patterns, coding standards, and best practices")
+            items.append(
+                "- Focus on implementation patterns, coding standards, and best practices"
+            )
             if characteristics.testing_framework:
-                items.append(f"- Ensure test coverage using {characteristics.testing_framework}")
+                items.append(
+                    f"- Ensure test coverage using {characteristics.testing_framework}"
+                )
         elif "pm" in agent_id.lower() or "manager" in agent_id.lower():
-            items.append("- Focus on project coordination, task delegation, and progress tracking")
-            items.append("- Monitor integration points and cross-component dependencies")
+            items.append(
+                "- Focus on project coordination, task delegation, and progress tracking"
+            )
+            items.append(
+                "- Monitor integration points and cross-component dependencies"
+            )
 
-        return "\n".join(items) if items else "<!-- Domain knowledge will accumulate here -->"
+        return (
+            "\n".join(items)
+            if items
+            else "<!-- Domain knowledge will accumulate here -->"
+        )
 
     def _format_section_items(self, items: List[str]) -> str:
         """Format list of items as markdown bullet points."""

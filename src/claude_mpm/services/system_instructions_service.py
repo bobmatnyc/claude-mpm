@@ -51,7 +51,9 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         """
         try:
             # Check for project-specific instructions first
-            project_instructions_path = Path.cwd() / ".claude-mpm" / "agents" / "INSTRUCTIONS.md"
+            project_instructions_path = (
+                Path.cwd() / ".claude-mpm" / "agents" / "INSTRUCTIONS.md"
+            )
             if project_instructions_path.exists():
                 self.logger.info(
                     f"Loading project system instructions from {project_instructions_path}"
@@ -71,7 +73,9 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
                 return self._strip_metadata_comments(content)
 
             # Check for BASE_PM.md as additional fallback
-            base_pm_path = paths.project_root / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
+            base_pm_path = (
+                paths.project_root / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
+            )
             if base_pm_path.exists():
                 self.logger.info(f"Loading BASE_PM instructions from {base_pm_path}")
                 content = base_pm_path.read_text(encoding="utf-8")
@@ -101,11 +105,16 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         """
         try:
             # Replace agent capabilities if service is available
-            if self.agent_capabilities_service and "{{AGENT_CAPABILITIES}}" in base_pm_content:
+            if (
+                self.agent_capabilities_service
+                and "{{AGENT_CAPABILITIES}}" in base_pm_content
+            ):
                 capabilities = (
                     self.agent_capabilities_service.generate_deployed_agent_capabilities()
                 )
-                base_pm_content = base_pm_content.replace("{{AGENT_CAPABILITIES}}", capabilities)
+                base_pm_content = base_pm_content.replace(
+                    "{{AGENT_CAPABILITIES}}", capabilities
+                )
 
             # Replace version
             if "{{VERSION}}" in base_pm_content:
@@ -115,7 +124,9 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             # Replace current date
             if "{{CURRENT_DATE}}" in base_pm_content:
                 current_date = datetime.now().strftime("%Y-%m-%d")
-                base_pm_content = base_pm_content.replace("{{CURRENT_DATE}}", current_date)
+                base_pm_content = base_pm_content.replace(
+                    "{{CURRENT_DATE}}", current_date
+                )
 
         except Exception as e:
             self.logger.warning(f"Error processing BASE_PM content: {e}")
