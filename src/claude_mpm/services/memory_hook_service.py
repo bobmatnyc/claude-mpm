@@ -220,35 +220,4 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "service_available": True,
         }
 
-    def unregister_memory_hooks(self):
-        """Unregister memory-related hooks from the hook service."""
-        if not self.hook_service:
-            self.logger.debug(
-                "Hook service not available, skipping memory hook unregistration"
-            )
-            return
 
-        try:
-            # Unregister all tracked hooks by name
-            for hook_name in self.registered_hooks:
-                self.hook_service.remove_hook(hook_name)
-
-            self.registered_hooks.clear()
-            self.logger.debug("Memory hooks unregistered successfully")
-
-        except Exception as e:
-            self.logger.warning(f"Failed to unregister memory hooks: {e}")
-
-    def get_hook_status(self) -> Dict[str, Any]:
-        """Get status of registered memory hooks.
-
-        Returns:
-            Dictionary with hook status information
-        """
-        return {
-            "hooks_registered": len(self.registered_hooks),
-            "hook_ids": self.registered_hooks.copy(),
-            "hook_service_available": self.hook_service is not None,
-            "memory_enabled": self.is_memory_enabled(),
-            "service_status": "active" if self.hook_service else "inactive",
-        }
