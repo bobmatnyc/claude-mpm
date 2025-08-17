@@ -6,32 +6,32 @@ This example shows how to properly use the exception classes for better error
 handling and debugging across the codebase.
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.exceptions import (
-    MPMError,
+    ALL_MPM_ERRORS,
+    CONFIGURATION_ERRORS,
     AgentDeploymentError,
     ConfigurationError,
     ConnectionError,
-    ValidationError,
-    ServiceNotFoundError,
-    MemoryError,
     HookError,
+    MemoryError,
+    MPMError,
+    ServiceNotFoundError,
     SessionError,
-    CONFIGURATION_ERRORS,
-    ALL_MPM_ERRORS
+    ValidationError,
 )
 
 
 def example_agent_deployment():
     """Example of handling agent deployment errors."""
     print("\n=== Agent Deployment Error Example ===")
-    
+
     try:
         # Simulate agent deployment failure
         raise AgentDeploymentError(
@@ -39,8 +39,8 @@ def example_agent_deployment():
             context={
                 "agent_id": "engineer",
                 "template_path": "/agents/engineer.json",
-                "deployment_path": ".claude/agents/engineer.md"
-            }
+                "deployment_path": ".claude/agents/engineer.md",
+            },
         )
     except AgentDeploymentError as e:
         print(f"Deployment failed: {e}")
@@ -52,7 +52,7 @@ def example_agent_deployment():
 def example_configuration_validation():
     """Example of configuration validation with detailed errors."""
     print("\n=== Configuration Validation Example ===")
-    
+
     try:
         # Simulate configuration validation failure
         raise ConfigurationError(
@@ -61,8 +61,8 @@ def example_configuration_validation():
                 "config_file": "config.yaml",
                 "field": "timeout",
                 "expected_type": "int",
-                "actual_value": "not_a_number"
-            }
+                "actual_value": "not_a_number",
+            },
         )
     except ConfigurationError as e:
         print(f"Configuration error: {e}")
@@ -72,10 +72,10 @@ def example_configuration_validation():
 def example_connection_handling():
     """Example of handling connection errors with retry logic."""
     print("\n=== Connection Error Example ===")
-    
+
     max_retries = 3
     retry_count = 0
-    
+
     while retry_count < max_retries:
         try:
             # Simulate connection attempt
@@ -86,13 +86,13 @@ def example_connection_handling():
                         "host": "localhost",
                         "port": 8765,
                         "timeout": 30,
-                        "retry_count": retry_count + 1
-                    }
+                        "retry_count": retry_count + 1,
+                    },
                 )
             else:
                 print("Connection successful!")
                 break
-                
+
         except ConnectionError as e:
             retry_count += 1
             print(f"Connection attempt {retry_count} failed: {e}")
@@ -104,7 +104,7 @@ def example_connection_handling():
 def example_validation_with_schema():
     """Example of validation errors with schema information."""
     print("\n=== Validation Error Example ===")
-    
+
     try:
         # Simulate schema validation failure
         raise ValidationError(
@@ -113,8 +113,8 @@ def example_validation_with_schema():
                 "field": "version",
                 "constraint": "required field",
                 "value": None,
-                "schema_path": "/schemas/agent_v2.json"
-            }
+                "schema_path": "/schemas/agent_v2.json",
+            },
         )
     except ValidationError as e:
         print(f"Validation failed: {e}")
@@ -123,7 +123,7 @@ def example_validation_with_schema():
 def example_service_discovery():
     """Example of service discovery errors."""
     print("\n=== Service Discovery Example ===")
-    
+
     try:
         # Simulate service not found
         raise ServiceNotFoundError(
@@ -133,11 +133,11 @@ def example_service_discovery():
                 "service_type": "IAnalyzer",
                 "available_services": [
                     "DefaultAnalyzer",
-                    "TreeSitterAnalyzer", 
+                    "TreeSitterAnalyzer",
                     "RegexAnalyzer",
-                    "ASTAnalyzer"
-                ]
-            }
+                    "ASTAnalyzer",
+                ],
+            },
         )
     except ServiceNotFoundError as e:
         print(f"Service error: {e}")
@@ -146,7 +146,7 @@ def example_service_discovery():
 def example_memory_operations():
     """Example of memory service errors."""
     print("\n=== Memory Service Example ===")
-    
+
     try:
         # Simulate memory operation failure
         raise MemoryError(
@@ -157,8 +157,8 @@ def example_memory_operations():
                 "operation": "write",
                 "storage_path": "/data/memories/research",
                 "size_mb": 512,
-                "quota_mb": 500
-            }
+                "quota_mb": 500,
+            },
         )
     except MemoryError as e:
         print(f"Memory operation failed: {e}")
@@ -168,7 +168,7 @@ def example_memory_operations():
 def example_hook_execution():
     """Example of hook execution errors."""
     print("\n=== Hook Execution Example ===")
-    
+
     try:
         # Simulate hook failure
         raise HookError(
@@ -177,8 +177,8 @@ def example_hook_execution():
                 "hook_name": "validate_agent",
                 "hook_type": "pre",
                 "event": "agent_deployment",
-                "error_details": "Agent schema validation failed: version field missing"
-            }
+                "error_details": "Agent schema validation failed: version field missing",
+            },
         )
     except HookError as e:
         print(f"Hook failed: {e}")
@@ -187,7 +187,7 @@ def example_hook_execution():
 def example_session_management():
     """Example of session management errors."""
     print("\n=== Session Management Example ===")
-    
+
     try:
         # Simulate session error
         raise SessionError(
@@ -197,8 +197,8 @@ def example_session_management():
                 "session_type": "interactive",
                 "state": "initializing",
                 "operation": "create",
-                "reason": "Resource allocation failed"
-            }
+                "reason": "Resource allocation failed",
+            },
         )
     except SessionError as e:
         print(f"Session error: {e}")
@@ -207,22 +207,23 @@ def example_session_management():
 def example_error_groups():
     """Example of using error groups for catch-all handling."""
     print("\n=== Error Groups Example ===")
-    
+
     def process_configuration():
         """Function that might raise configuration-related errors."""
         import random
+
         if random.choice([True, False]):
             raise ConfigurationError("Invalid config file")
         else:
             raise ValidationError("Schema validation failed")
-    
+
     try:
         process_configuration()
     except CONFIGURATION_ERRORS as e:
         # Catches both ConfigurationError and ValidationError
         print(f"Configuration-related error caught: {e}")
         print(f"Error type: {type(e).__name__}")
-    
+
     # Catch all MPM errors
     try:
         raise HookError("Some hook failed")
@@ -234,7 +235,7 @@ def example_error_groups():
 def example_error_context_usage():
     """Example showing how to use error context for debugging."""
     print("\n=== Error Context Usage Example ===")
-    
+
     def deploy_agent(agent_id: str, template_path: str):
         """Deploy an agent with proper error handling."""
         try:
@@ -249,25 +250,25 @@ def example_error_context_usage():
                         "search_paths": [
                             "/agents/templates",
                             "~/.claude-mpm/agents",
-                            ".claude-mpm/agents"
-                        ]
-                    }
+                            ".claude-mpm/agents",
+                        ],
+                    },
                 )
         except AgentDeploymentError as e:
             # Log structured error for monitoring
             error_data = e.to_dict()
             print(f"Structured error for logging: {json.dumps(error_data, indent=2)}")
-            
+
             # Re-raise with additional context if needed
             raise AgentDeploymentError(
                 f"Deployment pipeline failed for {agent_id}",
                 context={
                     **e.context,  # Keep original context
                     "pipeline_stage": "template_loading",
-                    "timestamp": "2024-01-15T10:30:00Z"
-                }
+                    "timestamp": "2024-01-15T10:30:00Z",
+                },
             ) from e
-    
+
     try:
         deploy_agent("custom_agent", "/nonexistent/template.json")
     except AgentDeploymentError as e:
@@ -287,9 +288,9 @@ def main():
         example_hook_execution,
         example_session_management,
         example_error_groups,
-        example_error_context_usage
+        example_error_context_usage,
     ]
-    
+
     for example in examples:
         try:
             example()
@@ -298,7 +299,7 @@ def main():
             print(f"\nUnhandled MPM error in {example.__name__}: {e}")
         except Exception as e:
             print(f"\nUnexpected error in {example.__name__}: {e}")
-    
+
     print("\n=== All examples completed ===")
 
 

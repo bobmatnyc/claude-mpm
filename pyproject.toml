@@ -18,7 +18,7 @@ name = "Claude MPM Team"
 text = "MIT"
 
 [project.optional-dependencies]
-dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "black", "flake8", "mypy",]
+dev = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "black", "flake8", "mypy", "pre-commit",]
 docs = [ "sphinx>=7.2.0", "sphinx-rtd-theme>=1.3.0", "sphinx-autobuild>=2021.3.14",]
 monitor = []
 # Pure Python agent dependencies - no compilation required
@@ -31,6 +31,7 @@ ticket = "claude_mpm.cli.ticket_cli:main"
 claude-mpm-version = "claude_mpm.scripts.manage_version:main"
 claude-mpm-monitor = "claude_mpm.scripts.launch_monitor:main"
 claude-mpm-socketio = "claude_mpm.scripts.socketio_daemon:main"
+claude-mpm-mcp = "claude_mpm.services.mcp_gateway.server.stdio_server:main_sync"
 
 [tool.uv]
 dev-dependencies = [ "pytest>=7.0", "pytest-asyncio", "pytest-cov", "black", "flake8", "mypy",]

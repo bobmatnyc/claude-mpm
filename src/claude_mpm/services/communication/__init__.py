@@ -13,9 +13,10 @@ Services:
 """
 
 from .socketio import SocketIOServer
+
 # from .websocket import SocketIOClientManager  # Module has import issues
 
 __all__ = [
-    'SocketIOServer',
+    "SocketIOServer",
     # 'SocketIOClientManager',
 ]

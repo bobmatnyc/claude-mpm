@@ -35,7 +35,7 @@ Agent Versioning
    :undoc-members:
    :show-inheritance:
 
-Agent Registry  
+Agent Registry
 --------------
 
 .. automodule:: claude_mpm.services.agent_registry

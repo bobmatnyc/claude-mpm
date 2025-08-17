@@ -12,24 +12,24 @@ from flask import Flask
 app = Flask(__name__)
 
 # Basic configuration
-app.config['DEBUG'] = False  # Set to True for development
+app.config["DEBUG"] = False  # Set to True for development
 
 
-@app.route('/')
+@app.route("/")
 def hello_world():
     """
     Home page route handler.
-    
+
     Returns a simple "Hello World" message when the root URL is accessed.
-    
+
     Returns:
         str: The greeting message
     """
     return "Hello World"
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Run the Flask development server
     # Host 0.0.0.0 makes it accessible from external IPs (optional)
     # Port 5000 is Flask's default port
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host="127.0.0.1", port=5000, debug=True)

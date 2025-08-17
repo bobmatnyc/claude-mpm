@@ -11,12 +11,13 @@ execution.
 
 Usage:
     python -m claude_mpm.cli [arguments]
-    
+
 This is equivalent to calling the claude-mpm script directly but ensures
 proper Python module context and import resolution.
 """
 
 import sys
+
 from . import main
 
 if __name__ == "__main__":

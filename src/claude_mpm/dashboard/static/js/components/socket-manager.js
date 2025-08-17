@@ -1,36 +1,39 @@
 /**
  * Socket Manager Module
- * 
+ *
  * Handles all socket connection management, event dispatching, and connection state.
  * Provides a centralized interface for socket operations across the dashboard.
- * 
+ *
  * WHY: Extracted from main dashboard to centralize socket connection logic and
  * provide better separation of concerns. This allows for easier testing and
  * maintenance of connection handling code.
- * 
+ *
  * DESIGN DECISION: Acts as a wrapper around SocketClient to provide dashboard-specific
  * connection management while maintaining the existing SocketClient interface.
  * Uses event dispatching to notify other modules of connection state changes.
  */
+
+// Import SocketClient (assuming it will be converted to ES6 modules too)
+import { SocketClient } from '../socket-client.js';
 class SocketManager {
     constructor() {
         this.socketClient = null;
         this.connectionCallbacks = new Set();
         this.eventUpdateCallbacks = new Set();
-        
+
         // Initialize socket client
         this.socketClient = new SocketClient();
-        
+
         // Make socketClient globally available (for backward compatibility)
         window.socketClient = this.socketClient;
-        
+
         this.setupSocketEventHandlers();
-        
+
         // Force initial status update after a short delay to ensure DOM is ready
         setTimeout(() => {
             this.updateInitialConnectionStatus();
         }, 100);
-        
+
         console.log('Socket manager initialized');
     }
 
@@ -42,7 +45,7 @@ class SocketManager {
         document.addEventListener('socketConnectionStatus', (e) => {
             console.log(`SocketManager: Processing connection status update: ${e.detail.status} (${e.detail.type})`);
             this.handleConnectionStatusChange(e.detail.status, e.detail.type);
-            
+
             // Notify all registered callbacks
             this.connectionCallbacks.forEach(callback => {
                 try {
@@ -75,7 +78,7 @@ class SocketManager {
      */
     handleConnectionStatusChange(status, type) {
         this.updateConnectionStatus(status, type);
-        
+
         // Set up git branch listener when connected
         if (type === 'connected' && this.socketClient && this.socketClient.socket) {
             this.setupGitBranchListener();
@@ -87,7 +90,7 @@ class SocketManager {
      */
     updateInitialConnectionStatus() {
         console.log('SocketManager: Updating initial connection status');
-        
+
         // Force status check on socket client (uses fallback mechanism)
         if (this.socketClient && typeof this.socketClient.checkAndUpdateStatus === 'function') {
             console.log('SocketManager: Using socket client checkAndUpdateStatus method');
@@ -99,7 +102,7 @@ class SocketManager {
                 isConnecting: this.socketClient.isConnecting,
                 isConnected: this.socketClient.isConnected
             });
-            
+
             if (this.socketClient.socket.connected) {
                 console.log('SocketManager: Socket is already connected, updating status');
                 this.updateConnectionStatus('Connected', 'connected');
@@ -114,7 +117,7 @@ class SocketManager {
             console.log('SocketManager: No socket client or socket found, setting disconnected status');
             this.updateConnectionStatus('Disconnected', 'disconnected');
         }
-        
+
         // Additional fallback - check again after a longer delay in case connection is still establishing
         setTimeout(() => {
             console.log('SocketManager: Secondary status check after 1 second');
@@ -131,7 +134,7 @@ class SocketManager {
     setupGitBranchListener() {
         // Remove any existing listener first
         this.socketClient.socket.off('git_branch_response');
-        
+
         // Add the listener
         this.socketClient.socket.on('git_branch_response', (data) => {
             if (data.success) {
@@ -166,7 +169,7 @@ class SocketManager {
                 // If no span, just update text content
                 statusElement.textContent = status;
             }
-            
+
             statusElement.className = `status-badge status-${type}`;
             console.log(`SocketManager: UI updated - status: '${status}' (${type})`);
         } else {
@@ -263,10 +266,10 @@ class SocketManager {
     toggleConnectionControls() {
         const controlsRow = document.getElementById('connection-controls-row');
         const toggleBtn = document.getElementById('connection-toggle-btn');
-        
+
         if (controlsRow && toggleBtn) {
             const isVisible = controlsRow.classList.contains('show');
-            
+
             if (isVisible) {
                 controlsRow.classList.remove('show');
                 controlsRow.style.display = 'none';
@@ -315,7 +318,7 @@ class SocketManager {
     initializeFromURL(params) {
         const port = params.get('port');
         const portInput = document.getElementById('port-input');
-        
+
         // Determine the port to use:
         // 1. URL parameter 'port'
         // 2. Current page port (if served via HTTP)
@@ -328,7 +331,7 @@ class SocketManager {
         if (!connectPort) {
             connectPort = portInput?.value || '8765';
         }
-        
+
         // Update the port input field with the determined port
         if (portInput) {
             portInput.value = connectPort;
@@ -341,3 +344,7 @@ class SocketManager {
         }
     }
 }
+
+// ES6 Module export
+export { SocketManager };
+export default SocketManager;

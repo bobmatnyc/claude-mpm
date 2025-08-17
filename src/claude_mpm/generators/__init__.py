@@ -2,4 +2,4 @@
 
 from .agent_profile_generator import AgentProfileGenerator
 
-__all__ = ['AgentProfileGenerator']
+__all__ = ["AgentProfileGenerator"]

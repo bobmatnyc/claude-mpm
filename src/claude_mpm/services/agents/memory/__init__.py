@@ -1,15 +1,15 @@
 """Agent memory and persistence services."""
 
-from .agent_memory_manager import (
-    AgentMemoryManager,
-    get_memory_manager,
-)
+from .agent_memory_manager import AgentMemoryManager, get_memory_manager
 from .agent_persistence_service import (
     AgentPersistenceService,
-    PersistenceStrategy,
     PersistenceOperation,
     PersistenceRecord,
+    PersistenceStrategy,
 )
+from .analyzer import MemoryAnalyzer
+from .content_manager import MemoryContentManager
+from .template_generator import MemoryTemplateGenerator
 
 __all__ = [
     "AgentMemoryManager",
@@ -18,4 +18,7 @@ __all__ = [
     "PersistenceStrategy",
     "PersistenceOperation",
     "PersistenceRecord",
+    "MemoryTemplateGenerator",
+    "MemoryContentManager",
+    "MemoryAnalyzer",
 ]

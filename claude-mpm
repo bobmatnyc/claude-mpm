@@ -26,7 +26,7 @@ elif command -v claude-mpm &> /dev/null; then
     FOUND_CLAUDE_MPM=$(command -v claude-mpm)
     RESOLVED_CLAUDE_MPM=$(readlink -f "$FOUND_CLAUDE_MPM" 2>/dev/null || echo "$FOUND_CLAUDE_MPM")
     THIS_SCRIPT=$(readlink -f "$0" 2>/dev/null || echo "$0")
-    
+
     if [ "$RESOLVED_CLAUDE_MPM" = "$THIS_SCRIPT" ]; then
         # The found claude-mpm is actually this script, use the scripts version
         if [ -f "$SCRIPT_DIR/scripts/claude-mpm" ]; then

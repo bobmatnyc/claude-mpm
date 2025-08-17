@@ -837,6 +837,6 @@ Key changes:
 ## Related Documentation
 
 - [Agent Schema Guide](./AGENT_SCHEMA_GUIDE.md)
-- [Project Agent Deployment](../../PROJECT_AGENT_DEPLOYMENT.md)
+- [Project Agents Guide](../../PROJECT_AGENTS.md)
 - [Agent Compatibility Guide](./compatibility.md)
 - [Frontmatter Validation](./frontmatter.md)

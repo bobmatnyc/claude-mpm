@@ -3,10 +3,10 @@
 from .agent_deployment import AgentDeploymentService
 from .agent_lifecycle_manager import (
     AgentLifecycleManager,
-    LifecycleState,
-    LifecycleOperation,
     AgentLifecycleRecord,
+    LifecycleOperation,
     LifecycleOperationResult,
+    LifecycleState,
 )
 from .agent_versioning import AgentVersionManager
 

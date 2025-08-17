@@ -1,52 +1,43 @@
 """Agent services module - hierarchical organization of agent-related services."""
 
 # Registry exports
-from .registry.agent_registry import (
-    AgentRegistry,
-    AgentMetadata,
-    AgentTier,
-    AgentType,
-)
-from .registry.deployed_agent_discovery import DeployedAgentDiscovery
-from .registry.modification_tracker import (
-    AgentModificationTracker,
-    ModificationType,
-    ModificationTier,
-    AgentModification,
-    ModificationHistory,
-)
-
-# Loading exports
-from .loading.framework_agent_loader import FrameworkAgentLoader
-from .loading.agent_profile_loader import AgentProfileLoader
-from .loading.base_agent_manager import BaseAgentManager
-
 # Deployment exports
 from .deployment.agent_deployment import AgentDeploymentService
 from .deployment.agent_lifecycle_manager import (
     AgentLifecycleManager,
-    LifecycleState,
-    LifecycleOperation,
     AgentLifecycleRecord,
+    LifecycleOperation,
     LifecycleOperationResult,
+    LifecycleState,
 )
 from .deployment.agent_versioning import AgentVersionManager
+from .loading.agent_profile_loader import AgentProfileLoader
+from .loading.base_agent_manager import BaseAgentManager
 
-# Memory exports
-from .memory.agent_memory_manager import (
-    AgentMemoryManager,
-    get_memory_manager,
-)
-from .memory.agent_persistence_service import (
-    AgentPersistenceService,
-    PersistenceStrategy,
-    PersistenceOperation,
-    PersistenceRecord,
-)
+# Loading exports
+from .loading.framework_agent_loader import FrameworkAgentLoader
+from .management.agent_capabilities_generator import AgentCapabilitiesGenerator
 
 # Management exports
 from .management.agent_management_service import AgentManager
-from .management.agent_capabilities_generator import AgentCapabilitiesGenerator
+
+# Memory exports
+from .memory.agent_memory_manager import AgentMemoryManager, get_memory_manager
+from .memory.agent_persistence_service import (
+    AgentPersistenceService,
+    PersistenceOperation,
+    PersistenceRecord,
+    PersistenceStrategy,
+)
+from .registry import AgentMetadata, AgentRegistry, AgentTier, AgentType
+from .registry.deployed_agent_discovery import DeployedAgentDiscovery
+from .registry.modification_tracker import (
+    AgentModification,
+    AgentModificationTracker,
+    ModificationHistory,
+    ModificationTier,
+    ModificationType,
+)
 
 __all__ = [
     # Registry

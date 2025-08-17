@@ -12,18 +12,18 @@ if [ -d "$SCRIPT_DIR/../../../../venv" ]; then
     # Development environment - script is in src/claude_mpm/hooks/claude_hooks/
     PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../../.." && pwd )"
     PYTHON_CMD="python"
-    
+
     # Activate the virtual environment if it exists
     if [ -f "$PROJECT_ROOT/venv/bin/activate" ]; then
         source "$PROJECT_ROOT/venv/bin/activate"
     fi
-    
+
     # Set PYTHONPATH for development
     export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
 else
     # Installed package - use system Python and installed claude_mpm
     PYTHON_CMD="python3"
-    
+
     # Try to detect if we're in a virtual environment
     if [ -n "$VIRTUAL_ENV" ]; then
         PYTHON_CMD="$VIRTUAL_ENV/bin/python"

@@ -180,18 +180,27 @@ Modern service-oriented architecture with clear separation of concerns:
 - **interfaces.py**: Comprehensive interface definitions for all service contracts
 - **base.py**: Base service classes (`BaseService`, `SyncBaseService`, `SingletonService`)
 
-#### Agent Services (`/src/claude_mpm/services/agent/`)
-- **deployment.py**: Agent deployment operations (`AgentDeploymentService`)
-- **management.py**: Agent lifecycle management (`AgentManagementService`)
-- **registry.py**: Agent discovery and registration (`AgentRegistry`)
-
-#### Legacy Agent Services (Backward Compatibility)
-- **agents/**: Original nested structure maintained for compatibility
-  - **deployment/**: Agent deployment and lifecycle management
-  - **memory/**: Agent memory and persistence services
-  - **registry/**: Agent discovery and modification tracking
-  - **loading/**: Agent profile loading services
-  - **management/**: Agent capabilities and management
+#### Agent Services (`/src/claude_mpm/services/agents/`)
+- **deployment/**: Agent deployment and lifecycle management
+  - **agent_deployment.py**: Core deployment service (`AgentDeploymentService`)
+  - **agent_lifecycle_manager.py**: Lifecycle management (`AgentLifecycleManager`)
+  - **agent_versioning.py**: Version management (`AgentVersionManager`)
+  - **pipeline/**: Deployment pipeline components
+  - **strategies/**: Deployment strategy implementations
+- **memory/**: Agent memory and persistence services
+  - **agent_memory_manager.py**: Memory management (`AgentMemoryManager`)
+  - **agent_persistence_service.py**: Persistence operations (`AgentPersistenceService`)
+- **registry/**: Agent discovery and modification tracking
+  - **agent_registry.py**: Central registry (`AgentRegistry`)
+  - **deployed_agent_discovery.py**: Discovery service (`DeployedAgentDiscovery`)
+  - **modification_tracker.py**: Change tracking (`AgentModificationTracker`)
+- **loading/**: Agent profile loading services
+  - **agent_profile_loader.py**: Profile loading (`AgentProfileLoader`)
+  - **framework_agent_loader.py**: Framework loader (`FrameworkAgentLoader`)
+  - **base_agent_manager.py**: Base management (`BaseAgentManager`)
+- **management/**: Agent capabilities and management
+  - **agent_management_service.py**: Management service (`AgentManager`)
+  - **agent_capabilities_generator.py**: Capabilities generation (`AgentCapabilitiesGenerator`)
 
 #### Communication Services (`/src/claude_mpm/services/communication/`)
 - **socketio.py**: SocketIO server implementation for real-time communication

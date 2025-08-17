@@ -33,7 +33,7 @@ class UserManager {
     // Complex method with nested conditions
     processUserData(userData) {
         let result = {};
-        
+
         for (let user of userData) {
             if (user.active) {
                 if (user.type === 'premium') {
@@ -77,7 +77,7 @@ class UserManager {
                 }
             }
         }
-        
+
         return result;
     }
 
@@ -232,13 +232,13 @@ function massiveJavaScriptFunction() {
 async function processUserFiles(fileList) {
     const fs = require('fs');
     let results = [];
-    
+
     for (let file of fileList) {
         // BAD: Synchronous I/O in async function
         const content = fs.readFileSync(file, 'utf8');
         results.push(content);
     }
-    
+
     return results;
 }
 

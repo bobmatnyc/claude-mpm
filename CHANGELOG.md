@@ -5,6 +5,73 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2025-08-17
+
+### 🚀 Major Release - Codebase Modernization & Cleanup
+
+This major release represents a comprehensive modernization and cleanup of the Claude MPM codebase, removing technical debt and streamlining the architecture for better maintainability and performance.
+
+#### 🧹 Massive Codebase Cleanup
+- **REMOVED**: 173 obsolete scripts from `/scripts/` directory
+- **REMOVED**: 16 deprecated services and modules
+- **REMOVED**: Duplicate and backup files throughout the codebase
+- **CLEANED**: Consolidated service architecture with clear separation of concerns
+- **STREAMLINED**: Development and testing infrastructure
+
+#### 🏗️ Service Architecture Refactoring
+- **CONSOLIDATED**: Agent deployment services into unified architecture
+- **REMOVED**: Deprecated ticketing service implementations (`ticket_manager_di.py`, `ticketing_service_original.py`)
+- **SIMPLIFIED**: Communication services (removed redundant WebSocket/SocketIO implementations)
+- **MODERNIZED**: Service interfaces and dependency injection patterns
+
+#### 🔧 MCP Gateway Enhancements
+- **ENHANCED**: Complete MCP (Model Context Protocol) integration
+- **UNIFIED**: Ticket management tools into single `ticket` tool with operation parameter
+- **IMPROVED**: Tool registry and adapter architecture
+- **ADDED**: Comprehensive developer documentation for MCP Gateway
+
+#### 🤖 Agent System Improvements
+- **MIGRATED**: Agent versioning from serial to semantic versioning (e.g., `0002-0005` → `2.1.0`)
+- **ENHANCED**: Agent memory management and persistence
+- **IMPROVED**: Agent deployment and lifecycle management
+- **STREAMLINED**: Agent registry and discovery mechanisms
+
+#### 📚 Documentation & Developer Experience
+- **ADDED**: 1,200+ lines of comprehensive MCP Gateway developer documentation
+- **IMPROVED**: API documentation and code examples
+- **ENHANCED**: Developer onboarding and best practices guides
+- **UPDATED**: Architecture documentation to reflect new service structure
+
+#### 🔄 Breaking Changes
+- **REMOVED**: Deprecated ticketing service implementations
+- **REMOVED**: Legacy agent deployment services in `/services/agent/`
+- **REMOVED**: Obsolete communication services (`socketio.py`, `websocket.py`)
+- **REMOVED**: Deprecated configuration paths and utilities
+- **CHANGED**: Agent versioning format (automatic migration provided)
+- **SIMPLIFIED**: Service interfaces and dependency patterns
+
+#### 🎯 Migration Guide
+- **Agent Versioning**: Automatic migration from old formats during deployment
+- **Ticketing**: Use unified `ticket` tool instead of separate `ticket_create`, `ticket_list`, etc.
+- **Services**: Updated import paths for consolidated services
+- **Configuration**: Some deprecated configuration options removed
+
+#### 💡 Impact
+This major release provides:
+- **Reduced Complexity**: 60%+ reduction in codebase size through cleanup
+- **Improved Maintainability**: Cleaner service architecture and interfaces
+- **Better Performance**: Streamlined service loading and dependency resolution
+- **Enhanced Developer Experience**: Comprehensive documentation and examples
+- **Future-Ready Architecture**: Modern patterns ready for advanced features
+
+#### 🔧 Technical Improvements
+- **Performance**: Faster startup times due to reduced service overhead
+- **Memory**: Lower memory footprint from service consolidation
+- **Reliability**: Improved error handling and graceful degradation
+- **Testing**: Streamlined test suite with better coverage
+
+---
+
 ## [3.9.11] - 2025-08-16
 
 ### 📚 Documentation

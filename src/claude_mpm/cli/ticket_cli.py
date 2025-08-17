@@ -1,4 +1,6 @@
-#\!/usr/bin/env python3
+from pathlib import Path
+
+# \!/usr/bin/env python3
 """
 Ticket CLI module for claude-mpm.
 
@@ -7,7 +9,7 @@ It delegates to the scripts/ticket.py module for implementation.
 """
 
 import sys
-from pathlib import Path
+
 
 def main():
     """Main entry point for ticket CLI alias."""
@@ -16,8 +18,9 @@ def main():
         # Try to import from scripts
         scripts_dir = Path(__file__).parent.parent.parent.parent / "scripts"
         sys.path.insert(0, str(scripts_dir))
-        
+
         from ticket import main as ticket_main
+
         return ticket_main()
     except ImportError:
         print("Error: Ticket functionality not available")
@@ -26,6 +29,7 @@ def main():
     except Exception as e:
         print(f"Error running ticket command: {e}")
         return 1
+
 
 if __name__ == "__main__":
     sys.exit(main())

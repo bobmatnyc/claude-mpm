@@ -2,13 +2,14 @@
 Delegation constraints section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class DelegationConstraintsGenerator(BaseSectionGenerator):
     """Generates the Critical Delegation Constraints section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the delegation constraints section."""
         return """

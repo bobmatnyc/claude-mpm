@@ -46,11 +46,11 @@ fi
 # Function to install the hook
 install_hook() {
     echo "Installing git pre-commit hook for build tracking..."
-    
+
     # Check if a pre-commit hook already exists
     if [ -f "$HOOK_DEST" ]; then
         echo -e "${YELLOW}Warning: A pre-commit hook already exists${NC}"
-        
+
         # Check if it's our hook
         if grep -q "claude-mpm build tracking" "$HOOK_DEST" 2>/dev/null; then
             echo "The existing hook appears to be our build tracking hook"
@@ -67,7 +67,7 @@ install_hook() {
             echo "  2. Cancel installation"
             read -p "Choose option (1/2): " -n 1 -r
             echo
-            
+
             if [[ $REPLY == "1" ]]; then
                 # Backup existing hook
                 echo "Backing up existing hook to $HOOK_BACKUP"
@@ -79,14 +79,14 @@ install_hook() {
             fi
         fi
     fi
-    
+
     # Create hooks directory if it doesn't exist
     mkdir -p "$(dirname "$HOOK_DEST")"
-    
+
     # Copy the hook
     cp "$HOOK_SOURCE" "$HOOK_DEST"
     chmod +x "$HOOK_DEST"
-    
+
     echo -e "${GREEN}✓ Git pre-commit hook installed successfully${NC}"
     echo
     echo "The build tracking system is now active!"
@@ -104,17 +104,17 @@ install_hook() {
 # Function to remove the hook
 remove_hook() {
     echo "Removing git pre-commit hook..."
-    
+
     if [ ! -f "$HOOK_DEST" ]; then
         echo "No pre-commit hook found"
         return 0
     fi
-    
+
     # Check if it's our hook
     if grep -q "claude-mpm build tracking" "$HOOK_DEST" 2>/dev/null; then
         rm "$HOOK_DEST"
         echo -e "${GREEN}✓ Build tracking hook removed${NC}"
-        
+
         # Check if there's a backup to restore
         if [ -f "$HOOK_BACKUP" ]; then
             read -p "A backup hook was found. Restore it? (y/n) " -n 1 -r

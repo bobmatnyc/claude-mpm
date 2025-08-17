@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Git Operations Manager - Core Git operation automation for Version Control Agent.
 
@@ -9,14 +11,13 @@ This module provides comprehensive Git operation management including:
 5. Automatic branch lifecycle management
 """
 
-import os
-import subprocess
-import re
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
 import logging
+import os
+import re
+import subprocess
+from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -52,7 +53,9 @@ class GitOperationResult:
 class GitOperationError(Exception):
     """Exception raised for Git operation errors."""
 
-    def __init__(self, message: str, command: str = "", output: str = "", error: str = ""):
+    def __init__(
+        self, message: str, command: str = "", output: str = "", error: str = ""
+    ):
         super().__init__(message)
         self.command = command
         self.output = output
@@ -89,7 +92,11 @@ class GitOperationsManager:
         }
 
         # Merge strategies
-        self.merge_strategies = {"merge": "--no-ff", "squash": "--squash", "rebase": "--rebase"}
+        self.merge_strategies = {
+            "merge": "--no-ff",
+            "squash": "--squash",
+            "rebase": "--rebase",
+        }
 
         # Validate Git repository
         if not self._is_git_repository():
@@ -182,7 +189,8 @@ class GitOperationsManager:
         try:
             # Get remote tracking branch
             result = self._run_git_command(
-                ["rev-parse", "--abbrev-ref", f"{branch_name}@{{upstream}}"], check=False
+                ["rev-parse", "--abbrev-ref", f"{branch_name}@{{upstream}}"],
+                check=False,
             )
 
             if result.returncode == 0:
@@ -191,7 +199,12 @@ class GitOperationsManager:
 
                 # Get ahead/behind info
                 result = self._run_git_command(
-                    ["rev-list", "--left-right", "--count", f"{upstream}...{branch_name}"],
+                    [
+                        "rev-list",
+                        "--left-right",
+                        "--count",
+                        f"{upstream}...{branch_name}",
+                    ],
                     check=False,
                 )
 
@@ -208,7 +221,9 @@ class GitOperationsManager:
         last_commit_message = None
 
         try:
-            result = self._run_git_command(["log", "-1", "--format=%H", branch_name], check=False)
+            result = self._run_git_command(
+                ["log", "-1", "--format=%H", branch_name], check=False
+            )
 
             if result.returncode == 0:
                 last_commit = result.stdout.strip()
@@ -273,7 +288,9 @@ class GitOperationsManager:
                                 name=remote_branch,
                                 current=False,
                                 remote=(
-                                    remote_branch.split("/")[0] if "/" in remote_branch else None
+                                    remote_branch.split("/")[0]
+                                    if "/" in remote_branch
+                                    else None
                                 ),
                             )
                         )
@@ -308,10 +325,10 @@ class GitOperationsManager:
     def is_file_tracked(self, file_path: str) -> bool:
         """
         Check if a file is tracked by git.
-        
+
         Args:
             file_path: Path to the file to check (can be absolute or relative)
-            
+
         Returns:
             bool: True if file is tracked, False otherwise
         """
@@ -323,11 +340,11 @@ class GitOperationsManager:
                 except ValueError:
                     # If file is outside project root, it's not tracked
                     return False
-            
+
             # Use git ls-files to check if file is tracked
             result = self._run_git_command(["ls-files", "--", file_path])
             return bool(result.stdout.strip())
-            
+
         except GitOperationError:
             return False
 
@@ -375,7 +392,9 @@ class GitOperationsManager:
             # Set up remote tracking if creating a new branch
             if switch_to_branch:
                 try:
-                    self._run_git_command(["push", "-u", "origin", full_branch_name], check=False)
+                    self._run_git_command(
+                        ["push", "-u", "origin", full_branch_name], check=False
+                    )
                 except GitOperationError:
                     # Remote push failed, continue without remote tracking
                     pass
@@ -504,7 +523,9 @@ class GitOperationsManager:
                 merge_args = ["merge", strategy_arg, source_branch]
                 if merge_strategy == "merge":
                     # Add merge commit message
-                    merge_args.extend(["-m", f"Merge {source_branch} into {target_branch}"])
+                    merge_args.extend(
+                        ["-m", f"Merge {source_branch} into {target_branch}"]
+                    )
 
                 result = self._run_git_command(merge_args)
 
@@ -547,7 +568,9 @@ class GitOperationsManager:
                 execution_time=execution_time,
             )
 
-    def detect_merge_conflicts(self, source_branch: str, target_branch: str) -> Dict[str, Any]:
+    def detect_merge_conflicts(
+        self, source_branch: str, target_branch: str
+    ) -> Dict[str, Any]:
         """
         Detect potential merge conflicts between branches.
 
@@ -584,7 +607,10 @@ class GitOperationsManager:
                         parts = line.split("\t")
                         if len(parts) > 1:
                             filename = parts[1].strip()
-                            if filename != "/dev/null" and filename not in conflicted_files:
+                            if (
+                                filename != "/dev/null"
+                                and filename not in conflicted_files
+                            ):
                                 conflicted_files.append(filename)
 
             return {
@@ -611,7 +637,10 @@ class GitOperationsManager:
             return None
 
     def push_to_remote(
-        self, branch_name: Optional[str] = None, remote: str = "origin", set_upstream: bool = False
+        self,
+        branch_name: Optional[str] = None,
+        remote: str = "origin",
+        set_upstream: bool = False,
     ) -> GitOperationResult:
         """
         Push branch to remote repository.
@@ -723,7 +752,9 @@ class GitOperationsManager:
                 execution_time=execution_time,
             )
 
-    def cleanup_merged_branches(self, target_branch: str = "main") -> GitOperationResult:
+    def cleanup_merged_branches(
+        self, target_branch: str = "main"
+    ) -> GitOperationResult:
         """
         Clean up branches that have been merged into target branch.
 

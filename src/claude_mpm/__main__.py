@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Main entry point for claude-mpm package.
 
@@ -9,7 +11,6 @@ keeping this file minimal and focused on its single responsibility.
 """
 
 import sys
-from pathlib import Path
 
 # Add parent directory to path to ensure proper imports
 sys.path.insert(0, str(Path(__file__).parent.parent))

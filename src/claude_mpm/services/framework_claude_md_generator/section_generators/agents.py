@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Agents section generator for framework CLAUDE.md.
 
@@ -5,13 +7,14 @@ This is the largest section generator, containing all agent definitions,
 hierarchy, delegation patterns, and registry integration documentation.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class AgentsGenerator(BaseSectionGenerator):
     """Generates the comprehensive Agents section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the agents section."""
         return """
@@ -251,7 +254,7 @@ TEMPORAL CONTEXT: Today is [current date]. Apply date awareness to:
 **Dynamic Agent Selection Pattern:**
 ```python
 # Enhanced delegation with registry discovery
-registry = AgentRegistry()
+registry = get_agent_registry()
 
 # Task-specific agent discovery
 task_type = "performance_optimization"
@@ -356,10 +359,10 @@ TEMPORAL CONTEXT: Today is [date]. Apply date awareness to data operations.
 
 **Comprehensive Agent Discovery API:**
 ```python
-from claude_pm.core.agent_registry import AgentRegistry
+from claude_mpm.core.agent_registry import AgentRegistry
 
 # Initialize registry with directory precedence
-registry = AgentRegistry()
+registry = get_agent_registry()
 
 # List all available agents with metadata
 agents = registry.list_agents()
@@ -400,7 +403,7 @@ $PWD/.claude-mpm/agents/user-agents/
 **Discovery Implementation:**
 ```python
 # Orchestrator pattern for agent discovery
-registry = AgentRegistry()
+registry = get_agent_registry()
 
 # Discover all agents
 all_agents = registry.list_agents()
@@ -428,7 +431,7 @@ performance_agents = {k: v for k, v in all_agents.items() if 'performance' in v.
 architecture_agents = {k: v for k, v in all_agents.items() if 'architecture' in v.get('specializations', [])}
 
 # Multi-specialization discovery
-multi_spec = {k: v for k, v in all_agents.items() 
+multi_spec = {k: v for k, v in all_agents.items()
               if any(spec in v.get('specializations', []) for spec in ['integration', 'performance'])}
 ```
 
@@ -437,13 +440,13 @@ multi_spec = {k: v for k, v in all_agents.items()
 **Orchestrator Workflow with Modification Tracking:**
 ```python
 # Track agent changes for workflow optimization
-registry = AgentRegistry()
+registry = get_agent_registry()
 
 # Get all agents (modification timestamps are included by default)
 agents_with_tracking = registry.list_agents()
 
 # Filter agents modified since last orchestration manually
-recent_agents = {k: v for k, v in agents_with_tracking.items() 
+recent_agents = {k: v for k, v in agents_with_tracking.items()
                  if v.get('last_modified', 0) > since_timestamp}
 
 # Update orchestration based on agent modifications
@@ -457,7 +460,7 @@ for agent_id, metadata in recent_agents.items():
 
 **99.7% Performance Improvement Integration:**
 ```python
-from claude_pm.services.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.shared_prompt_cache import SharedPromptCache
 
 # Initialize registry with caching
 cache = SharedPromptCache()
@@ -483,18 +486,18 @@ for agent_id in ['researcher', 'security', 'ops']:
 ```python
 # Example: Dynamic agent selection based on task requirements
 def select_optimal_agent(task_type, specialization_requirements):
-    registry = AgentRegistry()
-    
+    registry = get_agent_registry()
+
     # Find agents matching requirements
     all_agents = registry.list_agents()
-    matching_agents = {k: v for k, v in all_agents.items() 
-                       if any(spec in v.get('specializations', []) 
+    matching_agents = {k: v for k, v in all_agents.items()
+                       if any(spec in v.get('specializations', [])
                              for spec in specialization_requirements)}
-    
+
     # Select highest precedence agent
     if matching_agents:
         return registry.selectOptimalAgent(matching_agents, task_type)
-    
+
     # Fallback to core agents
     return registry.getCoreAgent(task_type)
 
@@ -517,7 +520,7 @@ optimal_agent = select_optimal_agent(
 
 TEMPORAL CONTEXT: Today is [date]. Using agent registry for optimal agent selection.
 
-**Agent Discovery**: 
+**Agent Discovery**:
 - Registry scan: Find agents with specialization {required_spec}
 - Selected agent: {optimal_agent_id} (precedence: {agent_precedence})
 - Capabilities: {agent_metadata['specializations']}
@@ -559,18 +562,18 @@ TEMPORAL CONTEXT: Today is [date]. Using agent registry for optimal agent select
 ```python
 # Enhanced orchestration with registry integration
 def orchestrate_with_registry(task_description, requirements):
-    registry = AgentRegistry()
-    
+    registry = get_agent_registry()
+
     # Discover optimal agents
     all_agents = registry.list_agents()
     # Filter by requirements
     agents = {k: v for k, v in all_agents.items()
               if any(spec in v.get('specializations', [])
                     for spec in requirements.get('specializations', []))}
-    
+
     # Create Task Tool subprocess with optimal agent
     selected_agent = registry.selectOptimalAgent(agents, task_description)
-    
+
     return create_task_tool_subprocess(
         agent=selected_agent,
         task=task_description,

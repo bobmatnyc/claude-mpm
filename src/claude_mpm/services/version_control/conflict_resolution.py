@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Conflict Resolution Manager - Basic conflict resolution for Version Control Agent.
 
@@ -9,14 +11,13 @@ This module provides conflict resolution management including:
 5. Resolution validation
 """
 
-import re
 import difflib
-from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional, Any, Tuple, Union
-from dataclasses import dataclass, field
-from enum import Enum
 import logging
+import re
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class ConflictType(Enum):
@@ -114,7 +115,11 @@ class ConflictResolutionManager:
         self.logger = logger
 
         # Conflict markers
-        self.conflict_markers = {"start": r"^<{7} ", "separator": r"^={7}$", "end": r"^>{7} "}
+        self.conflict_markers = {
+            "start": r"^<{7} ",
+            "separator": r"^={7}$",
+            "end": r"^>{7} ",
+        }
 
         # Auto-resolution patterns
         self.auto_resolution_patterns = {
@@ -125,7 +130,14 @@ class ConflictResolutionManager:
         }
 
         # File types that can be auto-resolved
-        self.auto_resolvable_extensions = {".md", ".txt", ".json", ".yml", ".yaml", ".xml"}
+        self.auto_resolvable_extensions = {
+            ".md",
+            ".txt",
+            ".json",
+            ".yml",
+            ".yaml",
+            ".xml",
+        }
 
         # Binary file extensions
         self.binary_extensions = {
@@ -237,7 +249,9 @@ class ConflictResolutionManager:
             conflicted_files = []
             for line in result.stdout.strip().split("\n"):
                 if line.strip() and (
-                    line.startswith("UU") or line.startswith("AA") or line.startswith("DD")
+                    line.startswith("UU")
+                    or line.startswith("AA")
+                    or line.startswith("DD")
                 ):
                     # Extract filename
                     filename = line[3:].strip()
@@ -379,7 +393,9 @@ class ConflictResolutionManager:
         # For now, default to content conflict
         return ConflictType.CONTENT
 
-    def _is_auto_resolvable(self, file_path: str, markers: List[ConflictMarker]) -> bool:
+    def _is_auto_resolvable(
+        self, file_path: str, markers: List[ConflictMarker]
+    ) -> bool:
         """Determine if conflict can be automatically resolved."""
         file_ext = Path(file_path).suffix.lower()
 
@@ -442,7 +458,9 @@ class ConflictResolutionManager:
                 return False
         return True
 
-    def _generate_resolution_suggestion(self, file_path: str, markers: List[ConflictMarker]) -> str:
+    def _generate_resolution_suggestion(
+        self, file_path: str, markers: List[ConflictMarker]
+    ) -> str:
         """Generate resolution suggestion for a file."""
         if not markers:
             return "No conflict markers found"
@@ -454,7 +472,9 @@ class ConflictResolutionManager:
                 suggestions.append(f"Conflict {i+1}: Accept incoming changes (theirs)")
             elif marker.ours_content and not marker.theirs_content:
                 suggestions.append(f"Conflict {i+1}: Keep current changes (ours)")
-            elif self._only_whitespace_differences(marker.ours_content, marker.theirs_content):
+            elif self._only_whitespace_differences(
+                marker.ours_content, marker.theirs_content
+            ):
                 suggestions.append(
                     f"Conflict {i+1}: Whitespace differences only - can auto-resolve"
                 )
@@ -555,7 +575,9 @@ class ConflictResolutionManager:
                 resolutions.append(resolution)
 
             except Exception as e:
-                self.logger.error(f"Error resolving conflict in {conflict.file_path}: {e}")
+                self.logger.error(
+                    f"Error resolving conflict in {conflict.file_path}: {e}"
+                )
                 resolutions.append(
                     ConflictResolution(
                         file_path=conflict.file_path,
@@ -583,7 +605,9 @@ class ConflictResolutionManager:
                 content = f.read()
 
             # Apply resolution strategy
-            resolved_content = self._apply_resolution_strategy(content, conflict.markers, strategy)
+            resolved_content = self._apply_resolution_strategy(
+                content, conflict.markers, strategy
+            )
 
             # Write resolved content
             with open(file_path, "w", encoding="utf-8") as f:

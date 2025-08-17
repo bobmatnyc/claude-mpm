@@ -1,3 +1,5 @@
+from pathlib import Path
+
 """
 Central type definitions for Claude MPM.
 
@@ -16,7 +18,6 @@ Module-specific types should remain in their respective modules.
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 
@@ -24,18 +25,19 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 @dataclass
 class ServiceResult:
     """Standard result type for service operations."""
+
     success: bool
     message: str
     data: Optional[Dict[str, Any]] = None
     errors: Optional[List[str]] = None
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary representation."""
         return {
-            'success': self.success,
-            'message': self.message,
-            'data': self.data,
-            'errors': self.errors
+            "success": self.success,
+            "message": self.message,
+            "data": self.data,
+            "errors": self.errors,
         }
 
 
@@ -43,18 +45,24 @@ class ServiceResult:
 @dataclass
 class DeploymentResult:
     """Result of an agent deployment operation."""
+
     deployed: List[str]
     updated: List[str]
     failed: List[str]
     skipped: List[str]
     errors: Dict[str, str]
     metadata: Dict[str, Any]
-    
+
     @property
     def total_processed(self) -> int:
         """Get total number of agents processed."""
-        return len(self.deployed) + len(self.updated) + len(self.failed) + len(self.skipped)
-    
+        return (
+            len(self.deployed)
+            + len(self.updated)
+            + len(self.failed)
+            + len(self.skipped)
+        )
+
     @property
     def success_rate(self) -> float:
         """Calculate deployment success rate."""
@@ -67,12 +75,13 @@ class DeploymentResult:
 # Agent-related types
 class AgentTier(Enum):
     """Agent tier levels for precedence."""
+
     PROJECT = "PROJECT"  # Highest precedence - project-specific agents
-    USER = "USER"        # User-level agents
-    SYSTEM = "SYSTEM"    # Lowest precedence - system agents
-    
+    USER = "USER"  # User-level agents
+    SYSTEM = "SYSTEM"  # Lowest precedence - system agents
+
     @classmethod
-    def from_string(cls, value: str) -> 'AgentTier':
+    def from_string(cls, value: str) -> "AgentTier":
         """Convert string to AgentTier enum."""
         value_upper = value.upper()
         for tier in cls:
@@ -84,6 +93,7 @@ class AgentTier(Enum):
 @dataclass
 class AgentInfo:
     """Basic agent information."""
+
     agent_id: str
     name: str
     tier: AgentTier
@@ -92,7 +102,7 @@ class AgentInfo:
     description: Optional[str] = None
     capabilities: Optional[List[str]] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.capabilities is None:
@@ -105,13 +115,14 @@ class AgentInfo:
 @dataclass
 class MemoryEntry:
     """Single memory entry for an agent."""
+
     timestamp: datetime
     content: str
     category: str
     agent_id: str
     session_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
@@ -121,6 +132,7 @@ class MemoryEntry:
 # Hook-related types
 class HookType(Enum):
     """Types of hooks in the system."""
+
     PRE_DELEGATION = "pre_delegation"
     POST_DELEGATION = "post_delegation"
     PRE_RESPONSE = "pre_response"
@@ -129,16 +141,17 @@ class HookType(Enum):
     SHUTDOWN = "shutdown"
 
 
-@dataclass 
+@dataclass
 class HookContext:
     """Context passed to hook handlers."""
+
     event_type: str
     data: Dict[str, Any]
     timestamp: datetime
     source: Optional[str] = None
     session_id: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
@@ -149,12 +162,13 @@ class HookContext:
 @dataclass
 class ConfigSection:
     """Configuration section with validation."""
+
     name: str
     values: Dict[str, Any]
     schema: Optional[Dict[str, Any]] = None
     is_valid: bool = True
     validation_errors: Optional[List[str]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.validation_errors is None:
@@ -164,6 +178,7 @@ class ConfigSection:
 # Task/Ticket types
 class TaskStatus(Enum):
     """Task/ticket status values."""
+
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     BLOCKED = "blocked"
@@ -175,6 +190,7 @@ class TaskStatus(Enum):
 @dataclass
 class TaskInfo:
     """Basic task/ticket information."""
+
     task_id: str
     title: str
     status: TaskStatus
@@ -184,7 +200,7 @@ class TaskInfo:
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
@@ -199,13 +215,14 @@ class TaskInfo:
 @dataclass
 class SocketMessage:
     """WebSocket/SocketIO message."""
+
     event: str
     data: Any
     room: Optional[str] = None
     namespace: Optional[str] = None
     sid: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
@@ -215,6 +232,7 @@ class SocketMessage:
 # Health monitoring types
 class HealthStatus(Enum):
     """Service health status levels."""
+
     HEALTHY = "healthy"
     DEGRADED = "degraded"
     UNHEALTHY = "unhealthy"
@@ -224,13 +242,14 @@ class HealthStatus(Enum):
 @dataclass
 class HealthCheck:
     """Health check result."""
+
     service_name: str
     status: HealthStatus
     message: str
     timestamp: datetime
     metrics: Optional[Dict[str, Any]] = None
     checks: Optional[Dict[str, bool]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metrics is None:
@@ -243,6 +262,7 @@ class HealthCheck:
 @dataclass
 class ProjectCharacteristics:
     """Analyzed project characteristics."""
+
     path: Path
     name: str
     type: str  # e.g., "python", "node", "mixed"
@@ -250,7 +270,7 @@ class ProjectCharacteristics:
     entry_points: List[Path]
     structure: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:
@@ -260,6 +280,7 @@ class ProjectCharacteristics:
 # Error types
 class ErrorSeverity(Enum):
     """Error severity levels."""
+
     DEBUG = "debug"
     INFO = "info"
     WARNING = "warning"
@@ -270,6 +291,7 @@ class ErrorSeverity(Enum):
 @dataclass
 class ErrorContext:
     """Context for error handling."""
+
     error: Exception
     severity: ErrorSeverity
     component: str
@@ -278,7 +300,7 @@ class ErrorContext:
     traceback: Optional[str] = None
     recovery_attempted: bool = False
     metadata: Optional[Dict[str, Any]] = None
-    
+
     def __post_init__(self):
         """Initialize default values."""
         if self.metadata is None:

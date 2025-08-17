@@ -7,7 +7,6 @@ that was moved to the scripts directory.
 """
 
 import sys
-import os
 from pathlib import Path
 
 # Add scripts directory to path so we can import the ticket module
@@ -20,6 +19,7 @@ try:
 except ImportError:
     # Fallback if direct import fails
     import importlib.util
+
     ticket_path = scripts_dir / "ticket.py"
     spec = importlib.util.spec_from_file_location("ticket", ticket_path)
     ticket_module = importlib.util.module_from_spec(spec)

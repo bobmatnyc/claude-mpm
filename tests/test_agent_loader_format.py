@@ -3,15 +3,16 @@
 
 import json
 import tempfile
-import pytest
 from pathlib import Path
+
+import pytest
 
 from claude_mpm.agents.agent_loader import load_agent_prompt_from_md
 
 
 class TestAgentLoaderFormats:
     """Test agent_loader handles different JSON formats correctly."""
-    
+
     def test_narrative_fields_format(self, tmp_path):
         """Test loading from new narrative_fields.instructions format."""
         # Create a test agent with new format
@@ -23,34 +24,35 @@ class TestAgentLoaderFormats:
             },
             "configuration_fields": {
                 "model": "claude-4-sonnet-20250514",
-                "description": "Test agent"
-            }
+                "description": "Test agent",
+            },
         }
-        
+
         # Write to temp file
         agent_file = tmp_path / "test_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
-        
+
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
         import claude_mpm.agents.agent_loader as loader
+
         original_mappings = loader.AGENT_MAPPINGS
         original_dir = loader.AGENT_TEMPLATES_DIR
-        
+
         try:
             loader.AGENT_MAPPINGS = {"test": "test_agent.json"}
             loader.AGENT_TEMPLATES_DIR = tmp_path
-            
+
             # Load the agent
             content = load_agent_prompt_from_md("test", force_reload=True)
-            
+
             assert content is not None
             assert "Test Agent" in content
             assert "narrative_fields format" in content
-            
+
         finally:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
-    
+
     def test_old_content_format(self, tmp_path):
         """Test loading from old content field format (backward compatibility)."""
         # Create a test agent with old format
@@ -60,34 +62,35 @@ class TestAgentLoaderFormats:
             "content": "# Test Old Agent\n\nThis is a test agent with old content format.",
             "configuration_fields": {
                 "model": "claude-3-sonnet",
-                "description": "Test old agent"
-            }
+                "description": "Test old agent",
+            },
         }
-        
+
         # Write to temp file
         agent_file = tmp_path / "test_old_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
-        
+
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
         import claude_mpm.agents.agent_loader as loader
+
         original_mappings = loader.AGENT_MAPPINGS
         original_dir = loader.AGENT_TEMPLATES_DIR
-        
+
         try:
             loader.AGENT_MAPPINGS = {"test_old": "test_old_agent.json"}
             loader.AGENT_TEMPLATES_DIR = tmp_path
-            
+
             # Load the agent
             content = load_agent_prompt_from_md("test_old", force_reload=True)
-            
+
             assert content is not None
             assert "Test Old Agent" in content
             assert "old content format" in content
-            
+
         finally:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
-    
+
     def test_instructions_field_format(self, tmp_path):
         """Test loading from instructions field at root level."""
         # Create a test agent with instructions at root
@@ -97,34 +100,37 @@ class TestAgentLoaderFormats:
             "instructions": "# Test Instructions Agent\n\nThis is a test agent with instructions at root.",
             "configuration_fields": {
                 "model": "claude-4-sonnet",
-                "description": "Test instructions agent"
-            }
+                "description": "Test instructions agent",
+            },
         }
-        
+
         # Write to temp file
         agent_file = tmp_path / "test_instructions_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
-        
+
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
         import claude_mpm.agents.agent_loader as loader
+
         original_mappings = loader.AGENT_MAPPINGS
         original_dir = loader.AGENT_TEMPLATES_DIR
-        
+
         try:
-            loader.AGENT_MAPPINGS = {"test_instructions": "test_instructions_agent.json"}
+            loader.AGENT_MAPPINGS = {
+                "test_instructions": "test_instructions_agent.json"
+            }
             loader.AGENT_TEMPLATES_DIR = tmp_path
-            
+
             # Load the agent
             content = load_agent_prompt_from_md("test_instructions", force_reload=True)
-            
+
             assert content is not None
             assert "Test Instructions Agent" in content
             assert "instructions at root" in content
-            
+
         finally:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
-    
+
     def test_missing_content_returns_none(self, tmp_path):
         """Test that missing content/instructions returns None."""
         # Create a test agent with no content
@@ -133,36 +139,40 @@ class TestAgentLoaderFormats:
             "agent_type": "test_empty",
             "configuration_fields": {
                 "model": "claude-3-sonnet",
-                "description": "Test empty agent"
-            }
+                "description": "Test empty agent",
+            },
         }
-        
+
         # Write to temp file
         agent_file = tmp_path / "test_empty_agent.json"
         agent_file.write_text(json.dumps(test_agent, indent=2))
-        
+
         # Mock the AGENT_MAPPINGS and AGENT_TEMPLATES_DIR
         import claude_mpm.agents.agent_loader as loader
+
         original_mappings = loader.AGENT_MAPPINGS
         original_dir = loader.AGENT_TEMPLATES_DIR
-        
+
         try:
             loader.AGENT_MAPPINGS = {"test_empty": "test_empty_agent.json"}
             loader.AGENT_TEMPLATES_DIR = tmp_path
-            
+
             # Load the agent
             content = load_agent_prompt_from_md("test_empty", force_reload=True)
-            
+
             assert content is None
-            
+
         finally:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
-    
+
     def test_real_agent_templates_load(self):
         """Test that all real agent templates load successfully."""
-        from claude_mpm.agents.agent_loader import AGENT_MAPPINGS, load_agent_prompt_from_md
-        
+        from claude_mpm.agents.agent_loader import (
+            AGENT_MAPPINGS,
+            load_agent_prompt_from_md,
+        )
+
         # Test each real agent
         for agent_name in AGENT_MAPPINGS.keys():
             content = load_agent_prompt_from_md(agent_name, force_reload=True)

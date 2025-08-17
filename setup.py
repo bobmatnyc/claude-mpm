@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """Setup script for claude-mpm."""
 
-from setuptools import setup, find_packages
-from setuptools.command.install import install
-from setuptools.command.develop import develop
 import os
-import sys
 import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+from setuptools import find_packages, setup
+from setuptools.command.develop import develop
+from setuptools.command.install import install
 
 # Read version from VERSION file - single source of truth
 version_file = Path(__file__).parent / "VERSION"
@@ -17,11 +18,14 @@ if version_file.exists():
 else:
     # Default version if VERSION file is missing
     __version__ = "0.0.0"
-    print("WARNING: VERSION file not found, using default version 0.0.0", file=sys.stderr)
+    print(
+        "WARNING: VERSION file not found, using default version 0.0.0", file=sys.stderr
+    )
 
 
 class PostInstallCommand(install):
     """Post-installation for installation mode."""
+
     def run(self):
         install.run(self)
         self.execute(self._post_install, [], msg="Running post-installation setup...")
@@ -31,27 +35,30 @@ class PostInstallCommand(install):
         # Create user .claude-mpm directory
         user_dir = Path.home() / ".claude-mpm"
         user_dir.mkdir(exist_ok=True)
-        
+
         # Create subdirectories
         (user_dir / "agents" / "user-defined").mkdir(parents=True, exist_ok=True)
         (user_dir / "logs").mkdir(exist_ok=True)
         (user_dir / "config").mkdir(exist_ok=True)
-        
+
+        # Build dashboard assets
+        build_dashboard_assets()
+
         # Install ticket command
         self._install_ticket_command()
-    
+
     def _install_ticket_command(self):
         """Install ticket command wrapper."""
         import site
-        
+
         # Get the scripts directory
-        if hasattr(site, 'USER_BASE'):
+        if hasattr(site, "USER_BASE"):
             scripts_dir = Path(site.USER_BASE) / "bin"
         else:
             scripts_dir = Path(sys.prefix) / "bin"
-        
+
         scripts_dir.mkdir(exist_ok=True)
-        
+
         # Create ticket wrapper script
         ticket_script = scripts_dir / "ticket"
         ticket_content = '''#!/usr/bin/env python3
@@ -68,6 +75,7 @@ if __name__ == "__main__":
 
 class PostDevelopCommand(develop):
     """Post-installation for development mode."""
+
     def run(self):
         develop.run(self)
         self.execute(self._post_develop, [], msg="Running post-development setup...")
@@ -77,17 +85,44 @@ class PostDevelopCommand(develop):
         PostInstallCommand._post_install(self)
 
 
+def build_dashboard_assets():
+    """Build dashboard assets using Vite if Node.js is available."""
+    try:
+        build_script = Path(__file__).parent / "scripts" / "build-dashboard.sh"
+        if build_script.exists():
+            print("Building dashboard assets...")
+            result = subprocess.run(
+                ["bash", str(build_script)],
+                capture_output=True,
+                text=True,
+                cwd=Path(__file__).parent,
+            )
+            if result.returncode != 0:
+                print(f"Warning: Dashboard build failed: {result.stderr}")
+                print(
+                    "Dashboard will use individual script files instead of optimized bundles."
+                )
+            else:
+                print("Dashboard assets built successfully")
+        else:
+            print("Dashboard build script not found, skipping...")
+    except Exception as e:
+        print(f"Warning: Failed to build dashboard assets: {e}")
+
+
 def aggregate_agent_dependencies():
     """Run agent dependency aggregation script."""
     try:
-        script_path = Path(__file__).parent / "scripts" / "aggregate_agent_dependencies.py"
+        script_path = (
+            Path(__file__).parent / "scripts" / "aggregate_agent_dependencies.py"
+        )
         if script_path.exists():
             print("Aggregating agent dependencies...")
             result = subprocess.run(
                 [sys.executable, str(script_path)],
                 capture_output=True,
                 text=True,
-                cwd=Path(__file__).parent
+                cwd=Path(__file__).parent,
             )
             if result.returncode != 0:
                 print(f"Warning: Agent dependency aggregation failed: {result.stderr}")
@@ -103,8 +138,10 @@ def read_requirements():
     """Read requirements from requirements.txt if it exists."""
     req_file = Path(__file__).parent / "requirements.txt"
     if req_file.exists():
-        with open(req_file, 'r') as f:
-            return [line.strip() for line in f if line.strip() and not line.startswith('#')]
+        with open(req_file, "r") as f:
+            return [
+                line.strip() for line in f if line.strip() and not line.startswith("#")
+            ]
     return []
 
 
@@ -116,19 +153,22 @@ def read_optional_dependencies():
             # Try different TOML libraries based on Python version
             if sys.version_info >= (3, 11):
                 import tomllib
-                with open(pyproject_path, 'rb') as f:
+
+                with open(pyproject_path, "rb") as f:
                     data = tomllib.load(f)
             else:
                 try:
                     import tomli as tomllib
-                    with open(pyproject_path, 'rb') as f:
+
+                    with open(pyproject_path, "rb") as f:
                         data = tomllib.load(f)
                 except ImportError:
                     import toml
-                    with open(pyproject_path, 'r') as f:
+
+                    with open(pyproject_path, "r") as f:
                         data = toml.load(f)
-                
-            optional_deps = data.get('project', {}).get('optional-dependencies', {})
+
+            optional_deps = data.get("project", {}).get("optional-dependencies", {})
             return optional_deps
         return {}
     except ImportError:
@@ -156,7 +196,8 @@ setup(
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     include_package_data=True,
-    install_requires=read_requirements() or [
+    install_requires=read_requirements()
+    or [
         "ai-trackdown-pytools>=1.4.0",
         "pyyaml>=6.0",
         "python-dotenv>=0.19.0",
@@ -181,8 +222,8 @@ setup(
         ],
     },
     cmdclass={
-        'install': PostInstallCommand,
-        'develop': PostDevelopCommand,
+        "install": PostInstallCommand,
+        "develop": PostDevelopCommand,
     },
     classifiers=[
         "Development Status :: 3 - Alpha",

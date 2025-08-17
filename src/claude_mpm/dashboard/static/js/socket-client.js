@@ -13,16 +13,16 @@ class SocketClient {
             error: [],
             event: []
         };
-        
+
         // Connection state
         this.isConnected = false;
         this.isConnecting = false;
-        
+
         // Event processing
         this.events = [];
         this.sessions = new Map();
         this.currentSessionId = null;
-        
+
         // Start periodic status check as fallback mechanism
         this.startStatusCheckFallback();
     }
@@ -35,7 +35,7 @@ class SocketClient {
         // Store the port for later use
         this.port = port;
         const url = `http://localhost:${port}`;
-        
+
         // Prevent multiple simultaneous connections
         if (this.socket && (this.socket.connected || this.socket.connecting)) {
             console.log('Already connected or connecting, disconnecting first...');
@@ -44,7 +44,7 @@ class SocketClient {
             setTimeout(() => this.doConnect(url), 100);
             return;
         }
-        
+
         this.doConnect(url);
     }
 
@@ -56,7 +56,7 @@ class SocketClient {
         console.log(`Connecting to Socket.IO server at ${url}`);
         this.isConnecting = true;
         this.notifyConnectionStatus('Connecting...', 'connecting');
-        
+
         this.socket = io(url, {
             autoConnect: true,
             reconnection: true,
@@ -67,7 +67,7 @@ class SocketClient {
             forceNew: true,
             transports: ['websocket', 'polling']
         });
-        
+
         this.setupSocketHandlers();
     }
 
@@ -80,44 +80,44 @@ class SocketClient {
             this.isConnected = true;
             this.isConnecting = false;
             this.notifyConnectionStatus('Connected', 'connected');
-            
+
             // Emit connect callback
-            this.connectionCallbacks.connect.forEach(callback => 
+            this.connectionCallbacks.connect.forEach(callback =>
                 callback(this.socket.id)
             );
-            
+
             this.requestStatus();
             // History is now automatically sent by server on connection
             // No need to explicitly request it
         });
-        
+
         this.socket.on('disconnect', (reason) => {
             console.log('Disconnected from server:', reason);
             this.isConnected = false;
             this.isConnecting = false;
             this.notifyConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
-            
+
             // Emit disconnect callback
-            this.connectionCallbacks.disconnect.forEach(callback => 
+            this.connectionCallbacks.disconnect.forEach(callback =>
                 callback(reason)
             );
         });
-        
+
         this.socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
             this.isConnecting = false;
             const errorMsg = error.message || error.description || 'Unknown error';
             this.notifyConnectionStatus(`Connection Error: ${errorMsg}`, 'disconnected');
-            
+
             // Add error event
             this.addEvent({
                 type: 'connection.error',
                 timestamp: new Date().toISOString(),
                 data: { error: errorMsg, url: this.socket.io.uri }
             });
-            
+
             // Emit error callback
-            this.connectionCallbacks.error.forEach(callback => 
+            this.connectionCallbacks.error.forEach(callback =>
                 callback(errorMsg)
             );
         });
@@ -125,7 +125,7 @@ class SocketClient {
         // Primary event handler - this is what the server actually emits
         this.socket.on('claude_event', (data) => {
             console.log('Received claude_event:', data);
-            
+
             // Transform event to match expected format
             const transformedEvent = this.transformEvent(data);
             console.log('Transformed event:', transformedEvent);
@@ -310,7 +310,7 @@ class SocketClient {
         this.sessions.clear();
         this.notifyEventUpdate();
     }
-    
+
     /**
      * Clear events and request fresh history from server
      * @param {Object} options - History request options (same as requestHistory)
@@ -329,7 +329,7 @@ class SocketClient {
         if (!sessionId) {
             return this.events;
         }
-        return this.events.filter(event => 
+        return this.events.filter(event =>
             event.data && event.data.session_id === sessionId
         );
     }
@@ -360,10 +360,10 @@ class SocketClient {
      */
     notifyConnectionStatus(status, type) {
         console.log(`SocketClient: Connection status changed to '${status}' (${type})`);
-        
+
         // Direct DOM update - immediate and reliable
         this.updateConnectionStatusDOM(status, type);
-        
+
         // Also dispatch custom event for other modules
         document.dispatchEvent(new CustomEvent('socketConnectionStatus', {
             detail: { status, type }
@@ -380,10 +380,10 @@ class SocketClient {
         if (statusElement) {
             // Update the text content while preserving the indicator span
             statusElement.innerHTML = `<span>●</span> ${status}`;
-            
+
             // Update the CSS class for styling
             statusElement.className = `status-badge status-${type}`;
-            
+
             console.log(`SocketClient: Direct DOM update - status: '${status}' (${type})`);
         } else {
             console.warn('SocketClient: Could not find connection-status element in DOM');
@@ -394,10 +394,10 @@ class SocketClient {
      * Notify event update
      */
     notifyEventUpdate() {
-        this.connectionCallbacks.event.forEach(callback => 
+        this.connectionCallbacks.event.forEach(callback =>
             callback(this.events, this.sessions)
         );
-        
+
         // Also dispatch custom event
         document.dispatchEvent(new CustomEvent('socketEventUpdate', {
             detail: { events: this.events, sessions: this.sessions }
@@ -424,7 +424,7 @@ class SocketClient {
     transformEvent(eventData) {
         // Handle the actual event structure sent from hook_handler.py:
         // { type: 'hook.pre_tool', timestamp: '...', data: { tool_name: '...', agent_type: '...', etc } }
-        
+
         if (!eventData || !eventData.type) {
             return eventData; // Return as-is if malformed
         }
@@ -481,7 +481,7 @@ class SocketClient {
         setInterval(() => {
             this.checkAndUpdateStatus();
         }, 2000);
-        
+
         // Initial check after DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', () => {
@@ -498,7 +498,7 @@ class SocketClient {
     checkAndUpdateStatus() {
         let actualStatus = 'Disconnected';
         let actualType = 'disconnected';
-        
+
         if (this.socket) {
             if (this.socket.connected) {
                 actualStatus = 'Connected';
@@ -516,14 +516,14 @@ class SocketClient {
                 this.isConnecting = false;
             }
         }
-        
+
         // Check if UI needs updating
         const statusElement = document.getElementById('connection-status');
         if (statusElement) {
             const currentText = statusElement.textContent.replace('●', '').trim();
             const currentClass = statusElement.className;
             const expectedClass = `status-badge status-${actualType}`;
-            
+
             // Update if status text or class doesn't match
             if (currentText !== actualStatus || currentClass !== expectedClass) {
                 console.log(`SocketClient: Fallback update - was '${currentText}' (${currentClass}), now '${actualStatus}' (${expectedClass})`);
@@ -533,5 +533,9 @@ class SocketClient {
     }
 }
 
-// Export for use in other modules
+// ES6 Module export
+export { SocketClient };
+export default SocketClient;
+
+// Backward compatibility - keep window export for non-module usage
 window.SocketClient = SocketClient;

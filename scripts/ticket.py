@@ -28,8 +28,8 @@ This wrapper delegates to:
     ... etc
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -38,7 +38,7 @@ def main():
     # Build the claude-mpm command
     # Find claude-mpm executable
     claude_mpm = "claude-mpm"
-    
+
     # Check if we're running from source (development mode)
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
@@ -47,7 +47,7 @@ def main():
         claude_mpm_script = project_root / "claude-mpm"
         if claude_mpm_script.exists():
             claude_mpm = str(claude_mpm_script)
-    
+
     # Convert ticket command to claude-mpm tickets command
     if len(sys.argv) < 2 or sys.argv[1] == "help":
         # Show help
@@ -55,13 +55,15 @@ def main():
     else:
         # Pass through all arguments to claude-mpm tickets
         cmd = [claude_mpm, "tickets"] + sys.argv[1:]
-    
+
     # Execute the command
     try:
         result = subprocess.run(cmd, check=False)
         return result.returncode
     except FileNotFoundError:
-        print("Error: claude-mpm not found. Please ensure it's installed and in your PATH.")
+        print(
+            "Error: claude-mpm not found. Please ensure it's installed and in your PATH."
+        )
         print("Install with: pip install claude-mpm")
         return 1
     except KeyboardInterrupt:

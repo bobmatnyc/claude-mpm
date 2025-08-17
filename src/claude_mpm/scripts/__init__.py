@@ -12,4 +12,4 @@ claude_mpm module and can be distributed with the package.
 # Export commonly used scripts for programmatic access
 from .start_activity_logging import signal_handler
 
-__all__ = ['signal_handler']
+__all__ = ["signal_handler"]

@@ -3,67 +3,79 @@
 
 import json
 import os
-import time
-import tempfile
 import shutil
+import tempfile
+import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 from claude_mpm.agents.agent_loader import AgentLoader
-from claude_mpm.services.agents.registry import AgentRegistry  
 from claude_mpm.hooks.validation_hooks import ValidationError
+from claude_mpm.services.agents.registry import AgentRegistry
 
 
 class TestSchemaStandardization:
     """Test suite for agent schema standardization implementation."""
-    
+
     @pytest.fixture
     def test_agents_dir(self, tmp_path):
         """Create a temporary agents directory for testing."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
         return agents_dir
-    
+
     @pytest.fixture
     def schema_path(self):
         """Return path to the agent schema."""
-        return Path(__file__).parent.parent / "src/claude_mpm/agents/schema/agent_schema.json"
-    
+        return (
+            Path(__file__).parent.parent
+            / "src/claude_mpm/agents/schema/agent_schema.json"
+        )
+
     @pytest.fixture
     def agent_loader(self, test_agents_dir):
         """Create an AgentLoader instance for testing."""
         return AgentLoader(agents_dir=str(test_agents_dir))
-    
+
     def test_schema_file_exists(self, schema_path):
         """Test that the schema file exists and is valid JSON."""
         assert schema_path.exists(), f"Schema file not found at {schema_path}"
-        
+
         with open(schema_path) as f:
             schema = json.load(f)
-        
+
         # Verify schema structure
         assert schema.get("$schema") == "http://json-schema.org/draft-07/schema#"
         assert schema.get("type") == "object"
         assert "properties" in schema
         assert "required" in schema
-    
+
     def test_schema_required_fields(self, schema_path):
         """Test that schema defines all required fields."""
         with open(schema_path) as f:
             schema = json.load(f)
-        
-        required_fields = ["schema_version", "agent_id", "agent_version", "agent_type", "metadata", "capabilities", "instructions"]
+
+        required_fields = [
+            "schema_version",
+            "agent_id",
+            "agent_version",
+            "agent_type",
+            "metadata",
+            "capabilities",
+            "instructions",
+        ]
         assert set(schema["required"]) == set(required_fields)
-        
+
         # Verify property definitions
         props = schema["properties"]
         assert "agent_id" in props
         assert props["agent_id"]["pattern"] == "^[a-z][a-z0-9_]*$"
-        
+
         assert "instructions" in props
         assert "content" in props["instructions"]["properties"]
-    
+
     def test_valid_agent_passes_validation(self, agent_loader):
         """Test that a valid agent passes validation."""
         valid_agent = {
@@ -75,12 +87,12 @@ class TestSchemaStandardization:
             "resource_tier": "standard",
             "capabilities": ["code_review", "testing"],
             "constraints": ["no_prod_access"],
-            "examples": []
+            "examples": [],
         }
-        
+
         # Should not raise
         agent_loader._validate_agent(valid_agent)
-    
+
     def test_invalid_agent_fails_validation(self, agent_loader):
         """Test that invalid agents fail validation."""
         # Missing required field
@@ -90,10 +102,10 @@ class TestSchemaStandardization:
             "description": "Test",
             # Missing instructions, model, resource_tier
         }
-        
+
         with pytest.raises(ValidationError):
             agent_loader._validate_agent(invalid_agent)
-        
+
         # Invalid ID format
         invalid_agent = {
             "id": "test-agent",  # Contains hyphen
@@ -101,12 +113,12 @@ class TestSchemaStandardization:
             "description": "Test",
             "instructions": "Test",
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "standard"
+            "resource_tier": "standard",
         }
-        
+
         with pytest.raises(ValidationError):
             agent_loader._validate_agent(invalid_agent)
-    
+
     def test_instructions_length_limit(self, agent_loader):
         """Test that instructions are limited to 8000 characters."""
         agent = {
@@ -115,14 +127,14 @@ class TestSchemaStandardization:
             "description": "Test",
             "instructions": "x" * 8001,  # Exceeds limit
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "standard"
+            "resource_tier": "standard",
         }
-        
+
         with pytest.raises(ValidationError) as exc_info:
             agent_loader._validate_agent(agent)
-        
+
         assert "8000 characters" in str(exc_info.value)
-    
+
     def test_resource_tier_validation(self, agent_loader):
         """Test resource tier validation."""
         agent = {
@@ -131,14 +143,14 @@ class TestSchemaStandardization:
             "description": "Test",
             "instructions": "Test",
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "invalid_tier"
+            "resource_tier": "invalid_tier",
         }
-        
+
         with pytest.raises(ValidationError) as exc_info:
             agent_loader._validate_agent(agent)
-        
+
         assert "resource_tier" in str(exc_info.value)
-    
+
     def test_model_resource_tier_compatibility(self, agent_loader):
         """Test model and resource tier compatibility rules."""
         # Opus model requires premium tier
@@ -148,58 +160,75 @@ class TestSchemaStandardization:
             "description": "Test",
             "instructions": "Test",
             "model": "claude-3-opus-20240229",
-            "resource_tier": "basic"  # Should be premium
+            "resource_tier": "basic",  # Should be premium
         }
-        
+
         with pytest.raises(ValidationError) as exc_info:
             agent_loader._validate_agent(agent)
-        
+
         assert "opus" in str(exc_info.value).lower()
         assert "premium" in str(exc_info.value).lower()
-    
+
     def test_migrated_agents_format(self):
         """Test that all migrated agents follow the new format."""
         agents_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates"
-        
+
         agent_files = [
-            "engineer.json", "qa.json", "research.json", "documentation.json",
-            "ops.json", "security.json", "data_engineer.json", "version_control.json"
+            "engineer.json",
+            "qa.json",
+            "research.json",
+            "documentation.json",
+            "ops.json",
+            "security.json",
+            "data_engineer.json",
+            "version_control.json",
         ]
-        
+
         for agent_file in agent_files:
             agent_path = agents_dir / agent_file
             assert agent_path.exists(), f"Agent file {agent_file} not found"
-            
+
             with open(agent_path) as f:
                 agent = json.load(f)
-            
+
             # Verify clean ID (no _agent suffix)
-            assert not agent["id"].endswith("_agent"), f"Agent {agent_file} has _agent suffix"
-            
+            assert not agent["id"].endswith(
+                "_agent"
+            ), f"Agent {agent_file} has _agent suffix"
+
             # Verify all required fields
-            required = ["id", "name", "description", "instructions", "model", "resource_tier"]
+            required = [
+                "id",
+                "name",
+                "description",
+                "instructions",
+                "model",
+                "resource_tier",
+            ]
             for field in required:
                 assert field in agent, f"Agent {agent_file} missing {field}"
-            
+
             # Verify resource tier is valid
             assert agent["resource_tier"] in ["basic", "standard", "premium"]
-            
+
             # Verify instructions length
             assert len(agent["instructions"]) <= 8000
-    
+
     def test_backup_files_created(self):
         """Test that backup files were created during migration."""
-        backup_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates/backup"
-        
+        backup_dir = (
+            Path(__file__).parent.parent / "src/claude_mpm/agents/templates/backup"
+        )
+
         if backup_dir.exists():
             backup_files = list(backup_dir.glob("*_agent_*.json"))
             assert len(backup_files) >= 8, "Not all backup files found"
-            
+
             # Verify backup file format
             for backup_file in backup_files:
                 assert "_agent_" in backup_file.name
                 assert backup_file.name.endswith(".json")
-    
+
     def test_agent_loader_with_new_schema(self, test_agents_dir):
         """Test agent loader with new schema format."""
         # Create a test agent
@@ -209,20 +238,20 @@ class TestSchemaStandardization:
             "description": "A test agent",
             "instructions": "Test instructions",
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "standard"
+            "resource_tier": "standard",
         }
-        
+
         agent_path = test_agents_dir / "test_agent.json"
         with open(agent_path, "w") as f:
             json.dump(test_agent, f)
-        
+
         # Load agent
         loader = AgentLoader(agents_dir=str(test_agents_dir))
         agents = loader.load_agents()
-        
+
         assert len(agents) == 1
         assert agents[0]["id"] == "test_agent"
-    
+
     def test_agent_loader_rejects_old_format(self, test_agents_dir):
         """Test that agent loader rejects old format."""
         # Create an old format agent
@@ -231,18 +260,18 @@ class TestSchemaStandardization:
             "name": "Test Agent",
             "role": "Test role",  # Old format field
             "goal": "Test goal",  # Old format field
-            "backstory": "Test backstory"  # Old format field
+            "backstory": "Test backstory",  # Old format field
         }
-        
+
         agent_path = test_agents_dir / "test_agent.json"
         with open(agent_path, "w") as f:
             json.dump(old_agent, f)
-        
+
         # Should fail to load
         loader = AgentLoader(agents_dir=str(test_agents_dir))
         with pytest.raises(ValidationError):
             loader.load_agents()
-    
+
     def test_performance_agent_loading(self, test_agents_dir):
         """Test agent loading performance."""
         # Create multiple test agents
@@ -253,23 +282,23 @@ class TestSchemaStandardization:
                 "description": f"Test agent {i}",
                 "instructions": f"Instructions for agent {i}",
                 "model": "claude-3-5-sonnet-20241022",
-                "resource_tier": "standard"
+                "resource_tier": "standard",
             }
-            
+
             with open(test_agents_dir / f"agent_{i}.json", "w") as f:
                 json.dump(agent, f)
-        
+
         loader = AgentLoader(agents_dir=str(test_agents_dir))
-        
+
         # Measure loading time
         start_time = time.time()
         agents = loader.load_agents()
         load_time = time.time() - start_time
-        
+
         assert len(agents) == 10
         # Should load in under 500ms total (50ms per agent)
         assert load_time < 0.5, f"Loading took {load_time:.3f}s, expected < 0.5s"
-    
+
     def test_agent_registry_integration(self, test_agents_dir):
         """Test integration with AgentRegistry."""
         # Create a test agent
@@ -279,64 +308,64 @@ class TestSchemaStandardization:
             "description": "Test agent for registry",
             "instructions": "Test instructions",
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "standard"
+            "resource_tier": "standard",
         }
-        
+
         with open(test_agents_dir / "registry_test.json", "w") as f:
             json.dump(test_agent, f)
-        
+
         # Test with registry
         registry = AgentRegistry(agents_dir=str(test_agents_dir))
-        
+
         # Should find the agent
         assert registry.get_agent("registry_test") is not None
         assert registry.get_agent("registry_test")["id"] == "registry_test"
-        
+
         # List agents
         agents = registry.list_agents()
         assert len(agents) == 1
         assert agents[0]["id"] == "registry_test"
-    
+
     def test_task_tool_compatibility(self):
         """Test that agents work with Task tool."""
         # This would require actual Task tool integration
         # For now, verify agent format is compatible
         agents_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates"
-        
+
         with open(agents_dir / "engineer.json") as f:
             engineer = json.load(f)
-        
+
         # Verify format expected by Task tool
         assert "id" in engineer
         assert "name" in engineer
         assert "instructions" in engineer
         assert isinstance(engineer["instructions"], str)
-    
+
     def test_hook_system_compatibility(self):
         """Test compatibility with hook system."""
         # Verify agents can be used in hook context
         agents_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates"
-        
+
         with open(agents_dir / "qa.json") as f:
             qa_agent = json.load(f)
-        
+
         # Hook system expects certain fields
         assert "id" in qa_agent
         assert "name" in qa_agent
         assert "instructions" in qa_agent
-    
+
     def test_backward_compatibility_removed(self, agent_loader):
         """Test that backward compatibility is properly removed."""
         # Old format should not work
         old_agent = {
             "role": "Engineer",
             "goal": "Build software",
-            "backstory": "Experienced engineer"
+            "backstory": "Experienced engineer",
         }
-        
+
         with pytest.raises(ValidationError):
             agent_loader._validate_agent(old_agent)
-    
+
     def test_cache_functionality(self, test_agents_dir):
         """Test agent loader caching."""
         # Create test agent
@@ -346,27 +375,27 @@ class TestSchemaStandardization:
             "description": "Test caching",
             "instructions": "Test",
             "model": "claude-3-5-sonnet-20241022",
-            "resource_tier": "standard"
+            "resource_tier": "standard",
         }
-        
+
         with open(test_agents_dir / "cache_test.json", "w") as f:
             json.dump(test_agent, f)
-        
+
         loader = AgentLoader(agents_dir=str(test_agents_dir))
-        
+
         # First load
         agents1 = loader.load_agents()
-        
+
         # Second load should use cache
         agents2 = loader.load_agents()
-        
+
         assert agents1 == agents2
-        
+
         # Modify file
         test_agent["name"] = "Modified"
         with open(test_agents_dir / "cache_test.json", "w") as f:
             json.dump(test_agent, f)
-        
+
         # Should detect change and reload
         agents3 = loader.load_agents()
         assert agents3[0]["name"] == "Modified"

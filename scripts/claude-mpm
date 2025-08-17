@@ -36,7 +36,7 @@ print_warning() {
 if [ ! -d "$VENV_DIR" ]; then
     print_info "Creating virtual environment..."
     python3 -m venv "$VENV_DIR"
-    
+
     if [ $? -ne 0 ]; then
         print_error "Failed to create virtual environment"
         exit 1
@@ -51,10 +51,10 @@ source "$VENV_DIR/bin/activate"
 if ! python -c "import click" 2>/dev/null; then
     print_info "Installing dependencies..."
     pip install --upgrade pip > /dev/null 2>&1
-    
+
     # Install in development mode with all dependencies
     pip install -e "$PROJECT_ROOT[dev]" > /dev/null 2>&1
-    
+
     if [ $? -ne 0 ]; then
         print_warning "Some dependencies failed to install, continuing anyway..."
     fi
@@ -78,7 +78,7 @@ print_info "Framework path: $PROJECT_ROOT"
 
 # Check if this is a claude-mpm specific command or should be passed to claude
 MPM_PREFIX="--mpm:"
-MPM_COMMANDS=("run" "tickets" "info" "agents" "ui" "memory" "monitor" "config" "aggregate" "cleanup-memory" "cleanup" "clean")
+MPM_COMMANDS=("run" "run-guarded" "tickets" "info" "agents" "ui" "memory" "monitor" "config" "aggregate" "cleanup-memory" "cleanup" "clean")
 FIRST_ARG="${1:-}"
 
 # Check if first argument is an MPM command (with or without prefix)
@@ -116,7 +116,7 @@ done
 if [[ "$IS_MPM_COMMAND" == true ]]; then
     # Run claude-mpm
     cd "$PROJECT_ROOT"
-    
+
     # Transform --mpm: prefixed flags to regular flags for Python
     # Special handling for --mpm:ui to keep it as a single argument
     ARGS=()
@@ -134,12 +134,12 @@ if [[ "$IS_MPM_COMMAND" == true ]]; then
             ARGS+=("$arg")
         fi
     done
-    
+
     # Debug: Print the command
     if [[ "$CLAUDE_MPM_DEBUG" == "1" ]]; then
         print_info "Running: python -m claude_mpm ${ARGS[*]}"
     fi
-    
+
     exec python -m claude_mpm "${ARGS[@]}"
 else
     # Pass through to claude CLI

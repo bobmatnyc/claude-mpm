@@ -1,13 +1,13 @@
 /**
  * Working Directory Module
- * 
+ *
  * Manages working directory state, session-specific directory tracking,
  * and git branch monitoring for the dashboard.
- * 
+ *
  * WHY: Extracted from main dashboard to isolate working directory management
  * logic that involves coordination between UI updates, local storage persistence,
  * and git integration. This provides better maintainability for directory state.
- * 
+ *
  * DESIGN DECISION: Maintains per-session working directories with persistence
  * in localStorage, provides git branch integration, and coordinates with
  * footer directory display for consistent state management.
@@ -18,10 +18,10 @@ class WorkingDirectoryManager {
         this.currentWorkingDir = null;
         this.footerDirObserver = null;
         this._updatingFooter = false;
-        
+
         this.setupEventHandlers();
         this.initialize();
-        
+
         console.log('Working directory manager initialized');
     }
 
@@ -39,13 +39,13 @@ class WorkingDirectoryManager {
     setupEventHandlers() {
         const changeDirBtn = document.getElementById('change-dir-btn');
         const workingDirPath = document.getElementById('working-dir-path');
-        
+
         if (changeDirBtn) {
             changeDirBtn.addEventListener('click', () => {
                 this.showChangeDirDialog();
             });
         }
-        
+
         if (workingDirPath) {
             workingDirPath.addEventListener('click', (e) => {
                 // Check if Shift key is held for directory change, otherwise show file viewer
@@ -65,7 +65,7 @@ class WorkingDirectoryManager {
                 this.loadWorkingDirectoryForSession(sessionId);
             }
         });
-        
+
         // Listen for git branch responses
         if (this.socketManager && this.socketManager.getSocket) {
             const socket = this.socketManager.getSocket();
@@ -88,7 +88,7 @@ class WorkingDirectoryManager {
         if (pathElement && !pathElement.textContent.trim()) {
             pathElement.textContent = 'Loading...';
         }
-        
+
         // Check if there's a selected session
         const sessionSelect = document.getElementById('session-select');
         if (sessionSelect && sessionSelect.value && sessionSelect.value !== 'all') {
@@ -106,17 +106,17 @@ class WorkingDirectoryManager {
     watchFooterDirectory() {
         const footerDir = document.getElementById('footer-working-dir');
         if (!footerDir) return;
-        
+
         // Store observer reference for later use
         this.footerDirObserver = new MutationObserver((mutations) => {
             // Skip if we're updating from setWorkingDirectory
             if (this._updatingFooter) return;
-            
+
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList' || mutation.type === 'characterData') {
                     const newDir = footerDir.textContent.trim();
                     console.log('Footer directory changed to:', newDir);
-                    
+
                     // Only update if it's different from current
                     if (newDir && newDir !== this.currentWorkingDir) {
                         console.log('Syncing working directory from footer change');
@@ -125,14 +125,14 @@ class WorkingDirectoryManager {
                 }
             });
         });
-        
+
         // Observe changes to footer directory
         this.footerDirObserver.observe(footerDir, {
             childList: true,
             characterData: true,
             subtree: true
         });
-        
+
         console.log('Started watching footer directory for changes');
     }
 
@@ -142,7 +142,7 @@ class WorkingDirectoryManager {
      */
     loadWorkingDirectoryForSession(sessionId) {
         console.log('[WORKING-DIR-DEBUG] loadWorkingDirectoryForSession called with sessionId:', this.repr(sessionId));
-        
+
         if (!sessionId || sessionId === 'all') {
             console.log('[WORKING-DIR-DEBUG] No sessionId or sessionId is "all", using default working dir');
             const defaultDir = this.getDefaultWorkingDir();
@@ -150,22 +150,22 @@ class WorkingDirectoryManager {
             this.setWorkingDirectory(defaultDir);
             return;
         }
-        
+
         // Load from localStorage
         const sessionDirs = JSON.parse(localStorage.getItem('sessionWorkingDirs') || '{}');
         console.log('[WORKING-DIR-DEBUG] Session directories from localStorage:', sessionDirs);
-        
+
         const sessionDir = sessionDirs[sessionId];
         const defaultDir = this.getDefaultWorkingDir();
         const dir = sessionDir || defaultDir;
-        
+
         console.log('[WORKING-DIR-DEBUG] Directory selection:', {
             sessionId: sessionId,
             sessionDir: this.repr(sessionDir),
             defaultDir: this.repr(defaultDir),
             finalDir: this.repr(dir)
         });
-        
+
         this.setWorkingDirectory(dir);
     }
 
@@ -175,9 +175,9 @@ class WorkingDirectoryManager {
      */
     setWorkingDirectory(dir) {
         console.log('[WORKING-DIR-DEBUG] setWorkingDirectory called with:', this.repr(dir));
-        
+
         this.currentWorkingDir = dir;
-        
+
         // Update UI
         const pathElement = document.getElementById('working-dir-path');
         if (pathElement) {
@@ -186,19 +186,19 @@ class WorkingDirectoryManager {
         } else {
             console.warn('[WORKING-DIR-DEBUG] working-dir-path element not found');
         }
-        
+
         // Update footer directory (sync across components)
         const footerDir = document.getElementById('footer-working-dir');
         if (footerDir) {
             const currentFooterText = footerDir.textContent;
             console.log('[WORKING-DIR-DEBUG] Footer directory current text:', this.repr(currentFooterText), 'new text:', this.repr(dir));
-            
+
             if (currentFooterText !== dir) {
                 // Set flag to prevent observer from triggering
                 this._updatingFooter = true;
                 footerDir.textContent = dir;
                 console.log('[WORKING-DIR-DEBUG] Updated footer directory to:', dir);
-                
+
                 // Clear flag after a short delay
                 setTimeout(() => {
                     this._updatingFooter = false;
@@ -210,7 +210,7 @@ class WorkingDirectoryManager {
         } else {
             console.warn('[WORKING-DIR-DEBUG] footer-working-dir element not found');
         }
-        
+
         // Save to localStorage for session persistence
         const sessionSelect = document.getElementById('session-select');
         if (sessionSelect && sessionSelect.value && sessionSelect.value !== 'all') {
@@ -222,7 +222,7 @@ class WorkingDirectoryManager {
         } else {
             console.log('[WORKING-DIR-DEBUG] No session selected or session is "all", not saving to localStorage');
         }
-        
+
         // Update git branch for new directory - only if it's a valid path
         console.log('[WORKING-DIR-DEBUG] About to call updateGitBranch with:', this.repr(dir));
         if (this.validateDirectoryPath(dir)) {
@@ -230,12 +230,12 @@ class WorkingDirectoryManager {
         } else {
             console.log('[WORKING-DIR-DEBUG] Skipping git branch update for invalid directory:', this.repr(dir));
         }
-        
+
         // Dispatch event for other modules
         document.dispatchEvent(new CustomEvent('workingDirectoryChanged', {
             detail: { directory: dir }
         }));
-        
+
         console.log('[WORKING-DIR-DEBUG] Working directory set to:', dir);
     }
 
@@ -245,7 +245,7 @@ class WorkingDirectoryManager {
      */
     updateGitBranch(dir) {
         console.log('[GIT-BRANCH-DEBUG] updateGitBranch called with dir:', this.repr(dir), 'type:', typeof dir);
-        
+
         if (!this.socketManager || !this.socketManager.isConnected()) {
             console.log('[GIT-BRANCH-DEBUG] Not connected to socket server');
             // Not connected, set to unknown
@@ -256,13 +256,13 @@ class WorkingDirectoryManager {
             }
             return;
         }
-        
+
         // Enhanced validation with specific checks for common invalid states
         const isValidPath = this.validateDirectoryPath(dir);
         const isLoadingState = dir === 'Loading...' || dir === 'Loading';
         const isUnknown = dir === 'Unknown';
         const isEmptyOrWhitespace = !dir || (typeof dir === 'string' && dir.trim() === '');
-        
+
         console.log('[GIT-BRANCH-DEBUG] Validation results:', {
             dir: dir,
             isValidPath: isValidPath,
@@ -271,7 +271,7 @@ class WorkingDirectoryManager {
             isEmptyOrWhitespace: isEmptyOrWhitespace,
             shouldReject: !isValidPath || isLoadingState || isUnknown || isEmptyOrWhitespace
         });
-        
+
         // Validate directory before sending to server - reject common invalid states
         if (!isValidPath || isLoadingState || isUnknown || isEmptyOrWhitespace) {
             console.warn('[GIT-BRANCH-DEBUG] Invalid working directory for git branch request:', dir);
@@ -288,7 +288,7 @@ class WorkingDirectoryManager {
             }
             return;
         }
-        
+
         // Request git branch from server
         const socket = this.socketManager.getSocket();
         if (socket) {
@@ -310,24 +310,24 @@ class WorkingDirectoryManager {
      */
     getDefaultWorkingDir() {
         console.log('[WORKING-DIR-DEBUG] getDefaultWorkingDir called');
-        
+
         // Try to get from footer first
         const footerDir = document.getElementById('footer-working-dir');
         if (footerDir?.textContent?.trim()) {
             const footerPath = footerDir.textContent.trim();
             console.log('[WORKING-DIR-DEBUG] Footer path found:', this.repr(footerPath));
-            
+
             // Don't use 'Unknown' as a valid directory
             const isUnknown = footerPath === 'Unknown';
             const isValid = this.validateDirectoryPath(footerPath);
-            
+
             console.log('[WORKING-DIR-DEBUG] Footer path validation:', {
                 footerPath: this.repr(footerPath),
                 isUnknown: isUnknown,
                 isValid: isValid,
                 shouldUse: !isUnknown && isValid
             });
-            
+
             if (!isUnknown && isValid) {
                 console.log('[WORKING-DIR-DEBUG] Using footer path as default:', footerPath);
                 return footerPath;
@@ -335,10 +335,10 @@ class WorkingDirectoryManager {
         } else {
             console.log('[WORKING-DIR-DEBUG] No footer directory element or no text content');
         }
-        
+
         // Fallback to a reasonable default - try to get the current project directory
         // This should be set when the dashboard initializes
-        
+
         // Try getting from the browser's URL or any other hint about the current project
         if (window.location.pathname.includes('claude-mpm')) {
             // We can infer we're in a claude-mpm project
@@ -355,7 +355,7 @@ class WorkingDirectoryManager {
                 return pathText;
             }
         }
-        
+
         // Final fallback to current directory indicator
         const fallback = process?.cwd?.() || '/Users/masa/Projects/claude-mpm';
         console.log('[WORKING-DIR-DEBUG] Using hard-coded fallback directory:', this.repr(fallback));
@@ -390,15 +390,15 @@ class WorkingDirectoryManager {
     createDirectoryViewerOverlay() {
         // Remove existing overlay if present
         this.removeDirectoryViewerOverlay();
-        
+
         const workingDirDisplay = document.querySelector('.working-dir-display');
         if (!workingDirDisplay) return;
-        
+
         // Create overlay element
         const overlay = document.createElement('div');
         overlay.id = 'directory-viewer-overlay';
         overlay.className = 'directory-viewer-overlay';
-        
+
         // Create overlay content
         overlay.innerHTML = `
             <div class="directory-viewer-content">
@@ -416,7 +416,7 @@ class WorkingDirectoryManager {
                 </div>
             </div>
         `;
-        
+
         // Position overlay below the working directory display
         const rect = workingDirDisplay.getBoundingClientRect();
         overlay.style.cssText = `
@@ -432,13 +432,13 @@ class WorkingDirectoryManager {
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
             border: 1px solid #e2e8f0;
         `;
-        
+
         // Add to document
         document.body.appendChild(overlay);
-        
+
         // Load directory contents
         this.loadDirectoryContents();
-        
+
         // Add click outside to close
         setTimeout(() => {
             document.addEventListener('click', this.handleOutsideClick.bind(this), true);
@@ -463,7 +463,7 @@ class WorkingDirectoryManager {
     handleOutsideClick(event) {
         const overlay = document.getElementById('directory-viewer-overlay');
         const workingDirPath = document.getElementById('working-dir-path');
-        
+
         if (overlay && !overlay.contains(event.target) && event.target !== workingDirPath) {
             this.removeDirectoryViewerOverlay();
         }
@@ -558,7 +558,7 @@ class WorkingDirectoryManager {
             const filePath = `${this.currentWorkingDir}/${file}`.replace(/\/+/g, '/');
             const fileExt = file.split('.').pop().toLowerCase();
             const fileIcon = this.getFileIcon(fileExt);
-            
+
             html += `
                 <div class="file-item" onclick="workingDirectoryManager.viewFile('${filePath}')">
                     <span class="file-icon">${fileIcon}</span>
@@ -622,7 +622,7 @@ class WorkingDirectoryManager {
             'exe': '⚙️',
             'dll': '⚙️'
         };
-        
+
         return iconMap[extension] || '📄';
     }
 
@@ -633,7 +633,7 @@ class WorkingDirectoryManager {
     viewFile(filePath) {
         // Close the directory viewer overlay
         this.removeDirectoryViewerOverlay();
-        
+
         // Use the existing file viewer modal functionality
         if (window.showFileViewerModal) {
             window.showFileViewerModal(filePath);
@@ -667,7 +667,7 @@ class WorkingDirectoryManager {
         const sessionDirs = this.getSessionDirectories();
         sessionDirs[sessionId] = directory;
         localStorage.setItem('sessionWorkingDirs', JSON.stringify(sessionDirs));
-        
+
         // If this is the current session, update the current directory
         const sessionSelect = document.getElementById('session-select');
         if (sessionSelect && sessionSelect.value === sessionId) {
@@ -704,7 +704,7 @@ class WorkingDirectoryManager {
         if (pair.post?.working_dir) return pair.post.working_dir;
         if (pair.pre?.data?.working_dir) return pair.pre.data.working_dir;
         if (pair.post?.data?.working_dir) return pair.post.data.working_dir;
-        
+
         // Fallback to current working directory
         return this.currentWorkingDir || this.getDefaultWorkingDir();
     }
@@ -716,14 +716,14 @@ class WorkingDirectoryManager {
      */
     validateDirectoryPath(path) {
         if (!path || typeof path !== 'string') return false;
-        
+
         // Basic path validation
         const trimmed = path.trim();
         if (trimmed.length === 0) return false;
-        
+
         // Check for obviously invalid paths
         if (trimmed.includes('\0')) return false;
-        
+
         // Check for common invalid placeholder states
         const invalidStates = [
             'Loading...',
@@ -735,19 +735,19 @@ class WorkingDirectoryManager {
             'Invalid Directory',
             'No Directory'
         ];
-        
+
         if (invalidStates.includes(trimmed)) return false;
-        
+
         // Basic path structure validation - should start with / or drive letter on Windows
         if (!trimmed.startsWith('/') && !(/^[A-Za-z]:/.test(trimmed))) {
             // Allow relative paths that look reasonable
-            if (trimmed.startsWith('./') || trimmed.startsWith('../') || 
+            if (trimmed.startsWith('./') || trimmed.startsWith('../') ||
                 /^[a-zA-Z0-9._-]+/.test(trimmed)) {
                 return true;
             }
             return false;
         }
-        
+
         return true;
     }
 
@@ -757,18 +757,18 @@ class WorkingDirectoryManager {
      */
     handleGitBranchResponse(response) {
         console.log('[GIT-BRANCH-DEBUG] handleGitBranchResponse called with:', response);
-        
+
         const footerBranch = document.getElementById('footer-git-branch');
         if (!footerBranch) {
             console.warn('[GIT-BRANCH-DEBUG] footer-git-branch element not found');
             return;
         }
-        
+
         if (response.success) {
             console.log('[GIT-BRANCH-DEBUG] Git branch request successful, branch:', response.branch);
             footerBranch.textContent = response.branch;
             footerBranch.style.display = 'inline';
-            
+
             // Optional: Add a class to indicate successful git status
             footerBranch.classList.remove('git-error');
             footerBranch.classList.add('git-success');
@@ -776,7 +776,7 @@ class WorkingDirectoryManager {
             // Handle different error types more gracefully
             let displayText = 'Git Error';
             const error = response.error || 'Unknown error';
-            
+
             if (error.includes('Directory not found') || error.includes('does not exist')) {
                 displayText = 'Dir Not Found';
             } else if (error.includes('Not a directory')) {
@@ -788,16 +788,16 @@ class WorkingDirectoryManager {
             } else {
                 displayText = 'Unknown';
             }
-            
+
             console.log('[GIT-BRANCH-DEBUG] Git branch request failed:', error, '- showing as:', displayText);
             footerBranch.textContent = displayText;
             footerBranch.style.display = 'inline';
-            
+
             // Optional: Add a class to indicate error state
             footerBranch.classList.remove('git-success');
             footerBranch.classList.add('git-error');
         }
-        
+
         // Log additional debug info from server
         if (response.original_working_dir) {
             console.log('[GIT-BRANCH-DEBUG] Server received original working_dir:', this.repr(response.original_working_dir));
@@ -826,7 +826,7 @@ class WorkingDirectoryManager {
      */
     whenDirectoryReady(callback, timeout = 5000) {
         const startTime = Date.now();
-        
+
         const checkReady = () => {
             if (this.isWorkingDirectoryReady()) {
                 callback();
@@ -836,7 +836,7 @@ class WorkingDirectoryManager {
                 console.warn('[WORKING-DIR-DEBUG] Timeout waiting for directory to be ready');
             }
         };
-        
+
         checkReady();
     }
 
@@ -860,7 +860,10 @@ class WorkingDirectoryManager {
             this.footerDirObserver.disconnect();
             this.footerDirObserver = null;
         }
-        
+
         console.log('Working directory manager cleaned up');
     }
 }
+// ES6 Module export
+export { WorkingDirectoryManager };
+export default WorkingDirectoryManager;

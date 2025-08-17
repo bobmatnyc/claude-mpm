@@ -2,13 +2,14 @@
 Todo and Task Tools section generator for framework CLAUDE.md.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
+
 from . import BaseSectionGenerator
 
 
 class TodoTaskToolsGenerator(BaseSectionGenerator):
     """Generates the Todo and Task Tools section."""
-    
+
     def generate(self, data: Dict[str, Any]) -> str:
         """Generate the todo and task tools section."""
         return """

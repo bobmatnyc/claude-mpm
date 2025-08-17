@@ -26,12 +26,12 @@ echo "📁 Checking if .claude-mpm was created..."
 
 if [ -d ".claude-mpm" ]; then
     echo "✅ .claude-mpm directory exists!"
-    
+
     # Check subdirectories
     echo ""
     echo "📂 Directory structure:"
     find .claude-mpm -type d | sort | sed 's/^/  /'
-    
+
     # Specifically check for responses directory
     if [ -d ".claude-mpm/responses" ]; then
         echo ""

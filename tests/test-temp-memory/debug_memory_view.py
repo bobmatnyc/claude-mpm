@@ -2,9 +2,9 @@
 """Debug script to test memory view command"""
 
 import os
+import subprocess
 import sys
 import tempfile
-import subprocess
 from pathlib import Path
 
 # Create a temporary test directory
@@ -19,15 +19,15 @@ try:
     # Get the mpm command path
     project_root = Path(__file__).parent.parent
     mpm_cmd = str(project_root / "claude-mpm")
-    
+
     # Run memory init
     init_cmd = [mpm_cmd, "memory", "init"]
     subprocess.run(init_cmd, capture_output=True, text=True, timeout=60)
-    
+
     # Run memory add
     add_cmd = [mpm_cmd, "memory", "add", "qa", "pattern", "This is a test memory entry"]
     subprocess.run(add_cmd, capture_output=True, text=True, timeout=60)
-    
+
     # Run memory view
     print("=== Running memory view ===")
     view_cmd = [mpm_cmd, "memory", "view", "qa"]
@@ -40,9 +40,11 @@ try:
 except Exception as e:
     print(f"Error: {e}")
     import traceback
+
     traceback.print_exc()
 
 finally:
     os.chdir(original_cwd)
     import shutil
+
     shutil.rmtree(test_dir, ignore_errors=True)

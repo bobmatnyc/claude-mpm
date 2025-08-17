@@ -53,8 +53,22 @@ Navigate to Admin → Advanced Settings and configure:
 Add the following environment variable in Admin → Environment Variables:
 
 ```
-READTHEDOCS_API_TOKEN = c60cfe7df2a7ca7fb296ead903c4a393b5ba514c
+READTHEDOCS_API_TOKEN = <YOUR_PERSONAL_API_TOKEN>
 ```
+
+**⚠️ SECURITY WARNING**: Never commit actual API tokens to version control!
+
+To generate your personal API token:
+1. Go to your Read the Docs account settings
+2. Navigate to "API Tokens" section
+3. Click "Create Token"
+4. Give it a descriptive name (e.g., "claude-mpm-project")
+5. Copy the generated token and use it as the value above
+
+For CI/CD pipelines, store this token securely using:
+- GitHub Secrets (for GitHub Actions)
+- Environment variables in your CI system
+- A dedicated secrets management service
 
 ### Step 5: Webhook Configuration
 
@@ -135,15 +149,19 @@ To use a custom domain like `docs.claude-mpm.io`:
 
 ### Using the Read the Docs API
 
-With the provided API token, you can programmatically:
+With your personal API token, you can programmatically:
 
 ```python
 import requests
+import os
 
 # Base configuration
-API_TOKEN = "c60cfe7df2a7ca7fb296ead903c4a393b5ba514c"
+API_TOKEN = os.getenv("READTHEDOCS_API_TOKEN")  # Load from environment variable
 PROJECT_SLUG = "claude-mpm"
 BASE_URL = "https://readthedocs.org/api/v3"
+
+if not API_TOKEN:
+    raise ValueError("READTHEDOCS_API_TOKEN environment variable is required")
 
 headers = {
     "Authorization": f"Token {API_TOKEN}",
@@ -243,7 +261,20 @@ For additional help:
 
 ## Security Notes
 
-- Keep the API token secure and never commit it to the repository
-- Use environment variables for sensitive configuration
-- Regularly rotate API tokens
-- Monitor access logs for suspicious activity
+**🔒 CRITICAL SECURITY PRACTICES:**
+
+- **NEVER commit API tokens to version control** - Always use environment variables or secrets management
+- **Immediately revoke any exposed tokens** - If a token is accidentally committed, revoke it immediately in Read the Docs dashboard
+- **Use environment variables** for all sensitive configuration in production
+- **Regularly rotate API tokens** (recommended: every 90 days)
+- **Monitor access logs** for suspicious activity
+- **Use GitHub Secrets** for CI/CD workflows instead of hardcoding tokens
+- **Limit token permissions** to only what's necessary for your use case
+- **Store tokens securely** using dedicated secrets management services in production environments
+
+**If you suspect a token has been compromised:**
+1. Immediately revoke the token in Read the Docs dashboard
+2. Generate a new token with a different name
+3. Update all systems using the old token
+4. Review access logs for any unauthorized activity
+5. Consider enabling additional security measures like IP restrictions if available
