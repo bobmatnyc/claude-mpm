@@ -27,7 +27,6 @@ class ExperimentalFeatures:
 
     # Default feature flags
     DEFAULTS = {
-        "enable_memory_guardian": False,  # Memory Guardian is experimental
         "enable_mcp_gateway": False,  # MCP Gateway is experimental
         "enable_advanced_aggregation": False,  # Advanced aggregation features
         "show_experimental_warnings": True,  # Show warnings for experimental features
@@ -36,11 +35,6 @@ class ExperimentalFeatures:
 
     # Warning messages for experimental features
     WARNINGS = {
-        "memory_guardian": (
-            "⚠️  EXPERIMENTAL FEATURE: Memory Guardian is in beta.\n"
-            "   This feature may change or have issues. Use with caution in production.\n"
-            "   Report issues at: https://github.com/bluescreen10/claude-mpm/issues"
-        ),
         "mcp_gateway": (
             "⚠️  EXPERIMENTAL FEATURE: MCP Gateway is in early access.\n"
             "   Tool integration may be unstable. Not recommended for production use."
