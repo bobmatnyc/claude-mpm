@@ -19,52 +19,36 @@ class HookEventHandler(BaseEventHandler):
     """
     
     def register_events(self) -> None:
-        """Register hook event handlers.
+        """Register hook event handlers."""
         
-        NOTE: This handler no longer registers a claude_event handler directly
-        to avoid conflicts with ConnectionEventHandler. Instead, it processes
-        hook events passed from ConnectionEventHandler.
-        """
-        # No direct event registration - events are passed from ConnectionEventHandler
-        pass
-    
-    async def process_hook_event(self, data: Dict[str, Any]) -> None:
-        """Process a hook event received from ConnectionEventHandler.
-        
-        WHY: This method is called by ConnectionEventHandler when it receives
-        a claude_event with type 'hook'. This separation avoids handler conflicts.
-        
-        Args:
-            data: The complete event data including type, event, and data fields
-        """
-        if not isinstance(data, dict):
-            return
+        @self.sio.event
+        async def claude_event(sid, data):
+            """Handle claude_event which includes hook events.
             
-        # Extract hook event details
-        hook_event = data.get("event")
-        hook_data = data.get("data", {})
-        
-        # Add the event to history for replay
-        self.add_to_history("hook", {
-            "event": hook_event,
-            "data": hook_data,
-            "timestamp": datetime.now().isoformat()
-        })
-        
-        # Broadcast the event to all connected clients
-        await self.broadcast_event("claude_event", data)
-        
-        # Track sessions based on hook events
-        if hook_event == "subagent_start":
-            await self._handle_subagent_start(hook_data)
-        elif hook_event == "subagent_stop":
-            await self._handle_subagent_stop(hook_data)
-        elif hook_event == "user_prompt":
-            await self._handle_user_prompt(hook_data)
-        elif hook_event == "pre_tool":
-            await self._handle_pre_tool(hook_data)
-        
-        self.logger.debug(f"Processed hook event: {hook_event}")
+            WHY: Hook events are sent as claude_event with type 'hook'
+            and contain session and agent delegation information.
+            """
+            if not isinstance(data, dict):
+                return
+                
+            # Check if this is a hook event
+            event_type = data.get("type")
+            if event_type != "hook":
+                return
+                
+            # Extract hook event details
+            hook_event = data.get("event")
+            hook_data = data.get("data", {})
+            
+            # Track sessions based on hook events
+            if hook_event == "subagent_start":
+                await self._handle_subagent_start(hook_data)
+            elif hook_event == "subagent_stop":
+                await self._handle_subagent_stop(hook_data)
+            elif hook_event == "user_prompt":
+                await self._handle_user_prompt(hook_data)
+            elif hook_event == "pre_tool":
+                await self._handle_pre_tool(hook_data)
                 
     async def _handle_subagent_start(self, data: Dict[str, Any]):
         """Handle subagent start events.
