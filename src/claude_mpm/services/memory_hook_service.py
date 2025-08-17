@@ -220,4 +220,18 @@ class MemoryHookService(BaseService, MemoryHookInterface):
             "service_available": True,
         }
 
+    def get_hook_status(self) -> Dict[str, Any]:
+        """Get status of registered memory hooks.
+
+        Returns:
+            Dictionary with hook status information
+        """
+        return {
+            "registered_hooks": self.registered_hooks,
+            "hook_service_available": self.hook_service is not None,
+            "memory_enabled": self.is_memory_enabled(),
+            "total_hooks": len(self.registered_hooks),
+            "status": "active" if self.registered_hooks else "inactive",
+        }
+
 
