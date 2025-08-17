@@ -13,7 +13,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.core.config import Config
@@ -37,6 +37,112 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
     async def _cleanup(self) -> None:
         """Cleanup service resources. No cleanup needed."""
         pass
+
+    # Implementation of abstract methods from RunnerConfigurationInterface
+
+    def initialize_runner(self, config: Dict[str, Any]) -> Dict[str, Any]:
+        """Initialize runner with configuration.
+
+        Args:
+            config: Configuration dictionary
+
+        Returns:
+            Dictionary with initialization results
+        """
+        # This method can delegate to the existing initialize_configuration method
+        return self.initialize_configuration(**config)
+
+    def register_services(self, service_container) -> None:
+        """Register services with the dependency injection container.
+
+        Args:
+            service_container: Service container for registration
+        """
+        # This method can delegate to existing service registration methods
+        # For now, this is a no-op as service registration is handled elsewhere
+        pass
+
+    def load_configuration(self, config_path: Optional[Path] = None) -> Dict[str, Any]:
+        """Load configuration from file or defaults.
+
+        Args:
+            config_path: Optional path to configuration file
+
+        Returns:
+            Loaded configuration dictionary
+        """
+        try:
+            if config_path:
+                # Load from specific path if provided
+                config = Config(config_path)
+            else:
+                # Load from default location
+                config = Config()
+
+            return {
+                "config": config,
+                "enable_tickets": True,
+                "log_level": "OFF",
+                "claude_args": [],
+                "launch_method": "exec",
+                "enable_websocket": False,
+                "websocket_port": 8765,
+            }
+        except Exception as e:
+            self.logger.error("Failed to load configuration", exc_info=True)
+            raise RuntimeError(f"Configuration loading failed: {e}") from e
+
+    def validate_configuration(self, config: Dict[str, Any]) -> Tuple[bool, List[str]]:
+        """Validate configuration structure and values.
+
+        Args:
+            config: Configuration to validate
+
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        errors = []
+
+        # Validate required keys
+        required_keys = ["enable_tickets", "log_level", "claude_args", "launch_method"]
+        for key in required_keys:
+            if key not in config:
+                errors.append(f"Missing required configuration key: {key}")
+
+        # Validate specific values
+        if "launch_method" in config and config["launch_method"] not in [
+            "exec",
+            "subprocess",
+        ]:
+            errors.append("launch_method must be 'exec' or 'subprocess'")
+
+        if "websocket_port" in config:
+            try:
+                port = int(config["websocket_port"])
+                if port < 1 or port > 65535:
+                    errors.append("websocket_port must be between 1 and 65535")
+            except (ValueError, TypeError):
+                errors.append("websocket_port must be a valid integer")
+
+        return len(errors) == 0, errors
+
+    def setup_logging(self, config: Dict[str, Any]) -> None:
+        """Setup logging configuration.
+
+        Args:
+            config: Logging configuration
+        """
+        log_level = config.get("log_level", "OFF")
+        if log_level != "OFF":
+            try:
+                # Initialize project logger if needed
+                project_logger = self.initialize_project_logger(log_level)
+                if project_logger:
+                    self.logger.info(
+                        f"Project logging initialized with level: {log_level}"
+                    )
+            except Exception as e:
+                self.logger.warning(f"Failed to setup logging: {e}")
 
     def initialize_configuration(self, **kwargs) -> Dict[str, Any]:
         """Initialize configuration and return configuration data.

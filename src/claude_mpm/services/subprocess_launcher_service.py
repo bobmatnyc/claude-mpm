@@ -46,6 +46,74 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         """Cleanup service resources. No cleanup needed."""
         pass
 
+    # Implementation of abstract methods from SubprocessLauncherInterface
+
+    def launch_subprocess(self, command: List[str], **kwargs) -> Dict[str, Any]:
+        """Launch a subprocess with PTY support.
+
+        Args:
+            command: Command and arguments to execute
+            **kwargs: Additional subprocess options
+
+        Returns:
+            Dictionary with subprocess information and handles
+        """
+        # For now, delegate to the existing interactive method
+        # In a full implementation, this would return process info
+        try:
+            env = kwargs.get("env", self.prepare_subprocess_environment())
+            self.launch_subprocess_interactive(command, env)
+            return {"status": "launched", "command": command, "method": "interactive"}
+        except Exception as e:
+            return {"status": "failed", "error": str(e), "command": command}
+
+    async def launch_subprocess_async(
+        self, command: List[str], **kwargs
+    ) -> Dict[str, Any]:
+        """Launch a subprocess asynchronously with PTY support.
+
+        Args:
+            command: Command and arguments to execute
+            **kwargs: Additional subprocess options
+
+        Returns:
+            Dictionary with subprocess information and handles
+        """
+        # For async version, we'd use asyncio subprocess
+        # For now, delegate to sync version
+        return self.launch_subprocess(command, **kwargs)
+
+    def terminate_subprocess(self, process_id: str) -> bool:
+        """Terminate a running subprocess.
+
+        Args:
+            process_id: ID of the process to terminate
+
+        Returns:
+            True if termination successful
+        """
+        # This would need process tracking to be implemented
+        # For now, return False as we don't track processes
+        self.logger.warning(f"Process termination not implemented for ID: {process_id}")
+        return False
+
+    def get_subprocess_status(self, process_id: str) -> Dict[str, Any]:
+        """Get status of a running subprocess.
+
+        Args:
+            process_id: ID of the process
+
+        Returns:
+            Dictionary with process status information
+        """
+        # This would need process tracking to be implemented
+        # For now, return unknown status
+        return {
+            "process_id": process_id,
+            "status": "unknown",
+            "message": "Process tracking not implemented",
+        }
+
     def launch_subprocess_interactive(
         self, cmd: List[str], env: Dict[str, str]
     ) -> None:

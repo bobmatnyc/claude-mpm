@@ -13,6 +13,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 
 import re
 from datetime import datetime
+from typing import List, Optional, Tuple
 
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
@@ -39,15 +40,18 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         """Cleanup service resources. No cleanup needed."""
         pass
 
-    def load_system_instructions(self) -> Optional[str]:
+    def load_system_instructions(self, instruction_type: str = "default") -> str:
         """Load and process system instructions from agents/INSTRUCTIONS.md.
+
+        Args:
+            instruction_type: Type of instructions to load (currently only "default" supported)
 
         Implements project > framework precedence:
         1. First check for project-specific instructions in .claude-mpm/agents/INSTRUCTIONS.md
         2. If not found, fall back to framework instructions in src/claude_mpm/agents/INSTRUCTIONS.md
 
         Returns:
-            Processed system instructions or None if not found
+            Processed system instructions string
         """
         try:
             # Check for project-specific instructions first
@@ -83,11 +87,11 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
                 return self._strip_metadata_comments(processed_content)
 
             self.logger.warning("No system instructions found in project or framework")
-            return None
+            return "# System Instructions\n\nNo specific system instructions found. Using default behavior."
 
         except Exception as e:
             self.logger.error(f"Failed to load system instructions: {e}")
-            return None
+            return "# System Instructions\n\nError loading system instructions. Using default behavior."
 
     def process_base_pm_content(self, base_pm_content: str) -> str:
         """Process BASE_PM.md content with dynamic injections.
@@ -195,15 +199,7 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         if system_instructions is None:
             system_instructions = self.load_system_instructions()
 
-        if system_instructions:
-            return system_instructions
-        else:
-            # Fallback to basic context
-            self.logger.info("Using fallback system context")
-            # Import locally to avoid circular dependency
-            from claude_mpm.core.claude_runner import create_simple_context
-
-            return create_simple_context()
+        return system_instructions
 
     def _process_base_pm_content(self, base_pm_content: str) -> str:
         """Internal method for processing BASE_PM content."""
@@ -238,3 +234,42 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         except Exception as e:
             self.logger.debug(f"Could not determine version: {e}")
             return "unknown"
+
+    def get_available_instruction_types(self) -> List[str]:
+        """Get list of available instruction types.
+
+        Returns:
+            List of available instruction type names
+        """
+        # Currently only "default" type is supported
+        return ["default"]
+
+    def validate_instructions(self, instructions: str) -> Tuple[bool, List[str]]:
+        """Validate system instructions format and content.
+
+        Args:
+            instructions: Instructions content to validate
+
+        Returns:
+            Tuple of (is_valid, list_of_errors)
+        """
+        errors = []
+
+        if not instructions or not instructions.strip():
+            errors.append("Instructions cannot be empty")
+            return False, errors
+
+        # Check for basic structure
+        if len(instructions.strip()) < 10:
+            errors.append("Instructions appear to be too short")
+
+        # Check for potentially problematic content
+        if "{{" in instructions and "}}" in instructions:
+            # Check if template variables are properly processed
+            unprocessed_vars = re.findall(r"\{\{([^}]+)\}\}", instructions)
+            if unprocessed_vars:
+                errors.append(
+                    f"Unprocessed template variables found: {', '.join(unprocessed_vars)}"
+                )
+
+        return len(errors) == 0, errors

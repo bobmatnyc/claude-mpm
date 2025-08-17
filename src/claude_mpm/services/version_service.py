@@ -8,6 +8,8 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+from typing import Any, Dict, Optional
+
 from claude_mpm.config.paths import paths
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import VersionServiceInterface
@@ -215,3 +217,54 @@ class VersionService(BaseService, VersionServiceInterface):
             return f"{base_version}+build.{build_number}"
         else:
             return base_version
+
+    # Implementation of abstract methods from VersionServiceInterface
+
+    def get_version_info(self) -> Dict[str, Any]:
+        """Get detailed version information.
+
+        Returns:
+            Dictionary with version details and metadata
+        """
+        base_version = self.get_base_version()
+        build_number = self.get_build_number()
+
+        return {
+            "version": self.get_version(),
+            "base_version": base_version,
+            "build_number": build_number,
+            "pep440_version": self.get_pep440_version(),
+            "has_build_number": build_number is not None,
+            "service": "version_service",
+        }
+
+    def format_version_display(self, include_build: bool = False) -> str:
+        """Format version for display purposes.
+
+        Args:
+            include_build: Whether to include build information
+
+        Returns:
+            Formatted version string for display
+        """
+        if include_build:
+            return self.get_version()  # Already includes build number
+        else:
+            return self.get_base_version()
+
+    def check_for_updates(self) -> Dict[str, Any]:
+        """Check for available updates.
+
+        Returns:
+            Dictionary with update information
+        """
+        # For now, return a placeholder response
+        # In a full implementation, this would check against a remote repository
+        return {
+            "current_version": self.get_version(),
+            "latest_version": self.get_version(),
+            "update_available": False,
+            "update_url": None,
+            "message": "Update checking not implemented",
+            "checked_at": None,
+        }

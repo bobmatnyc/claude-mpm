@@ -34,6 +34,18 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
         """Cleanup service resources. No cleanup needed."""
         pass
 
+    def generate_agent_capabilities(self, agent_type: str = "general") -> str:
+        """Generate formatted agent capabilities for Claude.
+
+        Args:
+            agent_type: Type of agent to generate capabilities for
+
+        Returns:
+            Formatted capabilities string for Claude consumption
+        """
+        # Delegate to the existing implementation
+        return self.generate_deployed_agent_capabilities()
+
     def generate_deployed_agent_capabilities(self) -> str:
         """Generate agent capabilities from deployed agents following Claude Code's hierarchy.
 
