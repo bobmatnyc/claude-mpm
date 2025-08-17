@@ -13,7 +13,7 @@ Extracted from ClaudeRunner to follow Single Responsibility Principle.
 
 import time
 import uuid
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.base_service import BaseService
 from claude_mpm.services.core.interfaces import SessionManagementInterface
@@ -194,11 +194,11 @@ class SessionManagementService(BaseService, SessionManagementInterface):
         except Exception as e:
             self.logger.warning(f"Failed to log session event: {e}")
 
-    def get_session_status(self) -> dict:
-        """Get current session management status.
+    def get_service_status(self) -> dict:
+        """Get current session management service status.
 
         Returns:
-            dict: Session management status information
+            dict: Session management service status information
         """
         return {
             "service_available": True,
