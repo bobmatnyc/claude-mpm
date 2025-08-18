@@ -10,6 +10,7 @@
 .PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
 .PHONY: release-build-current release-publish-current
+.PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
 
 # Default shell
 SHELL := /bin/bash
@@ -602,3 +603,68 @@ release-help: ## Show release management help
 	@echo ""
 	@echo "$(BLUE)Current version:$(NC) $$(cat VERSION)"
 	@echo "$(BLUE)Version management:$(NC) Commitizen (conventional commits)"
+
+# ============================================================================
+# Automated Release System (Alternative to Commitizen)
+# ============================================================================
+# These targets use the new automated release script for streamlined releases
+
+.PHONY: auto-patch auto-minor auto-major auto-build auto-help sync-versions
+
+# Automated patch release
+auto-patch: ## Automated patch release (alternative to commitizen)
+	@echo "$(YELLOW)🔧 Creating automated patch release...$(NC)"
+	python scripts/automated_release.py --patch
+	@echo "$(GREEN)✓ Automated patch release completed$(NC)"
+
+# Automated minor release
+auto-minor: ## Automated minor release (alternative to commitizen)
+	@echo "$(YELLOW)✨ Creating automated minor release...$(NC)"
+	python scripts/automated_release.py --minor
+	@echo "$(GREEN)✓ Automated minor release completed$(NC)"
+
+# Automated major release
+auto-major: ## Automated major release (alternative to commitizen)
+	@echo "$(YELLOW)💥 Creating automated major release...$(NC)"
+	python scripts/automated_release.py --major
+	@echo "$(GREEN)✓ Automated major release completed$(NC)"
+
+# Automated build-only release
+auto-build: ## Automated build-only release (no version bump)
+	@echo "$(YELLOW)📦 Creating automated build release...$(NC)"
+	python scripts/automated_release.py --build
+	@echo "$(GREEN)✓ Automated build release completed$(NC)"
+
+# Sync version files
+sync-versions: ## Sync version between root and package VERSION files
+	@echo "$(YELLOW)🔄 Syncing version files...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	echo "$$VERSION" > src/claude_mpm/VERSION; \
+	echo "$(GREEN)✓ Synced src/claude_mpm/VERSION to $$VERSION$(NC)"
+
+# Help for automated release system
+auto-help: ## Show automated release system help
+	@echo "$(BLUE)Claude MPM Automated Release System$(NC)"
+	@echo "===================================="
+	@echo ""
+	@echo "$(GREEN)Automated Release Process:$(NC)"
+	@echo "  make auto-patch        # Bug fix release (X.Y.Z+1) - fully automated"
+	@echo "  make auto-minor        # Feature release (X.Y+1.0) - fully automated"
+	@echo "  make auto-major        # Breaking release (X+1.0.0) - fully automated"
+	@echo "  make auto-build        # Build-only release (no version bump)"
+	@echo ""
+	@echo "$(GREEN)Utilities:$(NC)"
+	@echo "  make sync-versions     # Sync version files"
+	@echo "  make auto-help         # Show this help"
+	@echo ""
+	@echo "$(YELLOW)Features:$(NC)"
+	@echo "  • Automatic version file synchronization"
+	@echo "  • Smart build number increment"
+	@echo "  • Automatic CHANGELOG updates"
+	@echo "  • Complete Git workflow (commit, tag, push)"
+	@echo "  • PyPI publishing"
+	@echo "  • Structure validation"
+	@echo ""
+	@echo "$(BLUE)Current version:$(NC) $$(cat VERSION)"
+	@echo "$(BLUE)Build number:$(NC) $$(cat BUILD_NUMBER)"
+	@echo "$(BLUE)Version management:$(NC) Automated script (scripts/automated_release.py)"
