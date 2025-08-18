@@ -118,7 +118,7 @@ asyncio_mode = "auto"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.0.16"
+version = "4.0.17"
 version_files = [
     "VERSION",
     "src/claude_mpm/VERSION",
