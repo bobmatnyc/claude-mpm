@@ -2,9 +2,22 @@
 
 import logging
 import os
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+# Import resource handling for packaged installations
+try:
+    # Python 3.9+
+    from importlib.resources import files
+except ImportError:
+    # Python 3.8 fallback
+    try:
+        from importlib_resources import files
+    except ImportError:
+        # Final fallback for development environments
+        files = None
 
 from ..utils.imports import safe_import
 
@@ -47,8 +60,53 @@ class FrameworkLoader:
         self.agent_registry = AgentRegistryAdapter(self.framework_path)
 
     def _detect_framework_path(self) -> Optional[Path]:
-        """Auto-detect claude-mpm framework."""
-        # First check if we're in claude-mpm project
+        """Auto-detect claude-mpm framework using unified path management."""
+        try:
+            # Use the unified path manager for consistent detection
+            from ..core.unified_paths import get_path_manager, DeploymentContext
+
+            path_manager = get_path_manager()
+            deployment_context = path_manager._deployment_context
+
+            # Check if we're in a packaged installation
+            if deployment_context in [DeploymentContext.PIP_INSTALL, DeploymentContext.PIPX_INSTALL, DeploymentContext.SYSTEM_PACKAGE]:
+                self.logger.info(f"Running from packaged installation (context: {deployment_context})")
+                # Return a marker path to indicate packaged installation
+                return Path("__PACKAGED__")
+            elif deployment_context == DeploymentContext.DEVELOPMENT:
+                # Development mode - use framework root
+                framework_root = path_manager.framework_root
+                if (framework_root / "src" / "claude_mpm" / "agents").exists():
+                    self.logger.info(f"Using claude-mpm development installation at: {framework_root}")
+                    return framework_root
+            elif deployment_context == DeploymentContext.EDITABLE_INSTALL:
+                # Editable install - similar to development
+                framework_root = path_manager.framework_root
+                if (framework_root / "src" / "claude_mpm" / "agents").exists():
+                    self.logger.info(f"Using claude-mpm editable installation at: {framework_root}")
+                    return framework_root
+
+        except Exception as e:
+            self.logger.warning(f"Failed to use unified path manager for framework detection: {e}")
+            # Fall back to original detection logic
+            pass
+
+        # Fallback: Original detection logic for compatibility
+        try:
+            # Check if the package is installed
+            import claude_mpm
+            package_file = Path(claude_mpm.__file__)
+
+            # For packaged installations, we don't need a framework path
+            # since we'll use importlib.resources to load files
+            if 'site-packages' in str(package_file) or 'dist-packages' in str(package_file):
+                self.logger.info(f"Running from packaged installation at: {package_file.parent}")
+                # Return a marker path to indicate packaged installation
+                return Path("__PACKAGED__")
+        except ImportError:
+            pass
+
+        # Then check if we're in claude-mpm project (development mode)
         current_file = Path(__file__)
         if "claude-mpm" in str(current_file):
             # We're running from claude-mpm, use its agents
@@ -110,7 +168,7 @@ class FrameworkLoader:
         if self.agents_dir and self.agents_dir.exists():
             agents_dir = self.agents_dir
             self.logger.info(f"Using custom agents directory: {agents_dir}")
-        elif self.framework_path:
+        elif self.framework_path and self.framework_path != Path("__PACKAGED__"):
             # Prioritize templates directory over main agents directory
             templates_dir = (
                 self.framework_path / "src" / "claude_mpm" / "agents" / "templates"
@@ -190,7 +248,7 @@ class FrameworkLoader:
 
         Precedence:
         1. Project-specific: .claude-mpm/agents/WORKFLOW.md
-        2. System default: src/claude_mpm/agents/WORKFLOW.md
+        2. System default: src/claude_mpm/agents/WORKFLOW.md or packaged
 
         Args:
             content: Dictionary to update with workflow instructions
@@ -208,7 +266,7 @@ class FrameworkLoader:
                 return
 
         # Fall back to system workflow
-        if self.framework_path:
+        if self.framework_path and self.framework_path != Path("__PACKAGED__"):
             system_workflow_path = (
                 self.framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
             )
@@ -227,7 +285,7 @@ class FrameworkLoader:
 
         Precedence:
         1. Project-specific: .claude-mpm/agents/MEMORY.md
-        2. System default: src/claude_mpm/agents/MEMORY.md
+        2. System default: src/claude_mpm/agents/MEMORY.md or packaged
 
         Args:
             content: Dictionary to update with memory instructions
@@ -245,7 +303,7 @@ class FrameworkLoader:
                 return
 
         # Fall back to system memory instructions
-        if self.framework_path:
+        if self.framework_path and self.framework_path != Path("__PACKAGED__"):
             system_memory_path = (
                 self.framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
             )
@@ -448,38 +506,44 @@ class FrameworkLoader:
 
         if not self.framework_path:
             return content
-
-        # Load framework's INSTRUCTIONS.md
-        framework_instructions_path = (
-            self.framework_path / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
-        )
-        if framework_instructions_path.exists():
-            loaded_content = self._try_load_file(
-                framework_instructions_path, "framework INSTRUCTIONS.md"
+            
+        # Check if this is a packaged installation
+        if self.framework_path == Path("__PACKAGED__"):
+            # Load files using importlib.resources for packaged installations
+            self._load_packaged_framework_content(content)
+        else:
+            # Load from filesystem for development mode
+            # Load framework's INSTRUCTIONS.md
+            framework_instructions_path = (
+                self.framework_path / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
             )
-            if loaded_content:
-                content["framework_instructions"] = loaded_content
-                content["loaded"] = True
-                # Add framework version to content
-                if self.framework_version:
-                    content["instructions_version"] = self.framework_version
-                    content[
-                        "version"
-                    ] = self.framework_version  # Update main version key
-                # Add modification timestamp to content
-                if self.framework_last_modified:
-                    content["instructions_last_modified"] = self.framework_last_modified
+            if framework_instructions_path.exists():
+                loaded_content = self._try_load_file(
+                    framework_instructions_path, "framework INSTRUCTIONS.md"
+                )
+                if loaded_content:
+                    content["framework_instructions"] = loaded_content
+                    content["loaded"] = True
+                    # Add framework version to content
+                    if self.framework_version:
+                        content["instructions_version"] = self.framework_version
+                        content[
+                            "version"
+                        ] = self.framework_version  # Update main version key
+                    # Add modification timestamp to content
+                    if self.framework_last_modified:
+                        content["instructions_last_modified"] = self.framework_last_modified
 
-        # Load BASE_PM.md for core framework requirements
-        base_pm_path = (
-            self.framework_path / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
-        )
-        if base_pm_path.exists():
-            base_pm_content = self._try_load_file(
-                base_pm_path, "BASE_PM framework requirements"
+            # Load BASE_PM.md for core framework requirements
+            base_pm_path = (
+                self.framework_path / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
             )
-            if base_pm_content:
-                content["base_pm_instructions"] = base_pm_content
+            if base_pm_path.exists():
+                base_pm_content = self._try_load_file(
+                    base_pm_path, "BASE_PM framework requirements"
+                )
+                if base_pm_content:
+                    content["base_pm_instructions"] = base_pm_content
 
         # Load WORKFLOW.md - check for project-specific first, then system
         self._load_workflow_instructions(content)
@@ -497,6 +561,80 @@ class FrameworkLoader:
         self._load_agents_directory(content, agents_dir, templates_dir, main_dir)
 
         return content
+    
+    def _load_packaged_framework_content(self, content: Dict[str, Any]) -> None:
+        """Load framework content from packaged installation using importlib.resources."""
+        if not files:
+            self.logger.warning("importlib.resources not available, cannot load packaged framework")
+            return
+            
+        try:
+            # Load INSTRUCTIONS.md
+            instructions_content = self._load_packaged_file("INSTRUCTIONS.md")
+            if instructions_content:
+                content["framework_instructions"] = instructions_content
+                content["loaded"] = True
+                # Extract and store version/timestamp metadata
+                self._extract_metadata_from_content(instructions_content, "INSTRUCTIONS.md")
+                if self.framework_version:
+                    content["instructions_version"] = self.framework_version
+                    content["version"] = self.framework_version
+                if self.framework_last_modified:
+                    content["instructions_last_modified"] = self.framework_last_modified
+            
+            # Load BASE_PM.md
+            base_pm_content = self._load_packaged_file("BASE_PM.md")
+            if base_pm_content:
+                content["base_pm_instructions"] = base_pm_content
+                
+            # Load WORKFLOW.md
+            workflow_content = self._load_packaged_file("WORKFLOW.md")
+            if workflow_content:
+                content["workflow_instructions"] = workflow_content
+                content["project_workflow"] = "system"
+                
+            # Load MEMORY.md
+            memory_content = self._load_packaged_file("MEMORY.md")
+            if memory_content:
+                content["memory_instructions"] = memory_content
+                content["project_memory"] = "system"
+                
+        except Exception as e:
+            self.logger.error(f"Failed to load packaged framework content: {e}")
+            
+    def _load_packaged_file(self, filename: str) -> Optional[str]:
+        """Load a file from the packaged installation."""
+        try:
+            # Use importlib.resources to load file from package
+            agents_package = files('claude_mpm.agents')
+            file_path = agents_package / filename
+            
+            if file_path.is_file():
+                content = file_path.read_text()
+                self.logger.info(f"Loaded {filename} from package")
+                return content
+            else:
+                self.logger.warning(f"File {filename} not found in package")
+                return None
+        except Exception as e:
+            self.logger.error(f"Failed to load {filename} from package: {e}")
+            return None
+            
+    def _extract_metadata_from_content(self, content: str, filename: str) -> None:
+        """Extract metadata from content string."""
+        import re
+        
+        # Extract version
+        version_match = re.search(r"<!-- FRAMEWORK_VERSION: (\d+) -->", content)
+        if version_match and "INSTRUCTIONS.md" in filename:
+            self.framework_version = version_match.group(1)
+            self.logger.info(f"Framework version: {self.framework_version}")
+            
+        # Extract timestamp
+        timestamp_match = re.search(r"<!-- LAST_MODIFIED: ([^>]+) -->", content)
+        if timestamp_match and "INSTRUCTIONS.md" in filename:
+            self.framework_last_modified = timestamp_match.group(1).strip()
+            self.logger.info(f"Last modified: {self.framework_last_modified}")
 
     def get_framework_instructions(self) -> str:
         """
