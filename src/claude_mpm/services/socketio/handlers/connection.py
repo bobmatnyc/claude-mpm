@@ -88,7 +88,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 )
 
         @self.sio.event
-        async def get_status(sid, data=None):
+        async def get_status(sid):
             """Handle status request.
 
             WHY: Clients need to query current server status on demand
@@ -151,27 +151,45 @@ class ConnectionEventHandler(BaseEventHandler):
             self.logger.info(f"🔵 Received claude_event from {sid}: {data}")
             
             # Check if this is a hook event and route to HookEventHandler
-            if isinstance(data, dict) and data.get("type") == "hook":
-                # Get the hook handler if available
-                hook_handler = None
-                # Check if event_registry exists and has handlers
-                if hasattr(self.server, 'event_registry') and self.server.event_registry and hasattr(self.server.event_registry, 'handlers'):
-                    for handler in self.server.event_registry.handlers:
-                        if handler.__class__.__name__ == "HookEventHandler":
-                            hook_handler = handler
-                            break
-                
-                if hook_handler and hasattr(hook_handler, "process_hook_event"):
-                    # Let the hook handler process this event
-                    await hook_handler.process_hook_event(data)
-                    # Don't double-store or double-broadcast, return early
-                    return
+            # Hook events have types like "hook.user_prompt", "hook.pre_tool", etc.
+            if isinstance(data, dict):
+                event_type = data.get("type", "")
+                if isinstance(event_type, str) and event_type.startswith("hook."):
+                    # Get the hook handler if available
+                    hook_handler = None
+                    # Check if event_registry exists and has handlers
+                    if hasattr(self.server, 'event_registry') and self.server.event_registry:
+                        if hasattr(self.server.event_registry, 'handlers'):
+                            for handler in self.server.event_registry.handlers:
+                                if handler.__class__.__name__ == "HookEventHandler":
+                                    hook_handler = handler
+                                    break
+                    
+                    if hook_handler and hasattr(hook_handler, "process_hook_event"):
+                        # Let the hook handler process this event
+                        await hook_handler.process_hook_event(data)
+                        # Don't double-store or double-broadcast, return early
+                        return
             
             # Normalize event format before storing in history
             normalized_event = self._normalize_event(data)
             
-            # Store in history
-            self.event_history.append(normalized_event)
+            # Store in history - flatten if it's a nested structure
+            # If the normalized event has data.event, promote it to top level
+            if isinstance(normalized_event, dict) and 'data' in normalized_event:
+                if isinstance(normalized_event['data'], dict) and 'event' in normalized_event['data']:
+                    # This is a nested event, flatten it
+                    flattened = {
+                        'type': normalized_event.get('type', 'unknown'),
+                        'event': normalized_event['data'].get('event'),
+                        'timestamp': normalized_event.get('timestamp') or normalized_event['data'].get('timestamp'),
+                        'data': normalized_event['data'].get('data', {})
+                    }
+                    self.event_history.append(flattened)
+                else:
+                    self.event_history.append(normalized_event)
+            else:
+                self.event_history.append(normalized_event)
             self.logger.info(
                 f"📚 Event from client stored in history (total: {len(self.event_history)})"
             )
@@ -186,7 +204,8 @@ class ConnectionEventHandler(BaseEventHandler):
         
         WHY: Different clients may send events in different formats.
         This ensures all events have a consistent 'type' field for
-        proper display in the dashboard.
+        proper display in the dashboard, while preserving the original
+        'event' field for hook events.
         """
         if not isinstance(event_data, dict):
             return event_data
@@ -210,6 +229,9 @@ class ConnectionEventHandler(BaseEventHandler):
             else:
                 # Default to system type for unknown events
                 normalized['type'] = 'system'
+            
+            # Note: We keep the 'event' field for backward compatibility
+            # Dashboard may use it for display purposes
         
         # Ensure there's always a type field
         if 'type' not in normalized:

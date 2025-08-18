@@ -327,10 +327,15 @@ def view_ticket(args):
         from claude_mpm.services.ticket_manager import TicketManager
 
     ticket_manager = TicketManager()
-    ticket = ticket_manager.get_ticket(args.id)
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+    ticket = ticket_manager.get_ticket(ticket_id)
 
     if not ticket:
-        print(f"❌ Ticket {args.id} not found")
+        print(f"❌ Ticket {ticket_id} not found")
         return 1
 
     print(f"Ticket: {ticket['id']}")
@@ -399,6 +404,12 @@ def update_ticket(args):
 
     ticket_manager = TicketManager()
 
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+
     # Build update dictionary
     updates = {}
 
@@ -422,16 +433,16 @@ def update_ticket(args):
         return 1
 
     # Try to update using TicketManager
-    success = ticket_manager.update_task(args.id, **updates)
+    success = ticket_manager.update_task(ticket_id, **updates)
 
     if success:
-        print(f"✅ Updated ticket: {args.id}")
+        print(f"✅ Updated ticket: {ticket_id}")
         return 0
     else:
         # Fallback to aitrackdown CLI for status transitions
         if args.status:
             logger.info("Attempting update via aitrackdown CLI")
-            cmd = ["aitrackdown", "transition", args.id, args.status]
+            cmd = ["aitrackdown", "transition", ticket_id, args.status]
 
             # Add comment with other updates
             comment_parts = []
@@ -448,14 +459,14 @@ def update_ticket(args):
 
             try:
                 subprocess.run(cmd, check=True, capture_output=True, text=True)
-                print(f"✅ Updated ticket: {args.id}")
+                print(f"✅ Updated ticket: {ticket_id}")
                 return 0
             except subprocess.CalledProcessError as e:
                 logger.error(f"Failed to update via CLI: {e}")
-                print(f"❌ Failed to update ticket: {args.id}")
+                print(f"❌ Failed to update ticket: {ticket_id}")
                 return 1
         else:
-            print(f"❌ Failed to update ticket: {args.id}")
+            print(f"❌ Failed to update ticket: {ticket_id}")
             return 1
 
 
@@ -480,27 +491,33 @@ def close_ticket(args):
 
     ticket_manager = TicketManager()
 
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+
     # Try to close using TicketManager
-    resolution = getattr(args, "resolution", None)
-    success = ticket_manager.close_task(args.id, resolution=resolution)
+    resolution = getattr(args, "resolution", getattr(args, "comment", None))
+    success = ticket_manager.close_task(ticket_id, resolution=resolution)
 
     if success:
-        print(f"✅ Closed ticket: {args.id}")
+        print(f"✅ Closed ticket: {ticket_id}")
         return 0
     else:
         # Fallback to aitrackdown CLI
         logger.info("Attempting close via aitrackdown CLI")
-        cmd = ["aitrackdown", "close", args.id]
+        cmd = ["aitrackdown", "close", ticket_id]
 
         if resolution:
             cmd.extend(["--comment", resolution])
 
         try:
             subprocess.run(cmd, check=True, capture_output=True, text=True)
-            print(f"✅ Closed ticket: {args.id}")
+            print(f"✅ Closed ticket: {ticket_id}")
             return 0
         except subprocess.CalledProcessError:
-            print(f"❌ Failed to close ticket: {args.id}")
+            print(f"❌ Failed to close ticket: {ticket_id}")
             return 1
 
 
@@ -522,6 +539,12 @@ def delete_ticket(args):
     """
     logger = get_logger("cli.tickets")
 
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+
     # Confirm deletion unless forced
     if not args.force:
         sys.stdout.flush()  # Ensure prompt is displayed before input
@@ -530,7 +553,7 @@ def delete_ticket(args):
         if not sys.stdin.isatty():
             # In non-TTY environment (like pipes), use readline
             print(
-                f"Are you sure you want to delete ticket {args.id}? (y/N): ",
+                f"Are you sure you want to delete ticket {ticket_id}? (y/N): ",
                 end="",
                 flush=True,
             )
@@ -544,7 +567,7 @@ def delete_ticket(args):
             # In TTY environment, use normal input()
             try:
                 response = (
-                    input(f"Are you sure you want to delete ticket {args.id}? (y/N): ")
+                    input(f"Are you sure you want to delete ticket {ticket_id}? (y/N): ")
                     .strip()
                     .lower()
                 )
@@ -556,16 +579,16 @@ def delete_ticket(args):
             return 0
 
     # Use aitrackdown CLI for deletion
-    cmd = ["aitrackdown", "delete", args.id]
+    cmd = ["aitrackdown", "delete", ticket_id]
     if args.force:
         cmd.append("--force")
 
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✅ Deleted ticket: {args.id}")
+        print(f"✅ Deleted ticket: {ticket_id}")
         return 0
     except subprocess.CalledProcessError:
-        print(f"❌ Failed to delete ticket: {args.id}")
+        print(f"❌ Failed to delete ticket: {ticket_id}")
         return 1
 
 
@@ -675,18 +698,24 @@ def add_comment(args):
     """
     logger = get_logger("cli.tickets")
 
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+
     # Join comment parts into single string
-    comment = " ".join(args.comment)
+    comment = " ".join(args.comment) if isinstance(args.comment, list) else args.comment
 
     # Use aitrackdown CLI for comments
-    cmd = ["aitrackdown", "comment", args.id, comment]
+    cmd = ["aitrackdown", "comment", ticket_id, comment]
 
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✅ Added comment to ticket: {args.id}")
+        print(f"✅ Added comment to ticket: {ticket_id}")
         return 0
     except subprocess.CalledProcessError:
-        print(f"❌ Failed to add comment to ticket: {args.id}")
+        print(f"❌ Failed to add comment to ticket: {ticket_id}")
         return 1
 
 
@@ -708,6 +737,12 @@ def update_workflow(args):
     """
     logger = get_logger("cli.tickets")
 
+    # Handle both 'id' and 'ticket_id' attributes for compatibility
+    ticket_id = getattr(args, 'ticket_id', getattr(args, 'id', None))
+    if not ticket_id:
+        print("❌ No ticket ID provided")
+        return 1
+
     # Map workflow states to status if needed
     state_mapping = {
         "todo": "open",
@@ -719,17 +754,17 @@ def update_workflow(args):
     }
 
     # Use aitrackdown transition command
-    cmd = ["aitrackdown", "transition", args.id, args.state]
+    cmd = ["aitrackdown", "transition", ticket_id, args.state]
 
     if getattr(args, "comment", None):
         cmd.extend(["--comment", args.comment])
 
     try:
         subprocess.run(cmd, check=True, capture_output=True, text=True)
-        print(f"✅ Updated workflow state for {args.id} to: {args.state}")
+        print(f"✅ Updated workflow state for {ticket_id} to: {args.state}")
         return 0
     except subprocess.CalledProcessError:
-        print(f"❌ Failed to update workflow state for ticket: {args.id}")
+        print(f"❌ Failed to update workflow state for ticket: {ticket_id}")
         return 1
 
 

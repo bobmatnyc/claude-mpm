@@ -42,7 +42,7 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
         MonitorCommands.START.value, help="Start Socket.IO monitoring server"
     )
     start_monitor_parser.add_argument(
-        "--port", type=int, default=8765, help="Port to start server on (default: 8765)"
+        "--port", type=int, help="Port to start server on (auto-select if not specified)"
     )
     start_monitor_parser.add_argument(
         "--host", default="localhost", help="Host to bind to (default: localhost)"
@@ -59,13 +59,21 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
     start_monitor_parser.add_argument(
         "--background", action="store_true", help="Run server in background"
     )
+    start_monitor_parser.add_argument(
+        "--force", action="store_true", 
+        help="Force kill daemon processes to reclaim ports (use with caution)"
+    )
+    start_monitor_parser.add_argument(
+        "--no-reclaim", dest="reclaim", action="store_false", default=True,
+        help="Don't automatically reclaim ports from debug scripts"
+    )
 
     # Stop monitor
     stop_monitor_parser = monitor_subparsers.add_parser(
         MonitorCommands.STOP.value, help="Stop Socket.IO monitoring server"
     )
     stop_monitor_parser.add_argument(
-        "--port", type=int, default=8765, help="Port of server to stop (default: 8765)"
+        "--port", type=int, help="Port of server to stop (stops all if not specified)"
     )
     stop_monitor_parser.add_argument(
         "--force", action="store_true", help="Force stop even if clients are connected"
@@ -89,6 +97,10 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
     status_monitor_parser.add_argument(
         "--verbose", action="store_true", help="Show detailed status information"
     )
+    status_monitor_parser.add_argument(
+        "--show-ports", action="store_true", 
+        help="Show status of all ports in the range (8765-8785)"
+    )
 
     # Port monitor (start/restart on specific port)
     port_monitor_parser = monitor_subparsers.add_parser(
@@ -99,6 +111,14 @@ def add_monitor_subparser(subparsers) -> argparse.ArgumentParser:
     )
     port_monitor_parser.add_argument(
         "--host", default="localhost", help="Host to bind to (default: localhost)"
+    )
+    port_monitor_parser.add_argument(
+        "--force", action="store_true", 
+        help="Force kill daemon processes to reclaim port (use with caution)"
+    )
+    port_monitor_parser.add_argument(
+        "--no-reclaim", dest="reclaim", action="store_false", default=True,
+        help="Don't automatically reclaim port from debug scripts"
     )
 
     return monitor_parser

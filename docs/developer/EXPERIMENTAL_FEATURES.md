@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the architecture for experimental features in Claude MPM, using the Memory Guardian as the primary example. The design ensures clean separation between stable and experimental code.
+This document describes the architecture for experimental features in Claude MPM. The design ensures clean separation between stable and experimental code, allowing features to be tested and refined before becoming part of the stable codebase.
 
 ## Architecture Principles
 
@@ -12,14 +12,14 @@ This document describes the architecture for experimental features in Claude MPM
 ┌─────────────────────────────────────────────────────────┐
 │                    Stable Code                          │
 ├─────────────────────────────────────────────────────────┤
-│  ClaudeRunner (base class)                              │
+│  Core Services                                          │
 │  ├── No dependencies on experimental code               │
-│  ├── No imports of memory guardian modules              │
+│  ├── No imports of experimental modules                 │
 │  └── Works independently                                │
 │                                                          │
-│  run.py command                                         │
-│  ├── Uses ClaudeRunner directly                         │
-│  ├── No awareness of memory features                    │
+│  Standard Commands                                      │
+│  ├── Use stable services directly                       │
+│  ├── No awareness of experimental features              │
 │  └── Completely stable                                  │
 └─────────────────────────────────────────────────────────┘
                             ↑
@@ -28,14 +28,14 @@ This document describes the architecture for experimental features in Claude MPM
 ┌─────────────────────────────────────────────────────────┐
 │                  Experimental Code                      │
 ├─────────────────────────────────────────────────────────┤
-│  MemoryAwareClaudeRunner                                │
-│  ├── Extends ClaudeRunner                               │
-│  ├── Adds memory monitoring                             │
-│  └── Does not modify base class                         │
+│  Experimental Services                                  │
+│  ├── Extend or enhance stable services                  │
+│  ├── Add new capabilities                               │
+│  └── Do not modify base classes                         │
 │                                                          │
-│  run_guarded.py command                                 │
-│  ├── Uses MemoryAwareClaudeRunner                       │
-│  ├── Shows experimental warnings                        │
+│  Experimental Commands                                  │
+│  ├── Use experimental services                          │
+│  ├── Show experimental warnings                         │
 │  └── Completely isolated                                │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -47,11 +47,12 @@ Experimental code is only loaded when explicitly requested:
 ```python
 # In cli/__init__.py
 def _execute_command(command: str, args) -> int:
-    # Handle experimental run-guarded command separately with lazy import
-    if command == 'run-guarded':
+    # Handle experimental commands separately with lazy import
+    if command in EXPERIMENTAL_COMMANDS:
         # Lazy import to avoid loading experimental code unless needed
-        from .commands.run_guarded import execute_run_guarded
-        return execute_run_guarded(args)
+        if command == 'mcp':
+            from .commands.mcp import execute_mcp
+            return execute_mcp(args)
     
     # Stable commands use direct imports
     command_map = {
@@ -68,7 +69,7 @@ All experimental features are controlled through a centralized configuration:
 # config/experimental_features.py
 class ExperimentalFeatures:
     DEFAULTS = {
-        'enable_memory_guardian': False,  # Disabled by default
+        'enable_mcp_gateway': False,  # Disabled by default
         'show_experimental_warnings': True,
         'require_experimental_acceptance': True,
     }
@@ -80,16 +81,16 @@ Experimental features always show clear warnings unless explicitly suppressed:
 
 ```bash
 # First time use shows warning
-$ claude-mpm run-guarded
+$ claude-mpm mcp
 
-⚠️  EXPERIMENTAL FEATURE: Memory Guardian is in beta.
+⚠️  EXPERIMENTAL FEATURE: MCP Gateway is in beta.
    This feature may change or have issues. Use with caution in production.
    Report issues at: https://github.com/bluescreen10/claude-mpm/issues
 
 Continue? [y/N]: 
 
 # Suppress warning with flag
-$ claude-mpm run-guarded --accept-experimental
+$ claude-mpm mcp --accept-experimental
 ```
 
 ## Implementation Guidelines
@@ -163,7 +164,7 @@ def test_stable_code_has_no_experimental_imports():
 
 Control experimental features via environment:
 ```bash
-export CLAUDE_MPM_EXPERIMENTAL_ENABLE_MEMORY_GUARDIAN=true
+export CLAUDE_MPM_EXPERIMENTAL_ENABLE_MCP_GATEWAY=true
 export CLAUDE_MPM_EXPERIMENTAL_SHOW_WARNINGS=false
 ```
 
@@ -172,7 +173,7 @@ export CLAUDE_MPM_EXPERIMENTAL_SHOW_WARNINGS=false
 ```json
 {
   "experimental_features": {
-    "enable_memory_guardian": true,
+    "enable_mcp_gateway": true,
     "show_experimental_warnings": false
   }
 }
@@ -192,17 +193,20 @@ When an experimental feature becomes stable:
 
 ## Current Experimental Features
 
-### Memory Guardian (run-guarded)
+### MCP Gateway (Model Context Protocol)
 - **Status**: Beta
-- **Command**: `claude-mpm run-guarded`
-- **Flag**: `enable_memory_guardian`
-- **Since**: v3.9.x
-
-### MCP Gateway
-- **Status**: Early Access
 - **Command**: `claude-mpm mcp`
 - **Flag**: `enable_mcp_gateway`
-- **Since**: v3.10.x (planned)
+- **Since**: v4.0.0
+- **Description**: Enables integration with external tools and services through the Model Context Protocol
+- **Documentation**: [MCP Gateway Guide](../13-mcp-gateway/README.md)
+
+## Deprecated Features
+
+### Memory Guardian (Removed in v4.1.0)
+- **Status**: Removed
+- **Replacement**: Use `cleanup-memory` command for memory management
+- **Migration**: The Memory Manager agent now handles memory-related tasks
 
 ## Benefits of This Architecture
 

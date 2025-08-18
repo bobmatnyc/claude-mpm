@@ -21,7 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Changed
+- Updated README.md to highlight MCP Gateway, TSK-0053 refactoring benefits, and complete list of 15 agents
+- Updated experimental features documentation to focus on MCP Gateway as primary example
+- Enhanced AGENTS.md with comprehensive list of all 15 specialized agents
+
 ### Removed
+- Memory Guardian experimental feature (replaced by Memory Manager agent and cleanup-memory command)
+- References to Memory Guardian documentation from README and experimental features guide
+- Archived Memory Guardian test documentation to tests/archive/
 
 ## [4.0.3] - 2025-08-17
 
@@ -934,4 +942,31 @@ For release notes prior to v3.8.0, see [docs/releases/CHANGELOG-3.7.md](docs/rel
 [3.8.3]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.2...v3.8.3
 [3.8.2]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.0...v3.8.2
 [3.8.0]: https://github.com/bobmatnyc/claude-mpm/releases/tag/v3.8.0
+
+
+## [4.0.4] - 2025-01-18
+
+### Fixed
+- Dashboard event parsing showing events as "unknown" due to field overwriting
+- JavaScript errors in file-tool-tracker.js (Cannot read properties of undefined)
+- Event-viewer.js replace() function errors with non-string values
+- Hook event routing to properly handle hook.* prefixed events
+- WebSocket connection issues in dashboard
+
+### Added
+- Regression tests for hook routing logic to prevent future breaks
+- Smart process detection for port management (auto-reclaim from debug scripts)
+- Protected critical fields in event transformation
+- Type checking for event processing in dashboard
+
+### Improved
+- Error handling in dashboard JavaScript components
+- Event transformation logic to preserve event structure
+- Port management with intelligent process detection
+- Dashboard stability and reliability
+
+### Documentation
+- Added comprehensive hook routing documentation
+- Created regression test documentation
+- Updated testing procedures
 
