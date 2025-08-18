@@ -256,6 +256,13 @@ class MCPGatewayOrchestrator:
         except Exception as e:
             self.logger.warning(f"Could not load basic tools: {e}")
 
+        # Optional: Health check tool
+        try:
+            from .tools.health_check_tool import HealthCheckTool
+            tools.append(HealthCheckTool())
+        except Exception as e:
+            self.logger.warning(f"Could not load health check tool: {e}")
+
         # Optional: Document summarizer
         if DocumentSummarizerTool is not None:
             try:
