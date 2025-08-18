@@ -435,11 +435,12 @@ from claude_mpm.utils.subprocess_utils import cleanup_orphaned_processes
 cleanup_count = cleanup_orphaned_processes('hook_handler.py', max_age_hours=5/60)
 ```
 
-Or use the provided cleanup script:
+~~Or use the provided cleanup script~~ (Script removed during cleanup):
 
 ```bash
-# Run the cleanup script
-python scripts/cleanup_orphaned_hooks.py
+# Manual cleanup (replace removed script)
+# Find and kill orphaned hook processes
+ps aux | grep hook_handler.py | grep -v grep | awk '{print $2}' | xargs -r kill
 ```
 
 ## Next Steps

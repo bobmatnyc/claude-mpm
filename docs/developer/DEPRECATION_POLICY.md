@@ -222,9 +222,9 @@ echo "Removal complete. Review changes before committing."
 ### Scheduled for Removal
 
 #### Immediate (Next Release)
-- `cleanup_obsolete_files.py` - One-time cleanup script
-- `remove_obsolete_files.sh` - Empty cleanup script
-- `remove_duplicate_files.py` - One-time cleanup script
+- ✅ `cleanup_obsolete_files.py` - One-time cleanup script (REMOVED)
+- ✅ `remove_obsolete_files.sh` - Empty cleanup script (REMOVED)
+- ✅ `remove_duplicate_files.py` - One-time cleanup script (REMOVED)
 
 #### Phase 1 (3 months)
 - `src/claude_mpm/experimental/cli_enhancements.py` - Experimental CLI
@@ -268,7 +268,7 @@ echo "Removal complete. Review changes before committing."
 ## Tools and Scripts
 
 ### Cleanup Tools
-- `cleanup_obsolete_files.py` - Identify obsolete files
+- `apply_deprecation_policy.py` - Apply deprecation policies (replaces cleanup_obsolete_files.py)
 - `tools/dev/audit_documentation.py` - Documentation audit
 - `scripts/setup_pre_commit.sh` - Code quality automation
 

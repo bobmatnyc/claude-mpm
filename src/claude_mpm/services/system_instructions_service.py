@@ -31,6 +31,8 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         """
         super().__init__(name="system_instructions_service")
         self.agent_capabilities_service = agent_capabilities_service
+        self._framework_loader = None  # Cache the framework loader instance
+        self._loaded_instructions = None  # Cache loaded instructions
 
     async def _initialize(self) -> None:
         """Initialize the service. No special initialization needed."""
@@ -58,23 +60,36 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
             Processed system instructions string
         """
         try:
-            # Use FrameworkLoader for comprehensive instruction loading
-            from claude_mpm.core.framework_loader import FrameworkLoader
+            # Return cached instructions if already loaded
+            if self._loaded_instructions is not None:
+                self.logger.debug("Returning cached system instructions")
+                return self._loaded_instructions
             
-            loader = FrameworkLoader()
-            instructions = loader.get_framework_instructions()
+            # Create FrameworkLoader only once
+            if self._framework_loader is None:
+                from claude_mpm.core.framework_loader import FrameworkLoader
+                self._framework_loader = FrameworkLoader()
+                self.logger.debug("Created new FrameworkLoader instance")
+            
+            # Load instructions and cache them
+            instructions = self._framework_loader.get_framework_instructions()
             
             if instructions:
-                self.logger.info("Loaded framework instructions via FrameworkLoader")
+                self._loaded_instructions = instructions
+                self.logger.info("Loaded and cached framework instructions via FrameworkLoader")
                 return instructions
             
             # Fallback if FrameworkLoader returns empty
             self.logger.warning("FrameworkLoader returned empty instructions, using fallback")
-            return "# System Instructions\n\nNo specific system instructions found. Using default behavior."
+            fallback = "# System Instructions\n\nNo specific system instructions found. Using default behavior."
+            self._loaded_instructions = fallback
+            return fallback
 
         except Exception as e:
             self.logger.error(f"Failed to load system instructions: {e}")
-            return "# System Instructions\n\nError loading system instructions. Using default behavior."
+            fallback = "# System Instructions\n\nError loading system instructions. Using default behavior."
+            self._loaded_instructions = fallback
+            return fallback
 
     def process_base_pm_content(self, base_pm_content: str) -> str:
         """Process BASE_PM.md content with dynamic injections.

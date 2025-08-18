@@ -215,20 +215,18 @@ jq '.["2025-01-25"]' .claude-mpm/stats/agent_stats.json
 ## Log Maintenance
 
 ### Cleanup Utility
-A cleanup script is provided to manage log files:
+~~A cleanup script is provided to manage log files~~ (Script removed during cleanup):
 
 ```bash
+# Manual log cleanup (replace removed script)
 # Show log statistics
-./scripts/cleanup_logs.py --stats
+find .claude-mpm/logs -name "*.jsonl" -exec wc -l {} + | tail -1
 
-# Clean empty session directories (dry run)
-./scripts/cleanup_logs.py --clean-empty
-
-# Actually clean empty directories
-./scripts/cleanup_logs.py --clean-empty --execute
+# Clean empty session directories
+find .claude-mpm/logs/sessions -type d -empty -delete
 
 # Archive logs older than 7 days
-./scripts/cleanup_logs.py --archive 7 --execute
+find .claude-mpm/logs -name "*.jsonl" -mtime +7 -exec gzip {} \;
 
 # Combined operations
 ./scripts/cleanup_logs.py --clean-empty --archive 30 --stats --execute
