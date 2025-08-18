@@ -20,14 +20,33 @@ class SocketClient {
         // Connection state
         this.isConnected = false;
         this.isConnecting = false;
+        this.lastConnectTime = null;
+        this.disconnectTime = null;
 
         // Event processing
         this.events = [];
         this.sessions = new Map();
         this.currentSessionId = null;
 
+        // Event queue for disconnection periods
+        this.eventQueue = [];
+        this.maxQueueSize = 100;
+        
+        // Retry configuration
+        this.retryAttempts = 0;
+        this.maxRetryAttempts = 3;
+        this.retryDelays = [1000, 2000, 4000]; // Exponential backoff
+        this.pendingEmissions = new Map(); // Track pending emissions for retry
+        
+        // Health monitoring
+        this.lastPingTime = null;
+        this.lastPongTime = null;
+        this.pingTimeout = 40000; // 40 seconds (server sends every 30s)
+        this.healthCheckInterval = null;
+        
         // Start periodic status check as fallback mechanism
         this.startStatusCheckFallback();
+        this.startHealthMonitoring();
     }
 
     /**
@@ -88,8 +107,21 @@ class SocketClient {
     setupSocketHandlers() {
         this.socket.on('connect', () => {
             console.log('Connected to Socket.IO server');
+            const previouslyConnected = this.isConnected;
             this.isConnected = true;
             this.isConnecting = false;
+            this.lastConnectTime = Date.now();
+            this.retryAttempts = 0; // Reset retry counter on successful connect
+            
+            // Calculate downtime if this is a reconnection
+            if (this.disconnectTime && previouslyConnected === false) {
+                const downtime = (Date.now() - this.disconnectTime) / 1000;
+                console.log(`Reconnected after ${downtime.toFixed(1)}s downtime`);
+                
+                // Flush queued events after reconnection
+                this.flushEventQueue();
+            }
+            
             this.notifyConnectionStatus('Connected', 'connected');
 
             // Emit connect callback
@@ -106,12 +138,25 @@ class SocketClient {
             console.log('Disconnected from server:', reason);
             this.isConnected = false;
             this.isConnecting = false;
+            this.disconnectTime = Date.now();
+            
+            // Calculate uptime
+            if (this.lastConnectTime) {
+                const uptime = (Date.now() - this.lastConnectTime) / 1000;
+                console.log(`Connection uptime was ${uptime.toFixed(1)}s`);
+            }
+            
             this.notifyConnectionStatus(`Disconnected: ${reason}`, 'disconnected');
 
             // Emit disconnect callback
             this.connectionCallbacks.disconnect.forEach(callback =>
                 callback(reason)
             );
+            
+            // Start auto-reconnect if it was an unexpected disconnect
+            if (reason === 'transport close' || reason === 'ping timeout') {
+                this.scheduleReconnect();
+            }
         });
 
         this.socket.on('connect_error', (error) => {
@@ -124,13 +169,20 @@ class SocketClient {
             this.addEvent({
                 type: 'connection.error',
                 timestamp: new Date().toISOString(),
-                data: { error: errorMsg, url: this.socket.io.uri }
+                data: { 
+                    error: errorMsg, 
+                    url: this.socket.io.uri,
+                    retry_attempt: this.retryAttempts
+                }
             });
 
             // Emit error callback
             this.connectionCallbacks.error.forEach(callback =>
                 callback(errorMsg)
             );
+            
+            // Schedule reconnect with backoff
+            this.scheduleReconnect();
         });
 
         // Primary event handler - this is what the server actually emits
@@ -143,6 +195,18 @@ class SocketClient {
             this.addEvent(transformedEvent);
         });
 
+        // Add ping/pong handlers for health monitoring
+        this.socket.on('ping', (data) => {
+            // console.log('Received ping from server');
+            this.lastPingTime = Date.now();
+            
+            // Send pong response immediately
+            this.socket.emit('pong', { 
+                timestamp: data.timestamp,
+                client_time: Date.now()
+            });
+        });
+        
         // Session and event handlers (legacy/fallback)
         this.socket.on('session.started', (data) => {
             this.addEvent({ type: 'session', subtype: 'started', timestamp: new Date().toISOString(), data });
@@ -236,12 +300,143 @@ class SocketClient {
     }
 
     /**
+     * Emit an event with retry support
+     * @param {string} event - Event name
+     * @param {any} data - Event data
+     * @param {Object} options - Options for retry behavior
+     */
+    emitWithRetry(event, data = null, options = {}) {
+        const { 
+            maxRetries = 3,
+            retryDelays = [1000, 2000, 4000],
+            onSuccess = null,
+            onFailure = null
+        } = options;
+        
+        const emissionId = `${event}_${Date.now()}_${Math.random()}`;
+        
+        const attemptEmission = (attemptNum = 0) => {
+            if (!this.socket || !this.socket.connected) {
+                // Queue for later if disconnected
+                if (attemptNum === 0) {
+                    this.queueEvent(event, data);
+                    console.log(`Queued ${event} for later emission (disconnected)`);
+                    if (onFailure) onFailure('disconnected');
+                }
+                return;
+            }
+            
+            try {
+                // Attempt emission
+                this.socket.emit(event, data);
+                console.log(`Emitted ${event} successfully`);
+                
+                // Remove from pending
+                this.pendingEmissions.delete(emissionId);
+                
+                if (onSuccess) onSuccess();
+                
+            } catch (error) {
+                console.error(`Failed to emit ${event} (attempt ${attemptNum + 1}):`, error);
+                
+                if (attemptNum < maxRetries - 1) {
+                    const delay = retryDelays[attemptNum] || retryDelays[retryDelays.length - 1];
+                    console.log(`Retrying ${event} in ${delay}ms...`);
+                    
+                    // Store pending emission
+                    this.pendingEmissions.set(emissionId, {
+                        event,
+                        data,
+                        attemptNum: attemptNum + 1,
+                        scheduledTime: Date.now() + delay
+                    });
+                    
+                    setTimeout(() => attemptEmission(attemptNum + 1), delay);
+                } else {
+                    console.error(`Failed to emit ${event} after ${maxRetries} attempts`);
+                    this.pendingEmissions.delete(emissionId);
+                    if (onFailure) onFailure('max_retries_exceeded');
+                }
+            }
+        };
+        
+        attemptEmission();
+    }
+    
+    /**
+     * Queue an event for later emission
+     * @param {string} event - Event name
+     * @param {any} data - Event data
+     */
+    queueEvent(event, data) {
+        if (this.eventQueue.length >= this.maxQueueSize) {
+            // Remove oldest event if queue is full
+            const removed = this.eventQueue.shift();
+            console.warn(`Event queue full, dropped oldest event: ${removed.event}`);
+        }
+        
+        this.eventQueue.push({
+            event,
+            data,
+            timestamp: Date.now()
+        });
+    }
+    
+    /**
+     * Flush queued events after reconnection
+     */
+    flushEventQueue() {
+        if (this.eventQueue.length === 0) return;
+        
+        console.log(`Flushing ${this.eventQueue.length} queued events...`);
+        const events = [...this.eventQueue];
+        this.eventQueue = [];
+        
+        // Emit each queued event with a small delay between them
+        events.forEach((item, index) => {
+            setTimeout(() => {
+                if (this.socket && this.socket.connected) {
+                    this.socket.emit(item.event, item.data);
+                    console.log(`Flushed queued event: ${item.event}`);
+                }
+            }, index * 100); // 100ms between each event
+        });
+    }
+    
+    /**
+     * Schedule a reconnection attempt with exponential backoff
+     */
+    scheduleReconnect() {
+        if (this.retryAttempts >= this.maxRetryAttempts) {
+            console.log('Max reconnection attempts reached, stopping auto-reconnect');
+            this.notifyConnectionStatus('Reconnection failed', 'disconnected');
+            return;
+        }
+        
+        const delay = this.retryDelays[this.retryAttempts] || this.retryDelays[this.retryDelays.length - 1];
+        this.retryAttempts++;
+        
+        console.log(`Scheduling reconnect attempt ${this.retryAttempts}/${this.maxRetryAttempts} in ${delay}ms...`);
+        this.notifyConnectionStatus(`Reconnecting in ${delay/1000}s...`, 'connecting');
+        
+        setTimeout(() => {
+            if (!this.isConnected && this.port) {
+                console.log(`Attempting reconnection ${this.retryAttempts}/${this.maxRetryAttempts}...`);
+                this.connect(this.port);
+            }
+        }, delay);
+    }
+    
+    /**
      * Request server status
      */
     requestStatus() {
         if (this.socket && this.socket.connected) {
             console.log('Requesting server status...');
-            this.socket.emit('request.status');
+            this.emitWithRetry('request.status', null, {
+                maxRetries: 2,
+                retryDelays: [500, 1000]
+            });
         }
     }
 
@@ -258,7 +453,13 @@ class SocketClient {
                 event_types: options.event_types || []
             };
             console.log('Requesting event history...', params);
-            this.socket.emit('get_history', params);
+            this.emitWithRetry('get_history', params, {
+                maxRetries: 3,
+                retryDelays: [1000, 2000, 3000],
+                onFailure: (reason) => {
+                    console.error(`Failed to request history: ${reason}`);
+                }
+            });
         } else {
             console.warn('Cannot request history: not connected to server');
         }
@@ -555,6 +756,43 @@ class SocketClient {
     }
 
     /**
+     * Start health monitoring
+     * Detects stale connections and triggers reconnection
+     */
+    startHealthMonitoring() {
+        this.healthCheckInterval = setInterval(() => {
+            if (this.isConnected && this.lastPingTime) {
+                const timeSinceLastPing = Date.now() - this.lastPingTime;
+                
+                if (timeSinceLastPing > this.pingTimeout) {
+                    console.warn(`No ping from server for ${timeSinceLastPing/1000}s, connection may be stale`);
+                    
+                    // Force reconnection
+                    if (this.socket) {
+                        console.log('Forcing reconnection due to stale connection...');
+                        this.socket.disconnect();
+                        setTimeout(() => {
+                            if (this.port) {
+                                this.connect(this.port);
+                            }
+                        }, 1000);
+                    }
+                }
+            }
+        }, 10000); // Check every 10 seconds
+    }
+    
+    /**
+     * Stop health monitoring
+     */
+    stopHealthMonitoring() {
+        if (this.healthCheckInterval) {
+            clearInterval(this.healthCheckInterval);
+            this.healthCheckInterval = null;
+        }
+    }
+    
+    /**
      * Start periodic status check as fallback mechanism
      * This ensures the UI stays in sync with actual socket state
      */
@@ -612,6 +850,35 @@ class SocketClient {
                 this.updateConnectionStatusDOM(actualStatus, actualType);
             }
         }
+    }
+}
+
+    /**
+     * Clean up resources
+     */
+    destroy() {
+        this.stopHealthMonitoring();
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+        this.eventQueue = [];
+        this.pendingEmissions.clear();
+    }
+    
+    /**
+     * Get connection metrics
+     * @returns {Object} Connection metrics
+     */
+    getConnectionMetrics() {
+        return {
+            isConnected: this.isConnected,
+            uptime: this.lastConnectTime ? (Date.now() - this.lastConnectTime) / 1000 : 0,
+            lastPing: this.lastPingTime ? (Date.now() - this.lastPingTime) / 1000 : null,
+            queuedEvents: this.eventQueue.length,
+            pendingEmissions: this.pendingEmissions.size,
+            retryAttempts: this.retryAttempts
+        };
     }
 }
 
