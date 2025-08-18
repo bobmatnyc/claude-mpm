@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.17] - 2025-08-18
+
+### Fixed
+
+- Fix dynamic agent capabilities loading to discover all deployed agents
+- Fix system deployment strategy to recognize framework templates from packaged installations
+- Fix agent capabilities service to look for system agents in ~/.claude/agents/ directory
+- Resolve issue where only 1 agent was found instead of 15+ total agents
+
 ## [4.0.16] - 2025-08-18
 
 ### Fixed
