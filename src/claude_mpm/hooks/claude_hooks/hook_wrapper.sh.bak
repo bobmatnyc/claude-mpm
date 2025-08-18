@@ -45,12 +45,12 @@ export CLAUDE_MPM_HOOK_DEBUG="true"
 
 # Debug log (optional)
 echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] PYTHONPATH: $PYTHONPATH" >> /tmp/hook-wrapper.log
-echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Running: $PYTHON_CMD -m claude_mpm.hooks.claude_hooks.hook_handler" >> /tmp/hook-wrapper.log
+echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Running: $PYTHON_CMD $SCRIPT_DIR/hook_handler.py" >> /tmp/hook-wrapper.log
 echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] SOCKETIO_PORT: $CLAUDE_MPM_SOCKETIO_PORT" >> /tmp/hook-wrapper.log
 
-# Run the Python hook handler as a module with error handling
+# Run the Python hook handler with error handling
 # Use exec to replace the shell process, but wrap in error handling
-if ! "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/hook-error.log; then
+if ! "$PYTHON_CMD" "$SCRIPT_DIR/hook_handler.py" "$@" 2>/tmp/hook-error.log; then
     # If the Python handler fails, always return continue to not block Claude
     echo '{"action": "continue"}'
     # Log the error for debugging

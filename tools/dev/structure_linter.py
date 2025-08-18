@@ -76,6 +76,12 @@ class StructureRule:
                 return False, f"Test file '{file_path.name}' should be in /tests/ directory"
             return True, ""  # Files in tests directory are fine
 
+        if self.name == "old_release_notes_in_root":
+            # Release notes files should be in docs/release-notes directory
+            if parent_dir == Path("."):
+                return False, f"Historical release notes file '{file_path.name}' should be in docs/release-notes/ directory"
+            return True, ""  # Files in subdirectories are fine
+
         return True, ""  # Default: no violation
     
     def _path_matches(self, file_path: Path, location: Path) -> bool:
@@ -124,6 +130,15 @@ class StructureLinter:
                 forbidden_locations=[".", "scripts", "tools", "examples"],
                 description="Test files must be in /tests/ directory"
             ),
+
+            # Release notes files should be in docs/release-notes (except current)
+            StructureRule(
+                name="old_release_notes_in_root",
+                pattern=r"RELEASE_NOTES_.*\.md$",
+                allowed_locations=["docs/release-notes"],
+                forbidden_locations=["."],
+                description="Historical release notes must be in docs/release-notes directory"
+            ),
         ]
     
     def lint_project(self, target_path: Optional[Path] = None) -> bool:
@@ -160,7 +175,8 @@ class StructureLinter:
         """Check if file should be ignored during linting."""
         ignore_patterns = [
             r"\.git/.*",
-            r"\.venv/.*", 
+            r"\.venv/.*",
+            r"\.venv-.*/.*",  # Additional venv patterns
             r"venv/.*",
             r"__pycache__/.*",
             r"\.pytest_cache/.*",
@@ -239,7 +255,7 @@ class StructureLinter:
     def _can_auto_fix(self, violation: Dict) -> bool:
         """Check if violation can be automatically fixed."""
         # Only auto-fix simple file moves for now
-        return violation['rule'] in ['python_scripts_in_root', 'shell_scripts_in_root', 'test_files_misplaced']
+        return violation['rule'] in ['python_scripts_in_root', 'shell_scripts_in_root', 'test_files_misplaced', 'old_release_notes_in_root']
 
     def _auto_fix_violation(self, violation: Dict) -> bool:
         """Attempt to automatically fix a violation."""
@@ -253,6 +269,8 @@ class StructureLinter:
                 target_dir = PROJECT_ROOT / "scripts"
             elif violation['rule'] == 'test_files_misplaced':
                 target_dir = PROJECT_ROOT / "tests"
+            elif violation['rule'] == 'old_release_notes_in_root':
+                target_dir = PROJECT_ROOT / "docs" / "release-notes"
             else:
                 return False
 

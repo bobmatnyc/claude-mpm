@@ -5,11 +5,85 @@ disconnect, status requests, and history management. Separating these
 from other handlers makes connection management more maintainable.
 """
 
+import asyncio
+import functools
+import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Callable, Dict, List, Optional, Set
 
 from ....core.typing_utils import ClaudeStatus, EventData, SocketId
 from .base import BaseEventHandler
+
+
+def timeout_handler(timeout_seconds: float = 5.0):
+    """Decorator to add timeout protection to async handlers.
+    
+    WHY: Network operations can hang indefinitely, causing resource leaks
+    and poor user experience. This decorator ensures handlers complete
+    within a reasonable time or fail gracefully.
+    
+    Args:
+        timeout_seconds: Maximum time allowed for handler execution (default: 5s)
+    """
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        async def wrapper(self, *args, **kwargs):
+            handler_name = func.__name__
+            start_time = time.time()
+            
+            try:
+                # Create a task with timeout
+                result = await asyncio.wait_for(
+                    func(self, *args, **kwargs),
+                    timeout=timeout_seconds
+                )
+                
+                elapsed = time.time() - start_time
+                if elapsed > timeout_seconds * 0.8:  # Warn if close to timeout
+                    self.logger.warning(
+                        f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
+                        f"(close to {timeout_seconds}s timeout)"
+                    )
+                    
+                return result
+                
+            except asyncio.TimeoutError:
+                elapsed = time.time() - start_time
+                self.logger.error(
+                    f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
+                )
+                
+                # Try to send error response to client if we have their sid
+                if args and isinstance(args[0], str):  # First arg is usually sid
+                    sid = args[0]
+                    try:
+                        # Use a short timeout for error response
+                        await asyncio.wait_for(
+                            self.emit_to_client(
+                                sid, 
+                                "error",
+                                {
+                                    "message": f"Handler {handler_name} timed out",
+                                    "handler": handler_name,
+                                    "timeout": timeout_seconds
+                                }
+                            ),
+                            timeout=1.0
+                        )
+                    except:
+                        pass  # Best effort error notification
+                        
+                return None
+                
+            except Exception as e:
+                elapsed = time.time() - start_time
+                self.logger.error(
+                    f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}"
+                )
+                raise
+                
+        return wrapper
+    return decorator
 
 
 class ConnectionEventHandler(BaseEventHandler):
@@ -19,11 +93,189 @@ class ConnectionEventHandler(BaseEventHandler):
     that deserves its own focused handler. This includes client connections,
     disconnections, status updates, and event history management.
     """
+    
+    def __init__(self, server):
+        """Initialize connection handler with health monitoring.
+        
+        WHY: We need to track connection health metrics and implement
+        ping/pong mechanism for detecting stale connections.
+        """
+        super().__init__(server)
+        
+        # Connection health tracking
+        self.connection_metrics = {}
+        self.last_ping_times = {}
+        self.ping_interval = 30  # seconds
+        self.ping_timeout = 10  # seconds
+        self.stale_check_interval = 60  # seconds
+        
+        # Health monitoring tasks (will be started after event registration)
+        self.ping_task = None
+        self.stale_check_task = None
 
+    def _start_health_monitoring(self):
+        """Start background tasks for connection health monitoring.
+        
+        WHY: We need to actively monitor connection health to detect
+        and clean up stale connections, ensuring reliable event delivery.
+        """
+        # Only start if we have a valid event loop and tasks aren't already running
+        if hasattr(self.server, 'core') and hasattr(self.server.core, 'loop'):
+            loop = self.server.core.loop
+            if loop and not loop.is_closed():
+                if not self.ping_task or self.ping_task.done():
+                    self.ping_task = asyncio.run_coroutine_threadsafe(
+                        self._periodic_ping(), loop
+                    )
+                    self.logger.info("🏓 Started connection ping monitoring")
+                
+                if not self.stale_check_task or self.stale_check_task.done():
+                    self.stale_check_task = asyncio.run_coroutine_threadsafe(
+                        self._check_stale_connections(), loop
+                    )
+                    self.logger.info("🧹 Started stale connection checker")
+    
+    def stop_health_monitoring(self):
+        """Stop health monitoring tasks.
+        
+        WHY: Clean shutdown requires stopping background tasks to
+        prevent errors and resource leaks.
+        """
+        if self.ping_task and not self.ping_task.done():
+            self.ping_task.cancel()
+            self.logger.info("🚫 Stopped connection ping monitoring")
+        
+        if self.stale_check_task and not self.stale_check_task.done():
+            self.stale_check_task.cancel()
+            self.logger.info("🚫 Stopped stale connection checker")
+    
+    async def _periodic_ping(self):
+        """Send periodic pings to all connected clients.
+        
+        WHY: WebSocket connections can silently fail. Regular pings
+        help detect dead connections and maintain connection state.
+        """
+        while True:
+            try:
+                await asyncio.sleep(self.ping_interval)
+                
+                if not self.clients:
+                    continue
+                    
+                current_time = time.time()
+                disconnected = []
+                
+                for sid in list(self.clients):
+                    try:
+                        # Send ping and record time
+                        await self.sio.emit('ping', {'timestamp': current_time}, room=sid)
+                        self.last_ping_times[sid] = current_time
+                        
+                        # Update connection metrics
+                        if sid not in self.connection_metrics:
+                            self.connection_metrics[sid] = {
+                                'connected_at': current_time,
+                                'reconnects': 0,
+                                'failures': 0,
+                                'last_activity': current_time
+                            }
+                        self.connection_metrics[sid]['last_activity'] = current_time
+                        
+                    except Exception as e:
+                        self.logger.warning(f"Failed to ping client {sid}: {e}")
+                        disconnected.append(sid)
+                
+                # Clean up failed connections
+                for sid in disconnected:
+                    await self._cleanup_stale_connection(sid)
+                    
+                if self.clients:
+                    self.logger.debug(
+                        f"🏓 Sent pings to {len(self.clients)} clients, "
+                        f"{len(disconnected)} failed"
+                    )
+                    
+            except Exception as e:
+                self.logger.error(f"Error in periodic ping: {e}")
+    
+    async def _check_stale_connections(self):
+        """Check for and clean up stale connections.
+        
+        WHY: Some clients may not properly disconnect, leaving zombie
+        connections that consume resources and prevent proper cleanup.
+        """
+        while True:
+            try:
+                await asyncio.sleep(self.stale_check_interval)
+                
+                current_time = time.time()
+                stale_threshold = current_time - (self.ping_timeout + self.ping_interval)
+                stale_sids = []
+                
+                for sid in list(self.clients):
+                    last_ping = self.last_ping_times.get(sid, 0)
+                    
+                    if last_ping < stale_threshold:
+                        stale_sids.append(sid)
+                        self.logger.warning(
+                            f"🧟 Detected stale connection {sid} "
+                            f"(last ping: {current_time - last_ping:.1f}s ago)"
+                        )
+                
+                # Clean up stale connections
+                for sid in stale_sids:
+                    await self._cleanup_stale_connection(sid)
+                    
+                if stale_sids:
+                    self.logger.info(
+                        f"🧹 Cleaned up {len(stale_sids)} stale connections"
+                    )
+                    
+            except Exception as e:
+                self.logger.error(f"Error checking stale connections: {e}")
+    
+    async def _cleanup_stale_connection(self, sid: str):
+        """Clean up a stale or dead connection.
+        
+        WHY: Proper cleanup prevents memory leaks and ensures
+        accurate connection tracking.
+        """
+        try:
+            if sid in self.clients:
+                self.clients.remove(sid)
+                
+            if sid in self.last_ping_times:
+                del self.last_ping_times[sid]
+                
+            if sid in self.connection_metrics:
+                metrics = self.connection_metrics[sid]
+                uptime = time.time() - metrics.get('connected_at', 0)
+                self.logger.info(
+                    f"📊 Connection {sid} stats - uptime: {uptime:.1f}s, "
+                    f"reconnects: {metrics.get('reconnects', 0)}, "
+                    f"failures: {metrics.get('failures', 0)}"
+                )
+                del self.connection_metrics[sid]
+                
+            # Force disconnect if still connected
+            try:
+                await self.sio.disconnect(sid)
+            except:
+                pass  # Already disconnected
+                
+            self.logger.info(f"🔌 Cleaned up stale connection: {sid}")
+            
+        except Exception as e:
+            self.logger.error(f"Error cleaning up connection {sid}: {e}")
+    
     def register_events(self) -> None:
         """Register connection-related event handlers."""
+        
+        # Start health monitoring now that we're registering events
+        self._start_health_monitoring()
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=5.0)
         async def connect(sid, environ, *args):
             """Handle client connection.
 
@@ -72,6 +324,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 self.log_error(f"sending welcome to client {sid}", e)
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=3.0)
         async def disconnect(sid):
             """Handle client disconnection.
 
@@ -86,8 +339,15 @@ class ConnectionEventHandler(BaseEventHandler):
                 self.logger.warning(
                     f"⚠️  Attempted to disconnect unknown client: {sid}"
                 )
+            
+            # Clean up health tracking
+            if sid in self.last_ping_times:
+                del self.last_ping_times[sid]
+            if sid in self.connection_metrics:
+                del self.connection_metrics[sid]
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=3.0)
         async def get_status(sid):
             """Handle status request.
 
@@ -105,6 +365,7 @@ class ConnectionEventHandler(BaseEventHandler):
             await self.emit_to_client(sid, "status", status_data)
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=5.0)
         async def get_history(sid, data=None):
             """Handle history request.
 
@@ -118,6 +379,7 @@ class ConnectionEventHandler(BaseEventHandler):
             await self._send_event_history(sid, event_types=event_types, limit=limit)
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=5.0)
         async def request_history(sid, data=None):
             """Handle legacy history request (for client compatibility).
 
@@ -131,6 +393,7 @@ class ConnectionEventHandler(BaseEventHandler):
             await self._send_event_history(sid, event_types=event_types, limit=limit)
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=3.0)
         async def subscribe(sid, data=None):
             """Handle subscription request.
 
@@ -141,6 +404,7 @@ class ConnectionEventHandler(BaseEventHandler):
             await self.emit_to_client(sid, "subscribed", {"channels": channels})
 
         @self.sio.event
+        @timeout_handler(timeout_seconds=5.0)
         async def claude_event(sid, data):
             """Handle events from client proxies.
 
@@ -198,6 +462,25 @@ class ConnectionEventHandler(BaseEventHandler):
             self.logger.info(f"📡 Broadcasting claude_event to all clients except {sid}")
             await self.broadcast_event("claude_event", data, skip_sid=sid)
             self.logger.info(f"✅ Broadcast complete")
+        
+        @self.sio.event
+        async def pong(sid, data=None):
+            """Handle pong response from client.
+            
+            WHY: Clients respond to our pings with pongs, confirming
+            they're still alive and the connection is healthy.
+            """
+            current_time = time.time()
+            
+            # Update last activity time
+            if sid in self.connection_metrics:
+                self.connection_metrics[sid]['last_activity'] = current_time
+                
+            # Calculate round-trip time if timestamp provided
+            if data and 'timestamp' in data:
+                rtt = current_time - data['timestamp']
+                if rtt < 10:  # Reasonable RTT
+                    self.logger.debug(f"🏓 Pong from {sid}, RTT: {rtt*1000:.1f}ms")
 
     def _normalize_event(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
         """Normalize event format to ensure consistency.

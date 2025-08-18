@@ -903,7 +903,9 @@ def main():
             )
         # Always output continue action to not block Claude
         print(json.dumps({"action": "continue"}))
-        sys.exit(0)
+        # Only exit if this is a signal handler call, not atexit
+        if signum is not None:
+            sys.exit(0)
 
     # Register cleanup handlers
     signal.signal(signal.SIGTERM, cleanup_handler)

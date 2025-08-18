@@ -119,6 +119,9 @@ class SocketIOServer(SocketIOServiceInterface):
 
         # Set the loop reference for broadcaster
         self.broadcaster.loop = self.core.loop
+        
+        # Start the retry processor for resilient event delivery
+        self.broadcaster.start_retry_processor()
 
         # Register events
         self._register_events()
@@ -128,11 +131,22 @@ class SocketIOServer(SocketIOServiceInterface):
         self.stats["start_time"] = self.core.stats["start_time"]
 
         self.logger.info(
-            f"SocketIO server started successfully on {self.host}:{self.port}"
+            f"SocketIO server started successfully on {self.host}:{self.port} with retry queue enabled"
         )
 
     def stop_sync(self):
         """Stop the Socket.IO server (synchronous version)."""
+        # Stop the retry processor if running
+        if self.broadcaster:
+            self.broadcaster.stop_retry_processor()
+        
+        # Stop health monitoring in connection handler
+        if self.event_registry:
+            from ..handlers import ConnectionEventHandler
+            conn_handler = self.event_registry.get_handler(ConnectionEventHandler)
+            if conn_handler and hasattr(conn_handler, 'stop_health_monitoring'):
+                conn_handler.stop_health_monitoring()
+        
         self.core.stop_sync()
         self.running = False
 
