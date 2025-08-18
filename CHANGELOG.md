@@ -15,77 +15,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [4.0.11] - 2025-08-18
+## [4.0.12] - 2025-08-18
 
-### Added
-- **Release Notes Organization**: Moved all historical RELEASE_NOTES_*.md files to docs/release-notes/ directory
-- **Structure Linter Enhancement**: Added new rule to enforce release notes organization with auto-fix capability
-- **Consolidated Release Notes**: Added v3.x.md and v4.0.x.md files for better historical organization
+### Feat
 
-### Fixed
-- **Test Suite**: Resolved import path issues for get_agent_versions_display function
-- **Test Assertions**: Fixed command building tests to match actual system prompt behavior
-- **WebSocket Tests**: Improved cleanup and mocking for websocket-related tests
-- **Exception Handling**: Enhanced error test assertions for better reliability
+- reorganize release notes and enhance structure linter
 
-### Changed
-- **Project Structure**: Historical release notes now organized in docs/release-notes/ instead of root directory
-- **Structure Linter**: Enhanced with better virtual environment ignore patterns and release notes validation
+### Fix
 
-## [4.0.9]
+- sync version files and increment build number
+- resolve test failures in interactive and oneshot sessions
 
-## [4.0.10] - 2025-08-18
+## v4.0.10 (2025-08-18)
 
-### Fixed
-- **Build Number Display**: Deployed (pipx) versions now show build numbers in `--version` output
-- **Package Distribution**: Added BUILD_NUMBER file to MANIFEST.in for inclusion in distributed packages
-- **CLI Version Display**: Updated to use VersionService for enhanced version information with build numbers
-- **Version Service**: Added support for multiple BUILD_NUMBER file locations (development and package)
-- **Graceful Fallback**: Enhanced version display gracefully falls back to base version if build number unavailable
+## v4.0.9 (2025-08-18)
 
-### Technical Details
-- Root cause: BUILD_NUMBER file wasn't included in wheel distributions
-- Solution: Modified MANIFEST.in and VersionService to include and locate BUILD_NUMBER in packages
-- Before: `claude-mpm 4.0.8`
-- After: `claude-mpm 4.0.10-build.287` - 2025-08-18
+### Fix
 
+- include build number in CLI --version display
 
-### Bug Fixes
+## v4.0.8 (2025-08-18)
 
-- include build number in CLI --version display ([8d1b01a])
+### Fix
 
-### Chores
+- update commitizen version to 4.0.7 for version sync
 
-- update commitizen version to 4.0.8 ([f5ec1b2])
-## [4.0.8] - 2025-08-18
+## v4.0.7 (2025-08-18)
 
+### Feat
 
-### Bug Fixes
+- comprehensive scripts directory cleanup
+- implement automatic build number tracking
+- add build number increment to release process
 
-- update commitizen version to 4.0.7 for version sync ([952a2ca])
-## [4.0.7] - 2025-08-18
+### Fix
 
+- update test script to run core tests only
+- remove tracked node_modules and package-lock.json files
+- update session management tests to work with current implementation
+- remove obsolete ticket-related tests
 
-### Features
+## v4.0.6 (2025-08-18)
 
-- comprehensive scripts directory cleanup ([c6d6f19])
-- implement automatic build number tracking ([82ef2d3])
-- add build number increment to release process ([778d2fc])
+### Fix
 
-### Bug Fixes
+- correct Python syntax in Makefile release-sync-versions
+- restore [Unreleased] section and correct version format in CHANGELOG.md
+- format CHANGELOG.md to meet structure requirements
+- correct commitizen bump syntax in Makefile
+- add current directory to framework detection candidates
 
-- update test script to run core tests only ([cd81f46])
-- remove tracked node_modules and package-lock.json files ([6048b7f])
-- update session management tests to work with current implementation ([0178518])
-- remove obsolete ticket-related tests ([0f01de0])
+## v4.0.4 (2025-08-18)
 
-### Documentation
+## v4.0.3 (2025-08-17)
 
-- add comprehensive build number tracking documentation ([0ae3456])
+### Feat
 
-### Chores
+- implement comprehensive structure linting system
 
-- sync version files and update remaining changes ([db4bca7])
+### Fix
+
+- implement missing get_hook_status abstract method in MemoryHookService
+
+## v4.0.2 (2025-08-17)
+
 ## v4.0.11 (2025-08-18)
 
 ### Feat
