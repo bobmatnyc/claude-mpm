@@ -8,376 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Comprehensive changelog and release management system
-- Commitizen integration for conventional commits and automatic version bumping
-- GitHub Actions workflow for automated release creation
-- Structure linter validation for changelog format and version consistency
-- Release workflow helper script for managing releases
-- Detailed release process documentation
+- New features will be listed here
 
 ### Changed
-- Enhanced structure linter with changelog and version validation rules
-- Updated pre-commit configuration to include commitizen for commit message validation
+- Changes to existing functionality will be listed here
 
 ### Fixed
-
-### Changed
-- Updated README.md to highlight MCP Gateway, TSK-0053 refactoring benefits, and complete list of 15 agents
-- Updated experimental features documentation to focus on MCP Gateway as primary example
-- Enhanced AGENTS.md with comprehensive list of all 15 specialized agents
-
-### Removed
-- Memory Guardian experimental feature (replaced by Memory Manager agent and cleanup-memory command)
-- References to Memory Guardian documentation from README and experimental features guide
-- Archived Memory Guardian test documentation to tests/archive/
-
-## [4.0.3] - 2025-08-17
-
-### Fixed
-- Fixed Socket.IO dashboard WebSocket connection issues
-- Fixed event parsing showing all events as "unknown"
-- Fixed dashboard Tools and Files tabs not working
-- Fixed event caching and history replay on dashboard load
-- Fixed various JavaScript errors in dashboard
-- Cleaned up excessive debug logging in Python and JavaScript files
-
-### Added
-- Sticky Raw JSON toggle for easier debugging
-- System heartbeat events every 60 seconds for connection monitoring
-- Comprehensive event caching (last 50 events)
-- Better error handling for browser extension conflicts
-
-### Improved
-- Event transformation and normalization
-- Dashboard event display formatting
-- Socket.IO server stability and error handling
-- Test script organization - moved useful tests to organized directories
-- Code cleanliness by removing temporary debug scripts
-
-### Removed
-- Excessive debug logging statements in git handler
-- Temporary test and debug scripts from scripts directory
-- Console.log statements commented out for production use
-
-## [4.0.2] - 2025-08-17
-
-## [4.0.0] - 2025-08-17
-
-### 🚀 Major Release - Codebase Modernization & Cleanup
-
-This major release represents a comprehensive modernization and cleanup of the Claude MPM codebase, removing technical debt and streamlining the architecture for better maintainability and performance.
-
-#### 🧹 Massive Codebase Cleanup
-- **REMOVED**: 173 obsolete scripts from `/scripts/` directory
-- **REMOVED**: 16 deprecated services and modules
-- **REMOVED**: Duplicate and backup files throughout the codebase
-- **CLEANED**: Consolidated service architecture with clear separation of concerns
-- **STREAMLINED**: Development and testing infrastructure
-
-#### 🏗️ Service Architecture Refactoring
-- **CONSOLIDATED**: Agent deployment services into unified architecture
-- **REMOVED**: Deprecated ticketing service implementations (`ticket_manager_di.py`, `ticketing_service_original.py`)
-- **SIMPLIFIED**: Communication services (removed redundant WebSocket/SocketIO implementations)
-- **MODERNIZED**: Service interfaces and dependency injection patterns
-
-#### 🔧 MCP Gateway Enhancements
-- **ENHANCED**: Complete MCP (Model Context Protocol) integration
-- **UNIFIED**: Ticket management tools into single `ticket` tool with operation parameter
-- **IMPROVED**: Tool registry and adapter architecture
-- **ADDED**: Comprehensive developer documentation for MCP Gateway
-
-#### 🤖 Agent System Improvements
-- **MIGRATED**: Agent versioning from serial to semantic versioning (e.g., `0002-0005` → `2.1.0`)
-- **ENHANCED**: Agent memory management and persistence
-- **IMPROVED**: Agent deployment and lifecycle management
-- **STREAMLINED**: Agent registry and discovery mechanisms
-
-#### 📚 Documentation & Developer Experience
-- **ADDED**: 1,200+ lines of comprehensive MCP Gateway developer documentation
-- **IMPROVED**: API documentation and code examples
-- **ENHANCED**: Developer onboarding and best practices guides
-- **UPDATED**: Architecture documentation to reflect new service structure
-
-#### 🔄 Breaking Changes
-- **REMOVED**: Deprecated ticketing service implementations
-- **REMOVED**: Legacy agent deployment services in `/services/agent/`
-- **REMOVED**: Obsolete communication services (`socketio.py`, `websocket.py`)
-- **REMOVED**: Deprecated configuration paths and utilities
-- **CHANGED**: Agent versioning format (automatic migration provided)
-- **SIMPLIFIED**: Service interfaces and dependency patterns
-
-#### 🎯 Migration Guide
-- **Agent Versioning**: Automatic migration from old formats during deployment
-- **Ticketing**: Use unified `ticket` tool instead of separate `ticket_create`, `ticket_list`, etc.
-- **Services**: Updated import paths for consolidated services
-- **Configuration**: Some deprecated configuration options removed
-
-#### 💡 Impact
-This major release provides:
-- **Reduced Complexity**: 60%+ reduction in codebase size through cleanup
-- **Improved Maintainability**: Cleaner service architecture and interfaces
-- **Better Performance**: Streamlined service loading and dependency resolution
-- **Enhanced Developer Experience**: Comprehensive documentation and examples
-- **Future-Ready Architecture**: Modern patterns ready for advanced features
-
-#### 🔧 Technical Improvements
-- **Performance**: Faster startup times due to reduced service overhead
-- **Memory**: Lower memory footprint from service consolidation
-- **Reliability**: Improved error handling and graceful degradation
-- **Testing**: Streamlined test suite with better coverage
-
----
-
-## [3.9.11] - 2025-08-16
-
-### 📚 Documentation
-
-#### Comprehensive MCP Gateway Developer Documentation
-- **NEW**: Complete MCP Gateway developer documentation in `docs/developer/13-mcp-gateway/`
-  - Developer guide with architecture overview, quick start, and core interfaces
-  - Complete API reference with data models and implementation classes
-  - Tool development guide covering full lifecycle from planning to deployment
-  - Configuration reference with multi-source config and validation examples
-- **NEW**: MCP Gateway API reference in `docs/developer/04-api-reference/mcp-gateway-api.md`
-- **IMPROVED**: Updated developer README to include MCP Gateway in Core Systems section
-
-#### Documentation Features
-- **1,200+ lines** of comprehensive developer documentation
-- **Production-ready guidance** for tool development and deployment
-- **Complete API coverage** with examples and best practices
-- **Multi-environment configuration** examples (dev, prod, testing)
-- **Testing strategies** for unit, integration, and manual testing
-- **Troubleshooting guides** and performance optimization tips
-
-### 🎯 Developer Experience
-
-#### Enhanced Onboarding
-- **Quick Start Guides**: Get MCP Gateway running immediately
-- **Code Examples**: Copy-paste ready examples for common tasks
-- **Best Practices**: Industry-standard patterns and recommendations
-- **Tool Creation**: Step-by-step guide for custom tool development
-
-#### Production Readiness
-- **Configuration Management**: Multi-source configuration with validation
-- **Testing Documentation**: Comprehensive testing approaches and examples
-- **Security Guidelines**: Input validation, sandboxing, and rate limiting
-- **Deployment Patterns**: Tool packaging, distribution, and operational guidance
-
-### 🔄 Breaking Changes
-- **NONE**: All changes are documentation-only and fully backward compatible
-
----
-
-## [3.9.10] - 2025-08-16
-
-### 🚀 Major Features
-
-#### MCP Gateway - Production Ready Implementation
-- **NEW**: Complete MCP (Model Context Protocol) Gateway for Claude Desktop integration
-  - Full stdio-based MCP protocol implementation using Anthropic's official package
-  - Extensible tool framework with 3 built-in tools (echo, calculator, system_info)
-  - Production-ready singleton coordination ensuring one gateway per installation
-  - Comprehensive CLI interface: `claude-mpm mcp start/status/test/tools`
-  - 31 unit tests + integration tests with >80% coverage
-  - Complete documentation and Claude Desktop setup guides
-
-#### Enhanced Tool Registry & Architecture
-- **NEW**: Robust tool registry with dependency injection and service management
-- **NEW**: Base service classes with lifecycle management and error handling
-- **NEW**: Configuration management with YAML support and validation
-- **NEW**: Service registry with singleton patterns and proper cleanup
-
-### 🔧 Bug Fixes & Improvements
-
-#### aitrackdown CLI Integration Fixed
-- **FIXED**: Import errors in TicketManager (was using non-existent `TaskManager`)
-- **FIXED**: Workflow state mismatch between CLI and aitrackdown
-- **FIXED**: CLI ticket commands now fully functional with proper status transitions
-- **IMPROVED**: Graceful fallback to aitrackdown CLI when direct methods fail
-
-#### MCP Gateway Terminology & Accuracy
-- **IMPROVED**: Renamed "MCP Server" to "MCP Gateway" for accuracy (no background service)
-- **IMPROVED**: Updated status displays to reflect stdio-based protocol handler nature
-- **IMPROVED**: Clarified documentation about on-demand activation vs persistent services
-
-### 📚 Documentation & Testing
-
-#### Comprehensive MCP Documentation
-- **NEW**: Complete MCP Gateway setup and usage guides
-- **NEW**: Claude Desktop integration instructions with configuration examples
-- **NEW**: Technical architecture documentation and design decisions
-- **NEW**: Singleton coordination implementation guide
-
-#### Testing Infrastructure
-- **NEW**: 31 comprehensive unit tests for MCP components
-- **NEW**: Integration tests for end-to-end MCP workflow validation
-- **NEW**: Automated test runner for complete MCP test suite
-- **NEW**: Standards compliance testing for MCP protocol adherence
-
-### 🎯 Epic & Ticket Management
-
-#### Project Tracking Updates
-- **COMPLETED**: EP-0007 "MCP Gateway Phase 1 - Core Implementation"
-  - 7 out of 8 tasks completed successfully
-  - All core functionality implemented and tested
-  - Ready for Claude Desktop integration and production use
-- **UPDATED**: Multiple tickets transitioned to completed status with detailed progress documentation
-
-### 🔄 Breaking Changes
-- **NONE**: All changes are backward compatible
-
-### 📦 Dependencies
-- **MAINTAINED**: All existing dependencies preserved
-- **ADDED**: `mcp>=0.1.0` for official MCP protocol support
-
----
-
-## [3.9.9] - 2025-08-16
-
-### 🚀 New Features & Enhancements
-
-#### MCP Gateway Integration (NEW)
-- **NEW**: Complete MCP (Model Context Protocol) Gateway implementation
-  - MCP server with tool registry and service management
-  - CLI commands for MCP server management (`claude-mpm mcp start/stop/status/test`)
-  - Document summarizer and hello world tools as examples
-  - Configuration system with YAML support and example configs
-
-#### Enhanced Process & File Management
-- **NEW**: Robust utility modules for system operations
-  - `subprocess_utils.py`: Enhanced subprocess execution with timeouts and cleanup
-  - `file_utils.py`: Atomic file operations and safe file handling
-  - `platform_memory.py`: Cross-platform memory monitoring utilities
-
-#### Memory Optimization & Monitoring
-- **NEW**: Memory guardian configuration for proactive memory management
-- **NEW**: Process monitoring and cleanup utilities
-- **NEW**: Orphaned process cleanup script (`scripts/cleanup_orphaned_hooks.py`)
-
-#### Hook System Reliability
-- **ENHANCED**: Hook handler timeout protection prevents hanging processes
-- **ENHANCED**: Non-blocking stdin reading with select() and 1-second timeout
-- **ENHANCED**: Automatic 10-second process timeout using signal.alarm()
-- **ENHANCED**: Enhanced cleanup mechanisms with signal handlers
-
-#### CLI & Service Improvements
-- **ENHANCED**: Updated cleanup command with better process management
-- **ENHANCED**: Enhanced constants and configuration management
-- **ENHANCED**: Improved service communication and SocketIO handling
-
-#### Documentation & Configuration
-- **NEW**: MCP Gateway documentation and examples
-- **ENHANCED**: Enhanced troubleshooting guides
-- **ENHANCED**: Developer documentation updates for new utilities
-- **NEW**: Configuration examples for MCP Gateway setup
-
-### 🔧 Technical Improvements
-- **BUILD**: Incremented build number to 279
-- **VERSION**: Synchronized all version files (Python, npm, package distribution)
-
-## [3.9.8] - 2025-08-16
-
-### 🔧 Process Management & Hook System Improvements
-
-#### Hook Handler Process Leak Fix (CRITICAL)
-- **FIXED**: Critical issue with orphaned hook handler processes accumulating indefinitely
-  - Identified root cause: blocking `sys.stdin.read()` calls causing processes to hang
-  - Implemented non-blocking input reading with `select()` and 1-second timeout
-  - Added automatic 10-second process timeout using `signal.alarm()`
-  - Enhanced cleanup mechanisms with signal handlers and atexit cleanup
-
-#### Process Cleanup & Monitoring
-- **NEW**: Comprehensive subprocess utilities module (`subprocess_utils.py`)
-  - `cleanup_orphaned_processes()` - Automated cleanup of orphaned processes by pattern and age
-  - `terminate_process_tree()` - Graceful termination of process trees with timeout
-  - `monitor_process_resources()` - Real-time process resource monitoring
-  - Enhanced error handling with `SubprocessError` and `SubprocessResult` classes
-
-- **NEW**: File utilities module (`file_utils.py`)
-  - Atomic file operations with `atomic_write()` for corruption prevention
-  - Safe file operations with comprehensive error handling
-  - JSON file utilities with validation and formatting
-
-- **NEW**: Process monitoring script (`scripts/cleanup_orphaned_hooks.py`)
-  - Automated monitoring and cleanup of orphaned hook processes
-  - Detailed reporting of process age and resource usage
-  - Can be run manually or scheduled via cron for maintenance
-
-#### Reliability Improvements
-- **ENHANCED**: Hook handler timeout protection prevents infinite hangs
-- **ENHANCED**: Non-blocking stdin reading prevents process accumulation
-- **ENHANCED**: Automatic cleanup ensures processes always terminate properly
-- **ENHANCED**: Signal handling for graceful shutdown on SIGTERM/SIGINT
-
-#### Performance Impact
-- **MAJOR REDUCTION**: Eliminated process accumulation (163 orphaned processes → 2-4 active)
-- **IMPROVED**: System resource usage and stability
-- **ENHANCED**: Hook system reliability and responsiveness
-
-## [3.9.4] - 2025-08-15
-
-### Fixed
-- **Path Resolution**: Fix critical issue with pipx installations where templates directory could not be found
-  - Resolves missing templates directory error when installed via pipx
-  - Ensures proper path resolution for package resources in isolated environments
-  - Fixes agent deployment failures in pipx installations
-
-## [3.9.3] - 2025-08-15
-
-## [3.9.2] - 2025-08-15
-
-### 🚨 Critical Memory Leak Fix
-
-#### ClaudeHookHandler Memory Management Overhaul (CRITICAL)
-- **FIXED**: Critical memory leak causing 8GB+ memory consumption in long-running sessions
-  - Implemented singleton pattern for ClaudeHookHandler to prevent multiple instances
-  - Added proper cleanup and disposal of event handlers on disconnect
-  - Introduced bounded data structures with automatic cleanup for old entries
-  - Implemented connection pooling for Socket.IO connections with proper lifecycle management
-  
-#### Memory Usage Improvements
-- **MAJOR REDUCTION**: Memory consumption reduced from 8GB+ to 100-200MB steady state
-  - Event handlers now properly cleaned up on disconnect
-  - Response data automatically pruned after 1000 entries (configurable)
-  - Connection pool prevents unbounded connection growth
-  - Weak references used where appropriate to allow garbage collection
-  
-#### Implementation Details
-- **Singleton Pattern**: ClaudeHookHandler now uses thread-safe singleton implementation
-  - Prevents multiple instances from accumulating in memory
-  - Ensures single point of management for all Socket.IO connections
-  - Thread-safe initialization with proper locking
-  
-- **Bounded Collections**: All data structures now have automatic cleanup
-  - Response deque limited to 1000 entries with automatic pruning
-  - Old entries automatically removed when limit exceeded
-  - Configurable limits via MAX_RESPONSE_HISTORY environment variable
-  
-- **Connection Management**: Proper lifecycle for Socket.IO connections
-  - Connection pooling with reuse of existing connections
-  - Explicit cleanup on handler disposal
-  - Graceful shutdown with proper resource deallocation
-
-### 🧪 Testing and Validation
-- **VERIFIED**: Memory usage remains stable at 100-200MB over extended sessions
-- **TESTED**: No memory growth observed after 1000+ operations
-- **CONFIRMED**: All event handlers properly cleaned up on disconnect
-- **VALIDATED**: No regression in hook functionality or response logging
-
-### 💡 Impact
-This critical patch release resolves a severe memory leak that could cause:
-- System instability due to excessive memory consumption (8GB+)
-- Application crashes in long-running sessions
-- Performance degradation as memory usage increased
-- Resource exhaustion on systems with limited memory
-
-### 📋 Migration Notes
-- **No breaking changes**: Existing configurations work unchanged
-- **Automatic improvement**: Memory management enhancements apply automatically
-- **No action required**: Update to 3.9.2 for immediate memory leak resolution
-- **Monitoring recommended**: Monitor memory usage to confirm fix effectiveness
-
-## [3.9.1] - 2025-08-15
+- Bug fixes will be listed here
 
 ### 🚨 Critical Bug Fixes
 
@@ -387,6 +24,29 @@ This critical patch release resolves a severe memory leak that could cause:
   - Added fallback import path from `agents.deployment` when `agent.deployment` fails
   - Restored core agent deployment capabilities that were broken by service reorganization
   - All agent deployment operations now work correctly
+
+## [4.0.5] - 2025-08-18
+
+### Fix
+
+- correct commitizen bump syntax in Makefile
+- add current directory to framework detection candidates
+
+## v4.0.4 (2025-08-18)
+
+## v4.0.3 (2025-08-17)
+
+### Feat
+
+- implement comprehensive structure linting system
+
+### Fix
+
+- implement missing get_hook_status abstract method in MemoryHookService
+
+## v4.0.2 (2025-08-17)
+
+## v4.0.1 (2025-08-17)
 
 ### 🔍 Research Agent v4.0.0 Quality Improvements
 
