@@ -16,19 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Bug fixes will be listed here
 
-### 🚨 Critical Bug Fixes
-
-#### AgentDeploymentService Import Error (CRITICAL)
-- **FIXED**: Critical import error preventing agent deployment functionality
-  - Fixed `AgentDeploymentService` import resolution in `src/claude_mpm/services/__init__.py`
-  - Added fallback import path from `agents.deployment` when `agent.deployment` fails
-  - Restored core agent deployment capabilities that were broken by service reorganization
-  - All agent deployment operations now work correctly
-
-## [4.0.5] - 2025-08-18
+## [4.0.6] - 2025-08-18
 
 ### Fix
 
+- format CHANGELOG.md to meet structure requirements
 - correct commitizen bump syntax in Makefile
 - add current directory to framework detection candidates
 
