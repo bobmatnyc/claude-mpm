@@ -136,8 +136,8 @@ class SocketIOConnectionPool:
             # Try a quick ping to verify connection is truly alive
             # This helps detect zombie connections
             try:
-                # Use call with timeout for synchronous ping-pong
-                client.call('ping', {'timestamp': time.time()}, timeout=0.5)
+                # Just emit a ping, don't wait for response (faster)
+                client.emit('ping', {'timestamp': time.time()})
                 return True
             except:
                 # If ping fails, connection might be dead
