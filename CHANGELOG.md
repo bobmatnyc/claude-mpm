@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-## [4.0.12] - 2025-08-18
+## [4.0.13] - 2025-08-18
 
 ### Feat
 
@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.12)
 - sync version files and increment build number
 - resolve test failures in interactive and oneshot sessions
 
