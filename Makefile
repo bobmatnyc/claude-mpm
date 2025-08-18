@@ -420,7 +420,7 @@ release-sync-versions: ## Synchronize version files after bump
 # Patch release (bug fixes)
 release-patch: release-check release-test ## Create a patch release (bug fixes)
 	@echo "$(YELLOW)🔧 Creating patch release...$(NC)"
-	@cz bump --patch
+	@cz bump --increment PATCH
 	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Patch release prepared$(NC)"
@@ -429,7 +429,7 @@ release-patch: release-check release-test ## Create a patch release (bug fixes)
 # Minor release (new features)
 release-minor: release-check release-test ## Create a minor release (new features)
 	@echo "$(YELLOW)✨ Creating minor release...$(NC)"
-	@cz bump --minor
+	@cz bump --increment MINOR
 	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Minor release prepared$(NC)"
@@ -438,7 +438,7 @@ release-minor: release-check release-test ## Create a minor release (new feature
 # Major release (breaking changes)
 release-major: release-check release-test ## Create a major release (breaking changes)
 	@echo "$(YELLOW)💥 Creating major release...$(NC)"
-	@cz bump --major
+	@cz bump --increment MAJOR
 	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
