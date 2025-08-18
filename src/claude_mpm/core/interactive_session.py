@@ -469,9 +469,9 @@ class InteractiveSession:
     def _show_available_agents(self) -> bool:
         """Show available agents in the system."""
         try:
-            from claude_mpm.cli import _get_agent_versions_display
+            from claude_mpm.cli.utils import get_agent_versions_display
 
-            agent_versions = _get_agent_versions_display()
+            agent_versions = get_agent_versions_display()
 
             if agent_versions:
                 print(agent_versions)

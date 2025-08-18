@@ -240,10 +240,10 @@ class TestOneshotSession:
 
             expected = [
                 "claude",
-                "--append-system-prompt",
-                "system prompt",
                 "--print",
                 "test context\n\ntest prompt",
+                "--append-system-prompt",
+                "system prompt",
             ]
             assert result == expected
 
