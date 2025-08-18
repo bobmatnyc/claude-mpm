@@ -74,6 +74,13 @@ repos:
         args: ['--max-line-length=88']
         files: \.rst$
 
+  # Commitizen for conventional commits
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v3.13.0
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
 # Configuration for specific file types
 exclude: |
   (?x)^(

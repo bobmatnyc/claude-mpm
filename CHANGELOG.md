@@ -5,6 +5,52 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- Comprehensive changelog and release management system
+- Commitizen integration for conventional commits and automatic version bumping
+- GitHub Actions workflow for automated release creation
+- Structure linter validation for changelog format and version consistency
+- Release workflow helper script for managing releases
+- Detailed release process documentation
+
+### Changed
+- Enhanced structure linter with changelog and version validation rules
+- Updated pre-commit configuration to include commitizen for commit message validation
+
+### Fixed
+
+### Removed
+
+## [4.0.3] - 2025-08-17
+
+### Fixed
+- Fixed Socket.IO dashboard WebSocket connection issues
+- Fixed event parsing showing all events as "unknown"
+- Fixed dashboard Tools and Files tabs not working
+- Fixed event caching and history replay on dashboard load
+- Fixed various JavaScript errors in dashboard
+- Cleaned up excessive debug logging in Python and JavaScript files
+
+### Added
+- Sticky Raw JSON toggle for easier debugging
+- System heartbeat events every 60 seconds for connection monitoring
+- Comprehensive event caching (last 50 events)
+- Better error handling for browser extension conflicts
+
+### Improved
+- Event transformation and normalization
+- Dashboard event display formatting
+- Socket.IO server stability and error handling
+- Test script organization - moved useful tests to organized directories
+- Code cleanliness by removing temporary debug scripts
+
+### Removed
+- Excessive debug logging statements in git handler
+- Temporary test and debug scripts from scripts directory
+- Console.log statements commented out for production use
+
 ## [4.0.2] - 2025-08-17
 
 ## [4.0.0] - 2025-08-17
@@ -870,4 +916,22 @@ This major refactoring release represents weeks of intensive work to transform t
 ## Historical Releases
 
 For release notes prior to v3.8.0, see [docs/releases/CHANGELOG-3.7.md](docs/releases/CHANGELOG-3.7.md)
+
+[Unreleased]: https://github.com/bobmatnyc/claude-mpm/compare/v4.0.3...HEAD
+[4.0.3]: https://github.com/bobmatnyc/claude-mpm/compare/v4.0.2...v4.0.3
+[4.0.2]: https://github.com/bobmatnyc/claude-mpm/compare/v4.0.0...v4.0.2
+[4.0.0]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.11...v4.0.0
+[3.9.11]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.10...v3.9.11
+[3.9.10]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.9...v3.9.10
+[3.9.9]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.8...v3.9.9
+[3.9.8]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.4...v3.9.8
+[3.9.4]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.3...v3.9.4
+[3.9.3]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.2...v3.9.3
+[3.9.2]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.1...v3.9.2
+[3.9.1]: https://github.com/bobmatnyc/claude-mpm/compare/v3.9.0...v3.9.1
+[3.9.0]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.4...v3.9.0
+[3.8.4]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.3...v3.8.4
+[3.8.3]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.2...v3.8.3
+[3.8.2]: https://github.com/bobmatnyc/claude-mpm/compare/v3.8.0...v3.8.2
+[3.8.0]: https://github.com/bobmatnyc/claude-mpm/releases/tag/v3.8.0
 

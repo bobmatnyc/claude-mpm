@@ -154,9 +154,17 @@ class OneshotSession:
 
         # Add system instructions if available
         system_prompt = self.runner._create_system_prompt()
+        
+        # Debug: log the system prompt to check for issues
+        if system_prompt:
+            self.logger.debug(f"System prompt length: {len(system_prompt)}")
+            if "Path.cwd()" in system_prompt or "Path(" in system_prompt:
+                self.logger.warning("System prompt contains Python code references!")
+        
         if system_prompt and system_prompt != self._get_simple_context():
-            cmd.insert(-2, "--append-system-prompt")
-            cmd.insert(-2, system_prompt)
+            # The problem might be with insert positioning
+            # Let's add system prompt differently
+            cmd.extend(["--append-system-prompt", system_prompt])
 
         return cmd
 
@@ -177,6 +185,11 @@ class OneshotSession:
     ) -> Tuple[bool, Optional[str]]:
         """Run the subprocess and handle all exception types."""
         try:
+            # Debug: log the command being run
+            self.logger.debug(f"Running command: {' '.join(cmd[:5])}...")
+            if len(cmd) > 5:
+                self.logger.debug(f"Command has {len(cmd)} arguments total")
+            
             result = subprocess.run(cmd, capture_output=True, text=True, env=env)
 
             if result.returncode == 0:
@@ -323,6 +336,11 @@ class OneshotSession:
     def _handle_error_response(self, error_msg: str, return_code: int) -> None:
         """Handle an error response from Claude."""
         print(f"Error: {error_msg}")
+        
+        # Debug: print full traceback if available
+        import traceback
+        if "Traceback" in error_msg or "Error:" in error_msg:
+            self.logger.debug(f"Full error output:\n{error_msg}")
 
         # Broadcast error
         if self.runner.websocket_server:

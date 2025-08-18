@@ -1,0 +1,85 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Extract version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          # Extract the specific version section from CHANGELOG.md
+          # Look for the version header and capture until the next version header or end
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          # Create release notes file
+          echo "# Release Notes for v${VERSION}" > release_notes.md
+          echo "" >> release_notes.md
+          
+          # Extract the section for this version
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]") > 0) {
+                found = 1
+                next
+              }
+            }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md >> release_notes.md
+          
+          # Check if we found any content
+          if [ ! -s release_notes.md ] || [ $(wc -l < release_notes.md) -le 2 ]; then
+            echo "No release notes found for version ${VERSION}, using default message"
+            echo "# Release v${VERSION}" > release_notes.md
+            echo "" >> release_notes.md
+            echo "This release includes various improvements and bug fixes." >> release_notes.md
+            echo "" >> release_notes.md
+            echo "Please see the [CHANGELOG](https://github.com/bobmatnyc/claude-mpm/blob/main/CHANGELOG.md) for details." >> release_notes.md
+          fi
+          
+          # Add footer with links
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Full Changelog**: https://github.com/bobmatnyc/claude-mpm/compare/v${{ steps.version.outputs.VERSION }}...HEAD" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Installation**:" >> release_notes.md
+          echo '```bash' >> release_notes.md
+          echo "pip install claude-mpm==${{ steps.version.outputs.VERSION }}" >> release_notes.md
+          echo '```' >> release_notes.md
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_notes.md
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.VERSION, 'rc') || contains(steps.version.outputs.VERSION, 'beta') || contains(steps.version.outputs.VERSION, 'alpha') }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload to PyPI
+        if: ${{ !contains(steps.version.outputs.VERSION, 'rc') && !contains(steps.version.outputs.VERSION, 'beta') && !contains(steps.version.outputs.VERSION, 'alpha') }}
+        run: |
+          echo "Note: PyPI upload should be configured separately"
+          echo "This is a placeholder for the PyPI upload step"
+          # Uncomment and configure when ready:
+          # python -m pip install --upgrade pip build twine
+          # python -m build
+          # python -m twine upload dist/*

@@ -114,6 +114,7 @@ class SocketIOServer(SocketIOServiceInterface):
             buffer_lock=self.buffer_lock,
             stats=self.stats,
             logger=self.logger,
+            server=self,  # Pass server reference for event history access
         )
 
         # Set the loop reference for broadcaster

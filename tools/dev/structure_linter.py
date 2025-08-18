@@ -22,6 +22,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
+import subprocess
 
 # Project root detection
 def find_project_root() -> Path:
@@ -92,6 +93,7 @@ class StructureLinter:
         self.verbose = verbose
         self.violations: List[Dict] = []
         self.rules = self._load_rules()
+        self.changelog_sections = ['Added', 'Changed', 'Fixed', 'Removed', 'Deprecated', 'Security']
     
     def _load_rules(self) -> List[StructureRule]:
         """Load structure validation rules based on STRUCTURE.md."""
@@ -138,6 +140,12 @@ class StructureLinter:
         for file_path in target_path.rglob("*"):
             if file_path.is_file() and not self._should_ignore(file_path):
                 self._check_file(file_path)
+        
+        # Check changelog
+        self._check_changelog()
+        
+        # Check version consistency
+        self._check_version_consistency()
         
         # Report results
         if self.violations:
@@ -265,6 +273,146 @@ class StructureLinter:
             if self.verbose:
                 print(f"Error fixing {violation['file']}: {e}")
             return False
+    
+    def _check_changelog(self):
+        """Check CHANGELOG.md format and requirements."""
+        changelog_path = PROJECT_ROOT / "CHANGELOG.md"
+        
+        if not changelog_path.exists():
+            self.violations.append({
+                "file": "CHANGELOG.md",
+                "rule": "missing_changelog",
+                "message": "CHANGELOG.md file is missing",
+                "description": "Project must have a CHANGELOG.md file",
+                "suggested_locations": ["."]
+            })
+            return
+        
+        content = changelog_path.read_text()
+        lines = content.split('\n')
+        
+        # Check for [Unreleased] section
+        has_unreleased = False
+        unreleased_line = -1
+        for i, line in enumerate(lines):
+            if re.match(r'^##\s+\[Unreleased\]', line):
+                has_unreleased = True
+                unreleased_line = i
+                break
+        
+        if not has_unreleased:
+            self.violations.append({
+                "file": "CHANGELOG.md",
+                "rule": "missing_unreleased_section",
+                "message": "CHANGELOG.md missing [Unreleased] section",
+                "description": "CHANGELOG.md must have an [Unreleased] section for upcoming changes",
+                "suggested_locations": []
+            })
+        else:
+            # Check that [Unreleased] section has proper subsections
+            found_sections = set()
+            for i in range(unreleased_line + 1, min(unreleased_line + 20, len(lines))):
+                line = lines[i]
+                if re.match(r'^##\s+\[', line):  # Next version section
+                    break
+                for section in self.changelog_sections:
+                    if re.match(rf'^###\s+{section}', line):
+                        found_sections.add(section)
+            
+            # At least some of the standard sections should be present
+            if len(found_sections) < 3:
+                self.violations.append({
+                    "file": "CHANGELOG.md", 
+                    "rule": "incomplete_unreleased_section",
+                    "message": f"[Unreleased] section missing standard subsections (found: {', '.join(found_sections) if found_sections else 'none'})",
+                    "description": f"[Unreleased] section should have subsections: {', '.join(self.changelog_sections[:4])}",
+                    "suggested_locations": []
+                })
+        
+        # Check for Keep a Changelog format
+        if "Keep a Changelog" not in content:
+            self.violations.append({
+                "file": "CHANGELOG.md",
+                "rule": "invalid_changelog_format",
+                "message": "CHANGELOG.md not following Keep a Changelog format",
+                "description": "CHANGELOG.md should follow https://keepachangelog.com format",
+                "suggested_locations": []
+            })
+        
+        # Check for comparison links
+        if not re.search(r'\[Unreleased\]:\s+https?://', content):
+            self.violations.append({
+                "file": "CHANGELOG.md",
+                "rule": "missing_comparison_links",
+                "message": "CHANGELOG.md missing comparison links for versions",
+                "description": "CHANGELOG.md should have comparison links at the bottom",
+                "suggested_locations": []
+            })
+    
+    def _check_version_consistency(self):
+        """Check version consistency across files."""
+        version_file = PROJECT_ROOT / "VERSION"
+        package_json = PROJECT_ROOT / "package.json"
+        pyproject_toml = PROJECT_ROOT / "pyproject.toml"
+        
+        versions = {}
+        
+        # Read VERSION file
+        if version_file.exists():
+            versions['VERSION'] = version_file.read_text().strip()
+        else:
+            self.violations.append({
+                "file": "VERSION",
+                "rule": "missing_version_file",
+                "message": "VERSION file is missing",
+                "description": "Project must have a VERSION file",
+                "suggested_locations": ["."]
+            })
+        
+        # Read package.json version
+        if package_json.exists():
+            try:
+                import json
+                with open(package_json) as f:
+                    pkg_data = json.load(f)
+                    versions['package.json'] = pkg_data.get('version', '')
+            except Exception as e:
+                if self.verbose:
+                    print(f"Error reading package.json: {e}")
+        
+        # Read pyproject.toml commitizen version
+        if pyproject_toml.exists():
+            content = pyproject_toml.read_text()
+            match = re.search(r'\[tool\.commitizen\].*?version\s*=\s*"([^"]+)"', content, re.DOTALL)
+            if match:
+                versions['pyproject.toml'] = match.group(1)
+        
+        # Check consistency
+        if len(set(versions.values())) > 1:
+            self.violations.append({
+                "file": "version_files",
+                "rule": "version_mismatch",
+                "message": f"Version mismatch across files: {versions}",
+                "description": "All version files must have the same version number",
+                "suggested_locations": []
+            })
+        
+        # Check that version is in CHANGELOG
+        if 'VERSION' in versions and versions['VERSION']:
+            changelog_path = PROJECT_ROOT / "CHANGELOG.md"
+            if changelog_path.exists():
+                content = changelog_path.read_text()
+                version_pattern = rf'##\s+\[{re.escape(versions["VERSION"])}\]'
+                if not re.search(version_pattern, content):
+                    # Only warn if this is not a development version
+                    if not versions['VERSION'].endswith('-dev'):
+                        self.violations.append({
+                            "file": "CHANGELOG.md",
+                            "rule": "version_not_in_changelog",
+                            "message": f"Version {versions['VERSION']} not found in CHANGELOG.md",
+                            "description": "Current version must have an entry in CHANGELOG.md",
+                            "suggested_locations": []
+                        })
 
 def main():
     parser = argparse.ArgumentParser(description="Claude MPM Project Structure Linter")

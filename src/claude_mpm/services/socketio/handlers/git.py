@@ -35,9 +35,7 @@ class GitEventHandler(BaseEventHandler):
             to provide context about which branch changes are being made on.
             """
             try:
-                self.logger.info(
-                    f"[GIT-BRANCH-DEBUG] get_git_branch called with working_dir: {repr(working_dir)} (type: {type(working_dir)})"
-                )
+                # Debug: get_git_branch called
 
                 # Validate and sanitize working directory
                 working_dir = self._sanitize_working_dir(working_dir, "get_git_branch")
@@ -47,9 +45,7 @@ class GitEventHandler(BaseEventHandler):
                 ):
                     return
 
-                self.logger.info(
-                    f"[GIT-BRANCH-DEBUG] Running git command in directory: {working_dir}"
-                )
+                # Debug: Running git command
 
                 # Run git command to get current branch
                 result = subprocess.run(
@@ -59,15 +55,11 @@ class GitEventHandler(BaseEventHandler):
                     text=True,
                 )
 
-                self.logger.info(
-                    f"[GIT-BRANCH-DEBUG] Git command result: returncode={result.returncode}, stdout={repr(result.stdout)}, stderr={repr(result.stderr)}"
-                )
+                # Debug: Git command completed
 
                 if result.returncode == 0:
                     branch = result.stdout.strip()
-                    self.logger.info(
-                        f"[GIT-BRANCH-DEBUG] Successfully got git branch: {branch}"
-                    )
+                    # Debug: Successfully got git branch
                     await self.emit_to_client(
                         sid,
                         "git_branch_response",
@@ -79,9 +71,7 @@ class GitEventHandler(BaseEventHandler):
                         },
                     )
                 else:
-                    self.logger.warning(
-                        f"[GIT-BRANCH-DEBUG] Git command failed: {result.stderr}"
-                    )
+                    self.logger.warning(f"Git command failed: {result.stderr}")
                     await self.emit_to_client(
                         sid,
                         "git_branch_response",
@@ -173,9 +163,7 @@ class GitEventHandler(BaseEventHandler):
                 file_path = data.get("file_path")
                 working_dir = data.get("working_dir", os.getcwd())
 
-                self.logger.info(
-                    f"[GIT-STATUS-DEBUG] check_git_status called with file_path: {repr(file_path)}, working_dir: {repr(working_dir)}"
-                )
+                # Debug: check_git_status called
 
                 if not file_path:
                     await self.emit_to_client(
@@ -228,9 +216,7 @@ class GitEventHandler(BaseEventHandler):
                     else Path(working_dir) / file_path
                 )
                 if not full_path.exists():
-                    self.logger.warning(
-                        f"[GIT-STATUS-DEBUG] File does not exist: {full_path}"
-                    )
+                    self.logger.warning(f"File does not exist: {full_path}")
                     await self.emit_to_client(
                         sid,
                         "git_status_response",
@@ -250,9 +236,7 @@ class GitEventHandler(BaseEventHandler):
                 )
 
                 if is_tracked or has_changes:
-                    self.logger.info(
-                        f"[GIT-STATUS-DEBUG] Git status check successful for {file_path}"
-                    )
+                    # Debug: Git status check successful
                     await self.emit_to_client(
                         sid,
                         "git_status_response",
@@ -266,9 +250,7 @@ class GitEventHandler(BaseEventHandler):
                         },
                     )
                 else:
-                    self.logger.info(
-                        f"[GIT-STATUS-DEBUG] File {file_path} is not tracked by git"
-                    )
+                    # Debug: File is not tracked by git
                     await self.emit_to_client(
                         sid,
                         "git_status_response",
@@ -306,9 +288,7 @@ class GitEventHandler(BaseEventHandler):
                 file_path = data.get("file_path")
                 working_dir = data.get("working_dir", os.getcwd())
 
-                self.logger.info(
-                    f"[GIT-ADD-DEBUG] git_add_file called with file_path: {repr(file_path)}, working_dir: {repr(working_dir)} (type: {type(working_dir)})"
-                )
+                # Debug: git_add_file called
 
                 if not file_path:
                     await self.emit_to_client(
@@ -331,9 +311,7 @@ class GitEventHandler(BaseEventHandler):
                 ):
                     return
 
-                self.logger.info(
-                    f"[GIT-ADD-DEBUG] Running git add command in directory: {working_dir}"
-                )
+                # Debug: Running git add command
 
                 # Use git add to track the file
                 result = subprocess.run(
@@ -342,14 +320,10 @@ class GitEventHandler(BaseEventHandler):
                     text=True,
                 )
 
-                self.logger.info(
-                    f"[GIT-ADD-DEBUG] Git add result: returncode={result.returncode}, stdout={repr(result.stdout)}, stderr={repr(result.stderr)}"
-                )
+                # Debug: Git add completed
 
                 if result.returncode == 0:
-                    self.logger.info(
-                        f"[GIT-ADD-DEBUG] Successfully added {file_path} to git in {working_dir}"
-                    )
+                    # Debug: Successfully added file to git
                     await self.emit_to_client(
                         sid,
                         "git_add_response",
@@ -363,9 +337,7 @@ class GitEventHandler(BaseEventHandler):
                     )
                 else:
                     error_message = result.stderr.strip() or "Unknown git error"
-                    self.logger.warning(
-                        f"[GIT-ADD-DEBUG] Git add failed: {error_message}"
-                    )
+                    self.logger.warning(f"Git add failed: {error_message}")
                     await self.emit_to_client(
                         sid,
                         "git_add_response",
@@ -483,9 +455,7 @@ class GitEventHandler(BaseEventHandler):
         """Validate directory for git status operations."""
         working_dir_path = Path(working_dir)
         if not working_dir_path.exists():
-            self.logger.warning(
-                f"[GIT-STATUS-DEBUG] Directory does not exist: {working_dir}"
-            )
+            self.logger.warning(f"Directory does not exist: {working_dir}")
             await self.emit_to_client(
                 sid,
                 "git_status_response",
@@ -500,9 +470,7 @@ class GitEventHandler(BaseEventHandler):
             return False
 
         if not working_dir_path.is_dir():
-            self.logger.warning(
-                f"[GIT-STATUS-DEBUG] Path is not a directory: {working_dir}"
-            )
+            self.logger.warning(f"Path is not a directory: {working_dir}")
             await self.emit_to_client(
                 sid,
                 "git_status_response",
@@ -524,9 +492,7 @@ class GitEventHandler(BaseEventHandler):
         """Validate directory for git add operations."""
         working_dir_path = Path(working_dir)
         if not working_dir_path.exists():
-            self.logger.warning(
-                f"[GIT-ADD-DEBUG] Directory does not exist: {working_dir}"
-            )
+            self.logger.warning(f"Directory does not exist: {working_dir}")
             await self.emit_to_client(
                 sid,
                 "git_add_response",
@@ -541,9 +507,7 @@ class GitEventHandler(BaseEventHandler):
             return False
 
         if not working_dir_path.is_dir():
-            self.logger.warning(
-                f"[GIT-ADD-DEBUG] Path is not a directory: {working_dir}"
-            )
+            self.logger.warning(f"Path is not a directory: {working_dir}")
             await self.emit_to_client(
                 sid,
                 "git_add_response",
@@ -672,13 +636,10 @@ class GitEventHandler(BaseEventHandler):
             original_working_dir = working_dir
             if not working_dir or working_dir == "Unknown" or working_dir.strip() == "":
                 working_dir = os.getcwd()
-                self.logger.info(
-                    f"[GIT-DIFF-DEBUG] working_dir was invalid ({repr(original_working_dir)}), using cwd: {working_dir}"
-                )
+                # Debug: working_dir was invalid, using cwd
             else:
-                self.logger.info(
-                    f"[GIT-DIFF-DEBUG] Using provided working_dir: {working_dir}"
-                )
+                # Debug: Using provided working_dir
+                pass
 
             # For read-only git operations, we can work from any directory
             # by passing the -C flag to git commands instead of changing directories
