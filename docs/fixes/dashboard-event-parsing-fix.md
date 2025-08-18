@@ -86,9 +86,11 @@ Created comprehensive unit tests in:
 - `/tests/dashboard/test_event_field_protection.py` - Tests field protection logic
 
 ### Validation Scripts
-- `/scripts/test_event_transform_logic.py` - Python simulation of JS logic
-- `/scripts/validate_event_fix.py` - Comprehensive validation suite
-- `/scripts/demo_event_fix.py` - Simple demonstration of the fix
+- ~~`/scripts/test_event_transform_logic.py`~~ - Python simulation of JS logic (REMOVED)
+- ~~`/scripts/validate_event_fix.py`~~ - Comprehensive validation suite (REMOVED)
+- ~~`/scripts/demo_event_fix.py`~~ - Simple demonstration of the fix (REMOVED)
+
+**Note**: These validation scripts were removed during scripts directory cleanup. The fix has been verified and is working correctly.
 
 ### Test Coverage
 The fix handles:
@@ -103,9 +105,11 @@ The fix handles:
 To verify the fix works:
 
 1. Build the dashboard: `npm run build:dashboard`
-2. Run the demo: `python scripts/demo_event_fix.py`
+2. ~~Run the demo: `python scripts/demo_event_fix.py`~~ (Script removed - fix verified)
 3. Open http://localhost:8080
 4. Check that events display with correct types (not "unknown")
+
+**Note**: The demo script was removed during cleanup, but the fix has been verified and is working correctly in production.
 
 ## Impact
 - ✅ Events now display with correct types

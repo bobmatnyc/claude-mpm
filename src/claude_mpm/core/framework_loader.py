@@ -258,29 +258,102 @@ class FrameworkLoader:
                     content["project_memory"] = "system"
                     self.logger.info("Using system MEMORY.md")
     
+    def _get_deployed_agents(self) -> set:
+        """
+        Get a set of deployed agent names from .claude/agents/ directories.
+        
+        Returns:
+            Set of agent names (file stems) that are deployed
+        """
+        deployed = set()
+        
+        # Check multiple locations for deployed agents
+        agents_dirs = [
+            Path.cwd() / ".claude" / "agents",  # Project-specific agents
+            Path.home() / ".claude" / "agents",  # User's system agents
+        ]
+        
+        for agents_dir in agents_dirs:
+            if agents_dir.exists():
+                for agent_file in agents_dir.glob("*.md"):
+                    if not agent_file.name.startswith("."):
+                        # Use stem to get agent name without extension
+                        deployed.add(agent_file.stem)
+                        self.logger.debug(f"Found deployed agent: {agent_file.stem} in {agents_dir}")
+        
+        self.logger.debug(f"Total deployed agents found: {len(deployed)}")
+        return deployed
+    
     def _load_actual_memories(self, content: Dict[str, Any]) -> None:
         """
-        Load actual PM memories from .claude-mpm/memories/PM.md.
+        Load actual memories from .claude-mpm/memories/ directory.
         
-        These are the actual memories/knowledge that the PM should have,
-        as opposed to the memory system instructions in MEMORY.md.
+        This loads:
+        1. PM memories from PM.md (always loaded)
+        2. Agent memories from <agent>.md (only if agent is deployed)
         
         Args:
             content: Dictionary to update with actual memories
         """
-        memories_path = Path.cwd() / ".claude-mpm" / "memories" / "PM.md"
-        if memories_path.exists():
+        memories_dir = Path.cwd() / ".claude-mpm" / "memories"
+        
+        # Log the memory loading process
+        if memories_dir.exists():
+            self.logger.info(f"Loading memory files from: {memories_dir}")
+        else:
+            self.logger.debug(f"No memories directory found at: {memories_dir}")
+            return
+        
+        # Check for deployed agents
+        deployed_agents = self._get_deployed_agents()
+        
+        # Track loading statistics
+        loaded_count = 0
+        skipped_count = 0
+        
+        # Load PM memories (always loaded)
+        pm_memory_path = memories_dir / "PM.md"
+        if pm_memory_path.exists():
             loaded_content = self._try_load_file(
-                memories_path, "PM memories"
+                pm_memory_path, "PM memory"
             )
             if loaded_content:
                 content["actual_memories"] = loaded_content
-                self.logger.info(f"Loaded PM memories from: {memories_path}")
-                # Log memory size for monitoring
                 memory_size = len(loaded_content.encode('utf-8'))
-                self.logger.debug(f"PM memory size: {memory_size:,} bytes")
+                self.logger.info(f"Loaded PM memory: {pm_memory_path} ({memory_size:,} bytes)")
+                loaded_count += 1
         else:
-            self.logger.debug(f"No PM memories found at: {memories_path}")
+            self.logger.debug(f"No PM memory found at: {pm_memory_path}")
+        
+        # Load agent memories (only for deployed agents)
+        for memory_file in memories_dir.glob("*.md"):
+            # Skip PM.md as we already handled it
+            if memory_file.name == "PM.md":
+                continue
+            
+            # Extract agent name from file
+            agent_name = memory_file.stem
+            
+            # Check if agent is deployed
+            if agent_name in deployed_agents:
+                loaded_content = self._try_load_file(
+                    memory_file, f"agent memory: {agent_name}"
+                )
+                if loaded_content:
+                    # Store agent memories separately (for future use)
+                    if "agent_memories" not in content:
+                        content["agent_memories"] = {}
+                    content["agent_memories"][agent_name] = loaded_content
+                    memory_size = len(loaded_content.encode('utf-8'))
+                    self.logger.info(f"Loaded agent memory: {memory_file.name} (deployed agent found, {memory_size:,} bytes)")
+                    loaded_count += 1
+            else:
+                self.logger.info(f"Skipped agent memory: {memory_file.name} (agent not deployed)")
+                skipped_count += 1
+        
+        # Log summary
+        if loaded_count > 0 or skipped_count > 0:
+            self.logger.info(f"Memory loading complete: {loaded_count} memories loaded, {skipped_count} skipped")
 
     def _load_single_agent(
         self, agent_file: Path
@@ -641,10 +714,23 @@ Extract tickets from these patterns:
             import yaml
 
             # Read directly from deployed agents in .claude/agents/
-            agents_dir = Path.cwd() / ".claude" / "agents"
+            # Check multiple locations for deployed agents
+            # Priority order: project > user home > fallback
+            agents_dirs = [
+                Path.cwd() / ".claude" / "agents",  # Project-specific agents
+                Path.home() / ".claude" / "agents",  # User's system agents
+            ]
+            
+            agents_dir = None
+            for potential_dir in agents_dirs:
+                if potential_dir.exists() and any(potential_dir.glob("*.md")):
+                    agents_dir = potential_dir
+                    self.logger.debug(f"Found agents directory at: {agents_dir}")
+                    break
 
-            if not agents_dir.exists():
-                self.logger.warning("No .claude/agents directory found")
+
+            if not agents_dir:
+                self.logger.warning(f"No .claude/agents directory found in any location: {agents_dirs}")
                 return self._get_fallback_capabilities()
 
             # Build capabilities section
