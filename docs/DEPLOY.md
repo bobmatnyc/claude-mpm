@@ -2,6 +2,25 @@
 
 This guide covers versioning, building, and deploying Claude MPM to various distribution channels.
 
+## Overview
+
+Claude MPM uses a **Make-based release system** that provides:
+
+- ✅ **One-command releases** - `make release-patch` handles everything
+- ✅ **Multi-channel publishing** - PyPI, npm, and GitHub simultaneously
+- ✅ **Version synchronization** - All version files kept in sync automatically
+- ✅ **Safety checks** - Prerequisites, tests, and confirmations
+- ✅ **Incremental builds** - Only rebuilds what's necessary
+- ✅ **Standard tooling** - Uses Make, commitizen, and GitHub CLI
+
+**Quick Start:**
+```bash
+make release-patch      # Bug fix release
+make release-publish    # Publish to all channels
+```
+
+See the [Release Process](#release-process) section for complete details.
+
 ## Local Development Deployment
 
 This section covers setting up claude-mpm for local development, making it accessible from anywhere on your system.
@@ -225,96 +244,217 @@ Claude MPM uses automated semantic versioning based on git tags. See [VERSIONING
 
 ## Release Process
 
-### Unified Release Script (Recommended)
+### Make-Based Release System (Recommended)
 
-The easiest way to release Claude MPM is using the unified release script that handles all aspects of the release:
+Claude MPM uses a comprehensive Make-based release system that integrates with existing build tools and provides a streamlined workflow. This replaces the previous Python script approach with faster, more reliable Make targets.
+
+#### Quick Start
 
 ```bash
-# Dry run to see what will happen
-./scripts/release.py patch --dry-run
+# Most common: patch release (bug fixes)
+make release-patch
 
-# Release a patch version
-./scripts/release.py patch
+# After review, publish the release
+make release-publish
 
-# Release a minor version
-./scripts/release.py minor
-
-# Release a major version
-./scripts/release.py major
-
-# Test with TestPyPI first
-./scripts/release.py patch --test-pypi
-
-# Skip tests (emergency release only)
-./scripts/release.py patch --skip-tests
+# Or do both in one step
+make release-full
 ```
 
-The unified release script will:
-1. Run pre-release checks (clean working directory, correct branch)
-2. Run the test suite
-3. Bump the version using semantic versioning
-4. **Automatically synchronize package.json version with Python version**
-5. Commit and tag the changes
-6. Build Python distributions
-7. **Publish to PyPI** (or TestPyPI)
-8. **Publish to npm registry as @bobmatnyc/claude-mpm**
-9. Create a GitHub release with changelog
-10. **Verify package availability on both PyPI and npm**
+#### Release Types
 
-The script ensures complete dual distribution with a single command, handling both PyPI and npm publishing automatically.
+**Patch Release (Bug Fixes)**
+```bash
+make release-patch    # 4.0.4 → 4.0.5
+```
+
+**Minor Release (New Features)**
+```bash
+make release-minor    # 4.0.4 → 4.1.0
+```
+
+**Major Release (Breaking Changes)**
+```bash
+make release-major    # 4.0.4 → 5.0.0
+```
+
+#### Complete Workflow
+
+**1. Preparation**
+```bash
+# Check if environment is ready
+make release-check
+
+# Run tests
+make release-test
+
+# Preview what would happen (dry run)
+make release-dry-run
+```
+
+**2. Create Release**
+```bash
+# Choose one based on your changes
+make release-patch   # Bug fixes
+make release-minor   # New features
+make release-major   # Breaking changes
+```
+
+This will:
+- ✅ Check prerequisites (git, python, cz, gh)
+- ✅ Verify clean working directory
+- ✅ Run test suite
+- ✅ Bump version using commitizen
+- ✅ Sync all version files (VERSION, src/claude_mpm/VERSION, package.json)
+- ✅ Build Python package
+- ✅ Prepare for publishing
+
+**3. Publish Release**
+```bash
+make release-publish
+```
+
+This will:
+- 📤 Publish to PyPI
+- 📤 Publish to npm as @bobmatnyc/claude-mpm
+- 🏷️ Create GitHub release with changelog
+- 🔍 Show verification links
+
+**4. Verify Release**
+```bash
+make release-verify
+```
+
+#### Testing and Safety
+
+```bash
+# Test on TestPyPI first
+make release-test-pypi
+
+# See what would happen without making changes
+make release-dry-run
+
+# Get help on all release targets
+make release-help
+```
+
+#### Prerequisites
+
+The release system requires these tools:
+
+- **git** - Version control
+- **python** - Python interpreter
+- **cz** (commitizen) - Version bumping and changelog
+- **gh** (GitHub CLI) - GitHub releases
+- **twine** - PyPI publishing (optional)
+- **npm** - npm publishing (optional)
+
+Install missing tools:
+```bash
+# Commitizen
+pip install commitizen
+
+# GitHub CLI
+# macOS: brew install gh
+# Other: https://cli.github.com/
+
+# Twine
+pip install twine
+```
+
+#### Advantages of Make-Based System
+
+- ✅ **Faster** - No Python startup overhead
+- ✅ **Simpler** - Standard Make syntax
+- ✅ **Integrated** - Works with existing Makefile
+- ✅ **Incremental** - Only runs necessary steps
+- ✅ **Parallel** - Can run independent tasks in parallel
+- ✅ **Universal** - Make is available everywhere
+
+#### Version Synchronization
+
+The release system automatically synchronizes versions across:
+
+- `VERSION` (root file - primary source)
+- `src/claude_mpm/VERSION` (package distribution)
+- `package.json` (npm package)
+- `pyproject.toml` (commitizen tracking)
 
 **Important Notes:**
-- The script ensures npm and PyPI versions are always synchronized
-- Use `--dry-run` to preview all changes before executing
-- Version synchronization can be verified anytime with `./scripts/check_version_sync.py`
-- The script will abort if versions are already out of sync (run check_version_sync.py first)
+- All version files are kept in perfect sync automatically
+- Use `make release-check` to verify environment readiness
+- Use `make release-dry-run` to preview changes before executing
+- The system will abort if working directory is not clean
 
-### Manual Release Process
+### Legacy Release Script (Deprecated)
 
-If you need to release manually, follow these steps:
+The previous Python-based release script (`./scripts/release.py`) is still available but deprecated in favor of the Make-based system. The Make targets provide the same functionality with better performance and integration.
+
+### Manual Release Process (Advanced)
+
+If you need to release manually or understand the individual steps, you can run them separately:
 
 #### 1. Prepare Release
 
 ```bash
-# Ensure clean working directory
-git status
+# Check prerequisites and environment
+make release-check
 
-# Check version synchronization
-./scripts/check_version_sync.py
+# Run test suite
+make release-test
 
-# Run tests
-./scripts/run_all_tests.sh
+# Manually bump version using commitizen
+cz bump --patch  # or --minor, --major
 
-# Update version and changelog
-./scripts/manage_version.py auto
-
-# Update package.json version to match
-npm version $(cat VERSION) --no-git-tag-version
+# Sync version files
+make release-sync-versions
 
 # Review changes
 git show HEAD
 cat CHANGELOG.md
 ```
 
-#### 2. Push Release
+#### 2. Build and Publish
 
 ```bash
-# Push commits and tags
-git push origin main
-git push origin --tags
+# Build Python package
+make release-build
+
+# Publish to PyPI
+python -m twine upload dist/*
+
+# Publish to npm (optional)
+npm publish
+
+# Create GitHub release
+VERSION=$(cat VERSION)
+gh release create "v$VERSION" \
+  --title "Claude MPM v$VERSION" \
+  --notes-from-tag \
+  dist/*
 ```
 
-#### 3. Build Distributions
+#### 3. Verify Release
 
 ```bash
-# Clean previous builds
-rm -rf dist/ build/
+# Show verification links
+make release-verify
 
-# Build Python package
-python -m build
+# Test installation
+pip install --upgrade claude-mpm
+claude-mpm --version
+```
 
-# Verify build
-ls -la dist/
+#### Individual Make Targets
+
+For granular control, use individual targets:
+
+```bash
+make release-check          # Check prerequisites
+make release-test           # Run test suite
+make release-build          # Build package only
+make release-sync-versions  # Sync version files
+make release-verify         # Show verification links
 ```
 
 ## Distribution Channels
@@ -543,7 +683,7 @@ claude-mpm agents list
 
 ## Deployment Checklist
 
-When using the unified release script (`./scripts/release.py`), all items are handled automatically:
+When using the Make-based release system (`make release-patch/minor/major`), all items are handled automatically:
 
 ### Pre-Deployment Documentation Cleanup
 
@@ -570,46 +710,80 @@ When using the unified release script (`./scripts/release.py`), all items are ha
 
 ### Release Process
 
-- [ ] All tests passing (`./scripts/run_all_tests.sh`)
-- [ ] Version bumped (`./scripts/manage_version.py auto`)
-- [ ] package.json version synchronized
-- [ ] CHANGELOG.md updated
-- [ ] Git tag created and pushed
-- [ ] Python package built (`python -m build`)
-- [ ] PyPI deployment successful
-- [ ] npm deployment successful
-- [ ] GitHub release created
-- [ ] Post-deployment verification completed
+**Using Make-based system (Recommended):**
+
+```bash
+# Complete release workflow
+make release-patch     # or release-minor/release-major
+make release-publish   # or use release-full for both steps
+```
+
+**Automated checklist (handled by Make targets):**
+
+- [ ] Prerequisites checked (`make release-check`)
+- [ ] All tests passing (`make release-test`)
+- [ ] Version bumped using commitizen (`cz bump`)
+- [ ] All version files synchronized (`make release-sync-versions`)
+- [ ] CHANGELOG.md updated (by commitizen)
+- [ ] Git tag created and pushed (by commitizen)
+- [ ] Python package built (`make release-build`)
+- [ ] PyPI deployment successful (`make release-publish`)
+- [ ] npm deployment successful (`make release-publish`)
+- [ ] GitHub release created (`make release-publish`)
+- [ ] Post-deployment verification completed (`make release-verify`)
 - [ ] Documentation updated if needed
 
-For manual releases, check each item individually.
+**Manual verification:**
+
+- [ ] Check PyPI: https://pypi.org/project/claude-mpm/
+- [ ] Check npm: https://www.npmjs.com/package/@bobmatnyc/claude-mpm
+- [ ] Check GitHub: https://github.com/bobmatnyc/claude-mpm/releases
+- [ ] Test installation: `pip install --upgrade claude-mpm`
+
+For manual releases, use individual Make targets or check each item individually.
 
 ## Rollback Procedure
 
 If issues are discovered after deployment:
 
-### PyPI Rollback
+### Quick Fix Release (Recommended)
 
+```bash
+# Create a patch release with the fix
+make release-patch
+make release-publish
+```
+
+This is the fastest way to address issues since you cannot delete published packages.
+
+### Manual Rollback Steps
+
+**PyPI Rollback:**
 ```bash
 # Cannot delete, but can yank a release
 pip install twine
-twine yank claude-mpm==1.0.0
+twine yank claude-mpm==4.0.4 "Critical bug, use 4.0.5"
 
-# Upload fixed version with higher number
-./scripts/manage_version.py bump --bump-type patch
-python -m build
-twine upload dist/*
+# Create fixed version using Make system
+make release-patch      # Automatically bumps to 4.0.5
+make release-publish    # Publishes fix
 ```
 
-### npm Rollback
-
+**npm Rollback:**
 ```bash
 # Deprecate broken version
-npm deprecate @bobmatnyc/claude-mpm@1.0.0 "Critical bug, use 1.0.1"
+npm deprecate @bobmatnyc/claude-mpm@4.0.4 "Critical bug, use 4.0.5"
 
-# Publish fixed version
-npm version patch
-npm publish
+# Fixed version is published automatically by make release-publish
+```
+
+**GitHub Release:**
+```bash
+# Mark release as pre-release or draft
+gh release edit v4.0.4 --prerelease
+
+# Or delete the release (keeps the tag)
+gh release delete v4.0.4
 ```
 
 ## Automated Deployment (CI/CD)
@@ -739,7 +913,34 @@ Agents are automatically updated when:
 
 ## Related Documentation
 
+- [RELEASE_MAKE.md](./RELEASE_MAKE.md) - **Detailed Make-based release guide**
 - [VERSIONING.md](./VERSIONING.md) - Detailed version management (includes agent versioning)
 - [CHANGELOG.md](../CHANGELOG.md) - Release history
 - [QA.md](./QA.md) - Testing procedures
 - [STRUCTURE.md](./STRUCTURE.md) - Project organization
+
+## Quick Reference
+
+**Most Common Release Commands:**
+```bash
+make release-help       # Show all release options
+make release-dry-run    # Preview what would happen
+make release-patch      # Bug fix release (4.0.4 → 4.0.5)
+make release-minor      # Feature release (4.0.4 → 4.1.0)
+make release-major      # Breaking change (4.0.4 → 5.0.0)
+make release-publish    # Publish prepared release
+make release-full       # Complete patch release + publish
+```
+
+**Prerequisites:**
+```bash
+# Install required tools
+pip install commitizen twine
+brew install gh  # or visit https://cli.github.com/
+```
+
+**Help:**
+```bash
+make help           # Show all Makefile targets
+make release-help   # Show detailed release help
+```
