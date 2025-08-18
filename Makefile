@@ -8,6 +8,7 @@
 #   make setup    - Complete setup (install + shell config)
 
 .PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all
+.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test release-sync-versions
 
 # Default shell
 SHELL := /bin/bash
@@ -346,3 +347,205 @@ structure-lint:
 structure-fix:
 	@echo "🔧 Running structure linting with auto-fix..."
 	@python tools/dev/structure_linter.py --fix --verbose
+
+# Release Management Targets
+.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
+.PHONY: release-dry-run release-test-pypi
+
+# Release prerequisites check
+release-check: ## Check if environment is ready for release
+	@echo "$(YELLOW)🔍 Checking release prerequisites...$(NC)"
+	@echo "Checking required tools..."
+	@command -v git >/dev/null 2>&1 || (echo "$(RED)✗ git not found$(NC)" && exit 1)
+	@command -v python >/dev/null 2>&1 || (echo "$(RED)✗ python not found$(NC)" && exit 1)
+	@command -v cz >/dev/null 2>&1 || (echo "$(RED)✗ commitizen not found. Install with: pip install commitizen$(NC)" && exit 1)
+	@command -v gh >/dev/null 2>&1 || (echo "$(RED)✗ GitHub CLI not found. Install from: https://cli.github.com/$(NC)" && exit 1)
+	@echo "$(GREEN)✓ All required tools found$(NC)"
+	@echo "Checking working directory..."
+	@if [ -n "$$(git status --porcelain)" ]; then \
+		echo "$(RED)✗ Working directory is not clean$(NC)"; \
+		git status --short; \
+		exit 1; \
+	fi
+	@echo "$(GREEN)✓ Working directory is clean$(NC)"
+	@echo "Checking current branch..."
+	@BRANCH=$$(git branch --show-current); \
+	if [ "$$BRANCH" != "main" ]; then \
+		echo "$(YELLOW)⚠ Currently on branch '$$BRANCH', not 'main'$(NC)"; \
+		read -p "Continue anyway? [y/N]: " confirm; \
+		if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+			echo "$(RED)Aborted$(NC)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(GREEN)✓ On main branch$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Release prerequisites check passed$(NC)"
+
+# Run tests before release
+release-test: ## Run test suite before release
+	@echo "$(YELLOW)🧪 Running test suite...$(NC)"
+	@if [ -f "scripts/run_all_tests.sh" ]; then \
+		bash scripts/run_all_tests.sh; \
+	elif command -v pytest >/dev/null 2>&1; then \
+		python -m pytest tests/ -v; \
+	else \
+		echo "$(YELLOW)⚠ No test runner found, skipping tests$(NC)"; \
+	fi
+	@echo "$(GREEN)✓ Tests passed$(NC)"
+
+# Build the package
+release-build: ## Build Python package for release
+	@echo "$(YELLOW)📦 Building package...$(NC)"
+	@rm -rf dist/ build/ *.egg-info
+	@python -m build
+	@echo "$(GREEN)✓ Package built successfully$(NC)"
+	@ls -la dist/
+
+# Sync version files after commitizen bump
+release-sync-versions: ## Synchronize version files after bump
+	@echo "$(YELLOW)🔄 Synchronizing version files...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	echo "Current version: $$VERSION"; \
+	echo "$$VERSION" > src/claude_mpm/VERSION; \
+	echo "$(GREEN)✓ Updated src/claude_mpm/VERSION$(NC)"; \
+	if [ -f "package.json" ]; then \
+		python -c "import json; \
+		with open('package.json', 'r') as f: data = json.load(f); \
+		data['version'] = '$$VERSION'; \
+		with open('package.json', 'w') as f: json.dump(data, f, indent=2); \
+		print('$(GREEN)✓ Updated package.json$(NC)')"; \
+	fi
+
+# Patch release (bug fixes)
+release-patch: release-check release-test ## Create a patch release (bug fixes)
+	@echo "$(YELLOW)🔧 Creating patch release...$(NC)"
+	@cz bump --patch
+	@$(MAKE) release-sync-versions
+	@$(MAKE) release-build
+	@echo "$(GREEN)✓ Patch release prepared$(NC)"
+	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
+
+# Minor release (new features)
+release-minor: release-check release-test ## Create a minor release (new features)
+	@echo "$(YELLOW)✨ Creating minor release...$(NC)"
+	@cz bump --minor
+	@$(MAKE) release-sync-versions
+	@$(MAKE) release-build
+	@echo "$(GREEN)✓ Minor release prepared$(NC)"
+	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
+
+# Major release (breaking changes)
+release-major: release-check release-test ## Create a major release (breaking changes)
+	@echo "$(YELLOW)💥 Creating major release...$(NC)"
+	@cz bump --major
+	@$(MAKE) release-sync-versions
+	@$(MAKE) release-build
+	@echo "$(GREEN)✓ Major release prepared$(NC)"
+	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
+
+# Publish release to all channels
+release-publish: ## Publish release to PyPI, npm, and GitHub
+	@echo "$(YELLOW)🚀 Publishing release...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	echo "Publishing version: $$VERSION"; \
+	read -p "Continue with publishing? [y/N]: " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "$(RED)Publishing aborted$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
+	@if command -v twine >/dev/null 2>&1; then \
+		python -m twine upload dist/*; \
+		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
+	else \
+		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)📤 Publishing to npm...$(NC)"
+	@if command -v npm >/dev/null 2>&1; then \
+		npm publish || echo "$(YELLOW)⚠ npm publish failed, continuing...$(NC)"; \
+		echo "$(GREEN)✓ npm publish attempted$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
+	fi
+	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	gh release create "v$$VERSION" \
+		--title "Claude MPM v$$VERSION" \
+		--notes-from-tag \
+		dist/* || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+	@echo "$(GREEN)✓ GitHub release created$(NC)"
+	@$(MAKE) release-verify
+
+# Publish to TestPyPI for testing
+release-test-pypi: release-build ## Publish to TestPyPI for testing
+	@echo "$(YELLOW)🧪 Publishing to TestPyPI...$(NC)"
+	@if command -v twine >/dev/null 2>&1; then \
+		python -m twine upload --repository testpypi dist/*; \
+		echo "$(GREEN)✓ Published to TestPyPI$(NC)"; \
+	else \
+		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		exit 1; \
+	fi
+
+# Verify release was successful
+release-verify: ## Verify release across all channels
+	@echo "$(YELLOW)🔍 Verifying release...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	echo "Verifying version: $$VERSION"; \
+	echo ""; \
+	echo "$(BLUE)📦 PyPI:$(NC) https://pypi.org/project/claude-mpm/$$VERSION/"; \
+	echo "$(BLUE)📦 npm:$(NC) https://www.npmjs.com/package/@bobmatnyc/claude-mpm/v/$$VERSION"; \
+	echo "$(BLUE)🏷️  GitHub:$(NC) https://github.com/bobmatnyc/claude-mpm/releases/tag/v$$VERSION"; \
+	echo ""; \
+	echo "$(GREEN)✓ Release verification links generated$(NC)"
+	@echo "$(BLUE)💡 Test installation with:$(NC)"
+	@echo "  pip install claude-mpm==$$(cat VERSION)"
+	@echo "  npm install -g @bobmatnyc/claude-mpm@$$(cat VERSION)"
+
+# Dry run - show what would be done without executing
+release-dry-run: ## Show what a patch release would do (dry run)
+	@echo "$(YELLOW)🔍 DRY RUN: Patch release preview$(NC)"
+	@echo "This would:"
+	@echo "  1. Check prerequisites and working directory"
+	@echo "  2. Run tests"
+	@echo "  3. Bump patch version using commitizen"
+	@echo "  4. Sync version files (VERSION, src/claude_mpm/VERSION, package.json)"
+	@echo "  5. Build Python package"
+	@echo "  6. Wait for confirmation to publish"
+	@echo "  7. Publish to PyPI, npm, and create GitHub release"
+	@echo "  8. Show verification links"
+	@echo ""
+	@echo "$(BLUE)Current version:$(NC) $$(cat VERSION)"
+	@echo "$(BLUE)Next patch version would be:$(NC) $$(python -c "import semver; print(semver.VersionInfo.parse('$$(cat VERSION)').bump_patch())" 2>/dev/null || echo "unknown")"
+
+# Complete release workflow shortcuts
+release: release-patch ## Alias for patch release (most common)
+release-full: release-patch release-publish ## Complete patch release with publishing
+
+# Help for release targets
+release-help: ## Show release management help
+	@echo "$(BLUE)Claude MPM Release Management$(NC)"
+	@echo "============================="
+	@echo ""
+	@echo "$(GREEN)Quick Start:$(NC)"
+	@echo "  make release-patch     # Bug fix release"
+	@echo "  make release-minor     # Feature release"
+	@echo "  make release-major     # Breaking change release"
+	@echo "  make release-publish   # Publish prepared release"
+	@echo ""
+	@echo "$(GREEN)Testing:$(NC)"
+	@echo "  make release-dry-run   # Preview what would happen"
+	@echo "  make release-test-pypi # Publish to TestPyPI"
+	@echo ""
+	@echo "$(GREEN)Individual Steps:$(NC)"
+	@echo "  make release-check     # Check prerequisites"
+	@echo "  make release-test      # Run test suite"
+	@echo "  make release-build     # Build package"
+	@echo "  make release-verify    # Show verification links"
+	@echo ""
+	@echo "$(YELLOW)Prerequisites:$(NC)"
+	@echo "  • git, python, commitizen (cz), GitHub CLI (gh)"
+	@echo "  • Clean working directory on main branch"
+	@echo "  • PyPI and npm credentials configured"

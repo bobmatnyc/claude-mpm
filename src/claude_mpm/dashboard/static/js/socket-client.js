@@ -464,8 +464,14 @@ class SocketClient {
                 transformedEvent.subtype = 'user_prompt';
             } else {
                 // Generic fallback for unknown event names
-                transformedEvent.type = 'system';
+                // Use 'unknown' for type and the actual eventName for subtype
+                transformedEvent.type = 'unknown';
                 transformedEvent.subtype = eventName.toLowerCase();
+                
+                // Prevent duplicate type/subtype values
+                if (transformedEvent.type === transformedEvent.subtype) {
+                    transformedEvent.subtype = 'event';
+                }
             }
             
             // Remove the 'event' field to avoid confusion
