@@ -16,6 +16,37 @@ from typing import List, Optional
 from ...constants import CLICommands, CLIPrefix, LogLevel
 
 
+def _get_enhanced_version(base_version: str) -> str:
+    """
+    Get enhanced version string with build number if available.
+
+    Args:
+        base_version: Base version string (e.g., "4.0.8")
+
+    Returns:
+        Enhanced version string with build number if available
+    """
+    try:
+        # Try to use VersionService for enhanced version display
+        from ...services.version_service import VersionService
+
+        version_service = VersionService()
+        enhanced = version_service.get_version()
+
+        # If we got an enhanced version (with build number), use it
+        # Remove the 'v' prefix since argparse will add the program name
+        if enhanced and enhanced.startswith('v'):
+            enhanced = enhanced[1:]  # Remove 'v' prefix
+
+        if enhanced and enhanced != base_version:
+            return enhanced
+    except Exception:
+        # If anything fails, fall back to base version
+        pass
+
+    return base_version
+
+
 def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -> None:
     """
     Add common arguments that apply to all commands.
@@ -29,8 +60,10 @@ def add_common_arguments(parser: argparse.ArgumentParser, version: str = None) -
     """
     # Version - only add to main parser, not subparsers
     if version is not None:
+        # Use enhanced version display with build number if available
+        enhanced_version = _get_enhanced_version(version)
         parser.add_argument(
-            "--version", action="version", version=f"%(prog)s {version}"
+            "--version", action="version", version=f"%(prog)s {enhanced_version}"
         )
 
     # Logging arguments
