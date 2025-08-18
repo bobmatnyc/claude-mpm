@@ -25,8 +25,8 @@ class RunConfigChecker:
         memory, leading to 2GB+ memory consumption.
         """
         try:
-            # Only check if --resume is being used
-            if not getattr(args, "resume", False):
+            # Only check if --mpm-resume is being used
+            if not getattr(args, "mpm_resume", False):
                 return
 
             claude_json_path = Path.cwd() / ".claude.json"
@@ -50,7 +50,7 @@ class RunConfigChecker:
                 print(
                     f"\n⚠️  WARNING: Large .claude.json file detected ({format_size(file_size)})"
                 )
-                print("   This may cause memory issues when using --resume")
+                print("   This may cause memory issues when using --mpm-resume")
                 print(
                     "   💡 Consider running 'claude-mpm cleanup-memory' to archive old conversations\n"
                 )

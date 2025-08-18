@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.0.14] - 2025-08-18
+
+### Fixed
+
+- Resolve pipx installation framework detection issue
+- Enhanced FrameworkLoader to use UnifiedPathManager for consistent deployment context detection
+- Fixed development mode detection in UnifiedPathManager for proper src directory structure
+- Added robust support for PIPX_INSTALL, PIP_INSTALL, and SYSTEM_PACKAGE contexts
+- Eliminates 'Framework not found, will use minimal instructions' warning in pipx installations
+- Maintains backward compatibility with fallback detection logic
+- Ensures framework content loads correctly using importlib.resources for packaged installations
+
 ## [4.0.13] - 2025-08-18
 
 ### Feat

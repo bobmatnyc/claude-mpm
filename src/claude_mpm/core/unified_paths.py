@@ -74,7 +74,11 @@ class PathContext:
             module_path = Path(claude_mpm.__file__).parent
 
             # Check for development mode
-            if (module_path.parent / "src").exists():
+            # module_path is typically /path/to/project/src/claude_mpm
+            # So we need to check if /path/to/project/src exists (module_path.parent)
+            # and if /path/to/project/src/claude_mpm exists (module_path itself)
+            if (module_path.parent.name == "src" and
+                (module_path.parent.parent / "src" / "claude_mpm").exists()):
                 return DeploymentContext.DEVELOPMENT
 
             # Check for editable install
