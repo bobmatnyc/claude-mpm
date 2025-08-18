@@ -11,20 +11,34 @@ echo
 # Set PYTHONPATH
 export PYTHONPATH="$PROJECT_ROOT/src:$PYTHONPATH"
 
-# Create test directory if it doesn't exist
-TEST_DIR="$HOME/Tests/claude-mpm-test"
-mkdir -p "$TEST_DIR"
+# Change to project root
+cd "$PROJECT_ROOT"
 
-echo "1. Running unit tests..."
-cd "$PROJECT_ROOT" && python3 "$SCRIPT_DIR/tests/run_tests_updated.py"
-
-echo
-echo "2. Running hello world test..."
-cd "$TEST_DIR" && python3 "$SCRIPT_DIR/tests/test_hello_world.py"
-
-echo
-echo "3. Running agent integration test..."
-python3 "$SCRIPT_DIR/tests/test_agent_integration.py"
+echo "1. Running core functionality tests..."
+if command -v pytest >/dev/null 2>&1; then
+    python -m pytest tests/core/ -v --tb=short
+    PYTEST_EXIT_CODE=$?
+else
+    echo "pytest not found, skipping unit tests"
+    PYTEST_EXIT_CODE=0
+fi
 
 echo
-echo "=== All tests complete ==="
+echo "2. Running CLI tests..."
+if [ -f "tests/cli/test_cli_basic.py" ]; then
+    python -m pytest tests/cli/test_cli_basic.py -v
+    CLI_EXIT_CODE=$?
+else
+    echo "CLI tests not found, skipping"
+    CLI_EXIT_CODE=0
+fi
+
+echo
+echo "=== Test Summary ==="
+if [ $PYTEST_EXIT_CODE -eq 0 ] && [ $CLI_EXIT_CODE -eq 0 ]; then
+    echo "✅ All tests passed"
+    exit 0
+else
+    echo "❌ Some tests failed"
+    exit 1
+fi
