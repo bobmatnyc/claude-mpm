@@ -34,10 +34,18 @@ class SystemAgentDeploymentStrategy(BaseDeploymentStrategy):
         """
         # If templates_dir points to system templates, this is system deployment
         if context.templates_dir:
+            # Check for user system templates directory
             system_templates_dir = (
                 get_path_manager().get_user_agents_dir() / "templates"
             )
             if context.templates_dir.resolve() == system_templates_dir.resolve():
+                return True
+
+            # Check for framework templates directory (packaged installation)
+            framework_templates_dir = (
+                get_path_manager().get_agents_dir("framework") / "templates"
+            )
+            if context.templates_dir.resolve() == framework_templates_dir.resolve():
                 return True
 
         # If no target_dir specified and no working_directory, assume system deployment
