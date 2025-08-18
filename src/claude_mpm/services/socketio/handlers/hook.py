@@ -32,26 +32,41 @@ class HookEventHandler(BaseEventHandler):
         """Process a hook event received from ConnectionEventHandler.
         
         WHY: This method is called by ConnectionEventHandler when it receives
-        a claude_event with type 'hook'. This separation avoids handler conflicts.
+        a claude_event with type starting with 'hook.'. This separation avoids handler conflicts.
         
         Args:
-            data: The complete event data including type, event, and data fields
+            data: The complete event data including type, timestamp, and data fields
         """
         if not isinstance(data, dict):
             return
             
         # Extract hook event details
-        hook_event = data.get("event")
+        # Hook events come as: { type: "hook.user_prompt", timestamp: "...", data: {...} }
+        event_type = data.get("type", "")
+        
+        # Extract the actual hook event name from the type (e.g., "hook.user_prompt" -> "user_prompt")
+        if event_type.startswith("hook."):
+            hook_event = event_type[5:]  # Remove "hook." prefix
+        else:
+            hook_event = data.get("event", "")  # Fallback for legacy format
+            
         hook_data = data.get("data", {})
         
-        # Add the event to history for replay
-        self.add_to_history("hook", {
+        # Create properly formatted event for history
+        # Note: add_to_history expects the event data directly, not wrapped
+        history_event = {
+            "type": "hook",
             "event": hook_event,
             "data": hook_data,
-            "timestamp": datetime.now().isoformat()
-        })
+            "timestamp": data.get("timestamp") or datetime.now().isoformat()
+        }
         
-        # Broadcast the event to all connected clients
+        # Add the event to history for replay
+        # The base handler's add_to_history will wrap it properly
+        self.event_history.append(history_event)
+        
+        # Broadcast the original event to all connected clients
+        # (preserves all original fields)
         await self.broadcast_event("claude_event", data)
         
         # Track sessions based on hook events

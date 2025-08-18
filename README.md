@@ -6,14 +6,16 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 
 ## Features
 
-- 🤖 **Multi-Agent System**: Automatically delegates tasks to specialized agents (PM, Research, Engineer, QA, Documentation, Security, Ops, Data Engineer, Test Integration, Version Control)
+- 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
 - 🧠 **Agent Memory System**: Persistent learning with project-specific knowledge retention
 - 🔄 **Session Management**: Resume previous sessions with `--resume` 
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
-- 🛡️ **Memory Guardian (Experimental)**: Automatic memory monitoring and intelligent restarts to prevent crashes
+- 🔌 **MCP Gateway**: Model Context Protocol integration for extensible tool capabilities
 - 📁 **Multi-Project Support**: Per-session working directories
 - 🔍 **Git Integration**: View diffs and track changes across projects
 - 🎯 **Smart Task Orchestration**: PM agent intelligently routes work to specialists
+- ⚡ **50-80% Performance Improvement**: Through intelligent caching and lazy loading
+- 🔒 **Enhanced Security**: Comprehensive input validation and sanitization framework
 
 ## Quick Installation
 
@@ -32,46 +34,88 @@ claude-mpm
 # Start with monitoring dashboard
 claude-mpm run --monitor
 
-# Start with memory protection (prevents crashes from large conversations)
-claude-mpm run-guarded
+# Use MCP Gateway for external tool integration
+claude-mpm mcp
+
+# Manage memory for large conversation histories
+claude-mpm cleanup-memory
 ```
 
 See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 
 
-## Architecture
+## Architecture (v3.8.2+)
 
-Claude MPM v3.8.2+ features a **modern service-oriented architecture** with interface-based design, dependency injection, and intelligent caching for 50-80% performance improvements.
+Following the TSK-0053 refactoring, Claude MPM features:
+
+- **Service-Oriented Architecture**: Five specialized service domains
+- **Interface-Based Contracts**: All services implement explicit interfaces
+- **Dependency Injection**: Service container with automatic resolution
+- **50-80% Performance Improvement**: Through lazy loading and intelligent caching
+- **Enhanced Security**: Comprehensive input validation and sanitization framework
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture information.
 
 ## Key Capabilities
 
 ### Multi-Agent Orchestration
-The PM agent automatically delegates work to specialized agents including Research, Engineer, QA, Documentation, Security, Ops, Data Engineer, Test Integration, and Version Control.
+
+Claude MPM includes 15 specialized agents:
+
+#### Core Development
+- **Engineer** - Software development and implementation
+- **Research** - Code analysis and research  
+- **Documentation** - Documentation creation and maintenance
+- **QA** - Testing and quality assurance
+- **Security** - Security analysis and implementation
+
+#### Operations & Infrastructure
+- **Ops** - Operations and deployment
+- **Version Control** - Git and version management
+- **Data Engineer** - Data pipeline and ETL development
+
+#### Web Development
+- **Web UI** - Frontend and UI development
+- **Web QA** - Web testing and E2E validation
+
+#### Project Management
+- **Ticketing** - Issue tracking and management
+- **Project Organizer** - File organization and structure
+- **Memory Manager** - Project memory and context management
+
+#### Code Quality
+- **Refactoring Engineer** - Code refactoring and optimization
+- **Code Analyzer** - Static code analysis with AST and tree-sitter
 
 ### Agent Memory System
 Agents learn project-specific patterns and remember insights across sessions. Initialize with `claude-mpm memory init`.
 
-### Memory Guardian System (Experimental)
-**⚠️ Beta Feature** - Prevents memory-related crashes through intelligent monitoring and automatic restarts with state preservation.
+### MCP Gateway (Model Context Protocol)
+
+Claude MPM includes a powerful MCP Gateway that enables:
+- Integration with external tools and services
+- Custom tool development
+- Protocol-based communication
+- Extensible architecture
+
+See [MCP Gateway Documentation](docs/developer/13-mcp-gateway/README.md) for details.
+
+### Memory Management
+
+Large conversation histories can consume 2GB+ of memory. Use the `cleanup-memory` command to manage Claude conversation history:
 
 ```bash
-# Start with memory protection (recommended for long sessions)
-claude-mpm run-guarded --accept-experimental
+# Clean up old conversation history
+claude-mpm cleanup-memory
 
-# Custom memory threshold for your system
-claude-mpm run-guarded --memory-threshold 16000 --accept-experimental  # 16GB
+# Keep only recent conversations
+claude-mpm cleanup-memory --days 7
 ```
-
-**Why Memory Guardian?** Large conversation histories can consume 2GB+ of memory, causing system instability. The Memory Guardian monitors memory usage and performs controlled restarts while preserving your conversation context and work progress.
-
-**Note:** This is an experimental feature in beta. Use `--accept-experimental` to suppress warnings.
 
 ### Real-Time Monitoring
 The `--monitor` flag opens a web dashboard showing live agent activity, file operations, and session management.
 
-See [docs/MEMORY.md](docs/MEMORY.md), [docs/USER_GUIDE_MEMORY_GUARDIAN.md](docs/USER_GUIDE_MEMORY_GUARDIAN.md), and [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for details.
+See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md](docs/developer/11-dashboard/README.md) for details.
 
 
 ## Documentation
@@ -81,15 +125,13 @@ See [docs/MEMORY.md](docs/MEMORY.md), [docs/USER_GUIDE_MEMORY_GUARDIAN.md](docs/
 - **[Installation Guide](docs/user/installation.md)** - Complete installation options
 - **[User Guide](docs/user/)** - Detailed usage documentation
 - **[Memory System](docs/MEMORY.md)** - Agent memory documentation
-- **[Memory Guardian Guide](docs/USER_GUIDE_MEMORY_GUARDIAN.md)** - Comprehensive memory protection documentation
 - **[Troubleshooting](docs/user/troubleshooting.md)** - Common issues and solutions
 
 ### Developer Documentation
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - Service-oriented architecture and design
 - **[API Reference](docs/api/)** - Complete API documentation with Sphinx
 - **[Service Layer Guide](docs/developer/SERVICES.md)** - Service interfaces and implementations
-- **[Memory Guardian Technical](docs/MEMORY_GUARDIAN_TECHNICAL.md)** - Technical architecture and implementation details
-- **[Memory Guardian Configuration](docs/MEMORY_GUARDIAN_CONFIG.md)** - Complete configuration reference
+- **[MCP Gateway Guide](docs/developer/13-mcp-gateway/README.md)** - Model Context Protocol integration
 - **[Performance Guide](docs/PERFORMANCE.md)** - Optimization and caching strategies
 - **[Security Guide](docs/SECURITY.md)** - Security framework and best practices
 - **[Testing Guide](docs/TESTING.md)** - Testing patterns and strategies

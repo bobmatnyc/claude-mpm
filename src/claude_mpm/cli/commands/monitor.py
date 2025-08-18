@@ -90,10 +90,11 @@ def _port_server(args, server_manager):
 
     WHY: Users need to be able to start/restart the monitoring server on a specific
     port, either if no server is running (start) or if a server is already running
-    on a different port (restart).
+    on a different port (restart). Enhanced with smart process detection to reclaim
+    ports from debug processes.
 
     Args:
-        args: Command arguments with required port and optional host
+        args: Command arguments with required port and optional host, force, reclaim flags
         server_manager: ServerManager instance
 
     Returns:
@@ -101,16 +102,61 @@ def _port_server(args, server_manager):
     """
     port = args.port
     host = getattr(args, "host", "localhost")
+    force = getattr(args, "force", False)
+    reclaim = getattr(args, "reclaim", True)
 
     print(f"Managing Socket.IO monitoring server on port {port}...")
     print(f"Target: {host}:{port}")
     print()
 
     try:
+        # Import PortManager to check port status
+        from ...services.port_manager import PortManager
+        port_manager = PortManager()
+        
+        # Get detailed port status
+        port_status = port_manager.get_port_status(port)
+        
+        # Check if port is in use
+        if not port_status["available"]:
+            process_info = port_status.get("process")
+            if process_info:
+                print(f"⚠️ Port {port} is in use:")
+                print(f"  Process: {process_info['name']} (PID: {process_info['pid']})")
+                
+                if process_info['is_ours']:
+                    if process_info['is_debug']:
+                        print(f"  Type: Debug/Test script (can be reclaimed)")
+                        if reclaim:
+                            print(f"  Action: Attempting to reclaim port...")
+                            if port_manager.kill_process_on_port(port, force=force):
+                                print(f"  ✅ Successfully reclaimed port {port}")
+                            else:
+                                print(f"  ❌ Failed to reclaim port {port}")
+                                return False
+                    elif process_info['is_daemon']:
+                        print(f"  Type: Daemon process")
+                        if force:
+                            print(f"  Action: Force killing daemon (--force flag used)...")
+                            if port_manager.kill_process_on_port(port, force=True):
+                                print(f"  ✅ Successfully killed daemon on port {port}")
+                            else:
+                                print(f"  ❌ Failed to kill daemon on port {port}")
+                                return False
+                        else:
+                            print(f"  ❌ Cannot start: Daemon already running")
+                            print(f"  Recommendation: {port_status['recommendation']}")
+                            return False
+                else:
+                    print(f"  Type: External process")
+                    print(f"  ❌ Cannot start: {port_status['recommendation']}")
+                    return False
+                print()
+        
         # Check if there are any running servers
         running_servers = server_manager.list_running_servers()
 
-        # Check if server is already running on this port
+        # Check if server is already running on this port after reclaim
         server_on_port = any(server.get("port") == port for server in running_servers)
 
         if server_on_port:
@@ -170,23 +216,61 @@ def _start_server(args, server_manager):
     Start the Socket.IO monitoring server.
 
     WHY: Users need to start the monitoring server to enable real-time monitoring
-    of Claude MPM sessions and websocket connections.
+    of Claude MPM sessions and websocket connections. Enhanced with smart process
+    detection to automatically reclaim ports from debug scripts.
 
     Args:
-        args: Command arguments with optional port and host
+        args: Command arguments with optional port, host, force, and reclaim flags
         server_manager: ServerManager instance
 
     Returns:
         bool: True if server started successfully, False otherwise
     """
-    port = getattr(args, "port", 8765)
+    port = getattr(args, "port", None)
     host = getattr(args, "host", "localhost")
+    force = getattr(args, "force", False)
+    reclaim = getattr(args, "reclaim", True)
 
     print(f"Starting Socket.IO monitoring server...")
-    print(f"Target: {host}:{port}")
-    print()
-
+    
     try:
+        # Import PortManager for smart port selection
+        from ...services.port_manager import PortManager
+        port_manager = PortManager()
+        
+        # If no port specified, find an available one with smart reclaim
+        if port is None:
+            port = port_manager.find_available_port(reclaim=reclaim)
+            if port is None:
+                print("❌ No available ports found")
+                print("Try specifying a port with --port or use --force to reclaim daemon ports")
+                return False
+            print(f"Selected port: {port}")
+        else:
+            # Check if specified port needs reclaiming
+            port_status = port_manager.get_port_status(port)
+            if not port_status["available"]:
+                process_info = port_status.get("process")
+                if process_info:
+                    print(f"⚠️ Port {port} is in use by {process_info['name']} (PID: {process_info['pid']})")
+                    
+                    if process_info['is_ours'] and (process_info['is_debug'] or force):
+                        if reclaim:
+                            print(f"Attempting to reclaim port {port}...")
+                            if not port_manager.kill_process_on_port(port, force=force):
+                                print(f"❌ Failed to reclaim port {port}")
+                                return False
+                            print(f"✅ Successfully reclaimed port {port}")
+                        else:
+                            print(f"❌ Port {port} unavailable and --no-reclaim specified")
+                            return False
+                    else:
+                        print(f"❌ Cannot reclaim port: {port_status['recommendation']}")
+                        return False
+        
+        print(f"Target: {host}:{port}")
+        print()
+        
         success = server_manager.start_server(
             port=port, host=host, server_id="monitor-server"
         )
@@ -276,6 +360,7 @@ def _status_server(args, server_manager):
 
     WHY: Users need to check if the monitoring server is running, what port
     it's using, and other diagnostic information without starting/stopping it.
+    Enhanced to show what processes are using ports.
 
     Args:
         args: Command arguments with optional verbose flag
@@ -285,6 +370,7 @@ def _status_server(args, server_manager):
         bool: True if status check succeeded, False otherwise
     """
     verbose = getattr(args, "verbose", False)
+    show_ports = getattr(args, "show_ports", False)
     
     print("Checking Socket.IO monitoring server status...")
     print()
@@ -336,6 +422,10 @@ def _status_server(args, server_manager):
             print("  claude-mpm monitor start --port 8765")
             return True
         
+        # Import PortManager for enhanced status
+        from ...services.port_manager import PortManager
+        port_manager = PortManager()
+        
         # Display server information
         print(f"✅ Found {len(running_servers)} running server(s):")
         print()
@@ -351,6 +441,13 @@ def _status_server(args, server_manager):
             print(f"  • Port: {server_port}")
             print(f"  • Host: {server_host}")
             print(f"  • WebSocket URL: ws://{server_host}:{server_port}")
+            
+            # Show port status if verbose
+            if verbose and server_port != "unknown":
+                port_status = port_manager.get_port_status(int(server_port))
+                if port_status.get("process"):
+                    process = port_status["process"]
+                    print(f"  • Process Type: {'Debug' if process['is_debug'] else 'Daemon' if process['is_daemon'] else 'Regular'}")
             
             if verbose:
                 # Check if port is actually listening
@@ -368,9 +465,34 @@ def _status_server(args, server_manager):
             
             print()
         
+        # Show port range status if requested
+        if show_ports or verbose:
+            print("\nPort Range Status (8765-8785):")
+            print("─" * 40)
+            for check_port in range(8765, 8771):  # Show first 6 ports
+                status = port_manager.get_port_status(check_port)
+                if status["available"]:
+                    print(f"  Port {check_port}: ✅ Available")
+                else:
+                    process = status.get("process")
+                    if process:
+                        if process["is_ours"]:
+                            if process["is_debug"]:
+                                print(f"  Port {check_port}: 🔧 Debug script (PID: {process['pid']})")
+                            elif process["is_daemon"]:
+                                print(f"  Port {check_port}: 🚀 Daemon (PID: {process['pid']})")
+                            else:
+                                print(f"  Port {check_port}: 📦 Our process (PID: {process['pid']})")
+                        else:
+                            print(f"  Port {check_port}: ⛔ External ({process['name']})")
+                    else:
+                        print(f"  Port {check_port}: ❓ In use (unknown process)")
+            print()
+        
         print("Server management commands:")
         print("  Stop all:    claude-mpm monitor stop")
         print("  Restart:     claude-mpm monitor restart")
+        print("  Reclaim:     claude-mpm monitor start --force  # Kill debug scripts")
         if len(running_servers) == 1:
             port = running_servers[0].get("port", 8765)
             print(f"  Stop this:   claude-mpm monitor stop --port {port}")

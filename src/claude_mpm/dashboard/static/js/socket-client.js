@@ -494,14 +494,28 @@ class SocketClient {
             transformedEvent.subtype = '';
         }
 
+        // Store original event name for display purposes (before any transformation)
+        if (!eventData.type && eventData.event) {
+            transformedEvent.originalEventName = eventData.event;
+        } else if (eventData.type) {
+            transformedEvent.originalEventName = eventData.type;
+        }
+
         // Extract and flatten data fields to top level for dashboard compatibility
         // The dashboard expects fields like tool_name, agent_type, etc. at the top level
         if (eventData.data && typeof eventData.data === 'object') {
-            // Copy all data fields to the top level
+            // Protected fields that should never be overwritten by data fields
+            const protectedFields = ['type', 'subtype', 'timestamp', 'id', 'event', 'event_type', 'originalEventName'];
+            
+            // Copy all data fields to the top level, except protected ones
             Object.keys(eventData.data).forEach(key => {
-                // Always copy data fields to ensure dashboard gets them
-                // This overwrites any existing values to ensure data fields take precedence
-                transformedEvent[key] = eventData.data[key];
+                // Only copy if not a protected field
+                if (!protectedFields.includes(key)) {
+                    transformedEvent[key] = eventData.data[key];
+                } else {
+                    // Log warning if data field would overwrite a protected field
+                    console.warn(`Protected field '${key}' in data object was not copied to top level to preserve event structure`);
+                }
             });
             
             // Keep the original data object for backward compatibility
