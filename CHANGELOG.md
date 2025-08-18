@@ -19,24 +19,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-## [4.0.17] - 2025-08-18
+## v4.0.18 (2025-08-18)
 
-### Fixed
+### Feat
 
-- Fix dynamic agent capabilities loading to discover all deployed agents
-- Fix system deployment strategy to recognize framework templates from packaged installations
-- Fix agent capabilities service to look for system agents in ~/.claude/agents/ directory
-- Resolve issue where only 1 agent was found instead of 15+ total agents
+- implement MCP gateway singleton installation and startup verification
 
-## [4.0.16] - 2025-08-18
+## v4.0.17 (2025-08-18)
 
-### Fixed
+### Feat
 
-- Fix version synchronization between root VERSION and src/claude_mpm/VERSION files
-- Ensure correct version display in interactive session
-- Add automated release script for streamlined build process
+- add automated release system and Makefile targets
 
-## [4.0.15] - 2025-08-18
+### Fix
+
+- resolve dynamic agent capabilities loading issues
+
+## v4.0.16 (2025-08-18)
+
+## v4.0.15 (2025-08-18)
 
 ### Feat
 
