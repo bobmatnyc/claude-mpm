@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.16] - 2025-08-18
+
+### Fixed
+
+- Fix version synchronization between root VERSION and src/claude_mpm/VERSION files
+- Ensure correct version display in interactive session
+- Add automated release script for streamlined build process
+
 ## [4.0.15] - 2025-08-18
 
 ### Feat
