@@ -350,7 +350,7 @@ structure-fix:
 
 # Release Management Targets
 .PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify
-.PHONY: release-dry-run release-test-pypi
+.PHONY: release-dry-run release-test-pypi increment-build
 
 # Release prerequisites check
 release-check: ## Check if environment is ready for release
@@ -397,6 +397,8 @@ release-test: ## Run test suite before release
 # Build the package
 release-build: ## Build Python package for release
 	@echo "$(YELLOW)📦 Building package...$(NC)"
+	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
+	@python scripts/increment_build.py --all-changes
 	@rm -rf dist/ build/ *.egg-info
 	@python -m build
 	@echo "$(GREEN)✓ Package built successfully$(NC)"
@@ -412,6 +414,12 @@ release-sync-versions: ## Synchronize version files after bump
 	if [ -f "package.json" ]; then \
 		python -c "import json; data = json.load(open('package.json', 'r')); data['version'] = '$$VERSION'; json.dump(data, open('package.json', 'w'), indent=2); print('$(GREEN)✓ Updated package.json$(NC)')"; \
 	fi
+
+# Increment build number
+increment-build: ## Increment build number for code changes
+	@echo "$(YELLOW)🔢 Incrementing build number...$(NC)"
+	@python scripts/increment_build.py --all-changes
+	@echo "$(GREEN)✓ Build number incremented$(NC)"
 
 # Patch release (bug fixes)
 release-patch: release-check release-test ## Create a patch release (bug fixes)
@@ -538,6 +546,7 @@ release-help: ## Show release management help
 	@echo "$(GREEN)Individual Steps:$(NC)"
 	@echo "  make release-check     # Check prerequisites"
 	@echo "  make release-test      # Run test suite"
+	@echo "  make increment-build   # Increment build number"
 	@echo "  make release-build     # Build package"
 	@echo "  make release-verify    # Show verification links"
 	@echo ""
