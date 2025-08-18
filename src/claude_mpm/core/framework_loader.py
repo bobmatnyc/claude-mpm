@@ -566,7 +566,16 @@ class FrameworkLoader:
         """Load framework content from packaged installation using importlib.resources."""
         if not files:
             self.logger.warning("importlib.resources not available, cannot load packaged framework")
-            return
+            self.logger.debug(f"files variable is: {files}")
+            # Try alternative import methods
+            try:
+                from importlib import resources
+                self.logger.info("Using importlib.resources as fallback")
+                self._load_packaged_framework_content_fallback(content, resources)
+                return
+            except ImportError:
+                self.logger.error("No importlib.resources available, using minimal framework")
+                return
             
         try:
             # Load INSTRUCTIONS.md
@@ -601,7 +610,67 @@ class FrameworkLoader:
                 
         except Exception as e:
             self.logger.error(f"Failed to load packaged framework content: {e}")
-            
+
+    def _load_packaged_framework_content_fallback(self, content: Dict[str, Any], resources) -> None:
+        """Load framework content using importlib.resources fallback."""
+        try:
+            # Load INSTRUCTIONS.md
+            instructions_content = self._load_packaged_file_fallback("INSTRUCTIONS.md", resources)
+            if instructions_content:
+                content["framework_instructions"] = instructions_content
+                content["loaded"] = True
+                # Extract and store version/timestamp metadata
+                self._extract_metadata_from_content(instructions_content, "INSTRUCTIONS.md")
+                if self.framework_version:
+                    content["instructions_version"] = self.framework_version
+                    content["version"] = self.framework_version
+                if self.framework_last_modified:
+                    content["instructions_last_modified"] = self.framework_last_modified
+
+            # Load BASE_PM.md
+            base_pm_content = self._load_packaged_file_fallback("BASE_PM.md", resources)
+            if base_pm_content:
+                content["base_pm_instructions"] = base_pm_content
+
+            # Load WORKFLOW.md
+            workflow_content = self._load_packaged_file_fallback("WORKFLOW.md", resources)
+            if workflow_content:
+                content["workflow_instructions"] = workflow_content
+                content["project_workflow"] = "system"
+
+            # Load MEMORY.md
+            memory_content = self._load_packaged_file_fallback("MEMORY.md", resources)
+            if memory_content:
+                content["memory_instructions"] = memory_content
+                content["project_memory"] = "system"
+
+        except Exception as e:
+            self.logger.error(f"Failed to load packaged framework content with fallback: {e}")
+
+    def _load_packaged_file_fallback(self, filename: str, resources) -> Optional[str]:
+        """Load a file from the packaged installation using importlib.resources fallback."""
+        try:
+            # Try different resource loading methods
+            try:
+                # Method 1: resources.read_text (Python 3.9+)
+                content = resources.read_text('claude_mpm.agents', filename)
+                self.logger.info(f"Loaded {filename} from package using read_text")
+                return content
+            except AttributeError:
+                # Method 2: resources.files (Python 3.9+)
+                agents_files = resources.files('claude_mpm.agents')
+                file_path = agents_files / filename
+                if file_path.is_file():
+                    content = file_path.read_text()
+                    self.logger.info(f"Loaded {filename} from package using files")
+                    return content
+                else:
+                    self.logger.warning(f"File {filename} not found in package")
+                    return None
+        except Exception as e:
+            self.logger.error(f"Failed to load {filename} from package with fallback: {e}")
+            return None
+
     def _load_packaged_file(self, filename: str) -> Optional[str]:
         """Load a file from the packaged installation."""
         try:

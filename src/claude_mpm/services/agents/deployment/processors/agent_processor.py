@@ -145,22 +145,29 @@ class AgentProcessor:
             else:
                 needs_update = True
                 reason = "New agent in project mode"
-        elif not needs_update and context.target_file.exists():
-            # In update mode, check version compatibility
-            needs_update, reason = self.version_manager.check_agent_needs_update(
-                context.target_file, context.template_file, context.base_agent_version
-            )
-            if needs_update:
-                # Check if this is a migration from old format
-                if "migration needed" in reason:
-                    is_migration = True
-                    self.logger.info(
-                        f"Migration needed for agent {context.agent_name}: {reason}"
-                    )
-                else:
-                    self.logger.info(
-                        f"Agent {context.agent_name} needs update: {reason}"
-                    )
+        elif not needs_update:
+            # Check if target file exists
+            if not context.target_file.exists():
+                # File doesn't exist, needs to be deployed
+                needs_update = True
+                reason = "New agent deployment"
+                self.logger.debug(f"Agent {context.agent_name} doesn't exist, will deploy")
+            else:
+                # File exists, check version compatibility
+                needs_update, reason = self.version_manager.check_agent_needs_update(
+                    context.target_file, context.template_file, context.base_agent_version
+                )
+                if needs_update:
+                    # Check if this is a migration from old format
+                    if "migration needed" in reason:
+                        is_migration = True
+                        self.logger.info(
+                            f"Migration needed for agent {context.agent_name}: {reason}"
+                        )
+                    else:
+                        self.logger.info(
+                            f"Agent {context.agent_name} needs update: {reason}"
+                        )
 
         return needs_update, is_migration, reason
 
