@@ -282,6 +282,10 @@ class EventViewer {
     formatEventType(event) {
         // If we have type and subtype, use them
         if (event.type && event.subtype) {
+            // Check if type and subtype are identical to prevent "type.type" display
+            if (event.type === event.subtype) {
+                return event.type;
+            }
             return `${event.type}.${event.subtype}`;
         }
         // If we have just type, use it
