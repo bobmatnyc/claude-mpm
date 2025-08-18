@@ -1,4 +1,7 @@
-"""Constants for Claude MPM."""
+"""Constants for Claude MPM.
+
+Build number tracking is now enabled for all builds.
+"""
 
 from enum import Enum
 from pathlib import Path
