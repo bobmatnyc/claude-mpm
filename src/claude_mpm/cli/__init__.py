@@ -77,6 +77,9 @@ def main(argv: Optional[list] = None):
     # Initialize or update project registry
     _initialize_project_registry()
 
+    # Verify MCP Gateway configuration on startup (non-blocking)
+    _verify_mcp_gateway_startup()
+
     # Create parser with version
     parser = create_parser(version=__version__)
 
@@ -165,6 +168,65 @@ def _initialize_project_registry():
         logger = get_logger("cli")
         logger.debug(f"Failed to initialize project registry: {e}")
         # Continue execution - registry failure shouldn't block startup
+
+
+def _verify_mcp_gateway_startup():
+    """
+    Verify MCP Gateway configuration on startup.
+
+    WHY: The MCP gateway should be automatically configured and verified on startup
+    to provide a seamless experience with diagnostic tools, file summarizer, and
+    ticket service.
+
+    DESIGN DECISION: This is non-blocking - failures are logged but don't prevent
+    startup to ensure claude-mpm remains functional even if MCP gateway has issues.
+    """
+    try:
+        import asyncio
+        from ..services.mcp_gateway.core.startup_verification import (
+            verify_mcp_gateway_on_startup,
+            is_mcp_gateway_configured,
+        )
+
+        # Quick check first - if already configured, skip detailed verification
+        if is_mcp_gateway_configured():
+            return
+
+        # Run detailed verification in background
+        # Note: We don't await this to avoid blocking startup
+        def run_verification():
+            try:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                results = loop.run_until_complete(verify_mcp_gateway_on_startup())
+                loop.close()
+
+                # Log results but don't block
+                from ..core.logger import get_logger
+                logger = get_logger("cli")
+
+                if results.get("gateway_configured"):
+                    logger.debug("MCP Gateway verification completed successfully")
+                else:
+                    logger.debug("MCP Gateway verification completed with warnings")
+
+            except Exception as e:
+                from ..core.logger import get_logger
+                logger = get_logger("cli")
+                logger.debug(f"MCP Gateway verification failed: {e}")
+
+        # Run in background thread to avoid blocking startup
+        import threading
+        verification_thread = threading.Thread(target=run_verification, daemon=True)
+        verification_thread.start()
+
+    except Exception as e:
+        # Import logger here to avoid circular imports
+        from ..core.logger import get_logger
+
+        logger = get_logger("cli")
+        logger.debug(f"Failed to start MCP Gateway verification: {e}")
+        # Continue execution - MCP gateway issues shouldn't block startup
 
 
 def _ensure_run_attributes(args):
