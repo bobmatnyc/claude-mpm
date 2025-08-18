@@ -60,8 +60,8 @@ class FileToolTracker {
             }
 
             if (isFileOp) {
-                const toolName = event.tool_name;
-                const sessionId = event.session_id || 'unknown';
+                const toolName = event.tool_name || (event.data && event.data.tool_name);
+                const sessionId = event.session_id || (event.data && event.data.session_id) || 'unknown';
                 const eventKey = `${sessionId}_${toolName}_${Math.floor(new Date(event.timestamp).getTime() / 1000)}`; // Group by second
 
                 if (!eventPairs.has(eventKey)) {
@@ -181,8 +181,8 @@ class FileToolTracker {
         const usedPostEvents = new Set();
 
         preToolEvents.forEach((preEvent, preIndex) => {
-            const toolName = preEvent.tool_name;
-            const sessionId = preEvent.session_id || 'unknown';
+            const toolName = preEvent.tool_name || (preEvent.data && preEvent.data.tool_name);
+            const sessionId = preEvent.session_id || (preEvent.data && preEvent.data.session_id) || 'unknown';
             const preTimestamp = new Date(preEvent.timestamp).getTime();
 
             // Create a base pair for this pre_tool event
@@ -217,7 +217,9 @@ class FileToolTracker {
                 if (usedPostEvents.has(postIndex)) return;
 
                 // Must match tool name and session
-                if (postEvent.tool_name !== toolName || postEvent.session_id !== sessionId) return;
+                const postToolName = postEvent.tool_name || (postEvent.data && postEvent.data.tool_name);
+                const postSessionId = postEvent.session_id || (postEvent.data && postEvent.data.session_id) || 'unknown';
+                if (postToolName !== toolName || postSessionId !== sessionId) return;
 
                 const postTimestamp = new Date(postEvent.timestamp).getTime();
                 const timeDiff = Math.abs(postTimestamp - preTimestamp);
@@ -270,10 +272,10 @@ class FileToolTracker {
         postToolEvents.forEach((postEvent, postIndex) => {
             if (usedPostEvents.has(postIndex)) return;
 
-            console.log('Orphaned post_tool event found:', postEvent.tool_name, 'at', postEvent.timestamp);
+            const toolName = postEvent.tool_name || (postEvent.data && postEvent.data.tool_name);
+            console.log('Orphaned post_tool event found:', toolName, 'at', postEvent.timestamp);
 
-            const toolName = postEvent.tool_name;
-            const sessionId = postEvent.session_id || 'unknown';
+            const sessionId = postEvent.session_id || (postEvent.data && postEvent.data.session_id) || 'unknown';
             const postTimestamp = new Date(postEvent.timestamp).getTime();
 
             const pairKey = `orphaned_${sessionId}_${toolName}_${postIndex}_${postTimestamp}`;
@@ -315,10 +317,13 @@ class FileToolTracker {
      */
     isToolOperation(event) {
         // Tool operations have tool_name and are hook events with pre_tool or post_tool subtype
-        return event.tool_name &&
-               event.type === 'hook' &&
-               (event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
-                event.subtype.includes('tool'));
+        // Check both top-level and data.tool_name for compatibility
+        const hasToolName = event.tool_name || (event.data && event.data.tool_name);
+        const isHookEvent = event.type === 'hook';
+        const isToolSubtype = event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
+                              (event.subtype && event.subtype.includes('tool'));
+        
+        return hasToolName && isHookEvent && isToolSubtype;
     }
 
     /**
@@ -328,13 +333,19 @@ class FileToolTracker {
      */
     isFileOperation(event) {
         // File operations are tool events with tools that operate on files
+        // Check both top-level and data for tool_name
+        let toolName = event.tool_name || (event.data && event.data.tool_name) || '';
+        toolName = toolName.toLowerCase();
+        
         // Check case-insensitively since tool names can come in different cases
         const fileTools = ['read', 'write', 'edit', 'grep', 'multiedit', 'glob', 'ls', 'bash', 'notebookedit'];
-        const toolName = event.tool_name ? event.tool_name.toLowerCase() : '';
+        
+        // Get tool parameters from either location
+        const toolParams = event.tool_parameters || (event.data && event.data.tool_parameters);
 
         // Also check if Bash commands involve file operations
-        if (toolName === 'bash' && event.tool_parameters) {
-            const command = event.tool_parameters.command || '';
+        if (toolName === 'bash' && toolParams) {
+            const command = toolParams.command || '';
             // Check for common file operations in bash commands
             if (command.match(/\b(cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find)\b/)) {
                 return true;

@@ -46,47 +46,30 @@ class SystemInstructionsService(BaseService, SystemInstructionsInterface):
         Args:
             instruction_type: Type of instructions to load (currently only "default" supported)
 
-        Implements project > framework precedence:
-        1. First check for project-specific instructions in .claude-mpm/agents/INSTRUCTIONS.md
-        2. If not found, fall back to framework instructions in src/claude_mpm/agents/INSTRUCTIONS.md
+        Now uses the FrameworkLoader for comprehensive instruction loading including:
+        - INSTRUCTIONS.md
+        - WORKFLOW.md  
+        - MEMORY.md
+        - Actual PM memories from .claude-mpm/memories/PM.md
+        - Agent capabilities
+        - BASE_PM.md
 
         Returns:
             Processed system instructions string
         """
         try:
-            # Check for project-specific instructions first
-            project_instructions_path = (
-                Path.cwd() / ".claude-mpm" / "agents" / "INSTRUCTIONS.md"
-            )
-            if project_instructions_path.exists():
-                self.logger.info(
-                    f"Loading project system instructions from {project_instructions_path}"
-                )
-                content = project_instructions_path.read_text(encoding="utf-8")
-                return self._strip_metadata_comments(content)
-
-            # Fall back to framework instructions
-            framework_instructions_path = (
-                paths.project_root / "src" / "claude_mpm" / "agents" / "INSTRUCTIONS.md"
-            )
-            if framework_instructions_path.exists():
-                self.logger.info(
-                    f"Loading framework system instructions from {framework_instructions_path}"
-                )
-                content = framework_instructions_path.read_text(encoding="utf-8")
-                return self._strip_metadata_comments(content)
-
-            # Check for BASE_PM.md as additional fallback
-            base_pm_path = (
-                paths.project_root / "src" / "claude_mpm" / "agents" / "BASE_PM.md"
-            )
-            if base_pm_path.exists():
-                self.logger.info(f"Loading BASE_PM instructions from {base_pm_path}")
-                content = base_pm_path.read_text(encoding="utf-8")
-                processed_content = self._process_base_pm_content(content)
-                return self._strip_metadata_comments(processed_content)
-
-            self.logger.warning("No system instructions found in project or framework")
+            # Use FrameworkLoader for comprehensive instruction loading
+            from claude_mpm.core.framework_loader import FrameworkLoader
+            
+            loader = FrameworkLoader()
+            instructions = loader.get_framework_instructions()
+            
+            if instructions:
+                self.logger.info("Loaded framework instructions via FrameworkLoader")
+                return instructions
+            
+            # Fallback if FrameworkLoader returns empty
+            self.logger.warning("FrameworkLoader returned empty instructions, using fallback")
             return "# System Instructions\n\nNo specific system instructions found. Using default behavior."
 
         except Exception as e:

@@ -377,6 +377,10 @@ class SocketIOServerCore:
                     },
                 }
                 
+                # Add to event history if main server is available
+                if self.main_server and hasattr(self.main_server, 'event_history'):
+                    self.main_server.event_history.append(heartbeat_data)
+                
                 # Emit heartbeat to all connected clients
                 await self.sio.emit("system_event", heartbeat_data)
                 

@@ -3,6 +3,9 @@
  * Handles WebSocket connections and event processing
  */
 
+// Access the global io from window object in ES6 module context
+const io = window.io;
+
 class SocketClient {
     constructor() {
         this.socket = null;
@@ -54,6 +57,14 @@ class SocketClient {
      */
     doConnect(url) {
         console.log(`Connecting to Socket.IO server at ${url}`);
+        
+        // Check if io is available
+        if (typeof io === 'undefined') {
+            console.error('Socket.IO library not loaded! Make sure socket.io.min.js is loaded before this script.');
+            this.notifyConnectionStatus('Socket.IO library not loaded', 'error');
+            return;
+        }
+        
         this.isConnecting = true;
         this.notifyConnectionStatus('Connecting...', 'connecting');
 
@@ -124,11 +135,11 @@ class SocketClient {
 
         // Primary event handler - this is what the server actually emits
         this.socket.on('claude_event', (data) => {
-            console.log('Received claude_event:', data);
+            // console.log('Received claude_event:', data);
 
             // Transform event to match expected format
             const transformedEvent = this.transformEvent(data);
-            console.log('Transformed event:', transformedEvent);
+            // console.log('Transformed event:', transformedEvent);
             this.addEvent(transformedEvent);
         });
 
@@ -422,27 +433,65 @@ class SocketClient {
      * @returns {Object} Transformed event
      */
     transformEvent(eventData) {
-        // Handle the actual event structure sent from hook_handler.py:
-        // { type: 'hook.pre_tool', timestamp: '...', data: { tool_name: '...', agent_type: '...', etc } }
+        // Handle multiple event structures:
+        // 1. Hook events: { type: 'hook.pre_tool', timestamp: '...', data: {...} }
+        // 2. Legacy events: { event: 'TestStart', timestamp: '...', ... }
+        // 3. Standard events: { type: 'session', subtype: 'started', ... }
 
-        if (!eventData || !eventData.type) {
-            return eventData; // Return as-is if malformed
+        if (!eventData) {
+            return eventData; // Return as-is if null/undefined
         }
 
-        const type = eventData.type;
         let transformedEvent = { ...eventData };
 
-        // Transform 'hook.subtype' format to separate type and subtype
-        if (type.startsWith('hook.')) {
-            const subtype = type.substring(5); // Remove 'hook.' prefix
-            transformedEvent.type = 'hook';
-            transformedEvent.subtype = subtype;
+        // Handle legacy format with 'event' field but no 'type'
+        if (!eventData.type && eventData.event) {
+            // Map common event names to proper type/subtype
+            const eventName = eventData.event;
+            
+            // Check for known event patterns
+            if (eventName === 'TestStart' || eventName === 'TestEnd') {
+                transformedEvent.type = 'test';
+                transformedEvent.subtype = eventName.toLowerCase().replace('test', '');
+            } else if (eventName === 'SubagentStart' || eventName === 'SubagentStop') {
+                transformedEvent.type = 'subagent';
+                transformedEvent.subtype = eventName.toLowerCase().replace('subagent', '');
+            } else if (eventName === 'ToolCall') {
+                transformedEvent.type = 'tool';
+                transformedEvent.subtype = 'call';
+            } else if (eventName === 'UserPrompt') {
+                transformedEvent.type = 'hook';
+                transformedEvent.subtype = 'user_prompt';
+            } else {
+                // Generic fallback for unknown event names
+                transformedEvent.type = 'system';
+                transformedEvent.subtype = eventName.toLowerCase();
+            }
+            
+            // Remove the 'event' field to avoid confusion
+            delete transformedEvent.event;
         }
-        // Transform other dotted types like 'session.started' -> type: 'session', subtype: 'started'
-        else if (type.includes('.')) {
-            const [mainType, ...subtypeParts] = type.split('.');
-            transformedEvent.type = mainType;
-            transformedEvent.subtype = subtypeParts.join('.');
+        // Handle standard format with 'type' field
+        else if (eventData.type) {
+            const type = eventData.type;
+            
+            // Transform 'hook.subtype' format to separate type and subtype
+            if (type.startsWith('hook.')) {
+                const subtype = type.substring(5); // Remove 'hook.' prefix
+                transformedEvent.type = 'hook';
+                transformedEvent.subtype = subtype;
+            }
+            // Transform other dotted types like 'session.started' -> type: 'session', subtype: 'started'
+            else if (type.includes('.')) {
+                const [mainType, ...subtypeParts] = type.split('.');
+                transformedEvent.type = mainType;
+                transformedEvent.subtype = subtypeParts.join('.');
+            }
+        }
+        // If no type and no event field, mark as unknown
+        else {
+            transformedEvent.type = 'unknown';
+            transformedEvent.subtype = '';
         }
 
         // Extract and flatten data fields to top level for dashboard compatibility
@@ -450,10 +499,23 @@ class SocketClient {
         if (eventData.data && typeof eventData.data === 'object') {
             // Copy all data fields to the top level
             Object.keys(eventData.data).forEach(key => {
-                // Only copy if the key doesn't already exist at top level
-                if (!(key in transformedEvent)) {
-                    transformedEvent[key] = eventData.data[key];
-                }
+                // Always copy data fields to ensure dashboard gets them
+                // This overwrites any existing values to ensure data fields take precedence
+                transformedEvent[key] = eventData.data[key];
+            });
+            
+            // Keep the original data object for backward compatibility
+            transformedEvent.data = eventData.data;
+        }
+
+        // Debug logging for tool events
+        if (transformedEvent.type === 'hook' && (transformedEvent.subtype === 'pre_tool' || transformedEvent.subtype === 'post_tool')) {
+            console.log('Transformed tool event:', {
+                type: transformedEvent.type,
+                subtype: transformedEvent.subtype,
+                tool_name: transformedEvent.tool_name,
+                has_data: !!transformedEvent.data,
+                keys: Object.keys(transformedEvent).filter(k => k !== 'data')
             });
         }
 

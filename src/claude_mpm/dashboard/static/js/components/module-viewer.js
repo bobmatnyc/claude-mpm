@@ -11,6 +11,13 @@ class ModuleViewer {
         this.currentEvent = null;
         this.eventsByClass = new Map();
 
+        // Global JSON visibility state - persisted across all events
+        // When true, all events show JSON expanded; when false, all collapsed
+        this.globalJsonExpanded = localStorage.getItem('dashboard-json-expanded') === 'true';
+        
+        // Track if keyboard listener has been added to avoid duplicates
+        this.keyboardListenerAdded = false;
+
         this.init();
     }
 
@@ -815,24 +822,34 @@ class ModuleViewer {
 
     /**
      * Create collapsible JSON section that appears below main content
+     * WHY: Uses global state to maintain consistent JSON visibility across all events
+     * DESIGN DECISION: Sticky toggle improves debugging workflow by maintaining JSON
+     * visibility preference as user navigates through different events
      * @param {Object} event - The event to render
      * @returns {string} HTML content
      */
     createCollapsibleJsonSection(event) {
         const uniqueId = 'json-section-' + Math.random().toString(36).substr(2, 9);
         const jsonString = this.formatJSON(event);
+        
+        // Use global state to determine initial visibility
+        const isExpanded = this.globalJsonExpanded;
+        const display = isExpanded ? 'block' : 'none';
+        const arrow = isExpanded ? '▲' : '▼';
+        const ariaExpanded = isExpanded ? 'true' : 'false';
+        
         return `
             <div class="collapsible-json-section" id="${uniqueId}">
                 <div class="json-toggle-header"
                      onclick="window.moduleViewer.toggleJsonSection()"
                      role="button"
                      tabindex="0"
-                     aria-expanded="false"
+                     aria-expanded="${ariaExpanded}"
                      onkeydown="if(event.key==='Enter'||event.key===' '){window.moduleViewer.toggleJsonSection();event.preventDefault();}">
                     <span class="json-toggle-text">Raw JSON</span>
-                    <span class="json-toggle-arrow">▼</span>
+                    <span class="json-toggle-arrow">${arrow}</span>
                 </div>
-                <div class="json-content-collapsible" style="display: none;" aria-hidden="true">
+                <div class="json-content-collapsible" style="display: ${display};" aria-hidden="${!isExpanded}">
                     <div class="json-display" onclick="window.moduleViewer.copyJsonToClipboard(event)">
                         <pre>${jsonString}</pre>
                     </div>
@@ -869,49 +886,99 @@ class ModuleViewer {
 
     /**
      * Initialize JSON toggle functionality
+     * WHY: Ensures newly rendered events respect the current global JSON visibility state
      */
     initializeJsonToggle() {
         // Make sure the moduleViewer is available globally for onclick handlers
         window.moduleViewer = this;
 
-        // Add keyboard navigation support
-        document.addEventListener('keydown', (e) => {
-            if (e.target.classList.contains('json-toggle-header')) {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    this.toggleJsonSection();
-                    e.preventDefault();
+        // Apply global state to newly rendered JSON sections
+        // This ensures new events respect the current global state
+        if (this.globalJsonExpanded) {
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                this.updateAllJsonSections();
+            }, 0);
+        }
+
+        // Add keyboard navigation support (only add once to avoid duplicates)
+        if (!this.keyboardListenerAdded) {
+            this.keyboardListenerAdded = true;
+            document.addEventListener('keydown', (e) => {
+                if (e.target.classList.contains('json-toggle-header')) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        this.toggleJsonSection();
+                        e.preventDefault();
+                    }
                 }
-            }
-        });
+            });
+        }
     }
 
     /**
-     * Toggle JSON section visibility with smooth animation
+     * Toggle JSON section visibility globally - affects ALL events
+     * WHY: Sticky toggle maintains user preference across all events for better debugging
+     * DESIGN DECISION: Uses localStorage to persist preference across page refreshes
      */
     toggleJsonSection() {
-        const jsonContent = document.querySelector('.json-content-collapsible');
-        const arrow = document.querySelector('.json-toggle-arrow');
-        const toggleHeader = document.querySelector('.json-toggle-header');
+        // Toggle the global state
+        this.globalJsonExpanded = !this.globalJsonExpanded;
+        
+        // Persist the preference to localStorage
+        localStorage.setItem('dashboard-json-expanded', this.globalJsonExpanded.toString());
+        
+        // Update ALL JSON sections on the page
+        this.updateAllJsonSections();
+        
+        // Dispatch event to notify other components of the change
+        document.dispatchEvent(new CustomEvent('jsonToggleChanged', {
+            detail: { expanded: this.globalJsonExpanded }
+        }));
+    }
 
-        if (!jsonContent || !arrow) return;
-
-        const isHidden = jsonContent.style.display === 'none' || !jsonContent.style.display;
-
-        if (isHidden) {
-            // Show JSON content
-            jsonContent.style.display = 'block';
-            arrow.textContent = '▲';
-            toggleHeader.setAttribute('aria-expanded', 'true');
-
-            // Scroll the new content into view if needed
+    /**
+     * Update all JSON sections on the page to match global state
+     * WHY: Ensures consistent JSON visibility across all displayed events
+     */
+    updateAllJsonSections() {
+        // Find all JSON content sections and toggle headers
+        const allJsonContents = document.querySelectorAll('.json-content-collapsible');
+        const allArrows = document.querySelectorAll('.json-toggle-arrow');
+        const allHeaders = document.querySelectorAll('.json-toggle-header');
+        
+        // Update each JSON section
+        allJsonContents.forEach((jsonContent, index) => {
+            if (this.globalJsonExpanded) {
+                // Show JSON content
+                jsonContent.style.display = 'block';
+                jsonContent.setAttribute('aria-hidden', 'false');
+                if (allArrows[index]) {
+                    allArrows[index].textContent = '▲';
+                }
+                if (allHeaders[index]) {
+                    allHeaders[index].setAttribute('aria-expanded', 'true');
+                }
+            } else {
+                // Hide JSON content
+                jsonContent.style.display = 'none';
+                jsonContent.setAttribute('aria-hidden', 'true');
+                if (allArrows[index]) {
+                    allArrows[index].textContent = '▼';
+                }
+                if (allHeaders[index]) {
+                    allHeaders[index].setAttribute('aria-expanded', 'false');
+                }
+            }
+        });
+        
+        // If expanded and there's content, scroll the first visible one into view
+        if (this.globalJsonExpanded && allJsonContents.length > 0) {
             setTimeout(() => {
-                jsonContent.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                const firstVisible = allJsonContents[0];
+                if (firstVisible) {
+                    firstVisible.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
             }, 100);
-        } else {
-            // Hide JSON content
-            jsonContent.style.display = 'none';
-            arrow.textContent = '▼';
-            toggleHeader.setAttribute('aria-expanded', 'false');
         }
     }
 

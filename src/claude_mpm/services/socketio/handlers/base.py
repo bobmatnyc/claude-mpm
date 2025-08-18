@@ -83,13 +83,16 @@ class BaseEventHandler:
             skip_sid: Optional session ID to skip
         """
         try:
+            self.logger.info(f"🔔 Broadcasting {event} (skip_sid={skip_sid})")
             if skip_sid:
                 await self.sio.emit(event, data, skip_sid=skip_sid)
             else:
                 await self.sio.emit(event, data)
-            self.logger.debug(f"Broadcasted {event} to all clients")
+            self.logger.info(f"✅ Broadcasted {event} to all clients")
         except Exception as e:
             self.logger.error(f"Failed to broadcast {event}: {e}")
+            import traceback
+            self.logger.error(f"Stack trace: {traceback.format_exc()}")
 
     def add_to_history(self, event_type: str, data: EventData) -> None:
         """Add an event to the server's event history.
