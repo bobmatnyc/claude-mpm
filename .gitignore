@@ -86,13 +86,16 @@ docs/_build/
 *.doctrees
 *.buildinfo
 
-# Node.js (in case any JS tooling is added)
+# Node.js (dashboard build system and npm package)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
 yarn.lock
+# Ignore package-lock.json in all subdirectories
+**/package-lock.json
+**/node_modules/
 
 # macOS
 .DS_Store
