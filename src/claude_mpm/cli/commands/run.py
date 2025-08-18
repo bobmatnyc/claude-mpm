@@ -55,7 +55,7 @@ def filter_claude_mpm_args(claude_args):
         "--intercept-commands",
         "--no-native-agents",
         "--launch-method",
-        "--resume",
+        "--mpm-resume",
         # Dependency checking flags (MPM-specific)
         "--no-check-dependencies",
         "--force-check-dependencies",
@@ -99,7 +99,7 @@ def filter_claude_mpm_args(claude_args):
                 "--input",
             }
             optional_value_flags = {
-                "--resume"
+                "--mpm-resume"
             }  # These flags can have optional values (nargs="?")
 
             if arg in value_expecting_flags and i < len(claude_args):
@@ -205,8 +205,8 @@ def run_session(args):
     resume_session_id = None
     resume_context = None
 
-    if hasattr(args, "resume") and args.resume:
-        if args.resume == "last":
+    if hasattr(args, "mpm_resume") and args.mpm_resume:
+        if args.mpm_resume == "last":
             # Resume the last interactive session
             resume_session_id = session_manager.get_last_interactive_session()
             if resume_session_id:
@@ -226,7 +226,7 @@ def run_session(args):
                 print("ℹ️  No recent interactive sessions found to resume")
         else:
             # Resume specific session by ID
-            resume_session_id = args.resume
+            resume_session_id = args.mpm_resume
             session_data = session_manager.get_session_by_id(resume_session_id)
             if session_data:
                 resume_context = session_data.get("context", "default")
@@ -728,8 +728,8 @@ def _check_claude_json_memory(args, logger):
         args: Parsed command line arguments
         logger: Logger instance for output
     """
-    # Only check if using --resume
-    if not hasattr(args, "resume") or not args.resume:
+    # Only check if using --mpm-resume
+    if not hasattr(args, "mpm_resume") or not args.mpm_resume:
         return
 
     claude_json_path = Path.home() / ".claude.json"

@@ -181,11 +181,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="WebSocket server port (default: 8765)",
     )
     run_group.add_argument(
-        "--resume",
+        "--mpm-resume",
         type=str,
         nargs="?",
         const="last",
-        help="Resume a session (last session if no ID specified, or specific session ID)",
+        help="Resume an MPM session (last session if no ID specified, or specific session ID)",
     )
     run_group.add_argument(
         "--force",
