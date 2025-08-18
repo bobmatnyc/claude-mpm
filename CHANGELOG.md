@@ -5,6 +5,33 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+
+## [4.0.11] - 2025-08-18
+
+### Added
+- **Release Notes Organization**: Moved all historical RELEASE_NOTES_*.md files to docs/release-notes/ directory
+- **Structure Linter Enhancement**: Added new rule to enforce release notes organization with auto-fix capability
+- **Consolidated Release Notes**: Added v3.x.md and v4.0.x.md files for better historical organization
+
+### Fixed
+- **Test Suite**: Resolved import path issues for get_agent_versions_display function
+- **Test Assertions**: Fixed command building tests to match actual system prompt behavior
+- **WebSocket Tests**: Improved cleanup and mocking for websocket-related tests
+- **Exception Handling**: Enhanced error test assertions for better reliability
+
+### Changed
+- **Project Structure**: Historical release notes now organized in docs/release-notes/ instead of root directory
+- **Structure Linter**: Enhanced with better virtual environment ignore patterns and release notes validation
+
 ## [4.0.9]
 
 ## [4.0.10] - 2025-08-18
@@ -59,21 +86,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chores
 
 - sync version files and update remaining changes ([db4bca7])
-## [Unreleased]
+## v4.0.11 (2025-08-18)
 
-### Added
-- New features will be listed here
+### Feat
 
-### Changed
-- Changes to existing functionality will be listed here
-
-### Fixed
-- Bug fixes will be listed here
-
-## [4.0.6] - 2025-08-18
+- reorganize release notes and enhance structure linter
 
 ### Fix
 
+- resolve test failures in interactive and oneshot sessions
+
+## v4.0.10 (2025-08-18)
+
+## v4.0.9 (2025-08-18)
+
+### Fix
+
+- include build number in CLI --version display
+
+## v4.0.8 (2025-08-18)
+
+### Fix
+
+- update commitizen version to 4.0.7 for version sync
+
+## v4.0.7 (2025-08-18)
+
+### Feat
+
+- comprehensive scripts directory cleanup
+- implement automatic build number tracking
+- add build number increment to release process
+
+### Fix
+
+- update test script to run core tests only
+- remove tracked node_modules and package-lock.json files
+- update session management tests to work with current implementation
+- remove obsolete ticket-related tests
+
+## v4.0.6 (2025-08-18)
+
+### Fix
+
+- correct Python syntax in Makefile release-sync-versions
+- restore [Unreleased] section and correct version format in CHANGELOG.md
 - format CHANGELOG.md to meet structure requirements
 - correct commitizen bump syntax in Makefile
 - add current directory to framework detection candidates
