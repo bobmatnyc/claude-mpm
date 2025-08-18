@@ -5,6 +5,29 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.7] - 2025-08-18
+
+
+### Features
+
+- comprehensive scripts directory cleanup ([c6d6f19])
+- implement automatic build number tracking ([82ef2d3])
+- add build number increment to release process ([778d2fc])
+
+### Bug Fixes
+
+- update test script to run core tests only ([cd81f46])
+- remove tracked node_modules and package-lock.json files ([6048b7f])
+- update session management tests to work with current implementation ([0178518])
+- remove obsolete ticket-related tests ([0f01de0])
+
+### Documentation
+
+- add comprehensive build number tracking documentation ([0ae3456])
+
+### Chores
+
+- sync version files and update remaining changes ([db4bca7])
 ## [Unreleased]
 
 ### Added
