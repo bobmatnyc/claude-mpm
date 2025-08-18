@@ -227,7 +227,55 @@ This script performs a minimal installation without PATH configuration or shell 
 
 ## Version Management
 
-Claude MPM uses automated semantic versioning based on git tags. See [VERSIONING.md](./VERSIONING.md) for detailed version management.
+Claude MPM uses automated semantic versioning based on git tags combined with automatic build number tracking. See [VERSIONING.md](./VERSIONING.md) for detailed version management.
+
+### Build Number Tracking
+
+Claude MPM automatically tracks build numbers to provide unique identifiers for each build with code changes. This helps with debugging and tracking which build introduced specific changes.
+
+#### How Build Numbers Work
+
+- **Automatic Increment**: Build number increments automatically during each `make release-build`
+- **Smart Detection**: Only increments when actual code changes are detected (files in `src/` and `scripts/`)
+- **Persistent Storage**: Build number stored in `BUILD_NUMBER` file in project root
+- **Version Integration**: Combined with semantic version for display (e.g., `v4.0.6-build.284`)
+
+#### Build Number Commands
+
+```bash
+# Manual build number increment (detects code changes)
+make increment-build
+
+# Force increment regardless of changes
+python scripts/increment_build.py --force
+
+# Check if increment is needed without changing
+python scripts/increment_build.py --check-only
+
+# View current build number
+cat BUILD_NUMBER
+```
+
+#### Build Number in Releases
+
+Build numbers are automatically included in:
+- **CLI version display**: `claude-mpm --version` → `claude-mpm v4.0.6-build.284`
+- **Package builds**: Each build gets unique tracking number
+- **Release process**: Integrated into `make release-build` workflow
+- **Development**: PEP 440 format `4.0.6+build.284` for dependencies
+
+#### Build Number Detection Logic
+
+The system only increments build numbers for:
+- ✅ Python files in `src/` directory
+- ✅ Shell scripts in `scripts/` directory
+- ✅ Python scripts in `scripts/` directory
+
+Excluded from build number increment:
+- ❌ Markdown files (documentation)
+- ❌ JSON files in `agents/templates/` (configuration)
+- ❌ Files in `docs/` directory (documentation)
+- ❌ The `BUILD_NUMBER` file itself
 
 ### Quick Version Commands
 
@@ -240,6 +288,12 @@ Claude MPM uses automated semantic versioning based on git tags. See [VERSIONING
 
 # Manual version bump
 ./scripts/manage_version.py bump --bump-type minor
+
+# Check current build number
+cat BUILD_NUMBER
+
+# Increment build number manually
+make increment-build
 ```
 
 ## Release Process
@@ -306,6 +360,7 @@ This will:
 - ✅ Run test suite
 - ✅ Bump version using commitizen
 - ✅ Sync all version files (VERSION, src/claude_mpm/VERSION, package.json)
+- ✅ **Increment build number** (if code changes detected)
 - ✅ Build Python package
 - ✅ Prepare for publishing
 
@@ -452,7 +507,8 @@ For granular control, use individual targets:
 ```bash
 make release-check          # Check prerequisites
 make release-test           # Run test suite
-make release-build          # Build package only
+make increment-build        # Increment build number (manual)
+make release-build          # Build package (includes build increment)
 make release-sync-versions  # Sync version files
 make release-verify         # Show verification links
 ```
@@ -849,7 +905,13 @@ Version is automatically shown with build numbers (v3.9.5+):
 - Ensure `git fetch --tags` to get all tags
 - Run `./scripts/manage_version.py check`
 - Verify VERSION file matches git tag
-- Check BUILD_NUMBER file is properly synchronized (v3.9.5+)
+- Check BUILD_NUMBER file is properly synchronized
+
+### Build Number Issues
+- **Build number not incrementing**: Check if code changes are in tracked directories (`src/`, `scripts/`)
+- **Manual increment needed**: Run `make increment-build` or `python scripts/increment_build.py --force`
+- **Build number reset**: BUILD_NUMBER file should contain only the number (e.g., `284`)
+- **Version display issues**: Build number appears as `v4.0.6-build.284` in CLI output
 
 ### Build Failures
 - Clear build directories: `rm -rf build/ dist/ *.egg-info`
@@ -930,6 +992,15 @@ make release-minor      # Feature release (4.0.4 → 4.1.0)
 make release-major      # Breaking change (4.0.4 → 5.0.0)
 make release-publish    # Publish prepared release
 make release-full       # Complete patch release + publish
+make increment-build    # Increment build number manually
+```
+
+**Build Number Commands:**
+```bash
+cat BUILD_NUMBER                              # View current build number
+make increment-build                          # Increment if code changes detected
+python scripts/increment_build.py --force    # Force increment
+python scripts/increment_build.py --check-only # Check without incrementing
 ```
 
 **Prerequisites:**
