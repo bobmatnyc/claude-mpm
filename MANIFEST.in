@@ -11,6 +11,7 @@ include requirements-dev.txt
 include VERSION
 include BUILD_NUMBER
 include src/claude_mpm/VERSION
+include src/claude_mpm/BUILD_NUMBER
 
 # Include all agent templates and instructions
 recursive-include src/claude_mpm/agents *.md *.json
