@@ -8,7 +8,8 @@
 #   make setup    - Complete setup (install + shell config)
 
 .PHONY: help install install-pipx install-global install-local setup-shell uninstall update clean check-pipx detect-shell backup-shell test-installation setup-pre-commit format lint type-check pre-commit-run dev-complete deprecation-check deprecation-apply cleanup all
-.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test release-sync-versions
+.PHONY: release-check release-patch release-minor release-major release-build release-publish release-verify release-dry-run release-test-pypi release release-full release-help release-test
+.PHONY: release-build-current release-publish-current
 
 # Default shell
 SHELL := /bin/bash
@@ -404,16 +405,7 @@ release-build: ## Build Python package for release
 	@echo "$(GREEN)✓ Package built successfully$(NC)"
 	@ls -la dist/
 
-# Sync version files after commitizen bump
-release-sync-versions: ## Synchronize version files after bump
-	@echo "$(YELLOW)🔄 Synchronizing version files...$(NC)"
-	@VERSION=$$(cat VERSION); \
-	echo "Current version: $$VERSION"; \
-	echo "$$VERSION" > src/claude_mpm/VERSION; \
-	echo "$(GREEN)✓ Updated src/claude_mpm/VERSION$(NC)"; \
-	if [ -f "package.json" ]; then \
-		python -c "import json; data = json.load(open('package.json', 'r')); data['version'] = '$$VERSION'; json.dump(data, open('package.json', 'w'), indent=2); print('$(GREEN)✓ Updated package.json$(NC)')"; \
-	fi
+
 
 # Increment build number
 increment-build: ## Increment build number for code changes
@@ -425,7 +417,6 @@ increment-build: ## Increment build number for code changes
 release-patch: release-check release-test ## Create a patch release (bug fixes)
 	@echo "$(YELLOW)🔧 Creating patch release...$(NC)"
 	@cz bump --increment PATCH
-	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Patch release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
@@ -434,7 +425,6 @@ release-patch: release-check release-test ## Create a patch release (bug fixes)
 release-minor: release-check release-test ## Create a minor release (new features)
 	@echo "$(YELLOW)✨ Creating minor release...$(NC)"
 	@cz bump --increment MINOR
-	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Minor release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
@@ -443,7 +433,6 @@ release-minor: release-check release-test ## Create a minor release (new feature
 release-major: release-check release-test ## Create a major release (breaking changes)
 	@echo "$(YELLOW)💥 Creating major release...$(NC)"
 	@cz bump --increment MAJOR
-	@$(MAKE) release-sync-versions
 	@$(MAKE) release-build
 	@echo "$(GREEN)✓ Major release prepared$(NC)"
 	@echo "$(BLUE)Next: Run 'make release-publish' to publish$(NC)"
@@ -528,29 +517,88 @@ release-dry-run: ## Show what a patch release would do (dry run)
 release: release-patch ## Alias for patch release (most common)
 release-full: release-patch release-publish ## Complete patch release with publishing
 
+# Build current version without version bump
+release-build-current: ## Build current version without version bump
+	@echo "$(YELLOW)📦 Building current version...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	echo "Building version: $$VERSION"
+	@rm -rf dist/ build/ *.egg-info
+	@python -m build
+	@echo "$(GREEN)✓ Package built successfully$(NC)"
+	@ls -la dist/
+
+# Publish current version (if already built)
+release-publish-current: ## Publish current built version
+	@echo "$(YELLOW)🚀 Publishing current version...$(NC)"
+	@if [ ! -d "dist" ] || [ -z "$$(ls -A dist)" ]; then \
+		echo "$(RED)✗ No dist/ directory or it's empty. Run build first.$(NC)"; \
+		exit 1; \
+	fi
+	@VERSION=$$(cat VERSION); \
+	echo "Publishing version: $$VERSION"; \
+	read -p "Continue with publishing? [y/N]: " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "$(RED)Publishing aborted$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)📤 Publishing to PyPI...$(NC)"
+	@if command -v twine >/dev/null 2>&1; then \
+		python -m twine upload dist/*; \
+		echo "$(GREEN)✓ Published to PyPI$(NC)"; \
+	else \
+		echo "$(RED)✗ twine not found. Install with: pip install twine$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(YELLOW)📤 Publishing to npm...$(NC)"
+	@if command -v npm >/dev/null 2>&1; then \
+		npm publish || echo "$(YELLOW)⚠ npm publish failed, continuing...$(NC)"; \
+		echo "$(GREEN)✓ npm publish attempted$(NC)"; \
+	else \
+		echo "$(YELLOW)⚠ npm not found, skipping npm publish$(NC)"; \
+	fi
+	@echo "$(YELLOW)📤 Creating GitHub release...$(NC)"
+	@VERSION=$$(cat VERSION); \
+	gh release create "v$$VERSION" \
+		--title "Claude MPM v$$VERSION" \
+		--notes-from-tag \
+		dist/* || echo "$(YELLOW)⚠ GitHub release creation failed, continuing...$(NC)"
+	@echo "$(GREEN)✓ GitHub release created$(NC)"
+	@$(MAKE) release-verify
+
 # Help for release targets
 release-help: ## Show release management help
 	@echo "$(BLUE)Claude MPM Release Management$(NC)"
 	@echo "============================="
 	@echo ""
-	@echo "$(GREEN)Quick Start:$(NC)"
-	@echo "  make release-patch     # Bug fix release"
-	@echo "  make release-minor     # Feature release"
-	@echo "  make release-major     # Breaking change release"
+	@echo "$(GREEN)Standard Release Process (Commitizen):$(NC)"
+	@echo "  make release-patch     # Bug fix release (X.Y.Z+1)"
+	@echo "  make release-minor     # Feature release (X.Y+1.0)"
+	@echo "  make release-major     # Breaking change release (X+1.0.0)"
 	@echo "  make release-publish   # Publish prepared release"
 	@echo ""
-	@echo "$(GREEN)Testing:$(NC)"
+	@echo "$(GREEN)Current Version Publishing:$(NC)"
+	@echo "  make release-build-current    # Build current version"
+	@echo "  make release-publish-current  # Publish current built version"
+	@echo ""
+	@echo "$(GREEN)Testing & Verification:$(NC)"
 	@echo "  make release-dry-run   # Preview what would happen"
 	@echo "  make release-test-pypi # Publish to TestPyPI"
+	@echo "  make release-verify    # Show verification links"
 	@echo ""
 	@echo "$(GREEN)Individual Steps:$(NC)"
 	@echo "  make release-check     # Check prerequisites"
 	@echo "  make release-test      # Run test suite"
 	@echo "  make increment-build   # Increment build number"
 	@echo "  make release-build     # Build package"
-	@echo "  make release-verify    # Show verification links"
+	@echo ""
+	@echo "$(GREEN)Quick Workflows:$(NC)"
+	@echo "  make release           # Alias for patch release"
+	@echo "  make release-full      # Complete patch release with publishing"
 	@echo ""
 	@echo "$(YELLOW)Prerequisites:$(NC)"
 	@echo "  • git, python, commitizen (cz), GitHub CLI (gh)"
 	@echo "  • Clean working directory on main branch"
 	@echo "  • PyPI and npm credentials configured"
+	@echo ""
+	@echo "$(BLUE)Current version:$(NC) $$(cat VERSION)"
+	@echo "$(BLUE)Version management:$(NC) Commitizen (conventional commits)"
