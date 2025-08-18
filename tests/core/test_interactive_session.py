@@ -78,7 +78,7 @@ class TestInteractiveSession:
         with patch("uuid.uuid4", return_value=Mock(spec=uuid.UUID)) as mock_uuid, patch(
             "claude_mpm.services.socketio_server.SocketIOClientProxy",
             return_value=mock_proxy,
-        ):
+        ), patch("os.getcwd", return_value="/test/cwd"):
             mock_uuid.return_value.__str__ = Mock(return_value="ws-session-id")
 
             success, error = interactive_session.initialize_interactive_session()
@@ -272,9 +272,12 @@ class TestInteractiveSession:
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
-            mock_handle.assert_called_once_with(
-                "FileNotFoundError", FileNotFoundError("claude not found")
-            )
+            # Check that _handle_launch_error was called with correct error type
+            assert mock_handle.call_count == 1
+            call_args = mock_handle.call_args[0]
+            assert call_args[0] == "FileNotFoundError"
+            assert isinstance(call_args[1], FileNotFoundError)
+            assert str(call_args[1]) == "claude not found"
 
     def test_handle_interactive_input_permission_error(self, interactive_session):
         """Test handling of PermissionError during launch."""
@@ -288,9 +291,12 @@ class TestInteractiveSession:
             result = interactive_session.handle_interactive_input(environment)
 
             assert result is False
-            mock_handle.assert_called_once_with(
-                "PermissionError", PermissionError("Permission denied")
-            )
+            # Check that _handle_launch_error was called with correct error type
+            assert mock_handle.call_count == 1
+            call_args = mock_handle.call_args[0]
+            assert call_args[0] == "PermissionError"
+            assert isinstance(call_args[1], PermissionError)
+            assert str(call_args[1]) == "Permission denied"
 
     def test_handle_interactive_input_os_error_with_fallback(self, interactive_session):
         """Test handling of OSError with successful fallback."""
@@ -341,7 +347,7 @@ class TestInteractiveSession:
     def test_process_interactive_command_agents(self, interactive_session):
         """Test processing of /agents command."""
         with patch(
-            "claude_mpm.cli._get_agent_versions_display", return_value="agent list"
+            "claude_mpm.cli.utils.get_agent_versions_display", return_value="agent list"
         ) as mock_get_agents, patch("builtins.print") as mock_print:
             result = interactive_session.process_interactive_command("/agents")
 
@@ -352,7 +358,7 @@ class TestInteractiveSession:
     def test_process_interactive_command_agents_no_agents(self, interactive_session):
         """Test processing of /agents command with no agents."""
         with patch(
-            "claude_mpm.cli._get_agent_versions_display", return_value=None
+            "claude_mpm.cli.utils.get_agent_versions_display", return_value=None
         ) as mock_get_agents, patch("builtins.print") as mock_print:
             result = interactive_session.process_interactive_command("/agents")
 
@@ -365,7 +371,7 @@ class TestInteractiveSession:
     def test_process_interactive_command_agents_import_error(self, interactive_session):
         """Test processing of /agents command with import error."""
         with patch(
-            "claude_mpm.cli._get_agent_versions_display",
+            "claude_mpm.cli.utils.get_agent_versions_display",
             side_effect=ImportError("No module"),
         ), patch("builtins.print") as mock_print:
             result = interactive_session.process_interactive_command("/agents")
@@ -376,7 +382,7 @@ class TestInteractiveSession:
     def test_process_interactive_command_agents_exception(self, interactive_session):
         """Test processing of /agents command with exception."""
         with patch(
-            "claude_mpm.cli._get_agent_versions_display", side_effect=Exception("Error")
+            "claude_mpm.cli.utils.get_agent_versions_display", side_effect=Exception("Error")
         ), patch("builtins.print") as mock_print:
             result = interactive_session.process_interactive_command("/agents")
 
@@ -424,11 +430,12 @@ class TestInteractiveSession:
 
     def test_cleanup_interactive_session_with_websocket(self, interactive_session):
         """Test cleanup with WebSocket server."""
-        interactive_session.runner.websocket_server = Mock()
+        mock_websocket = Mock()
+        interactive_session.runner.websocket_server = mock_websocket
 
         interactive_session.cleanup_interactive_session()
 
-        interactive_session.runner.websocket_server.session_ended.assert_called_once()
+        mock_websocket.session_ended.assert_called_once()
         assert interactive_session.runner.websocket_server is None
 
     def test_cleanup_interactive_session_with_project_logger(self, interactive_session):
@@ -470,7 +477,7 @@ class TestInteractiveSession:
         ):
             result = interactive_session._build_claude_command()
 
-            expected = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+            expected = ["claude", "--model", "opus", "--dangerously-skip-permissions", "--append-system-prompt", "system prompt"]
             assert result == expected
 
     def test_build_claude_command_with_args(self, interactive_session):
@@ -491,6 +498,8 @@ class TestInteractiveSession:
                 "--verbose",
                 "--timeout",
                 "30",
+                "--append-system-prompt",
+                "system prompt",
             ]
             assert result == expected
 
