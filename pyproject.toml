@@ -121,6 +121,7 @@ name = "cz_conventional_commits"
 version = "4.0.14"
 version_files = [
     "VERSION",
+    "src/claude_mpm/VERSION",
     "package.json:version"
 ]
 tag_format = "v$version"
