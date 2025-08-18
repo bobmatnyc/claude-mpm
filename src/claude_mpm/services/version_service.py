@@ -8,6 +8,7 @@ This service handles:
 Extracted from ClaudeRunner to follow Single Responsibility Principle.
 """
 
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 from claude_mpm.config.paths import paths
@@ -122,17 +123,23 @@ class VersionService(BaseService, VersionServiceInterface):
         Returns:
             Build number as integer or None if not available
         """
-        try:
-            build_file = paths.project_root / "BUILD_NUMBER"
-            if build_file.exists():
-                build_content = build_file.read_text().strip()
-                build_number = int(build_content)
-                self.logger.debug(f"Build number obtained from file: {build_number}")
-                return build_number
-        except (ValueError, IOError) as e:
-            self.logger.debug(f"Could not read BUILD_NUMBER: {e}")
-        except Exception as e:
-            self.logger.debug(f"Unexpected error reading BUILD_NUMBER: {e}")
+        # Try multiple locations for BUILD_NUMBER file
+        build_file_locations = [
+            paths.project_root / "BUILD_NUMBER",  # Development location
+            Path(__file__).parent.parent / "BUILD_NUMBER",  # Package location
+        ]
+
+        for build_file in build_file_locations:
+            try:
+                if build_file.exists():
+                    build_content = build_file.read_text().strip()
+                    build_number = int(build_content)
+                    self.logger.debug(f"Build number obtained from {build_file}: {build_number}")
+                    return build_number
+            except (ValueError, IOError) as e:
+                self.logger.debug(f"Could not read BUILD_NUMBER from {build_file}: {e}")
+            except Exception as e:
+                self.logger.debug(f"Unexpected error reading BUILD_NUMBER from {build_file}: {e}")
 
         return None
 

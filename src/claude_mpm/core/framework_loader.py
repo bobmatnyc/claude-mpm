@@ -721,31 +721,47 @@ Extract tickets from these patterns:
                 Path.home() / ".claude" / "agents",  # User's system agents
             ]
             
-            agents_dir = None
-            for potential_dir in agents_dirs:
+            # Collect agents from all directories with proper precedence
+            # Project agents override user agents with the same name
+            all_agents = {}  # key: agent_id, value: (agent_data, priority)
+            
+            for priority, potential_dir in enumerate(agents_dirs):
                 if potential_dir.exists() and any(potential_dir.glob("*.md")):
-                    agents_dir = potential_dir
-                    self.logger.debug(f"Found agents directory at: {agents_dir}")
-                    break
+                    self.logger.debug(f"Found agents directory at: {potential_dir}")
+                    
+                    # Collect agents from this directory
+                    for agent_file in potential_dir.glob("*.md"):
+                        if agent_file.name.startswith("."):
+                            continue
+                        
+                        # Parse agent metadata
+                        agent_data = self._parse_agent_metadata(agent_file)
+                        if agent_data:
+                            agent_id = agent_data["id"]
+                            # Only add if not already present (project has priority 0, user has priority 1)
+                            # Lower priority number wins (project > user)
+                            if agent_id not in all_agents or priority < all_agents[agent_id][1]:
+                                all_agents[agent_id] = (agent_data, priority)
+                                self.logger.debug(f"Added/Updated agent {agent_id} from {potential_dir} (priority {priority})")
 
-
-            if not agents_dir:
-                self.logger.warning(f"No .claude/agents directory found in any location: {agents_dirs}")
+            if not all_agents:
+                self.logger.warning(f"No agents found in any location: {agents_dirs}")
                 return self._get_fallback_capabilities()
-
+            
+            # Log agent collection summary
+            project_agents = [aid for aid, (_, pri) in all_agents.items() if pri == 0]
+            user_agents = [aid for aid, (_, pri) in all_agents.items() if pri == 1]
+            
+            if project_agents:
+                self.logger.info(f"Loaded {len(project_agents)} project agents: {', '.join(sorted(project_agents))}")
+            if user_agents:
+                self.logger.info(f"Loaded {len(user_agents)} user agents: {', '.join(sorted(user_agents))}")
+            
             # Build capabilities section
             section = "\n\n## Available Agent Capabilities\n\n"
 
-            # Collect deployed agents
-            deployed_agents = []
-            for agent_file in agents_dir.glob("*.md"):
-                if agent_file.name.startswith("."):
-                    continue
-
-                # Parse agent metadata
-                agent_data = self._parse_agent_metadata(agent_file)
-                if agent_data:
-                    deployed_agents.append(agent_data)
+            # Extract just the agent data (drop priority info) and sort
+            deployed_agents = [agent_data for agent_data, _ in all_agents.values()]
 
             if not deployed_agents:
                 return self._get_fallback_capabilities()

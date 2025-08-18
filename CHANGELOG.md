@@ -5,7 +5,22 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [4.0.9] - 2025-08-18
+## [4.0.9]
+
+## [4.0.10] - 2025-08-18
+
+### Fixed
+- **Build Number Display**: Deployed (pipx) versions now show build numbers in `--version` output
+- **Package Distribution**: Added BUILD_NUMBER file to MANIFEST.in for inclusion in distributed packages
+- **CLI Version Display**: Updated to use VersionService for enhanced version information with build numbers
+- **Version Service**: Added support for multiple BUILD_NUMBER file locations (development and package)
+- **Graceful Fallback**: Enhanced version display gracefully falls back to base version if build number unavailable
+
+### Technical Details
+- Root cause: BUILD_NUMBER file wasn't included in wheel distributions
+- Solution: Modified MANIFEST.in and VersionService to include and locate BUILD_NUMBER in packages
+- Before: `claude-mpm 4.0.8`
+- After: `claude-mpm 4.0.10-build.287` - 2025-08-18
 
 
 ### Bug Fixes
