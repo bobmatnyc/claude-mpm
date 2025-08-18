@@ -1,6 +1,7 @@
 """System agent deployment strategy."""
 
 from pathlib import Path
+from typing import List
 
 from claude_mpm.core.unified_paths import get_path_manager
 

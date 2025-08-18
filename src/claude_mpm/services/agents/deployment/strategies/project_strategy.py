@@ -1,6 +1,7 @@
 """Project-specific agent deployment strategy."""
 
 from pathlib import Path
+from typing import List
 
 from .base_strategy import BaseDeploymentStrategy, DeploymentContext
 
