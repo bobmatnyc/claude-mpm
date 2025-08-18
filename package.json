@@ -53,8 +53,6 @@
   },
   "devDependencies": {
     "vite": "^5.0.0",
-    "terser": "^5.24.0",
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.32"
+    "terser": "^5.24.0"
   }
 }
