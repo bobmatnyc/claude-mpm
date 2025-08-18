@@ -1,112 +1,101 @@
 # Claude MPM Scripts
 
-This directory contains executable scripts and tests for Claude MPM.
+This directory contains essential utility scripts for Claude MPM development, deployment, and maintenance.
 
-## Main Scripts
+## 📦 Installation & Deployment Scripts
 
-- `claude-mpm` - Main executable wrapper with venv management
-- `run_mpm.py` - Python runner that handles imports correctly
-- `run_all_tests.sh` - Run all tests in sequence
-- `run_e2e_tests.sh` - Run end-to-end tests
+### Core Installation
+- **`install.sh`** - Basic installation script for production use
+- **`install_dev.sh`** - Development installation with enhanced features and debugging
+- **`deploy_local.sh`** - Enhanced local deployment script with comprehensive setup
+- **`uninstall.sh`** - Clean uninstallation script
 
-## Release Management Scripts
+## 🚀 Build & Release Scripts
 
-- `release.py` - **Unified release script** (single source of truth for releases)
-- `manage_version.py` - Version management with semantic versioning
-- `check_version_sync.py` - Verify version synchronization across files
+### Version Management
+- **`manage_version.py`** - Semantic version management utilities
+- **`increment_build.py`** - Automatic build number tracking and increment
+- **`release.py`** - Comprehensive release management script
 
-## Test Scripts (scripts/tests/)
+## 🧪 Development & Testing Scripts
 
-- `test_hello_world.py` - Basic test to verify prompt injection
-- `test_orchestration.py` - Test orchestration functionality
-- `test_agent_integration.py` - Test agent registry integration
-- `run_tests.py` - Run pytest suite with coverage
-- `run_tests_updated.py` - Updated test runner with proper paths
+### Code Quality
+- **`setup_pre_commit.sh`** - Set up pre-commit hooks for code quality
+- **`pre-commit-build.sh`** - Pre-commit build validation
+- **`apply_deprecation_policy.py`** - Apply deprecation policies to codebase
 
-## Usage
+### Testing
+- **`run_all_tests.sh`** - Run complete test suite
+- **`run_e2e_tests.sh`** - End-to-end testing suite
 
-### Release Process
+### Monitoring
+- **`monitor_memory.sh`** - Memory usage monitoring and alerts
 
-The unified release script handles all aspects of releasing Claude MPM:
+## 🖥️ CLI Wrappers
 
+### Main Commands
+- **`claude-mpm`** - Main CLI wrapper script (shell)
+- **`claude-mpm-socketio`** - SocketIO daemon wrapper
+- **`ticket`** - Ticket management CLI wrapper (shell)
+- **`ticket.py`** - Python ticket management script
+
+## 🛠️ Build Tools
+
+### Dashboard & Assets
+- **`build-dashboard.sh`** - Build dashboard assets using Vite
+
+### Package Management
+- **`package-lock.json`** - npm package lock file
+- **`postinstall.js`** - npm post-install script
+
+## 📋 Usage Guidelines
+
+### For Contributors
 ```bash
-# Dry run to preview changes
-./scripts/release.py patch --dry-run
+# Development installation (recommended for contributors)
+./scripts/install_dev.sh
 
-# Release a patch version
-./scripts/release.py patch
+# Set up development environment
+./scripts/setup_pre_commit.sh
 
-# Release a minor version
-./scripts/release.py minor
-
-# Release a major version
-./scripts/release.py major
-
-# Test with TestPyPI first
-./scripts/release.py patch --test-pypi
-```
-
-The release script will:
-1. Run pre-release checks
-2. Run tests
-3. Bump version
-4. Synchronize package.json
-5. Build and publish to PyPI
-6. Publish to npm
-7. Create GitHub release
-8. Verify packages
-
-### Check Version Sync
-
-```bash
-# Verify all version files are synchronized
-./scripts/check_version_sync.py
-```
-
-### Run Claude MPM
-```bash
-# From project root (symlink)
-./claude-mpm --debug run
-
-# Or use the script directly
-./scripts/claude-mpm --debug run
-```
-
-### Run Tests
-```bash
 # Run all tests
 ./scripts/run_all_tests.sh
-
-# Run specific test
-cd ~/Tests/claude-mpm-test
-python3 /path/to/claude-mpm/scripts/tests/test_hello_world.py
-
-# Run unit tests with coverage
-python3 scripts/tests/run_tests_updated.py
 ```
 
-### Hello World Test
-The hello world test verifies that:
-1. Framework instructions are properly injected
-2. Prompts are logged to ~/.claude-mpm/prompts/
-3. Session data is saved to ~/.claude-mpm/sessions/
-4. The orchestrator can launch Claude as a subprocess
+### For Releases
+```bash
+# Check current version
+python scripts/manage_version.py check
 
-## Directory Structure
+# Increment build number
+python scripts/increment_build.py --all-changes
+
+# Create release
+python scripts/release.py --patch
 ```
-scripts/
-├── README.md              # This file
-├── claude-mpm            # Main executable wrapper
-├── run_mpm.py           # Python runner
-├── run_all_tests.sh     # Run all tests
-├── run_e2e_tests.sh     # Run E2E tests
-├── release.py           # Unified release script
-├── manage_version.py    # Version management
-├── check_version_sync.py # Version sync checker
-└── tests/               # Test scripts
-    ├── test_hello_world.py
-    ├── test_orchestration.py
-    ├── test_agent_integration.py
-    ├── run_tests.py
-    └── run_tests_updated.py
+
+### For Maintenance
+```bash
+# Check for obsolete code
+python scripts/apply_deprecation_policy.py --dry-run
+
+# Build dashboard
+./scripts/build-dashboard.sh
+
+# Monitor memory usage
+./scripts/monitor_memory.sh
 ```
+
+## 📖 Getting Help
+
+Most scripts support `--help` flag:
+```bash
+python scripts/release.py --help
+python scripts/manage_version.py --help
+./scripts/deploy_local.sh --help
+```
+
+For detailed documentation, see:
+- [DEPLOY.md](../docs/DEPLOY.md) - Deployment guide
+- [VERSIONING.md](../docs/VERSIONING.md) - Version management
+- [QA.md](../docs/QA.md) - Testing procedures
