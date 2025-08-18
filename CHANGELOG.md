@@ -11,23 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-### Fixed
+### Deprecated
 
 ### Removed
 
-## [4.0.14] - 2025-08-18
-
 ### Fixed
 
-- Resolve pipx installation framework detection issue
-- Enhanced FrameworkLoader to use UnifiedPathManager for consistent deployment context detection
-- Fixed development mode detection in UnifiedPathManager for proper src directory structure
-- Added robust support for PIPX_INSTALL, PIP_INSTALL, and SYSTEM_PACKAGE contexts
-- Eliminates 'Framework not found, will use minimal instructions' warning in pipx installations
-- Maintains backward compatibility with fallback detection logic
-- Ensures framework content loads correctly using importlib.resources for packaged installations
+### Security
 
-## [4.0.13] - 2025-08-18
+## [4.0.15] - 2025-08-18
 
 ### Feat
 
@@ -35,9 +27,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fix
 
+- resolve pipx installation framework loading and agent deployment issues
+- add importlib.resources support for loading INSTRUCTIONS.md in pipx installations
+- sync src/claude_mpm/VERSION to match root VERSION (4.0.13)
 - sync src/claude_mpm/VERSION to match root VERSION (4.0.12)
 - sync version files and increment build number
 - resolve test failures in interactive and oneshot sessions
+
+### Refactor
+
+- consolidate version management to use only Commitizen
 
 ## v4.0.10 (2025-08-18)
 
