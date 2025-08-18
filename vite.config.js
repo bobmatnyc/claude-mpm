@@ -116,14 +116,6 @@ export default defineConfig({
 
   // CSS preprocessing
   css: {
-    // PostCSS configuration
-    postcss: {
-      plugins: [
-        // Add autoprefixer for better browser compatibility
-        // Note: autoprefixer would need to be installed as a dev dependency
-      ]
-    },
-
     // CSS modules configuration (if needed)
     modules: {
       localsConvention: 'camelCase'
