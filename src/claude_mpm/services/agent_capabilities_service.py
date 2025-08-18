@@ -65,6 +65,7 @@ class AgentCapabilitiesService(BaseService, AgentCapabilitiesInterface):
 
             # 1. First read system agents (lowest priority)
             system_agents_dirs = [
+                Path.home() / ".claude" / "agents",  # Claude MPM system agents
                 Path.home()
                 / "Library"
                 / "Application Support"
