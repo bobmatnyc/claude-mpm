@@ -723,79 +723,48 @@ class TestClaudeRunnerSessionManagement:
             runner.utility_service = mock_utility_service
             return runner
 
-    @patch("claude_mpm.core.interactive_session.InteractiveSession")
-    def test_run_interactive_success(self, mock_session_class, runner):
+    def test_run_interactive_success(self, runner):
         """Test successful interactive session execution."""
-        mock_session = Mock()
-        mock_session_class.return_value = mock_session
-        mock_session.initialize_interactive_session.return_value = (True, None)
-        mock_session.setup_interactive_environment.return_value = (
-            True,
-            {"test": "env"},
-        )
-        mock_session.handle_interactive_input.return_value = True
+        # Mock the session management service
+        mock_session_service = Mock()
+        runner.session_management_service = mock_session_service
 
         # Should not raise exception
         runner.run_interactive("test context")
 
-        mock_session_class.assert_called_once_with(runner)
-        mock_session.initialize_interactive_session.assert_called_once()
-        mock_session.setup_interactive_environment.assert_called_once()
-        mock_session.handle_interactive_input.assert_called_once_with({"test": "env"})
-        mock_session.cleanup_interactive_session.assert_called_once()
+        # Verify the session management service was called
+        mock_session_service.run_interactive_session.assert_called_once_with("test context")
 
-    @patch("claude_mpm.core.interactive_session.InteractiveSession")
-    def test_run_interactive_initialization_failure(self, mock_session_class, runner):
-        """Test interactive session with initialization failure."""
-        mock_session = Mock()
-        mock_session_class.return_value = mock_session
-        mock_session.initialize_interactive_session.return_value = (
-            False,
-            "Init failed",
-        )
+    def test_run_interactive_initialization_failure(self, runner):
+        """Test interactive session when service is not available."""
+        # Don't set session_management_service (it should be None)
+        runner.session_management_service = None
 
-        # Should handle failure gracefully
-        runner.run_interactive()
+        # Should not raise exception, just log error
+        runner.run_interactive("test context")
 
-        mock_session.initialize_interactive_session.assert_called_once()
-        # Should not proceed to setup
-        mock_session.setup_interactive_environment.assert_not_called()
-        # Cleanup should still be called
-        mock_session.cleanup_interactive_session.assert_called_once()
+        # No assertions needed - just verify it doesn't crash
 
-    @patch("claude_mpm.core.oneshot_session.OneshotSession")
-    def test_run_oneshot_success(self, mock_session_class, runner):
+    def test_run_oneshot_success(self, runner):
         """Test successful oneshot session execution."""
-        mock_session = Mock()
-        mock_session_class.return_value = mock_session
-        mock_session.initialize_session.return_value = (True, None)
-        mock_session.deploy_agents.return_value = True
-        mock_session.setup_infrastructure.return_value = {"test": "infra"}
-        mock_session.execute_command.return_value = (True, "Success")
+        # Mock the session management service
+        mock_session_service = Mock()
+        mock_session_service.run_oneshot_session.return_value = True
+        runner.session_management_service = mock_session_service
 
         result = runner.run_oneshot("test prompt", "test context")
 
         assert result is True
-        mock_session_class.assert_called_once_with(runner)
-        mock_session.initialize_session.assert_called_once_with("test prompt")
-        mock_session.deploy_agents.assert_called_once()
-        mock_session.setup_infrastructure.assert_called_once()
-        mock_session.execute_command.assert_called_once_with(
-            "test prompt", "test context", {"test": "infra"}
-        )
+        mock_session_service.run_oneshot_session.assert_called_once_with("test prompt", "test context")
 
-    @patch("claude_mpm.core.oneshot_session.OneshotSession")
-    def test_run_oneshot_mmp_command(self, mock_session_class, runner):
-        """Test oneshot session with MPM command."""
-        mock_session = Mock()
-        mock_session_class.return_value = mock_session
-        mock_session.initialize_session.return_value = (True, None)
+    def test_run_oneshot_mmp_command(self, runner):
+        """Test oneshot session when service is not available."""
+        # Don't set session_management_service (it should be None)
+        runner.session_management_service = None
 
         result = runner.run_oneshot("/mpm:test")
 
-        assert result is True
-        # Should return early for MPM commands
-        mock_session.deploy_agents.assert_not_called()
+        assert result is False  # Should return False when service not available
 
 
 class TestClaudeRunnerUtilityMethods:
