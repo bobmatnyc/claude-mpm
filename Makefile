@@ -410,11 +410,7 @@ release-sync-versions: ## Synchronize version files after bump
 	echo "$$VERSION" > src/claude_mpm/VERSION; \
 	echo "$(GREEN)✓ Updated src/claude_mpm/VERSION$(NC)"; \
 	if [ -f "package.json" ]; then \
-		python -c "import json; \
-		with open('package.json', 'r') as f: data = json.load(f); \
-		data['version'] = '$$VERSION'; \
-		with open('package.json', 'w') as f: json.dump(data, f, indent=2); \
-		print('$(GREEN)✓ Updated package.json$(NC)')"; \
+		python -c "import json; data = json.load(open('package.json', 'r')); data['version'] = '$$VERSION'; json.dump(data, open('package.json', 'w'), indent=2); print('$(GREEN)✓ Updated package.json$(NC)')"; \
 	fi
 
 # Patch release (bug fixes)
