@@ -61,9 +61,11 @@ class FrameworkLoader:
 
         # Otherwise check common locations for claude-mpm
         candidates = [
+            # Current directory (if we're already in claude-mpm)
+            Path.cwd(),
             # Development location
             Path.home() / "Projects" / "claude-mpm",
-            # Current directory
+            # Current directory subdirectory
             Path.cwd() / "claude-mpm",
         ]
 
