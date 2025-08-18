@@ -40,7 +40,36 @@ This document serves as the main index for agent documentation. For detailed inf
 
 ## Overview
 
-Claude MPM's agent system provides a flexible framework for defining AI assistant behaviors through structured templates. The system supports multiple agent types (Engineer, QA, Research, etc.) with a three-tier precedence system that allows for project-specific customization.
+Claude MPM's agent system provides a flexible framework for defining AI assistant behaviors through structured templates. The system includes 15 specialized agents covering development, operations, web development, project management, and code quality, with a three-tier precedence system that allows for project-specific customization.
+
+### Available Agents
+
+Claude MPM includes 15 specialized agents:
+
+#### Core Development
+- **Engineer** - Software development and implementation
+- **Research** - Code analysis and research  
+- **Documentation** - Documentation creation and maintenance
+- **QA** - Testing and quality assurance
+- **Security** - Security analysis and implementation
+
+#### Operations & Infrastructure
+- **Ops** - Operations and deployment
+- **Version Control** - Git and version management
+- **Data Engineer** - Data pipeline and ETL development
+
+#### Web Development
+- **Web UI** - Frontend and UI development
+- **Web QA** - Web testing and E2E validation
+
+#### Project Management
+- **Ticketing** - Issue tracking and management
+- **Project Organizer** - File organization and structure
+- **Memory Manager** - Project memory and context management
+
+#### Code Quality
+- **Refactoring Engineer** - Code refactoring and optimization
+- **Code Analyzer** - Static code analysis with AST and tree-sitter
 
 **Important**: Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
 

@@ -74,9 +74,9 @@ class FileToolTracker {
                 }
 
                 const pair = eventPairs.get(eventKey);
-                if (event.subtype === 'pre_tool' || event.type === 'hook' && !event.subtype.includes('post')) {
+                if (event.subtype === 'pre_tool' || (event.type === 'hook' && event.subtype && !event.subtype.includes('post'))) {
                     pair.pre_event = event;
-                } else if (event.subtype === 'post_tool' || event.subtype.includes('post')) {
+                } else if (event.subtype === 'post_tool' || (event.subtype && event.subtype.includes('post'))) {
                     pair.post_event = event;
                 } else {
                     // For events without clear pre/post distinction, treat as both
@@ -162,9 +162,9 @@ class FileToolTracker {
             }
 
             if (isToolOp) {
-                if (event.subtype === 'pre_tool' || (event.type === 'hook' && !event.subtype.includes('post'))) {
+                if (event.subtype === 'pre_tool' || (event.type === 'hook' && event.subtype && !event.subtype.includes('post'))) {
                     preToolEvents.push(event);
-                } else if (event.subtype === 'post_tool' || event.subtype.includes('post')) {
+                } else if (event.subtype === 'post_tool' || (event.subtype && event.subtype.includes('post'))) {
                     postToolEvents.push(event);
                 } else {
                     // For events without clear pre/post distinction, treat as standalone
@@ -321,7 +321,7 @@ class FileToolTracker {
         const hasToolName = event.tool_name || (event.data && event.data.tool_name);
         const isHookEvent = event.type === 'hook';
         const isToolSubtype = event.subtype === 'pre_tool' || event.subtype === 'post_tool' ||
-                              (event.subtype && event.subtype.includes('tool'));
+                              (event.subtype && typeof event.subtype === 'string' && event.subtype.includes('tool'));
         
         return hasToolName && isHookEvent && isToolSubtype;
     }

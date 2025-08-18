@@ -56,9 +56,31 @@ claude_mpm = [ "VERSION", "scripts/*", "dashboard/*.html", "dashboard/templates/
 [tool.setuptools.packages.find]
 where = [ "src",]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--asyncio-mode=auto"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "e2e: End-to-end tests",
+    "regression: Regression tests",
+    "socketio: Socket.IO related tests",
+    "hook: Hook system tests"
+]
+asyncio_mode = "auto"
+
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.0.3"
+version = "4.0.4"
 version_files = [
     "VERSION",
     "package.json:version"

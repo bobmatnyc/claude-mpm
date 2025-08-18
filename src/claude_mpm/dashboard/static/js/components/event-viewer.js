@@ -280,10 +280,20 @@ class EventViewer {
      * @returns {string} Formatted event type
      */
     formatEventType(event) {
-        if (event.subtype) {
+        // If we have type and subtype, use them
+        if (event.type && event.subtype) {
             return `${event.type}.${event.subtype}`;
         }
-        return event.type || 'unknown';
+        // If we have just type, use it
+        if (event.type) {
+            return event.type;
+        }
+        // If we have originalEventName (from transformation), use it as fallback
+        if (event.originalEventName) {
+            return event.originalEventName;
+        }
+        // Last resort fallback
+        return 'unknown';
     }
 
     /**
@@ -538,7 +548,14 @@ class EventViewer {
             'notification': 'Notification'
         };
 
-        return hookNames[hookType] || hookType.replace('_', '-');
+        // Handle non-string hookType safely
+        if (hookNames[hookType]) {
+            return hookNames[hookType];
+        }
+        
+        // Convert to string and handle null/undefined
+        const typeStr = String(hookType || 'unknown');
+        return typeStr.replace(/_/g, ' ');
     }
 
     /**

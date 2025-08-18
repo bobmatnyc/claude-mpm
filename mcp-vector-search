@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""
+Wrapper script to simulate installed mcp-vector-search command.
+This allows testing the tool on other projects as if it were installed.
+"""
+
+import sys
+import os
+
+# Add the mcp-vector-search source to Python path
+MCP_VECTOR_SEARCH_ROOT = "/Users/masa/Projects/managed/mcp-vector-search"
+sys.path.insert(0, os.path.join(MCP_VECTOR_SEARCH_ROOT, "src"))
+
+# Set up environment to use the development virtual environment
+os.environ["VIRTUAL_ENV"] = os.path.join(MCP_VECTOR_SEARCH_ROOT, ".venv")
+os.environ["PATH"] = f"{os.path.join(MCP_VECTOR_SEARCH_ROOT, '.venv', 'bin')}:{os.environ.get('PATH', '')}"
+
+# Import and run the CLI
+try:
+    from mcp_vector_search.cli.main import app
+    app()
+except ImportError as e:
+    print(f"Error importing mcp-vector-search: {e}")
+    print(f"Make sure the development environment is set up at {MCP_VECTOR_SEARCH_ROOT}")
+    sys.exit(1)
+except Exception as e:
+    print(f"Error running mcp-vector-search: {e}")
+    sys.exit(1)
