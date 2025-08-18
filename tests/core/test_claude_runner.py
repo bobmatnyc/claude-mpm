@@ -32,7 +32,7 @@ class TestClaudeRunnerInitialization:
         # Mock configuration service
         mock_config_service = Mock()
         mock_config_service.initialize_configuration.return_value = {
-            "enable_tickets": True,
+            "enable_tickets": False,
             "log_level": "INFO",
             "claude_args": ["--verbose"],
             "launch_method": "subprocess",
@@ -43,7 +43,7 @@ class TestClaudeRunnerInitialization:
         mock_config_service.initialize_project_logger.return_value = None
         mock_config_service.get_user_working_directory.return_value = None
         mock_config_service.register_core_services.return_value = None
-        mock_config_service.register_ticket_manager.return_value = (None, True)
+        # Ticket manager is disabled
         mock_config_service.initialize_response_logger.return_value = None
         mock_config_service.register_hook_service.return_value = None
         mock_config_service.register_agent_capabilities_service.return_value = None
@@ -62,13 +62,13 @@ class TestClaudeRunnerInitialization:
 
         # Test initialization
         runner = ClaudeRunner(
-            enable_tickets=True,
+            enable_tickets=False,
             log_level="INFO",
             claude_args=["--verbose"],
             launch_method="subprocess",
         )
 
-        assert runner.enable_tickets is True
+        assert runner.enable_tickets is False  # Tickets are disabled
         assert runner.log_level == "INFO"
         assert runner.claude_args == ["--verbose"]
         assert runner.launch_method == "subprocess"
@@ -85,7 +85,7 @@ class TestClaudeRunnerInitialization:
         # Mock configuration service
         mock_config_service = Mock()
         mock_config_service.initialize_configuration.return_value = {
-            "enable_tickets": True,
+            "enable_tickets": False,
             "log_level": "OFF",
             "claude_args": [],
             "launch_method": "exec",
@@ -96,7 +96,7 @@ class TestClaudeRunnerInitialization:
         mock_config_service.initialize_project_logger.return_value = None
         mock_config_service.get_user_working_directory.return_value = None
         mock_config_service.register_core_services.return_value = None
-        mock_config_service.register_ticket_manager.return_value = (None, True)
+        # Ticket manager is disabled
         mock_config_service.initialize_response_logger.return_value = None
         mock_config_service.register_hook_service.return_value = None
         mock_config_service.register_agent_capabilities_service.return_value = None
@@ -128,13 +128,12 @@ class TestClaudeRunnerInitialization:
 
         # Mock service instances
         mock_deployment_service = Mock()
-        mock_ticket_manager = Mock()
         mock_hook_service = Mock()
 
         # Mock configuration service
         mock_config_service = Mock()
         mock_config_service.initialize_configuration.return_value = {
-            "enable_tickets": True,
+            "enable_tickets": False,  # Tickets are disabled
             "log_level": "OFF",
             "claude_args": [],
             "launch_method": "exec",
@@ -145,10 +144,7 @@ class TestClaudeRunnerInitialization:
         mock_config_service.initialize_project_logger.return_value = None
         mock_config_service.get_user_working_directory.return_value = None
         mock_config_service.register_core_services.return_value = None
-        mock_config_service.register_ticket_manager.return_value = (
-            mock_ticket_manager,
-            True,
-        )
+        # Ticket manager is disabled
         mock_config_service.initialize_response_logger.return_value = None
         mock_config_service.register_hook_service.return_value = mock_hook_service
         mock_config_service.register_agent_capabilities_service.return_value = None
@@ -166,14 +162,14 @@ class TestClaudeRunnerInitialization:
         mock_config_instance.get.return_value = {"enabled": False}
 
         with patch.dict("os.environ", {"CLAUDE_MPM_USER_PWD": "/test/dir"}):
-            runner = ClaudeRunner(enable_tickets=True)
+            runner = ClaudeRunner(enable_tickets=False)
 
         # Verify configuration service was used
         mock_config_service.initialize_configuration.assert_called_once()
         mock_config_service.register_core_services.assert_called_once()
-        mock_config_service.register_ticket_manager.assert_called_once()
+        # Ticket manager registration is no longer called since it's disabled
         assert runner.deployment_service == mock_deployment_service
-        assert runner.ticket_manager == mock_ticket_manager
+        assert runner.ticket_manager is None  # Tickets are disabled
         assert runner.hook_service == mock_hook_service
 
 
@@ -194,7 +190,7 @@ class TestClaudeRunnerAgentCapabilities:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "exec",
@@ -205,7 +201,7 @@ class TestClaudeRunnerAgentCapabilities:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -309,7 +305,7 @@ class TestClaudeRunnerSystemInstructions:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "exec",
@@ -320,7 +316,7 @@ class TestClaudeRunnerSystemInstructions:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -465,7 +461,7 @@ class TestClaudeRunnerAgentDeployment:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "exec",
@@ -476,7 +472,7 @@ class TestClaudeRunnerAgentDeployment:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -571,7 +567,7 @@ class TestClaudeRunnerSubprocessManagement:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "subprocess",
@@ -582,7 +578,7 @@ class TestClaudeRunnerSubprocessManagement:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -682,7 +678,7 @@ class TestClaudeRunnerSessionManagement:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "exec",
@@ -693,7 +689,7 @@ class TestClaudeRunnerSessionManagement:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -819,7 +815,7 @@ class TestClaudeRunnerUtilityMethods:
             # Mock configuration service
             mock_config_service = Mock()
             mock_config_service.initialize_configuration.return_value = {
-                "enable_tickets": True,
+                "enable_tickets": False,
                 "log_level": "OFF",
                 "claude_args": [],
                 "launch_method": "exec",
@@ -830,7 +826,7 @@ class TestClaudeRunnerUtilityMethods:
             mock_config_service.initialize_project_logger.return_value = None
             mock_config_service.get_user_working_directory.return_value = None
             mock_config_service.register_core_services.return_value = None
-            mock_config_service.register_ticket_manager.return_value = (None, True)
+            # Ticket manager is disabled
             mock_config_service.initialize_response_logger.return_value = None
             mock_config_service.register_hook_service.return_value = None
             mock_config_service.register_agent_capabilities_service.return_value = None
@@ -864,25 +860,13 @@ class TestClaudeRunnerUtilityMethods:
             runner.utility_service = mock_utility_service
             return runner
 
-    def test_extract_tickets(self, runner):
-        """Test ticket extraction from text."""
-        runner.ticket_manager = Mock()
-        runner.ticket_manager.extract_tickets_from_text = Mock(return_value=[])
-        test_text = "Some response with ticket data"
-
-        runner._extract_tickets(test_text)
-
-        # The method should call the ticket manager if it exists
-        runner.ticket_manager.extract_tickets_from_text.assert_called_once_with(
-            test_text
-        )
-
-    def test_extract_tickets_no_manager(self, runner):
-        """Test ticket extraction when no ticket manager."""
-        runner.ticket_manager = None
-
-        # Should not raise exception
+    def test_extract_tickets_disabled(self, runner):
+        """Test that ticket extraction is disabled."""
+        # Ticket extraction is disabled - should not raise exception
         runner._extract_tickets("test text")
+
+        # Verify ticket manager is None (disabled)
+        assert runner.ticket_manager is None
 
     def test_contains_delegation(self, runner):
         """Test delegation detection in text."""
