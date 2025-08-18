@@ -255,6 +255,30 @@ class FrameworkLoader:
                     content["memory_instructions"] = loaded_content
                     content["project_memory"] = "system"
                     self.logger.info("Using system MEMORY.md")
+    
+    def _load_actual_memories(self, content: Dict[str, Any]) -> None:
+        """
+        Load actual PM memories from .claude-mpm/memories/PM.md.
+        
+        These are the actual memories/knowledge that the PM should have,
+        as opposed to the memory system instructions in MEMORY.md.
+        
+        Args:
+            content: Dictionary to update with actual memories
+        """
+        memories_path = Path.cwd() / ".claude-mpm" / "memories" / "PM.md"
+        if memories_path.exists():
+            loaded_content = self._try_load_file(
+                memories_path, "PM memories"
+            )
+            if loaded_content:
+                content["actual_memories"] = loaded_content
+                self.logger.info(f"Loaded PM memories from: {memories_path}")
+                # Log memory size for monitoring
+                memory_size = len(loaded_content.encode('utf-8'))
+                self.logger.debug(f"PM memory size: {memory_size:,} bytes")
+        else:
+            self.logger.debug(f"No PM memories found at: {memories_path}")
 
     def _load_single_agent(
         self, agent_file: Path
@@ -341,6 +365,7 @@ class FrameworkLoader:
             "project_workflow": "",
             "memory_instructions": "",
             "project_memory": "",
+            "actual_memories": "",  # Add field for actual memories from PM.md
         }
 
         # Load instructions file from working directory
@@ -386,6 +411,9 @@ class FrameworkLoader:
 
         # Load MEMORY.md - check for project-specific first, then system
         self._load_memory_instructions(content)
+        
+        # Load actual memories from .claude-mpm/memories/PM.md
+        self._load_actual_memories(content)
 
         # Discover agent directories
         agents_dir, templates_dir, main_dir = self._discover_framework_paths()
@@ -456,6 +484,13 @@ class FrameworkLoader:
                 )
                 instructions += f"\n\n{memory_content}\n"
                 # Note: project-specific memory instructions being used (logged elsewhere)
+            
+            # Add actual PM memories after memory instructions
+            if self.framework_content.get("actual_memories"):
+                instructions += "\n\n## Current PM Memories\n\n"
+                instructions += "**The following are your accumulated memories and knowledge from this project:**\n\n"
+                instructions += self.framework_content["actual_memories"]
+                instructions += "\n"
 
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()

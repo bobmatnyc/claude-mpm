@@ -31,6 +31,7 @@ class SocketIOEventBroadcaster:
         buffer_lock,
         stats: Dict[str, Any],
         logger,
+        server=None,  # Add server reference for event history access
     ):
         self.sio = sio
         self.connected_clients = connected_clients
@@ -39,6 +40,7 @@ class SocketIOEventBroadcaster:
         self.stats = stats
         self.logger = logger
         self.loop = None  # Will be set by main server
+        self.server = server  # Reference to main server for event history
 
     def broadcast_event(self, event_type: str, data: Dict[str, Any]):
         """Broadcast an event to all connected clients."""
@@ -51,10 +53,16 @@ class SocketIOEventBroadcaster:
             "data": data,
         }
 
-        # Buffer the event for reliability
+        # Buffer the event for reliability AND add to event history for new clients
         with self.buffer_lock:
             self.event_buffer.append(event)
             self.stats["events_buffered"] += 1
+            
+            # Also add to event history if available (for client replay)
+            # Access through server reference to maintain single history source
+            if hasattr(self, 'server') and hasattr(self.server, 'event_history'):
+                self.server.event_history.append(event)
+                self.logger.debug(f"Added {event_type} to history (total: {len(self.server.event_history)})")
 
         # Broadcast to all connected clients
         try:

@@ -88,7 +88,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 )
 
         @self.sio.event
-        async def get_status(sid):
+        async def get_status(sid, data=None):
             """Handle status request.
 
             WHY: Clients need to query current server status on demand
@@ -147,14 +147,19 @@ class ConnectionEventHandler(BaseEventHandler):
             WHY: Client proxies send events that need to be stored
             in history and re-broadcast to other clients.
             """
+            # Add debug logging
+            self.logger.info(f"🔵 Received claude_event from {sid}: {data}")
+            
             # Check if this is a hook event and route to HookEventHandler
             if isinstance(data, dict) and data.get("type") == "hook":
                 # Get the hook handler if available
                 hook_handler = None
-                for handler in self.server.handlers:
-                    if handler.__class__.__name__ == "HookEventHandler":
-                        hook_handler = handler
-                        break
+                # Check if event_registry exists and has handlers
+                if hasattr(self.server, 'event_registry') and self.server.event_registry and hasattr(self.server.event_registry, 'handlers'):
+                    for handler in self.server.event_registry.handlers:
+                        if handler.__class__.__name__ == "HookEventHandler":
+                            hook_handler = handler
+                            break
                 
                 if hook_handler and hasattr(hook_handler, "process_hook_event"):
                     # Let the hook handler process this event
@@ -162,15 +167,56 @@ class ConnectionEventHandler(BaseEventHandler):
                     # Don't double-store or double-broadcast, return early
                     return
             
+            # Normalize event format before storing in history
+            normalized_event = self._normalize_event(data)
+            
             # Store in history
-            self.event_history.append(data)
-            self.logger.debug(
+            self.event_history.append(normalized_event)
+            self.logger.info(
                 f"📚 Event from client stored in history (total: {len(self.event_history)})"
             )
 
             # Re-broadcast to all other clients
+            self.logger.info(f"📡 Broadcasting claude_event to all clients except {sid}")
             await self.broadcast_event("claude_event", data, skip_sid=sid)
+            self.logger.info(f"✅ Broadcast complete")
 
+    def _normalize_event(self, event_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize event format to ensure consistency.
+        
+        WHY: Different clients may send events in different formats.
+        This ensures all events have a consistent 'type' field for
+        proper display in the dashboard.
+        """
+        if not isinstance(event_data, dict):
+            return event_data
+            
+        # Make a copy to avoid modifying the original
+        normalized = dict(event_data)
+        
+        # If event has no 'type' but has 'event' field (legacy format)
+        if 'type' not in normalized and 'event' in normalized:
+            event_name = normalized['event']
+            
+            # Map common event names to proper type
+            if event_name in ['TestStart', 'TestEnd']:
+                normalized['type'] = 'test'
+            elif event_name in ['SubagentStart', 'SubagentStop']:
+                normalized['type'] = 'subagent'
+            elif event_name == 'ToolCall':
+                normalized['type'] = 'tool'
+            elif event_name == 'UserPrompt':
+                normalized['type'] = 'hook.user_prompt'
+            else:
+                # Default to system type for unknown events
+                normalized['type'] = 'system'
+        
+        # Ensure there's always a type field
+        if 'type' not in normalized:
+            normalized['type'] = 'unknown'
+            
+        return normalized
+    
     async def _send_event_history(
         self, sid: str, event_types: Optional[List[str]] = None, limit: int = 50
     ):

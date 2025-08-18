@@ -32,6 +32,24 @@ The linter enforces the following rules:
 - **Rule**: Test files (`test_*.py`, `*_test.py`) must be in the `/tests/` directory
 - **Auto-fix**: Moves test files to `/tests/` directory
 
+### 4. Changelog Requirements
+- **Rule**: Project must have a `CHANGELOG.md` file
+- **Format**: Must follow [Keep a Changelog](https://keepachangelog.com) format
+- **Required Sections**:
+  - `[Unreleased]` section at the top for upcoming changes
+  - Standard subsections: `Added`, `Changed`, `Fixed`, `Removed`
+  - Comparison links at the bottom for version navigation
+- **Auto-fix**: Not available (manual editing required)
+
+### 5. Version Consistency
+- **Rule**: Version numbers must be consistent across all version files
+- **Checked Files**:
+  - `VERSION` - Primary version source
+  - `package.json` - NPM package version
+  - `pyproject.toml` - Commitizen configuration version
+  - `CHANGELOG.md` - Version entries
+- **Auto-fix**: Not available (manual synchronization required)
+
 ## Usage
 
 ### Command Line Interface
@@ -194,7 +212,7 @@ Linting project structure from: /path/to/project
 
 ```bash
 $ python tools/dev/structure_linter.py --verbose
-🚨 Found 2 structure violations:
+🚨 Found 5 structure violations:
 
 📋 Python Scripts In Root (1 violations):
   ❌ my_script.py
@@ -204,6 +222,18 @@ $ python tools/dev/structure_linter.py --verbose
   ❌ scripts/test_something.py
      Test file 'test_something.py' should be in /tests/ directory
      💡 Suggested: tests
+
+📋 Missing Unreleased Section (1 violations):
+  ❌ CHANGELOG.md
+     CHANGELOG.md missing [Unreleased] section
+
+📋 Version Mismatch (1 violations):
+  ❌ version_files
+     Version mismatch across files: {'VERSION': '4.0.3', 'package.json': '4.0.2'}
+
+📋 Missing Comparison Links (1 violations):
+  ❌ CHANGELOG.md
+     CHANGELOG.md missing comparison links for versions
 ```
 
 ### Auto-fix Results

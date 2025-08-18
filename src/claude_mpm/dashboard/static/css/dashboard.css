@@ -1180,12 +1180,31 @@ button:active {
     transition: all 0.2s ease;
     margin-bottom: 0;
     user-select: none;
+    position: relative;
+}
+
+/* Sticky toggle active state - shows when JSON is expanded globally */
+.json-toggle-header[aria-expanded="true"] {
+    background: linear-gradient(135deg, #e6f3ff 0%, #d4e9ff 100%);
+    border-color: #4299e1;
+}
+
+.json-toggle-header[aria-expanded="true"] .json-toggle-text::after {
+    content: ' (Sticky)';
+    font-size: 11px;
+    color: #4299e1;
+    font-weight: normal;
+    opacity: 0.8;
 }
 
 .json-toggle-header:hover {
     background: linear-gradient(135deg, #edf2f7 0%, #e2e8f0 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.json-toggle-header[aria-expanded="true"]:hover {
+    background: linear-gradient(135deg, #d4e9ff 0%, #b8dcff 100%);
 }
 
 .json-toggle-header:active {

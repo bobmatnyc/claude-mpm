@@ -114,7 +114,7 @@ class SessionManagementService(BaseService, SessionManagementInterface):
             if (
                 error is None
                 and self.runner.command_handler_service
-                and self.runner.command_handler_service.is_mmp_command(prompt)
+                and self.runner.command_handler_service.is_mpm_command(prompt)
             ):
                 return success
 
