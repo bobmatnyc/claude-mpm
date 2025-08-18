@@ -80,7 +80,7 @@ asyncio_mode = "auto"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.0.10"
+version = "4.0.11"
 version_files = [
     "VERSION",
     "package.json:version"
