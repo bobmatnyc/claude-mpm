@@ -435,12 +435,13 @@ class ClaudeHookHandler:
             return int(os.environ.get("CLAUDE_MPM_SOCKETIO_PORT", "8765"))
 
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
-        """Emit Socket.IO event with improved reliability and logging.
+        """Emit Socket.IO event with improved reliability and persistent connections.
 
         WHY improved approach:
-        - Better error handling and recovery
-        - Comprehensive event logging for debugging
-        - Automatic reconnection on failure
+        - Maintains persistent connections throughout handler lifecycle
+        - Better error handling and automatic recovery
+        - Connection health monitoring before emission
+        - Automatic reconnection for critical events
         - Validates data before emission
         """
         # Always try to emit Socket.IO events if available
@@ -449,15 +450,56 @@ class ClaudeHookHandler:
         # Get Socket.IO client with dynamic port discovery
         port = self._discover_socketio_port()
         client = self.connection_pool.get_connection(port)
+        
+        # If no client available, try to create one
         if not client:
             if DEBUG:
                 print(
-                    f"Hook handler: No Socket.IO client available for event: hook.{event}",
+                    f"Hook handler: No Socket.IO client available, attempting to create connection for event: hook.{event}",
                     file=sys.stderr,
                 )
-            return
+            # Force creation of a new connection
+            client = self.connection_pool._create_connection(port)
+            if client:
+                # Add to pool for future use
+                self.connection_pool.connections.append(
+                    {"port": port, "client": client, "created": time.time()}
+                )
+            else:
+                if DEBUG:
+                    print(
+                        f"Hook handler: Failed to create Socket.IO connection for event: hook.{event}",
+                        file=sys.stderr,
+                    )
+                return
 
         try:
+            # Verify connection is alive before emitting
+            if not client.connected:
+                if DEBUG:
+                    print(
+                        f"Hook handler: Client not connected, attempting reconnection for event: hook.{event}",
+                        file=sys.stderr,
+                    )
+                # Try to reconnect
+                try:
+                    client.connect(
+                        f"http://localhost:{port}",
+                        wait=True,
+                        wait_timeout=1.0,
+                        transports=['websocket', 'polling'],
+                    )
+                except:
+                    # If reconnection fails, get a fresh client
+                    client = self.connection_pool._create_connection(port)
+                    if not client:
+                        if DEBUG:
+                            print(
+                                f"Hook handler: Reconnection failed for event: hook.{event}",
+                                file=sys.stderr,
+                            )
+                        return
+            
             # Format event for Socket.IO server
             claude_event_data = {
                 "type": f"hook.{event}",  # Dashboard expects 'hook.' prefix
@@ -481,19 +523,23 @@ class ClaudeHookHandler:
                         file=sys.stderr,
                     )
 
-            # Emit synchronously with verification
+            # Emit synchronously
             client.emit("claude_event", claude_event_data)
+            
+            # For critical events, wait a moment to ensure delivery
+            if event in ["subagent_stop", "pre_tool"]:
+                time.sleep(0.01)  # Small delay to ensure event is sent
 
             # Verify emission for critical events
             if event in ["subagent_stop", "pre_tool"] and DEBUG:
                 if client.connected:
                     print(
-                        f"✅ Successfully emitted Socket.IO event: hook.{event}",
+                        f"✅ Successfully emitted Socket.IO event: hook.{event} (connection still active)",
                         file=sys.stderr,
                     )
                 else:
                     print(
-                        f"⚠️ Event emitted but connection status uncertain: hook.{event}",
+                        f"⚠️ Event emitted but connection closed after: hook.{event}",
                         file=sys.stderr,
                     )
 
@@ -508,12 +554,16 @@ class ClaudeHookHandler:
                         f"Hook handler: Attempting immediate reconnection for critical event: hook.{event}",
                         file=sys.stderr,
                     )
-                # Try to get a new client and emit again
-                retry_port = int(os.environ.get("CLAUDE_MPM_SOCKETIO_PORT", "8765"))
-                retry_client = self.connection_pool.get_connection(retry_port)
+                # Force get a new client and emit again
+                self.connection_pool._cleanup_dead_connections()
+                retry_client = self.connection_pool._create_connection(port)
                 if retry_client:
                     try:
                         retry_client.emit("claude_event", claude_event_data)
+                        # Add to pool for future use
+                        self.connection_pool.connections.append(
+                            {"port": port, "client": retry_client, "created": time.time()}
+                        )
                         if DEBUG:
                             print(
                                 f"✅ Successfully re-emitted event after reconnection: hook.{event}",
