@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 
 # Add src to Python path
-sys.path.insert(0, str(Path(__file__).parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
 import logging
@@ -46,12 +46,12 @@ def test_agent_deduplication():
         if "## Available Agent Capabilities" in line:
             in_capabilities_section = True
             continue
-        # Exit capabilities section when we hit Context-Aware Agent Selection or another main section
-        if in_capabilities_section and (line.startswith("## Context-Aware Agent Selection") or (line.startswith("##") and "Agent Capabilities" not in line and "Context-Aware" not in line)):
+        # Exit capabilities section when we hit another main section (starting with ##, not ###)
+        if in_capabilities_section and line.startswith("## ") and "Agent Capabilities" not in line:
             in_capabilities_section = False
             continue
             
-        if in_capabilities_section and line.startswith("### ") and "qa" in line.lower():
+        if in_capabilities_section and line.startswith("### ") and line.lower().startswith("### qa "):
             qa_agent_definitions.append((i, line.strip()))
     
     print(f"Found {len(qa_agent_definitions)} QA agent definitions in capabilities section:")
