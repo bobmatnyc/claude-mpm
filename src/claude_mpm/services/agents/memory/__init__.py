@@ -7,7 +7,6 @@ from .agent_persistence_service import (
     PersistenceRecord,
     PersistenceStrategy,
 )
-from .analyzer import MemoryAnalyzer
 from .content_manager import MemoryContentManager
 from .template_generator import MemoryTemplateGenerator
 
@@ -20,5 +19,4 @@ __all__ = [
     "PersistenceRecord",
     "MemoryTemplateGenerator",
     "MemoryContentManager",
-    "MemoryAnalyzer",
 ]
