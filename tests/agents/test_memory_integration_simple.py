@@ -69,7 +69,7 @@ def test_memory_aware_agent_creation():
 - Use dependency injection
 - Write comprehensive tests
 """
-    memory_file = Path("/project/memories/engineer_agent.md")
+    memory_file = Path("/project/memories/engineer.md")
 
     # Create agent data structure (simulating the registry logic)
     agent_data = {
@@ -137,7 +137,7 @@ def test_enhance_existing_agent():
 - Apply qualitative analysis techniques
 - Validate findings with multiple sources
 """
-    memory_file = Path("/project/memories/research_agent.md")
+    memory_file = Path("/project/memories/research.md")
 
     # Enhance agent with memory (simulating the registry logic)
     original_instructions = agent_data.get("instructions", "")
@@ -187,7 +187,7 @@ def test_agent_list_with_memory_info():
             "capabilities": {
                 "has_project_memory": True,
                 "memory_size_kb": 1.2,
-                "memory_file": "/project/memories/engineer_agent.md",
+                "memory_file": "/project/memories/engineer.md",
             },
             "model": "claude-sonnet-4-20250514",
         },

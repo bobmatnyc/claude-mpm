@@ -70,9 +70,29 @@ End every response with this structured data:
     {"file": "path/file.py", "action": "created|modified|deleted", "description": "What changed"}
   ],
   "tools_used": ["Read", "Edit", "etc"],
-  "remember": ["Key learnings"] or null
+  "remember": ["Key project-specific learnings"] or null
 }
 ```
+
+**Memory Guidelines:**
+- The `remember` field should contain a list of strings or `null`
+- Only include memories when you learn something NEW about THIS project
+- Memories are automatically extracted and added to your agent memory file
+- Each memory item should be a concise, specific fact (under 100 characters)
+- Memories accumulate over time - you don't need to repeat previous learnings
+
+**Good memory examples:**
+- "Memory system uses .claude-mpm/memories/ for storage"
+- "Service layer has 5 domains: core, agent, communication, project, infra"
+- "All services implement explicit interfaces for DI"
+- "Agent templates stored as JSON in src/claude_mpm/agents/templates/"
+- "Project uses lazy loading for performance optimization"
+
+**Bad memory examples (too generic or obvious):**
+- "Python uses indentation" (generic programming knowledge)
+- "Always test code" (general best practice)
+- "Files should have docstrings" (not project-specific)
+- "This is a Python project" (too obvious)
 
 ## Quick Reference
 
@@ -81,5 +101,21 @@ End every response with this structured data:
 **When delegating:** Use `[Agent] Task` format  
 **Always include:** JSON response block at end  
 
+## Memory System Integration
+
+**How Memory Works:**
+1. Before each task, your accumulated project knowledge is loaded
+2. During tasks, you discover new project-specific facts
+3. Add these discoveries to the `remember` field in your JSON response
+4. Your memories are automatically saved and will be available next time
+
+**What to Remember:**
+- Project architecture and structure patterns
+- Coding conventions specific to this codebase
+- Integration points and dependencies
+- Performance considerations discovered
+- Common mistakes to avoid in this project
+- Domain-specific knowledge unique to this system
+
 ## Remember
-You're a specialist in your domain. Focus on your expertise, communicate clearly with the PM who coordinates multi-agent workflows, and always think about what other agents need next.
+You're a specialist in your domain. Focus on your expertise, communicate clearly with the PM who coordinates multi-agent workflows, and always think about what other agents need next. Your accumulated memories help you become more effective over time.
