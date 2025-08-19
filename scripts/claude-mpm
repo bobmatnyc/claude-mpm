@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # Claude MPM executable wrapper with venv management
 
+# Disable telemetry by default
+export DISABLE_TELEMETRY=1
+
 # Get the directory where this script is located, following symlinks
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symlink
@@ -105,7 +108,8 @@ if [[ "$FIRST_ARG" == "--help" ]] || [[ "$FIRST_ARG" == "-h" ]] || [[ "$FIRST_AR
 fi
 
 # Check if it's a claude-mpm specific flag (with or without prefix)
-MPM_FLAGS=("--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--monitor" "--websocket-port")
+# Note: --resume is handled by MPM and passed to Claude CLI; --mpm-resume is MPM's own session resume
+MPM_FLAGS=("--resume" "--mpm-resume" "--logging" "--log-dir" "--framework-path" "--agents-dir" "--no-hooks" "--no-tickets" "--subprocess" "--interactive-subprocess" "--todo-hijack" "-i" "--input" "--non-interactive" "--no-native-agents" "-d" "--debug" "--launch-method" "--monitor" "--websocket-port")
 for flag in "${MPM_FLAGS[@]}"; do
     if [[ " $* " =~ " $flag " ]] || [[ " $* " =~ " --mpm:${flag#--} " ]] || [[ " $* " =~ " -mpm:${flag#-} " ]]; then
         IS_MPM_COMMAND=true

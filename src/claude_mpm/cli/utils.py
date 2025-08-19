@@ -132,11 +132,24 @@ def list_agent_versions_at_startup() -> None:
 
     WHY: Users want to see what agents are available when they start a session.
     This provides immediate feedback about the deployed agent environment.
+    
+    DESIGN DECISION: We suppress INFO logging during this call to avoid duplicate
+    initialization messages since the deployment service will be initialized again
+    later in the ClaudeRunner.
     """
-    agent_versions = get_agent_versions_display()
-    if agent_versions:
-        print(agent_versions)
-        print()  # Extra newline after the display
+    # Temporarily suppress INFO level logging to avoid duplicate initialization messages
+    import logging
+    original_level = logging.getLogger("claude_mpm").level
+    logging.getLogger("claude_mpm").setLevel(logging.WARNING)
+    
+    try:
+        agent_versions = get_agent_versions_display()
+        if agent_versions:
+            print(agent_versions)
+            print()  # Extra newline after the display
+    finally:
+        # Restore original logging level
+        logging.getLogger("claude_mpm").setLevel(original_level)
 
 
 def setup_logging(args) -> object:

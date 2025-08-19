@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.20] - 2025-08-19
+
+### Chore
+
+- add comprehensive .gitignore for .mcp-vector-search directory
+- remove large binary files from repository to comply with GitHub size limits
+- improve repository hygiene by excluding vector search data from version control
+
 ## [4.0.19] - 2025-08-19
 
 ### Fix

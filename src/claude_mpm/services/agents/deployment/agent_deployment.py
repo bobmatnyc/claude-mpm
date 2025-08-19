@@ -32,7 +32,7 @@ import os
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.config.paths import paths
 from claude_mpm.constants import AgentMetadata, EnvironmentVars, Paths
@@ -55,6 +55,7 @@ from .agent_metrics_collector import AgentMetricsCollector
 from .agent_template_builder import AgentTemplateBuilder
 from .agent_validator import AgentValidator
 from .agent_version_manager import AgentVersionManager
+from .multi_source_deployment_service import MultiSourceAgentDeploymentService
 
 
 class AgentDeploymentService(AgentDeploymentInterface):
@@ -161,6 +162,9 @@ class AgentDeploymentService(AgentDeploymentInterface):
 
         # Initialize discovery service (after templates_dir is set)
         self.discovery_service = AgentDiscoveryService(self.templates_dir)
+        
+        # Initialize multi-source deployment service for version comparison
+        self.multi_source_service = MultiSourceAgentDeploymentService()
 
         # Find base agent file
         if base_agent_path:
@@ -310,20 +314,40 @@ class AgentDeploymentService(AgentDeploymentInterface):
             # Load base agent content
             base_agent_data, base_agent_version = self._load_base_agent()
 
-            # Get and filter template files
-            template_files = self._get_filtered_templates(excluded_agents, config)
-            results["total"] = len(template_files)
+            # Check if we should use multi-source deployment
+            use_multi_source = self._should_use_multi_source_deployment(deployment_mode)
+            
+            if use_multi_source:
+                # Use multi-source deployment to get highest version agents
+                template_files, agent_sources = self._get_multi_source_templates(
+                    excluded_agents, config, agents_dir
+                )
+                results["total"] = len(template_files)
+                results["multi_source"] = True
+                results["agent_sources"] = agent_sources
+            else:
+                # Get and filter template files from single source
+                template_files = self._get_filtered_templates(excluded_agents, config)
+                results["total"] = len(template_files)
+                agent_sources = {}
 
             # Deploy each agent template
             for template_file in template_files:
+                template_file_path = template_file if isinstance(template_file, Path) else Path(template_file)
+                agent_name = template_file_path.stem
+                
+                # Get source info for this agent (agent_sources now uses file stems as keys)
+                source_info = agent_sources.get(agent_name, "unknown") if agent_sources else "single"
+                
                 self._deploy_single_agent(
-                    template_file=template_file,
+                    template_file=template_file_path,
                     agents_dir=agents_dir,
                     base_agent_data=base_agent_data,
                     base_agent_version=base_agent_version,
                     force_rebuild=force_rebuild,
                     deployment_mode=deployment_mode,
                     results=results,
+                    source_info=source_info,
                 )
 
             # Deploy system instructions and framework files
@@ -467,8 +491,10 @@ class AgentDeploymentService(AgentDeploymentInterface):
                     self.logger.warning(f"Could not load base agent: {e}")
 
             # Build the agent markdown
+            # For single agent deployment, determine source from template location
+            source_info = self._determine_agent_source(template_file)
             agent_content = self.template_builder.build_agent_markdown(
-                agent_name, template_file, base_agent_data
+                agent_name, template_file, base_agent_data, source_info
             )
             if not agent_content:
                 self.logger.error(f"Failed to build agent content for {agent_name}")
@@ -718,6 +744,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
         force_rebuild: bool,
         deployment_mode: str,
         results: Dict[str, Any],
+        source_info: str = "unknown",
     ) -> None:
         """
         Deploy a single agent template.
@@ -733,6 +760,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
             force_rebuild: Whether to force rebuild
             deployment_mode: Deployment mode (update/project)
             results: Results dictionary to update
+            source_info: Source of the agent (system/project/user)
         """
         try:
             # METRICS: Track individual agent deployment time
@@ -762,7 +790,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
 
             # Build the agent file as markdown with YAML frontmatter
             agent_content = self.template_builder.build_agent_markdown(
-                agent_name, template_file, base_agent_data
+                agent_name, template_file, base_agent_data, source_info
             )
 
             # Write the agent file
@@ -912,6 +940,122 @@ class AgentDeploymentService(AgentDeploymentInterface):
 
         validator = AgentFrontmatterValidator(self.logger)
         return validator.validate_and_repair_existing_agents(agents_dir)
+    
+    def _determine_agent_source(self, template_path: Path) -> str:
+        """Determine the source of an agent from its template path.
+        
+        WHY: When deploying single agents, we need to track their source
+        for proper version management and debugging.
+        
+        Args:
+            template_path: Path to the agent template
+            
+        Returns:
+            Source string (system/project/user/unknown)
+        """
+        template_str = str(template_path.resolve())
+        
+        # Check if it's a system template
+        if "/claude_mpm/agents/templates/" in template_str or "/src/claude_mpm/agents/templates/" in template_str:
+            return "system"
+        
+        # Check if it's a project agent
+        if "/.claude-mpm/agents/" in template_str:
+            # Check if it's in the current working directory
+            if str(self.working_directory) in template_str:
+                return "project"
+            # Check if it's in user home
+            elif str(Path.home()) in template_str:
+                return "user"
+        
+        return "unknown"
+    
+    def _should_use_multi_source_deployment(self, deployment_mode: str) -> bool:
+        """Determine if multi-source deployment should be used.
+        
+        WHY: Multi-source deployment ensures the highest version wins,
+        but we may want to preserve backward compatibility in some modes.
+        
+        Args:
+            deployment_mode: Current deployment mode
+            
+        Returns:
+            True if multi-source deployment should be used
+        """
+        # Always use multi-source for update mode to get highest versions
+        if deployment_mode == "update":
+            return True
+            
+        # For project mode, also use multi-source to ensure highest version wins
+        # This is the key change - project mode should also compare versions
+        if deployment_mode == "project":
+            return True
+            
+        return False
+    
+    def _get_multi_source_templates(
+        self, excluded_agents: List[str], config: Config, agents_dir: Path
+    ) -> Tuple[List[Path], Dict[str, str]]:
+        """Get agent templates from multiple sources with version comparison.
+        
+        WHY: This method uses the multi-source service to discover agents
+        from all available sources and select the highest version of each.
+        
+        Args:
+            excluded_agents: List of agents to exclude
+            config: Configuration object
+            agents_dir: Target deployment directory
+            
+        Returns:
+            Tuple of (template_files, agent_sources)
+        """
+        # Determine source directories
+        system_templates_dir = self.templates_dir
+        project_agents_dir = None
+        user_agents_dir = None
+        
+        # Check for project agents
+        if self.working_directory:
+            potential_project_dir = self.working_directory / ".claude-mpm" / "agents"
+            if potential_project_dir.exists():
+                project_agents_dir = potential_project_dir
+                self.logger.info(f"Found project agents at: {project_agents_dir}")
+        
+        # Check for user agents
+        user_home = Path.home()
+        potential_user_dir = user_home / ".claude-mpm" / "agents"
+        if potential_user_dir.exists():
+            user_agents_dir = potential_user_dir
+            self.logger.info(f"Found user agents at: {user_agents_dir}")
+        
+        # Get agents with version comparison
+        agents_to_deploy, agent_sources = self.multi_source_service.get_agents_for_deployment(
+            system_templates_dir=system_templates_dir,
+            project_agents_dir=project_agents_dir,
+            user_agents_dir=user_agents_dir,
+            working_directory=self.working_directory,
+            excluded_agents=excluded_agents,
+            config=config
+        )
+        
+        # Compare with deployed versions if agents directory exists
+        if agents_dir.exists():
+            comparison_results = self.multi_source_service.compare_deployed_versions(
+                deployed_agents_dir=agents_dir,
+                agents_to_deploy=agents_to_deploy,
+                agent_sources=agent_sources
+            )
+            
+            # Log version upgrades and source changes
+            if comparison_results.get("version_upgrades"):
+                self.logger.info(f"Version upgrades available for {len(comparison_results['version_upgrades'])} agents")
+            if comparison_results.get("source_changes"):
+                self.logger.info(f"Source changes for {len(comparison_results['source_changes'])} agents")
+        
+        # Convert to list of Path objects
+        template_files = list(agents_to_deploy.values())
+        
+        return template_files, agent_sources
 
     # ================================================================================
     # Interface Adapter Methods

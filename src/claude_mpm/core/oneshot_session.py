@@ -267,7 +267,13 @@ class OneshotSession:
 
     def _prepare_environment(self) -> Dict[str, str]:
         """Prepare the execution environment."""
-        return os.environ.copy()
+        env = os.environ.copy()
+        
+        # Disable telemetry for Claude Code
+        # This ensures Claude Code doesn't send telemetry data during runtime
+        env["DISABLE_TELEMETRY"] = "1"
+        
+        return env
 
     def _build_command(self) -> list:
         """Build the base Claude command."""

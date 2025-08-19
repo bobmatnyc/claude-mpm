@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Claude MPM development mode wrapper
+# This script forces the use of development paths even when invoked through pipx
+
+# Get the script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Force development mode
+export CLAUDE_MPM_DEV_MODE=1
+
+# Add src to PYTHONPATH
+export PYTHONPATH="${PROJECT_ROOT}/src:${PYTHONPATH}"
+
+# Run claude-mpm with development paths
+if [ -f "${PROJECT_ROOT}/src/claude_mpm/__main__.py" ]; then
+    exec python3 -m claude_mpm "$@"
+else
+    echo "Error: Cannot find claude_mpm module in ${PROJECT_ROOT}/src"
+    exit 1
+fi

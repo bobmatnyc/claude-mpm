@@ -75,6 +75,11 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
         const="last",
         help="Resume an MPM session (last session if no ID specified, or specific session ID)",
     )
+    run_group.add_argument(
+        "--resume",
+        action="store_true",
+        help="Pass --resume flag to Claude Desktop to resume the last conversation",
+    )
 
     # Dependency checking options
     dep_group = parser.add_argument_group("dependency options")
