@@ -1,5 +1,3 @@
-from pathlib import Path
-
 #!/usr/bin/env python3
 """
 Pure Python daemon management for Socket.IO server.
@@ -12,6 +10,64 @@ import signal
 import subprocess
 import sys
 import time
+from pathlib import Path
+
+# Detect and use virtual environment Python if available
+def get_python_executable():
+    """
+    Get the appropriate Python executable, preferring virtual environment.
+    
+    WHY: The daemon must use the same Python environment as the parent process
+    to ensure all dependencies are available. System Python won't have the
+    required packages installed.
+    """
+    # First, check if we're already in a virtual environment
+    if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+        # We're in a virtual environment, use its Python
+        return sys.executable
+    
+    # Check for common virtual environment indicators
+    # 1. VIRTUAL_ENV environment variable (most common)
+    venv_path = os.environ.get('VIRTUAL_ENV')
+    if venv_path:
+        venv_python = Path(venv_path) / 'bin' / 'python'
+        if venv_python.exists():
+            return str(venv_python)
+    
+    # 2. Check if current executable is in a venv directory structure
+    exe_path = Path(sys.executable).resolve()
+    for parent in exe_path.parents:
+        # Check for common venv directory names
+        if parent.name in ('venv', '.venv', 'env', '.env'):
+            # This looks like a virtual environment
+            return sys.executable
+        
+        # Check for typical venv structure (bin/python or Scripts/python.exe)
+        if parent.name == 'bin' and (parent.parent / 'pyvenv.cfg').exists():
+            return sys.executable
+        if parent.name == 'Scripts' and (parent.parent / 'pyvenv.cfg').exists():
+            return sys.executable
+    
+    # 3. Try to detect project-specific venv
+    # Look for venv in the project root (going up from script location)
+    script_path = Path(__file__).resolve()
+    for parent in script_path.parents:
+        # Stop at src or when we've gone too far up
+        if parent.name == 'src' or not (parent / 'src').exists():
+            # Check for venv directories
+            for venv_name in ('venv', '.venv', 'env', '.env'):
+                venv_dir = parent / venv_name
+                if venv_dir.exists():
+                    venv_python = venv_dir / 'bin' / 'python'
+                    if venv_python.exists():
+                        return str(venv_python)
+            break
+    
+    # Fall back to current Python executable
+    return sys.executable
+
+# Store the detected Python executable for daemon usage
+PYTHON_EXECUTABLE = get_python_executable()
 
 import psutil
 
@@ -145,11 +201,12 @@ def start_server():
 
     ensure_dirs()
 
-    # Fork to create daemon
+    # Fork to create daemon using the correct Python environment
     pid = os.fork()
     if pid > 0:
         # Parent process
         print(f"Starting Socket.IO server on port {selected_port} (PID: {pid})...")
+        print(f"Using Python: {PYTHON_EXECUTABLE}")
 
         # Register the instance
         instance_id = port_manager.register_instance(selected_port, pid)
@@ -179,10 +236,13 @@ def start_server():
         os.dup2(log.fileno(), sys.stdout.fileno())
         os.dup2(log.fileno(), sys.stderr.fileno())
 
-    # Start server
+    # Log environment information for debugging
     print(
         f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Starting Socket.IO server on port {selected_port}..."
     )
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python executable: {sys.executable}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python version: {sys.version}")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Python path: {sys.path[:3]}...")  # Show first 3 entries
     server = SocketIOServer(host="localhost", port=selected_port)
 
     # Handle signals
@@ -384,12 +444,12 @@ def main():
 
 
 if __name__ == "__main__":
-    # Install psutil if not available
+    # Install psutil if not available (using correct Python)
     try:
         import psutil
     except ImportError:
-        print("Installing psutil...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "psutil"])
+        print(f"Installing psutil using {PYTHON_EXECUTABLE}...")
+        subprocess.check_call([PYTHON_EXECUTABLE, "-m", "pip", "install", "psutil"])
         import psutil
 
     main()

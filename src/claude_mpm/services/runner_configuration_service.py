@@ -72,11 +72,12 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             Loaded configuration dictionary
         """
         try:
+            # Use singleton Config instance to prevent duplicate loading
             if config_path:
-                # Load from specific path if provided
-                config = Config(config_path)
+                # Only pass config_path if it's different from what might already be loaded
+                config = Config({}, config_path)
             else:
-                # Load from default location
+                # Use existing singleton instance
                 config = Config()
 
             return {
@@ -162,14 +163,9 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             "websocket_port": kwargs.get("websocket_port", 8765),
         }
 
-        # Initialize main configuration
+        # Initialize main configuration (singleton will prevent duplicate loading)
         try:
             config = Config()
-        except FileNotFoundError as e:
-            self.logger.warning(
-                "Configuration file not found, using defaults", extra={"error": str(e)}
-            )
-            config = Config()  # Will use defaults
         except Exception as e:
             self.logger.error("Failed to load configuration", exc_info=True)
             raise RuntimeError(f"Configuration initialization failed: {e}") from e

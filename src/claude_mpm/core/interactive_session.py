@@ -344,25 +344,36 @@ class InteractiveSession:
 
     def _build_claude_command(self) -> list:
         """Build the Claude command with all necessary arguments."""
-        cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+        # Check if --resume flag is present
+        has_resume = self.runner.claude_args and "--resume" in self.runner.claude_args
 
-        # Add custom arguments
-        if self.runner.claude_args:
-            # Enhanced debug logging for --resume flag verification
-            self.logger.debug(f"Raw claude_args received: {self.runner.claude_args}")
-            
-            # Check explicitly for --resume flag
-            has_resume = "--resume" in self.runner.claude_args
-            self.logger.info(f"--resume flag present in claude_args: {has_resume}")
-            
-            cmd.extend(self.runner.claude_args)
-            
-        # Add system instructions
-        from claude_mpm.core.claude_runner import create_simple_context
+        if has_resume:
+            # When resuming, use minimal command to avoid interfering with conversation selection
+            self.logger.info("🔄 Resume mode detected - using minimal Claude command to preserve conversation selection")
+            cmd = ["claude"]
 
-        system_prompt = self.runner._create_system_prompt()
-        if system_prompt and system_prompt != create_simple_context():
-            cmd.extend(["--append-system-prompt", system_prompt])
+            # Add only the claude_args (which includes --resume)
+            if self.runner.claude_args:
+                cmd.extend(self.runner.claude_args)
+                self.logger.info(f"Resume command: {cmd}")
+
+            return cmd
+        else:
+            # Normal mode - full command with all claude-mpm enhancements
+            cmd = ["claude", "--model", "opus", "--dangerously-skip-permissions"]
+
+            # Add custom arguments
+            if self.runner.claude_args:
+                # Enhanced debug logging for --resume flag verification
+                self.logger.debug(f"Raw claude_args received: {self.runner.claude_args}")
+                cmd.extend(self.runner.claude_args)
+
+            # Add system instructions
+            from claude_mpm.core.claude_runner import create_simple_context
+
+            system_prompt = self.runner._create_system_prompt()
+            if system_prompt and system_prompt != create_simple_context():
+                cmd.extend(["--append-system-prompt", system_prompt])
 
         # Final command verification
         # self.logger.info(f"Final Claude command built: {' '.join(cmd)}")

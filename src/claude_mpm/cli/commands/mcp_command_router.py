@@ -5,6 +5,8 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 """
 
 import asyncio
+import os
+import sys
 from typing import Any
 
 from ...constants import MCPCommands
@@ -42,6 +44,9 @@ class MCPCommandRouter:
 
         elif args.mcp_command == MCPCommands.CONFIG.value:
             return self._manage_config(args)
+
+        elif args.mcp_command == MCPCommands.SERVER.value:
+            return self._run_server(args)
 
         elif args.mcp_command == "cleanup":
             return self._cleanup_locks(args)
@@ -115,11 +120,91 @@ class MCPCommandRouter:
         handler = MCPServerCommands(self.logger)
         return handler.cleanup_locks(args)
 
+    def _run_server(self, args) -> int:
+        """Run server command handler - direct server execution."""
+        try:
+            self.logger.info("Starting MCP server directly via CLI command")
+
+            # Import the server components
+            from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
+
+            # Create server instance
+            server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
+
+            if args.test:
+                self.logger.info("Running in test mode")
+                print("🧪 Starting MCP server in test mode...", file=sys.stderr)
+                print("   This will run the server with stdio communication.", file=sys.stderr)
+                print("   Press Ctrl+C to stop.\n", file=sys.stderr)
+
+            # Run the server, handling event loop properly
+            try:
+                # Check if there's already an event loop running
+                loop = asyncio.get_running_loop()
+                # If we get here, there's already a loop running
+                # We need to run in a subprocess to avoid conflicts
+                import subprocess
+                import json
+
+                # Create a simple script to run the server
+                script_content = f'''
+import asyncio
+import sys
+import os
+sys.path.insert(0, "{os.path.join(os.path.dirname(__file__), '..', '..', '..')}")
+
+async def main():
+    from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
+    server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
+    await server.run()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+'''
+
+                # Write the script to a temporary file
+                import tempfile
+                with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:
+                    f.write(script_content)
+                    temp_script = f.name
+
+                try:
+                    # Run the server in a subprocess
+                    result = subprocess.run([sys.executable, temp_script])
+                    return result.returncode
+                finally:
+                    # Clean up the temporary file
+                    os.unlink(temp_script)
+
+            except RuntimeError:
+                # No event loop running, we can use asyncio.run
+                async def run_async():
+                    await server.run()
+
+                asyncio.run(run_async())
+            return 0
+
+        except ImportError as e:
+            self.logger.error(f"Failed to import MCP server: {e}")
+            print(f"❌ Error: Could not import MCP server components: {e}", file=sys.stderr)
+            print("\nMake sure the MCP package is installed:", file=sys.stderr)
+            print("  pip install mcp", file=sys.stderr)
+            return 1
+        except KeyboardInterrupt:
+            self.logger.info("MCP server interrupted")
+            print("\n🛑 MCP server stopped", file=sys.stderr)
+            return 0
+        except Exception as e:
+            self.logger.error(f"Server error: {e}")
+            print(f"❌ Error running server: {e}", file=sys.stderr)
+            return 1
+
     def _show_help(self):
         """Show available MCP commands."""
         print("\nAvailable MCP commands:")
         print("  install  - Install and configure MCP Gateway")
         print("  start    - Start the MCP Gateway server (stdio mode)")
+        print("  server   - Run the MCP Gateway server directly")
         print("  stop     - Stop the MCP Gateway server")
         print("  status   - Show server and tool status")
         print("  tools    - List and manage registered tools")
@@ -132,8 +217,9 @@ class MCPCommandRouter:
         print("\nExamples:")
         print("  claude-mpm mcp install")
         print("  claude-mpm mcp start                  # Run server (for Claude Code)")
+        print("  claude-mpm mcp server                 # Run server directly")
+        print("  claude-mpm mcp server --test          # Test mode with debug output")
         print("  claude-mpm mcp start --instructions    # Show setup instructions")
-        print("  claude-mpm mcp start --test           # Test mode with debug output")
         print("  claude-mpm mcp tools")
         print("  claude-mpm mcp register my-tool")
         print("  claude-mpm mcp test my-tool")

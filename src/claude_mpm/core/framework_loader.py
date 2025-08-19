@@ -489,9 +489,25 @@ class FrameworkLoader:
                 memory_size = len(memory_content.encode('utf-8'))
                 self.logger.debug(f"Aggregated {agent_name} memory: {memory_size:,} bytes")
         
-        # Log summary
+        # Log detailed summary
         if loaded_count > 0 or skipped_count > 0:
-            self.logger.info(f"Memory loading complete: {loaded_count} memories loaded, {skipped_count} skipped")
+            # Count unique agents with memories
+            agent_count = len(agent_memories_dict) if agent_memories_dict else 0
+            pm_loaded = bool(content.get("actual_memories"))
+            
+            summary_parts = []
+            if pm_loaded:
+                summary_parts.append("PM memory loaded")
+            if agent_count > 0:
+                summary_parts.append(f"{agent_count} agent memories loaded")
+            if skipped_count > 0:
+                summary_parts.append(f"{skipped_count} non-deployed agent memories skipped")
+            
+            self.logger.info(f"Memory loading complete: {' | '.join(summary_parts)}")
+            
+            # Log deployed agents for reference
+            if len(deployed_agents) > 0:
+                self.logger.debug(f"Deployed agents available for memory loading: {', '.join(sorted(deployed_agents))}")
     
     def _load_memories_from_directory(
         self,
@@ -544,36 +560,36 @@ class FrameworkLoader:
                 self.logger.info(f"Loaded {source} PM memory: {pm_memory_path} ({memory_size:,} bytes)")
                 loaded_count += 1
         
+        # First, migrate any old format memory files to new format
+        # This handles backward compatibility for existing installations
+        for old_file in memories_dir.glob("*.md"):
+            # Skip files already in correct format and special files
+            if old_file.name.endswith("_memories.md") or old_file.name in ["PM.md", "README.md"]:
+                continue
+            
+            # Determine new name based on old format
+            if old_file.stem.endswith("_agent"):
+                # Old format: {agent_name}_agent.md -> {agent_name}_memories.md
+                agent_name = old_file.stem[:-6]  # Remove "_agent" suffix
+                new_path = memories_dir / f"{agent_name}_memories.md"
+                if not new_path.exists():
+                    self._migrate_memory_file(old_file, new_path)
+            else:
+                # Intermediate format: {agent_name}.md -> {agent_name}_memories.md
+                agent_name = old_file.stem
+                new_path = memories_dir / f"{agent_name}_memories.md"
+                if not new_path.exists():
+                    self._migrate_memory_file(old_file, new_path)
+        
         # Load agent memories (only for deployed agents)
-        for memory_file in memories_dir.glob("*.md"):
-            # Skip PM_memories.md and PM.md as we already handled them
-            if memory_file.name in ["PM_memories.md", "PM.md"]:
+        # Only process *_memories.md files to avoid README.md and other docs
+        for memory_file in memories_dir.glob("*_memories.md"):
+            # Skip PM_memories.md as we already handled it
+            if memory_file.name == "PM_memories.md":
                 continue
             
-            # Extract agent name from file
-            # Support migration from old formats to new {agent_name}_memories.md format
-            agent_name = memory_file.stem
-            new_path = None
-            
-            if agent_name.endswith("_agent"):
-                # Old format: {agent_name}_agent.md
-                agent_name = agent_name[:-6]  # Remove "_agent" suffix
-                new_path = memories_dir / f"{agent_name}_memories.md"
-            elif agent_name.endswith("_memories"):
-                # Already in new format: {agent_name}_memories.md
-                agent_name = agent_name[:-9]  # Remove "_memories" suffix
-            elif memory_file.name != "README.md":
-                # Intermediate format: {agent_name}.md
-                # agent_name already set from stem
-                new_path = memories_dir / f"{agent_name}_memories.md"
-            
-            # Skip README.md
-            if memory_file.name == "README.md":
-                continue
-                
-            # Migrate if needed
-            if new_path and not new_path.exists():
-                self._migrate_memory_file(memory_file, new_path)
+            # Extract agent name from file (remove "_memories" suffix)
+            agent_name = memory_file.stem[:-9]  # Remove "_memories" suffix
             
             # Check if agent is deployed
             if agent_name in deployed_agents:
@@ -597,7 +613,17 @@ class FrameworkLoader:
                     self.logger.info(f"Loaded {source} memory for {agent_name}: {memory_file.name} ({memory_size:,} bytes)")
                     loaded_count += 1
             else:
-                self.logger.info(f"Skipped {source} memory: {memory_file.name} (agent not deployed)")
+                # Provide more detailed logging about why the memory was skipped
+                self.logger.info(f"Skipped {source} memory: {memory_file.name} (agent '{agent_name}' not deployed)")
+                # Also log a debug message with available agents for diagnostics
+                if agent_name.replace('_', '-') in deployed_agents or agent_name.replace('-', '_') in deployed_agents:
+                    # Detect naming mismatches
+                    alt_name = agent_name.replace('_', '-') if '_' in agent_name else agent_name.replace('-', '_')
+                    if alt_name in deployed_agents:
+                        self.logger.warning(
+                            f"Naming mismatch detected: Memory file uses '{agent_name}' but deployed agent is '{alt_name}'. "
+                            f"Consider renaming {memory_file.name} to {alt_name}_memories.md"
+                        )
                 skipped_count += 1
         
         # After loading all memories for this directory, aggregate agent memories
@@ -1075,6 +1101,20 @@ class FrameworkLoader:
                 instructions += "**The following are your accumulated memories and knowledge from this project:**\n\n"
                 instructions += self.framework_content["actual_memories"]
                 instructions += "\n"
+            
+            # Add agent memories if available
+            if self.framework_content.get("agent_memories"):
+                agent_memories = self.framework_content["agent_memories"]
+                if agent_memories:
+                    instructions += "\n\n## Agent Memories\n\n"
+                    instructions += "**The following are accumulated memories from specialized agents:**\n\n"
+                    
+                    for agent_name in sorted(agent_memories.keys()):
+                        memory_content = agent_memories[agent_name]
+                        if memory_content:
+                            instructions += f"### {agent_name.replace('_', ' ').title()} Agent Memory\n\n"
+                            instructions += memory_content
+                            instructions += "\n\n"
 
             # Add dynamic agent capabilities section
             instructions += self._generate_agent_capabilities_section()

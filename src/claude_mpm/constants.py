@@ -125,6 +125,7 @@ class MCPCommands(str, Enum):
     REGISTER = "register"
     TEST = "test"
     CONFIG = "config"
+    SERVER = "server"
 
 
 class TicketCommands(str, Enum):

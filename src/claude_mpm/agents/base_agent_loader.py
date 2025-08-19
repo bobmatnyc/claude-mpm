@@ -38,31 +38,91 @@ BASE_AGENT_CACHE_KEY = "base_agent:instructions"
 
 
 def _get_base_agent_file() -> Path:
-    """Get the base agent file path."""
-    # Check if we're running from a wheel installation
+    """Get the base agent file path with priority-based search.
+    
+    Priority order:
+    1. Environment variable override (CLAUDE_MPM_BASE_AGENT_PATH)
+    2. Current working directory (for local development)
+    3. Known development locations
+    4. User override location (~/.claude/agents/)
+    5. Package installation location (fallback)
+    """
+    # Priority 0: Check environment variable override
+    env_path = os.environ.get("CLAUDE_MPM_BASE_AGENT_PATH")
+    if env_path:
+        env_base_agent = Path(env_path)
+        if env_base_agent.exists():
+            logger.info(f"Using environment variable base_agent: {env_base_agent}")
+            return env_base_agent
+        else:
+            logger.warning(f"CLAUDE_MPM_BASE_AGENT_PATH set but file doesn't exist: {env_base_agent}")
+    
+    # Priority 1: Check current working directory for local development
+    cwd = Path.cwd()
+    cwd_base_agent = cwd / "src" / "claude_mpm" / "agents" / "base_agent.json"
+    if cwd_base_agent.exists():
+        logger.info(f"Using local development base_agent from cwd: {cwd_base_agent}")
+        return cwd_base_agent
+    
+    # Priority 2: Check known development locations
+    known_dev_paths = [
+        Path("/Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json"),
+        Path.home() / "Projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
+        Path.home() / "projects" / "claude-mpm" / "src" / "claude_mpm" / "agents" / "base_agent.json",
+    ]
+    
+    for dev_path in known_dev_paths:
+        if dev_path.exists():
+            logger.info(f"Using development base_agent: {dev_path}")
+            return dev_path
+    
+    # Priority 3: Check user override location
+    user_base_agent = Path.home() / ".claude" / "agents" / "base_agent.json"
+    if user_base_agent.exists():
+        logger.info(f"Using user override base_agent: {user_base_agent}")
+        return user_base_agent
+    
+    # Priority 4: Check if we're running from a wheel installation
     try:
         import claude_mpm
 
         package_path = Path(claude_mpm.__file__).parent
         path_str = str(package_path.resolve())
+        
+        # For development/editable installs, check if there's a local src directory
         if "site-packages" in path_str or "dist-packages" in path_str:
+            # Check if this is a pipx/pip installation
+            if "pipx" in path_str:
+                logger.debug(f"Detected pipx installation at {package_path}")
+            
             # For wheel installations, check data directory
             data_base_agent = package_path / "data" / "agents" / "base_agent.json"
             if data_base_agent.exists():
-                logger.debug(f"Using wheel installation base_agent: {data_base_agent}")
+                logger.info(f"Using wheel installation base_agent: {data_base_agent}")
                 return data_base_agent
-    except Exception:
-        pass
-
-    # Use the base_agent.json in the agents directory
+            
+            # Also check direct agents directory in package
+            pkg_base_agent = package_path / "agents" / "base_agent.json"
+            if pkg_base_agent.exists():
+                logger.info(f"Using package base_agent: {pkg_base_agent}")
+                return pkg_base_agent
+    except Exception as e:
+        logger.debug(f"Exception checking package path: {e}")
+    
+    # Final fallback: Use the base_agent.json relative to this file
     base_agent_path = Path(__file__).parent / "base_agent.json"
     if base_agent_path.exists():
-        logger.debug(f"Using base agent template: {base_agent_path}")
+        logger.info(f"Using fallback base_agent relative to module: {base_agent_path}")
         return base_agent_path
 
-    # Fallback error
-    logger.error("Base agent template file not found")
-    raise FileNotFoundError("base_agent.json not found in agents directory")
+    # Error if no base agent found
+    logger.error("Base agent template file not found in any location")
+    logger.error(f"Searched locations:")
+    logger.error(f"  1. CWD: {cwd_base_agent}")
+    logger.error(f"  2. Dev paths: {known_dev_paths}")
+    logger.error(f"  3. User: {user_base_agent}")
+    logger.error(f"  4. Module: {base_agent_path}")
+    raise FileNotFoundError("base_agent.json not found in any expected location")
 
 
 # Base agent file path (dynamically determined)
@@ -252,19 +312,15 @@ def _remove_test_mode_instructions(content: str) -> str:
 
         # Check if we're in the test section and need to continue skipping
         if skip_section:
-            # Check if we've reached a section that's NOT part of test protocol
-            # This includes any heading that's not a subsection of the test protocol
-            if (
-                line.startswith("####")
-                or line.startswith("###")
-                or line.startswith("##")
-            ) and "Standard Test Response Protocol" not in line:
+            # Check if we've reached a new top-level section (## but not ###)
+            # Only stop skipping when we hit another ## section (same level as test section)
+            if line.startswith("##") and not line.startswith("###"):
                 skip_section = False
                 # Don't skip this line - it's the start of a new section
                 filtered_lines.append(line)
                 i += 1
                 continue
-            # Skip this line as we're still in test section
+            # Skip this line as we're still in test section (includes ### subsections)
             i += 1
             continue
 
