@@ -134,6 +134,7 @@ class InteractiveSession:
 
             # Deploy project-specific agents
             self.runner.deploy_project_agents_to_claude()
+            
 
             # Build command
             cmd = self._build_claude_command()
@@ -296,18 +297,50 @@ class InteractiveSession:
     def _display_welcome_message(self) -> None:
         """Display the interactive session welcome message."""
         version_str = self.runner._get_version()
+        
+        # Get output style status
+        output_style_info = self._get_output_style_info()
 
         print("\033[32m╭───────────────────────────────────────────────────╮\033[0m")
         print(
             "\033[32m│\033[0m ✻ Claude MPM - Interactive Session                \033[32m│\033[0m"
         )
         print(f"\033[32m│\033[0m   Version {version_str:<40}\033[32m│\033[0m")
+        if output_style_info:
+            print(f"\033[32m│\033[0m   {output_style_info:<49}\033[32m│\033[0m")
         print("\033[32m│                                                   │\033[0m")
         print(
             "\033[32m│\033[0m   Type '/agents' to see available agents          \033[32m│\033[0m"
         )
         print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
         print("")  # Add blank line after box
+    
+    
+    def _get_output_style_info(self) -> Optional[str]:
+        """Get output style status for display."""
+        try:
+            # Check if output style manager is available through framework loader
+            if hasattr(self.runner, 'framework_loader') and self.runner.framework_loader:
+                if hasattr(self.runner.framework_loader, 'output_style_manager'):
+                    osm = self.runner.framework_loader.output_style_manager
+                    if osm:
+                        if osm.claude_version and osm.supports_output_styles():
+                            # Check if claude-mpm style is active
+                            settings_file = osm.settings_file
+                            if settings_file.exists():
+                                import json
+                                settings = json.loads(settings_file.read_text())
+                                active_style = settings.get("activeOutputStyle")
+                                if active_style == "claude-mpm":
+                                    return "Output Style: claude-mpm ✅"
+                                else:
+                                    return f"Output Style: {active_style or 'none'}"
+                            return "Output Style: Available"
+                        else:
+                            return "Output Style: Injected (legacy)"
+        except Exception:
+            pass
+        return None
 
     def _build_claude_command(self) -> list:
         """Build the Claude command with all necessary arguments."""
@@ -315,14 +348,31 @@ class InteractiveSession:
 
         # Add custom arguments
         if self.runner.claude_args:
+            # Enhanced debug logging for --resume flag verification
+            self.logger.debug(f"Raw claude_args received: {self.runner.claude_args}")
+            
+            # Check explicitly for --resume flag
+            has_resume = "--resume" in self.runner.claude_args
+            self.logger.info(f"--resume flag present in claude_args: {has_resume}")
+            
             cmd.extend(self.runner.claude_args)
-
+            
         # Add system instructions
         from claude_mpm.core.claude_runner import create_simple_context
 
         system_prompt = self.runner._create_system_prompt()
         if system_prompt and system_prompt != create_simple_context():
             cmd.extend(["--append-system-prompt", system_prompt])
+
+        # Final command verification
+        # self.logger.info(f"Final Claude command built: {' '.join(cmd)}")
+        
+        # Explicit --resume flag verification
+        if "--resume" in cmd:
+            self.logger.info("✅ VERIFIED: --resume flag IS included in final command")
+            self.logger.debug(f"--resume position in command: {cmd.index('--resume')}")
+        else:
+            self.logger.debug("ℹ️ --resume flag NOT included in final command")
 
         return cmd
 
@@ -340,6 +390,10 @@ class InteractiveSession:
         ]
         for var in claude_vars_to_remove:
             clean_env.pop(var, None)
+
+        # Disable telemetry for Claude Code
+        # This ensures Claude Code doesn't send telemetry data during runtime
+        clean_env["DISABLE_TELEMETRY"] = "1"
 
         return clean_env
 

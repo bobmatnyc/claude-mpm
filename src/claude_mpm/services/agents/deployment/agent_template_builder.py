@@ -31,7 +31,7 @@ class AgentTemplateBuilder:
         self.logger = get_logger(__name__)
 
     def build_agent_markdown(
-        self, agent_name: str, template_path: Path, base_agent_data: dict
+        self, agent_name: str, template_path: Path, base_agent_data: dict, source_info: str = "unknown"
     ) -> str:
         """
         Build a complete agent markdown file with YAML frontmatter.
@@ -40,6 +40,7 @@ class AgentTemplateBuilder:
             agent_name: Name of the agent
             template_path: Path to the agent template JSON file
             base_agent_data: Base agent configuration data
+            source_info: Source of the agent (system/project/user)
 
         Returns:
             Complete markdown content with YAML frontmatter
@@ -197,6 +198,8 @@ class AgentTemplateBuilder:
                 f"color: {color}",
                 f"version: {agent_version}",
                 f"type: {agent_type}",
+                f"source: {source_info}",  # Track which source provided this agent
+                "author: claude-mpm",  # Mark as system-managed agent
                 "---",
                 "",
             ]
@@ -211,6 +214,39 @@ class AgentTemplateBuilder:
             or base_agent_data.get("instructions")
             or "# Agent Instructions\n\nThis agent provides specialized assistance."
         )
+        
+        # Add memory update instructions if not already present
+        if "memory-update" not in content and "Remember" not in content:
+            memory_instructions = """
+
+## Memory Updates
+
+When you learn something important about this project that would be useful for future tasks, include it in your response JSON block:
+
+```json
+{
+  "memory-update": {
+    "Project Architecture": ["Key architectural patterns or structures"],
+    "Implementation Guidelines": ["Important coding standards or practices"],
+    "Current Technical Context": ["Project-specific technical details"]
+  }
+}
+```
+
+Or use the simpler "remember" field for general learnings:
+
+```json
+{
+  "remember": ["Learning 1", "Learning 2"]
+}
+```
+
+Only include memories that are:
+- Project-specific (not generic programming knowledge)
+- Likely to be useful in future tasks
+- Not already documented elsewhere
+"""
+            content = content + memory_instructions
 
         return frontmatter + content
 

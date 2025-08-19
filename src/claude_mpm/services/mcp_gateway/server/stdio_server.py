@@ -16,7 +16,7 @@ import asyncio
 import json
 import logging
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Import MCP SDK components
 from mcp.server import NotificationOptions, Server
@@ -190,7 +190,7 @@ class SimpleMCPServer:
             # Default to brief
             return self._create_brief_summary(sentences, max_length)
 
-    def _create_brief_summary(self, sentences: List[str], max_length: int) -> str:
+    def _create_brief_summary(self, sentences: list[str], max_length: int) -> str:
         """Create a brief summary by selecting most important sentences."""
         if not sentences:
             return ""
@@ -272,7 +272,7 @@ class SimpleMCPServer:
         return " ".join(s[1] for s in selected)
 
     def _create_detailed_summary(
-        self, sentences: List[str], content: str, max_length: int
+        self, sentences: list[str], content: str, max_length: int
     ) -> str:
         """Create a detailed summary preserving document structure."""
         import re
@@ -303,7 +303,7 @@ class SimpleMCPServer:
         return " ".join(words) + ("..." if len(result.split()) > max_length else "")
 
     def _create_bullet_summary(
-        self, sentences: List[str], content: str, max_length: int
+        self, sentences: list[str], content: str, max_length: int
     ) -> str:
         """Extract key points as a bullet list."""
         import re
@@ -347,7 +347,7 @@ class SimpleMCPServer:
         return "\n".join(result_lines)
 
     def _create_executive_summary(
-        self, sentences: List[str], content: str, max_length: int
+        self, sentences: list[str], content: str, max_length: int
     ) -> str:
         """Create an executive summary with overview, findings, and recommendations."""
         # Allocate words across sections
@@ -436,32 +436,9 @@ class SimpleMCPServer:
         # NOTE: Defer initialization to avoid event loop issues
         self.unified_ticket_tool = None
         self._ticket_tool_initialized = False
-    
-    async def _initialize_ticket_tool(self):
-        """
-        Initialize the unified ticket tool asynchronously.
         
-        This is called lazily when the tool is first needed,
-        ensuring an event loop is available.
-        """
-        if self._ticket_tool_initialized or not TICKET_TOOLS_AVAILABLE:
-            return
-        
-        try:
-            self.logger.info("Initializing unified ticket tool...")
-            self.unified_ticket_tool = UnifiedTicketTool()
-            # If the tool has an async init method, call it
-            if hasattr(self.unified_ticket_tool, 'initialize'):
-                await self.unified_ticket_tool.initialize()
-            self._ticket_tool_initialized = True
-            self.logger.info("Unified ticket tool initialized successfully")
-        except Exception as e:
-            self.logger.warning(f"Failed to initialize unified ticket tool: {e}")
-            self.unified_ticket_tool = None
-            self._ticket_tool_initialized = True  # Mark as attempted
-
         @self.server.list_tools()
-        async def handle_list_tools() -> List[Tool]:
+        async def handle_list_tools() -> list[Tool]:
             """List available tools."""
             # Initialize ticket tool lazily if needed
             if not self._ticket_tool_initialized and TICKET_TOOLS_AVAILABLE:
@@ -469,69 +446,22 @@ class SimpleMCPServer:
             
             tools = [
                 Tool(
-                    name="echo",
-                    description="Echo back the provided message",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "message": {
-                                "type": "string",
-                                "description": "Message to echo",
-                            }
-                        },
-                        "required": ["message"],
-                    },
-                ),
-                Tool(
-                    name="calculator",
-                    description="Perform basic arithmetic calculations",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "expression": {
-                                "type": "string",
-                                "description": "Mathematical expression to evaluate",
-                            }
-                        },
-                        "required": ["expression"],
-                    },
-                ),
-                Tool(
-                    name="system_info",
-                    description="Get system information",
+                    name="status",
+                    description="Get system and service status information",
                     inputSchema={
                         "type": "object",
                         "properties": {
                             "info_type": {
                                 "type": "string",
-                                "enum": ["platform", "python_version", "cwd"],
-                                "description": "Type of system information to retrieve",
+                                "enum": ["platform", "python_version", "cwd", "all"],
+                                "description": "Type of status information to retrieve (default: all)",
+                                "default": "all",
                             }
                         },
-                        "required": ["info_type"],
                     },
                 ),
                 Tool(
-                    name="run_command",
-                    description="Execute a shell command",
-                    inputSchema={
-                        "type": "object",
-                        "properties": {
-                            "command": {
-                                "type": "string",
-                                "description": "Shell command to execute",
-                            },
-                            "timeout": {
-                                "type": "number",
-                                "description": "Command timeout in seconds",
-                                "default": 30,
-                            },
-                        },
-                        "required": ["command"],
-                    },
-                ),
-                Tool(
-                    name="summarize_document",
+                    name="document_summarizer",
                     description="Summarize documents or text content",
                     inputSchema={
                         "type": "object",
@@ -576,60 +506,17 @@ class SimpleMCPServer:
             self.logger.info(f"Listing {len(tools)} available tools")
             return tools
 
+
         @self.server.call_tool()
         async def handle_call_tool(
             name: str, arguments: Dict[str, Any]
-        ) -> List[TextContent]:
+        ) -> list[TextContent]:
             """Handle tool invocation."""
             self.logger.info(f"Invoking tool: {name} with arguments: {arguments}")
 
             try:
-                if name == "echo":
-                    message = arguments.get("message", "")
-                    result = f"Echo: {message}"
-
-                elif name == "calculator":
-                    expression = arguments.get("expression", "")
-                    try:
-                        # Safe evaluation of mathematical expressions
-                        import ast
-                        import operator as op
-
-                        # Supported operators
-                        ops = {
-                            ast.Add: op.add,
-                            ast.Sub: op.sub,
-                            ast.Mult: op.mul,
-                            ast.Div: op.truediv,
-                            ast.Pow: op.pow,
-                            ast.Mod: op.mod,
-                            ast.USub: op.neg,
-                        }
-
-                        def eval_expr(expr):
-                            """Safely evaluate mathematical expression."""
-
-                            def _eval(node):
-                                if isinstance(node, ast.Constant):
-                                    return node.value
-                                elif isinstance(node, ast.BinOp):
-                                    return ops[type(node.op)](
-                                        _eval(node.left), _eval(node.right)
-                                    )
-                                elif isinstance(node, ast.UnaryOp):
-                                    return ops[type(node.op)](_eval(node.operand))
-                                else:
-                                    raise TypeError(f"Unsupported operation: {node}")
-
-                            return _eval(ast.parse(expr, mode="eval").body)
-
-                        result_value = eval_expr(expression)
-                        result = f"{expression} = {result_value}"
-                    except Exception as e:
-                        result = f"Error evaluating expression: {str(e)}"
-
-                elif name == "system_info":
-                    info_type = arguments.get("info_type", "platform")
+                if name == "status":
+                    info_type = arguments.get("info_type", "all")
 
                     if info_type == "platform":
                         import platform
@@ -643,49 +530,25 @@ class SimpleMCPServer:
                         import os
 
                         result = f"Working Directory: {os.getcwd()}"
+                    elif info_type == "all":
+                        import platform
+                        import sys
+                        import os
+                        import datetime
+                        
+                        result = (
+                            f"=== System Status ===\n"
+                            f"Platform: {platform.system()} {platform.release()}\n"
+                            f"Python: {sys.version.split()[0]}\n"
+                            f"Working Directory: {os.getcwd()}\n"
+                            f"Server: {self.name} v{self.version}\n"
+                            f"Timestamp: {datetime.datetime.now().isoformat()}\n"
+                            f"Tools Available: status, document_summarizer{', ticket' if self.unified_ticket_tool else ''}"
+                        )
                     else:
                         result = f"Unknown info type: {info_type}"
 
-                elif name == "run_command":
-                    command = arguments.get("command", "")
-                    timeout = arguments.get("timeout", 30)
-
-                    import shlex
-                    import subprocess
-
-                    try:
-                        # Split command string into a list to avoid shell injection
-                        command_parts = shlex.split(command)
-
-                        # Use create_subprocess_exec instead of create_subprocess_shell
-                        # to prevent command injection vulnerabilities
-                        proc = await asyncio.create_subprocess_exec(
-                            *command_parts,
-                            stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE,
-                        )
-
-                        stdout, stderr = await asyncio.wait_for(
-                            proc.communicate(), timeout=timeout
-                        )
-
-                        if proc.returncode == 0:
-                            result = (
-                                stdout.decode()
-                                if stdout
-                                else "Command completed successfully"
-                            )
-                        else:
-                            result = f"Command failed with code {proc.returncode}: {stderr.decode()}"
-                    except asyncio.TimeoutError:
-                        result = f"Command timed out after {timeout} seconds"
-                    except ValueError as e:
-                        # Handle shlex parsing errors (e.g., unmatched quotes)
-                        result = f"Invalid command syntax: {str(e)}"
-                    except Exception as e:
-                        result = f"Error running command: {str(e)}"
-
-                elif name == "summarize_document":
+                elif name == "document_summarizer":
                     content = arguments.get("content", "")
                     style = arguments.get("style", "brief")
                     max_length = arguments.get("max_length", 150)
@@ -733,6 +596,29 @@ class SimpleMCPServer:
                 self.logger.error(error_msg)
                 return [TextContent(type="text", text=error_msg)]
 
+
+    async def _initialize_ticket_tool(self):
+        """
+        Initialize the unified ticket tool asynchronously.
+        
+        This is called lazily when the tool is first needed,
+        ensuring an event loop is available.
+        """
+        if self._ticket_tool_initialized or not TICKET_TOOLS_AVAILABLE:
+            return
+        
+        try:
+            self.logger.info("Initializing unified ticket tool...")
+            self.unified_ticket_tool = UnifiedTicketTool()
+            # If the tool has an async init method, call it
+            if hasattr(self.unified_ticket_tool, 'initialize'):
+                await self.unified_ticket_tool.initialize()
+            self._ticket_tool_initialized = True
+            self.logger.info("Unified ticket tool initialized successfully")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize unified ticket tool: {e}")
+            self.unified_ticket_tool = None
+            self._ticket_tool_initialized = True  # Mark as attempted
 
     async def run(self):
         """
@@ -799,9 +685,15 @@ async def main():
 
 def main_sync():
     """Synchronous entry point for use as a console script."""
+    import os
+    # Disable telemetry by default
+    os.environ.setdefault('DISABLE_TELEMETRY', '1')
     asyncio.run(main())
 
 
 if __name__ == "__main__":
+    import os
+    # Disable telemetry by default
+    os.environ.setdefault('DISABLE_TELEMETRY', '1')
     # Run the async main function
     main_sync()

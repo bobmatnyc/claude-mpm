@@ -56,6 +56,9 @@ ai-trackdown-pytools-bug-support/
 # If you want to track specific config files, use:
 # !.claude-mpm/configuration.yaml
 
+# MCP Vector Search cache
+.mcp-vector-search/
+
 # Auto-generated version file (no longer used)
 src/claude_mpm/_version.py
 

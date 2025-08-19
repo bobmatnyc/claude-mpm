@@ -32,6 +32,8 @@ class TestResponseLoggingAutoSwitch(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
+        # Reset Config singleton for clean test state
+        Config.reset_singleton()
         self.temp_dir = tempfile.mkdtemp()
         self.config_file = Path(self.temp_dir) / "claude-mpm.yml"
 
@@ -40,6 +42,8 @@ class TestResponseLoggingAutoSwitch(unittest.TestCase):
         import shutil
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
+        # Reset Config singleton after test
+        Config.reset_singleton()
 
     def create_config(self, response_logging_enabled=False):
         """Create a test configuration file."""

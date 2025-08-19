@@ -313,4 +313,9 @@ class SubprocessLauncherService(BaseService, SubprocessLauncherInterface):
         env = os.environ.copy()
         if base_env:
             env.update(base_env)
+        
+        # Disable telemetry for Claude Code subprocesses
+        # This ensures Claude Code doesn't send telemetry data during runtime
+        env["DISABLE_TELEMETRY"] = "1"
+        
         return env

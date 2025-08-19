@@ -10,6 +10,9 @@
 #   claude-mpm-socketio restart   - Restart the server daemon
 #   claude-mpm-socketio status    - Check server status
 
+# Disable telemetry by default
+export DISABLE_TELEMETRY=1
+
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

@@ -65,41 +65,178 @@ class PathContext:
     """Handles deployment context detection and path resolution."""
 
     @staticmethod
-    @lru_cache(maxsize=1)
-    def detect_deployment_context() -> DeploymentContext:
-        """Detect the current deployment context."""
+    def _is_editable_install() -> bool:
+        """Check if the current installation is editable (development mode).
+        
+        This checks for various indicators of an editable/development installation:
+        - Presence of pyproject.toml in parent directories
+        - .pth files pointing to the source directory
+        - Direct source installation (src/ directory structure)
+        - Current working directory is within a development project
+        """
         try:
             import claude_mpm
-
             module_path = Path(claude_mpm.__file__).parent
+            
+            # Check if we're in a src/ directory structure with pyproject.toml
+            current = module_path
+            for _ in range(5):  # Check up to 5 levels up
+                if (current / "pyproject.toml").exists():
+                    # Found pyproject.toml, check if this looks like a development setup
+                    if (current / "src" / "claude_mpm").exists():
+                        logger.debug(f"Found development installation at {current}")
+                        return True
+                if current == current.parent:
+                    break
+                current = current.parent
+            
+            # Additional check: If we're running from within a claude-mpm development directory
+            # This handles the case where pipx claude-mpm is invoked from within the dev directory
+            cwd = Path.cwd()
+            current = cwd
+            for _ in range(5):  # Check up to 5 levels up from current directory
+                if (current / "pyproject.toml").exists() and (current / "src" / "claude_mpm").exists():
+                    # Check if this is the claude-mpm project
+                    try:
+                        pyproject_content = (current / "pyproject.toml").read_text()
+                        if "claude-mpm" in pyproject_content and "claude_mpm" in pyproject_content:
+                            logger.debug(f"Running from within claude-mpm development directory: {current}")
+                            # Verify this is a development setup by checking for key files
+                            if (current / "scripts" / "claude-mpm").exists():
+                                return True
+                    except Exception:
+                        pass
+                if current == current.parent:
+                    break
+                current = current.parent
+            
+            # Check for .pth files indicating editable install
+            try:
+                import site
+                for site_dir in site.getsitepackages():
+                    site_path = Path(site_dir)
+                    if site_path.exists():
+                        # Check for .pth files
+                        for pth_file in site_path.glob("*.pth"):
+                            try:
+                                content = pth_file.read_text()
+                                # Check if the .pth file points to our module's parent
+                                if str(module_path.parent) in content or str(module_path) in content:
+                                    logger.debug(f"Found editable install via .pth file: {pth_file}")
+                                    return True
+                            except Exception:
+                                continue
+                        
+                        # Check for egg-link files
+                        for egg_link in site_path.glob("*egg-link"):
+                            if "claude" in egg_link.name.lower():
+                                try:
+                                    content = egg_link.read_text()
+                                    if str(module_path.parent) in content or str(module_path) in content:
+                                        logger.debug(f"Found editable install via egg-link: {egg_link}")
+                                        return True
+                                except Exception:
+                                    continue
+            except ImportError:
+                pass
+            
+        except Exception as e:
+            logger.debug(f"Error checking for editable install: {e}")
+        
+        return False
 
-            # Check for development mode
+    @staticmethod
+    @lru_cache(maxsize=1)
+    def detect_deployment_context() -> DeploymentContext:
+        """Detect the current deployment context.
+        
+        Priority order:
+        1. Environment variable override (CLAUDE_MPM_DEV_MODE)
+        2. Current working directory is a claude-mpm development project
+        3. Editable installation detection
+        4. Path-based detection (development, pipx, system, pip)
+        """
+        # Check for environment variable override
+        if os.environ.get("CLAUDE_MPM_DEV_MODE", "").lower() in ("1", "true", "yes"):
+            logger.info("Development mode forced via CLAUDE_MPM_DEV_MODE environment variable")
+            return DeploymentContext.DEVELOPMENT
+        
+        # Check if current working directory is a claude-mpm development project
+        # This handles the case where pipx claude-mpm is run from within the dev directory
+        cwd = Path.cwd()
+        current = cwd
+        for _ in range(5):  # Check up to 5 levels up from current directory
+            if (current / "pyproject.toml").exists() and (current / "src" / "claude_mpm").exists():
+                # Check if this is the claude-mpm project
+                try:
+                    pyproject_content = (current / "pyproject.toml").read_text()
+                    if 'name = "claude-mpm"' in pyproject_content or '"claude-mpm"' in pyproject_content:
+                        logger.info(f"Detected claude-mpm development directory at {current}")
+                        logger.info("Using development mode for local source preference")
+                        return DeploymentContext.DEVELOPMENT
+                except Exception:
+                    pass
+            if current == current.parent:
+                break
+            current = current.parent
+        
+        try:
+            import claude_mpm
+            module_path = Path(claude_mpm.__file__).parent
+            
+            # First check if this is an editable install, regardless of path
+            # This is important for cases where pipx points to a development installation
+            if PathContext._is_editable_install():
+                logger.info(f"Detected editable/development installation")
+                # Check if we should use development paths
+                # This could be because we're in a src/ directory or running from dev directory
+                if module_path.parent.name == "src":
+                    return DeploymentContext.DEVELOPMENT
+                elif "pipx" in str(module_path):
+                    # Running via pipx but from within a development directory
+                    # Use development mode to prefer local source over pipx installation
+                    cwd = Path.cwd()
+                    current = cwd
+                    for _ in range(5):
+                        if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
+                            logger.info(f"Running pipx from development directory, using development mode")
+                            return DeploymentContext.DEVELOPMENT
+                        if current == current.parent:
+                            break
+                        current = current.parent
+                    return DeploymentContext.EDITABLE_INSTALL
+                else:
+                    return DeploymentContext.EDITABLE_INSTALL
+            
+            # Check for development mode based on directory structure
             # module_path is typically /path/to/project/src/claude_mpm
-            # So we need to check if /path/to/project/src exists (module_path.parent)
-            # and if /path/to/project/src/claude_mpm exists (module_path itself)
             if (module_path.parent.name == "src" and
                 (module_path.parent.parent / "src" / "claude_mpm").exists()):
+                logger.info(f"Detected development mode via directory structure at {module_path}")
                 return DeploymentContext.DEVELOPMENT
-
-            # Check for editable install
-            if (
-                "site-packages" in str(module_path)
-                and (module_path.parent.parent / "src").exists()
-            ):
-                return DeploymentContext.EDITABLE_INSTALL
 
             # Check for pipx install
             if "pipx" in str(module_path):
+                logger.info(f"Detected pipx installation at {module_path}")
                 return DeploymentContext.PIPX_INSTALL
 
             # Check for system package
             if "dist-packages" in str(module_path):
+                logger.info(f"Detected system package installation at {module_path}")
                 return DeploymentContext.SYSTEM_PACKAGE
+            
+            # Check for site-packages (could be pip or editable)
+            if "site-packages" in str(module_path):
+                # Already checked for editable above, so this is a regular pip install
+                logger.info(f"Detected pip installation at {module_path}")
+                return DeploymentContext.PIP_INSTALL
 
             # Default to pip install
+            logger.info(f"Defaulting to pip installation for {module_path}")
             return DeploymentContext.PIP_INSTALL
 
         except ImportError:
+            logger.info("ImportError during context detection, defaulting to development")
             return DeploymentContext.DEVELOPMENT
 
 
@@ -143,8 +280,8 @@ class UnifiedPathManager:
         ]
         self._initialized = True
 
-        logger.debug(
-            f"UnifiedPathManager initialized with context: {self._deployment_context}"
+        logger.info(
+            f"UnifiedPathManager initialized with context: {self._deployment_context.value}"
         )
 
     # ========================================================================
@@ -160,11 +297,38 @@ class UnifiedPathManager:
 
             module_path = Path(claude_mpm.__file__).parent
 
-            if self._deployment_context == DeploymentContext.DEVELOPMENT:
-                # Development: go up to project root
+            if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+                # For development mode, first check if we're running from within a dev directory
+                # This handles the case where pipx is invoked from a development directory
+                cwd = Path.cwd()
+                current = cwd
+                for _ in range(5):
+                    if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
+                        # Verify this is the claude-mpm project
+                        try:
+                            pyproject_content = (current / "pyproject.toml").read_text()
+                            if "claude-mpm" in pyproject_content:
+                                logger.debug(f"Found framework root via cwd at {current}")
+                                return current
+                        except Exception:
+                            pass
+                    if current == current.parent:
+                        break
+                    current = current.parent
+                
+                # Development or editable install: go up to project root from module
                 current = module_path
                 while current != current.parent:
-                    if (current / "src" / "claude_mpm").exists():
+                    if (current / "src" / "claude_mpm").exists() and (current / "pyproject.toml").exists():
+                        logger.debug(f"Found framework root at {current}")
+                        return current
+                    current = current.parent
+                
+                # Secondary check: Look for pyproject.toml without src structure
+                current = module_path
+                while current != current.parent:
+                    if (current / "pyproject.toml").exists():
+                        logger.debug(f"Found framework root (no src) at {current}")
                         return current
                     current = current.parent
 
@@ -202,9 +366,14 @@ class UnifiedPathManager:
     @property
     def package_root(self) -> Path:
         """Get the claude_mpm package root directory."""
+        if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+            # In development mode, always use the source directory
+            package_path = self.framework_root / "src" / "claude_mpm"
+            if package_path.exists():
+                return package_path
+        
         try:
             import claude_mpm
-
             return Path(claude_mpm.__file__).parent
         except ImportError:
             return self.framework_root / "src" / "claude_mpm"
@@ -246,7 +415,7 @@ class UnifiedPathManager:
         elif scope == "project":
             return self.get_project_config_dir() / "agents"
         elif scope == "framework":
-            if self._deployment_context == DeploymentContext.DEVELOPMENT:
+            if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
                 return self.framework_root / "src" / "claude_mpm" / "agents"
             else:
                 return self.package_root / "agents"
@@ -277,7 +446,7 @@ class UnifiedPathManager:
 
     def get_scripts_dir(self) -> Path:
         """Get the scripts directory."""
-        if self._deployment_context == DeploymentContext.DEVELOPMENT:
+        if self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
             return self.framework_root / "scripts"
         else:
             return self.package_root / "scripts"
