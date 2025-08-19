@@ -48,14 +48,20 @@ After configuration changes, restart Claude Desktop to load the MCP server.
    - Comprehensive error handling
    - Debug logging to stderr
    - Works from any working directory
+   - Process monitoring and PID tracking
 
 2. **MCP Server** (`src/claude_mpm/services/mcp_gateway/server/stdio_server.py`)
    - Implements MCP protocol over stdio
    - JSON-RPC communication
    - Tool registration and execution
    - Backward compatibility patches
+   
+3. **MCP Server Script** (`src/claude_mpm/scripts/mcp_server.py`)
+   - Alternative entry point for direct server execution
+   - Available as `claude-mpm-mcp` command when installed
+   - Used for development and testing
 
-3. **Unified Ticket Tool** (`src/claude_mpm/services/mcp_gateway/tools/unified_ticket_tool.py`)
+4. **Unified Ticket Tool** (`src/claude_mpm/services/mcp_gateway/tools/unified_ticket_tool.py`)
    - Ticket creation and management
    - Query and update operations
    - Integrated with claude-mpm ticket system
@@ -88,6 +94,12 @@ python3 scripts/mcp_wrapper.py
 
 # Test with a simple request
 echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-01","clientInfo":{"name":"test","version":"1.0"}},"id":1}' | python3 scripts/mcp_wrapper.py
+
+# Alternative: Use the installed command (if claude-mpm is installed)
+claude-mpm-mcp
+
+# Alternative: Run the server script directly
+python3 src/claude_mpm/scripts/mcp_server.py
 ```
 
 ## Troubleshooting

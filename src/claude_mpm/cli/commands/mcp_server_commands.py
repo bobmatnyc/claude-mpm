@@ -5,6 +5,7 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 """
 
 import asyncio
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -21,11 +22,11 @@ class MCPServerCommands:
         """Start MCP server command.
 
         WHY: This command starts the MCP server using the proper stdio-based
-        implementation that Claude Code can communicate with.
-        NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.
+        implementation that Claude Desktop can communicate with.
+        NOTE: MCP is for Claude Desktop's Code features.
 
-        DESIGN DECISION: When called without flags, we run the server directly
-        for Claude Code compatibility. With --instructions flag, we show setup info.
+        DESIGN DECISION: We now use the wrapper script to ensure proper
+        environment setup regardless of how the server is invoked.
         """
         self.logger.info("MCP server start command called")
 
@@ -43,92 +44,72 @@ class MCPServerCommands:
 
         if show_instructions:
             # Show configuration instructions
-            print("🚀 MCP Server Setup Instructions for Claude Code")
+            print("🚀 MCP Server Setup Instructions for Claude Desktop")
             print("=" * 50)
-            print("\nℹ️  IMPORTANT: MCP is ONLY for Claude Code - NOT for Claude Desktop!")
-            print("   Claude Desktop uses a different system for agent deployment.")
-            print("\nThe MCP server is designed to be spawned by Claude Code.")
-            print("\nTo use the MCP server with Claude Code:")
-            print("\n1. Add this to your Claude Code configuration (~/.claude.json):")
-            print("\n{")
-            print('  "mcpServers": {')
-            print('    "claude-mpm": {')
-
-            # Find the correct binary path
-            bin_path = Path(sys.executable).parent / "claude-mpm-mcp"
-            if not bin_path.exists():
-                # Try to find it in the project bin directory
-                project_root = Path(__file__).parent.parent.parent.parent.parent
-                bin_path = project_root / "bin" / "claude-mpm-mcp"
-
-            if bin_path.exists():
-                print(f'      "command": "{bin_path}"')
-            else:
-                print('      "command": "claude-mpm-mcp"')
-                print("      // Or use the full path if not in PATH:")
-                print('      // "command": "/path/to/claude-mpm/bin/claude-mpm-mcp"')
-
-            print("    }")
-            print("  }")
-            print("}")
-            print("\n2. Restart Claude Code to load the MCP server")
-            print("\n3. The server will be automatically started when needed")
-            print("\nOr use the registration script:")
-            print("  python scripts/register_mcp_gateway.py")
-            print("\nTo test the server directly, run:")
-            print("  claude-mpm mcp start --test")
+            print("\nThe MCP server enables Claude Desktop to use tools and integrations.")
+            print("\nTo configure the MCP server:")
+            print("\n1. Run the configuration script:")
+            print("   python scripts/configure_mcp_server.py")
+            print("\n2. Or manually configure Claude Desktop:")
+            
+            # Find project root for paths
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            wrapper_path = project_root / "scripts" / "mcp_wrapper.py"
+            
+            print("\n   Add this to your Claude Desktop configuration:")
+            print("   (~/Library/Application Support/Claude/claude_desktop_config.json on macOS)")
+            print("\n   {")
+            print('     "mcpServers": {')
+            print('       "claude-mpm-gateway": {')
+            print(f'         "command": "{sys.executable}",')
+            print(f'         "args": ["{wrapper_path}"],')
+            print(f'         "cwd": "{project_root}"')
+            print('       }')
+            print('     }')
+            print('   }')
+            print("\n3. Restart Claude Desktop to load the MCP server")
+            print("\nTo test the server directly:")
+            print("   python scripts/mcp_wrapper.py")
+            print("\nTo check running MCP processes:")
+            print("   python scripts/check_mcp_processes.py")
             print("\nFor more information, see:")
-            print("  https://github.com/anthropics/mcp")
+            print("   https://github.com/anthropics/mcp")
 
             return 0
 
-        # Default behavior: Run the server directly (for Claude Code compatibility)
-        # When Claude Code spawns "claude-mpm mcp start", it expects the server to run
+        # Default behavior: Use the wrapper script for proper environment setup
         if test_mode:
             print("🧪 Starting MCP server in test mode...")
             print("   This will run the server with stdio communication.")
             print("   Press Ctrl+C to stop.\n")
 
         try:
-            # Configure logging to stderr for MCP mode
-            import logging
-            import sys
-
-            # Disable all stdout logging when running MCP server
-            # to prevent interference with JSON-RPC protocol
-            root_logger = logging.getLogger()
-
-            # Remove any existing handlers that might log to stdout
-            for handler in root_logger.handlers[:]:
-                if hasattr(handler, "stream") and handler.stream == sys.stdout:
-                    root_logger.removeHandler(handler)
-
-            # Add stderr handler if needed (but keep it minimal)
-            if not test_mode:
-                # In production mode, minimize stderr output too
-                logging.basicConfig(
-                    level=logging.ERROR,
-                    format="%(message)s",
-                    stream=sys.stderr,
-                    force=True,
-                )
-            else:
-                # In test mode, allow more verbose stderr logging
-                logging.basicConfig(
-                    level=logging.INFO,
-                    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-                    stream=sys.stderr,
-                    force=True,
-                )
-
-            # Import and run the stdio server directly
-            from ...services.mcp_gateway.server.stdio_server import SimpleMCPServer
-
-            server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
-
-            # Run the server (handles stdio communication)
-            await server.run()
-            return 0
+            # Instead of running directly, we should use the wrapper script
+            # for consistent environment setup
+            import subprocess
+            from pathlib import Path
+            
+            # Find the wrapper script
+            project_root = Path(__file__).parent.parent.parent.parent.parent
+            wrapper_script = project_root / "scripts" / "mcp_wrapper.py"
+            
+            if not wrapper_script.exists():
+                print(f"❌ Error: Wrapper script not found at {wrapper_script}", file=sys.stderr)
+                print("\nPlease ensure the wrapper script is installed.", file=sys.stderr)
+                return 1
+            
+            # Run the wrapper script
+            print(f"Starting MCP server via wrapper: {wrapper_script}", file=sys.stderr)
+            
+            # Use subprocess to run the wrapper
+            # This ensures proper environment setup
+            result = subprocess.run(
+                [sys.executable, str(wrapper_script)],
+                cwd=str(project_root),
+                env={**os.environ, "MCP_MODE": "test" if test_mode else "production"}
+            )
+            
+            return result.returncode
 
         except ImportError as e:
             self.logger.error(f"Failed to import MCP server: {e}")
