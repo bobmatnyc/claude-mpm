@@ -1,0 +1,281 @@
+{
+  "schema_version": "1.2.0",
+  "agent_id": "vercel-ops-agent",
+  "agent_version": "1.0.0",
+  "agent_type": "ops",
+  "metadata": {
+    "name": "Vercel Ops Agent",
+    "description": "Specialized agent for Vercel platform deployment, environment management, and optimization",
+    "category": "operations",
+    "tags": [
+      "vercel",
+      "deployment",
+      "edge-functions",
+      "serverless",
+      "infrastructure",
+      "rolling-releases",
+      "preview-deployments",
+      "environment-management",
+      "performance-optimization",
+      "domain-configuration"
+    ],
+    "author": "Claude MPM Team",
+    "created_at": "2025-08-19T00:00:00.000000Z",
+    "updated_at": "2025-08-19T00:00:00.000000Z",
+    "color": "black"
+  },
+  "capabilities": {
+    "model": "sonnet",
+    "tools": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash",
+      "Grep",
+      "Glob",
+      "LS",
+      "TodoWrite",
+      "WebSearch",
+      "WebFetch"
+    ],
+    "resource_tier": "standard",
+    "max_tokens": 8192,
+    "temperature": 0.1,
+    "timeout": 600,
+    "memory_limit": 3072,
+    "cpu_limit": 50,
+    "network_access": true,
+    "file_access": {
+      "read_paths": [
+        "./"
+      ],
+      "write_paths": [
+        "./"
+      ]
+    }
+  },
+  "instructions": "file:vercel_ops_instructions.md",
+  "knowledge": {
+    "domain_expertise": [
+      "Vercel platform deployment and configuration",
+      "Edge function optimization and deployment",
+      "Serverless architecture patterns",
+      "Preview and production environment management",
+      "Rolling release strategies (2025 feature)",
+      "v0 Platform API integration",
+      "Build Output API optimization",
+      "Multi-region deployment strategies",
+      "Domain and SSL certificate management",
+      "Vercel Speed Insights and analytics",
+      "GitHub Actions integration for CI/CD",
+      "Environment variable management across environments",
+      "Branch-based deployment rules",
+      "Instant rollback procedures",
+      "Edge middleware configuration"
+    ],
+    "best_practices": [
+      "Use preview deployments for all feature branches",
+      "Configure environment variables per deployment context",
+      "Implement rolling releases for gradual rollouts",
+      "Optimize builds with Build Output API",
+      "Set up domain aliases for staging environments",
+      "Configure edge functions for optimal performance",
+      "Use Vercel Speed Insights for performance monitoring",
+      "Implement branch protection rules for production",
+      "Configure custom build commands in vercel.json",
+      "Set up automatic HTTPS and SSL certificates",
+      "Use environment-specific redirects and rewrites",
+      "Implement serverless function size optimization",
+      "Configure CORS and security headers properly",
+      "Use Vercel CLI for local development parity",
+      "Set up GitHub integration for automatic deployments"
+    ],
+    "constraints": [
+      "Maximum serverless function size: 50MB (compressed)",
+      "Maximum edge function size: 1MB",
+      "Environment variable limit: 64KB total",
+      "Build time limit: 45 minutes",
+      "Function execution timeout: 10 seconds (Hobby), 60 seconds (Pro)",
+      "Maximum file count: 10,000 files",
+      "Maximum deployment size: 100MB",
+      "Concurrent builds limit varies by plan",
+      "Custom domains require Pro plan for wildcard certificates",
+      "Analytics retention varies by plan tier"
+    ],
+    "examples": [
+      {
+        "scenario": "Deploy Next.js application with preview URLs",
+        "command": "vercel --prod",
+        "description": "Deploy to production with automatic preview URL generation"
+      },
+      {
+        "scenario": "Configure environment variables",
+        "command": "vercel env add API_KEY production",
+        "description": "Add environment variable to production environment"
+      },
+      {
+        "scenario": "Rollback deployment",
+        "command": "vercel rollback",
+        "description": "Instantly rollback to previous deployment"
+      },
+      {
+        "scenario": "Set up custom domain",
+        "command": "vercel domains add example.com",
+        "description": "Configure custom domain with automatic SSL"
+      }
+    ]
+  },
+  "interactions": {
+    "input_format": {
+      "required_fields": [
+        "task"
+      ],
+      "optional_fields": [
+        "environment",
+        "project",
+        "domain",
+        "branch",
+        "rollback_target"
+      ]
+    },
+    "output_format": {
+      "structure": "markdown",
+      "includes": [
+        "deployment_summary",
+        "environment_config",
+        "preview_urls",
+        "performance_metrics",
+        "recommendations"
+      ]
+    },
+    "handoff_agents": [
+      "engineer",
+      "qa",
+      "security",
+      "documentation"
+    ],
+    "triggers": [
+      "deployment_ready",
+      "feature_complete",
+      "rollback_required",
+      "environment_setup",
+      "domain_configuration"
+    ]
+  },
+  "testing": {
+    "test_cases": [
+      {
+        "name": "Basic deployment",
+        "input": "Deploy application to Vercel preview environment",
+        "expected_behavior": "Creates preview deployment with unique URL",
+        "validation_criteria": [
+          "deployment_successful",
+          "preview_url_generated",
+          "environment_variables_set",
+          "build_logs_available"
+        ]
+      },
+      {
+        "name": "Production deployment",
+        "input": "Deploy to production with rolling release",
+        "expected_behavior": "Gradual rollout to production with monitoring",
+        "validation_criteria": [
+          "rolling_release_configured",
+          "traffic_split_active",
+          "monitoring_enabled",
+          "rollback_ready"
+        ]
+      },
+      {
+        "name": "Environment configuration",
+        "input": "Configure staging environment with custom domain",
+        "expected_behavior": "Staging environment with SSL and custom domain",
+        "validation_criteria": [
+          "domain_configured",
+          "ssl_active",
+          "environment_isolated",
+          "redirects_working"
+        ]
+      }
+    ],
+    "performance_benchmarks": {
+      "response_time": 300,
+      "deployment_time": 180,
+      "token_usage": 8192,
+      "success_rate": 0.98
+    }
+  },
+  "dependencies": {
+    "npm": [
+      "vercel@latest"
+    ],
+    "system": [
+      "node>=18.0.0",
+      "npm>=9.0.0",
+      "git"
+    ],
+    "optional": false
+  },
+  "vercel_specific": {
+    "supported_frameworks": [
+      "Next.js",
+      "React",
+      "Vue",
+      "Svelte",
+      "Angular",
+      "Nuxt",
+      "Gatsby",
+      "Remix",
+      "Astro",
+      "SolidStart",
+      "Qwik"
+    ],
+    "configuration_files": [
+      "vercel.json",
+      ".vercelignore",
+      "next.config.js",
+      "package.json"
+    ],
+    "cli_commands": {
+      "deployment": [
+        "vercel",
+        "vercel --prod",
+        "vercel --prebuilt",
+        "vercel --force"
+      ],
+      "environment": [
+        "vercel env ls",
+        "vercel env add",
+        "vercel env rm",
+        "vercel env pull"
+      ],
+      "domains": [
+        "vercel domains ls",
+        "vercel domains add",
+        "vercel domains rm",
+        "vercel domains inspect"
+      ],
+      "projects": [
+        "vercel project ls",
+        "vercel project add",
+        "vercel project rm"
+      ],
+      "rollback": [
+        "vercel rollback",
+        "vercel rollback [deployment-url]"
+      ],
+      "logs": [
+        "vercel logs",
+        "vercel logs --follow",
+        "vercel logs [deployment-url]"
+      ]
+    },
+    "api_endpoints": {
+      "deployments": "https://api.vercel.com/v13/deployments",
+      "projects": "https://api.vercel.com/v9/projects",
+      "domains": "https://api.vercel.com/v5/domains",
+      "environment": "https://api.vercel.com/v10/projects/{projectId}/env",
+      "teams": "https://api.vercel.com/v2/teams"
+    }
+  }
+}

@@ -184,10 +184,41 @@ class SocketIOEventBroadcaster:
         
         WHY: Failed broadcasts need to be retried automatically
         to ensure reliable event delivery.
+        
+        IMPORTANT: This method must handle being called from a different thread
+        than the one running the event loop.
         """
         if self.loop and not self.retry_task:
+            try:
+                # Check if the loop is running in the current thread
+                try:
+                    running_loop = asyncio.get_running_loop()
+                    if running_loop == self.loop:
+                        # Same thread, can use create_task directly
+                        self.retry_task = asyncio.create_task(self._process_retry_queue())
+                        self.logger.info("🔄 Started retry queue processor (same thread)")
+                    else:
+                        # Different thread, need to schedule in the target loop
+                        self._start_retry_in_loop()
+                except RuntimeError:
+                    # No running loop in current thread, schedule in target loop
+                    self._start_retry_in_loop()
+            except Exception as e:
+                self.logger.error(f"Failed to start retry processor: {e}")
+    
+    def _start_retry_in_loop(self):
+        """Helper to start retry processor from a different thread."""
+        async def _create_retry_task():
             self.retry_task = asyncio.create_task(self._process_retry_queue())
-            self.logger.info("🔄 Started retry queue processor")
+            self.logger.info("🔄 Started retry queue processor (cross-thread)")
+        
+        # Schedule the task creation in the target loop
+        future = asyncio.run_coroutine_threadsafe(_create_retry_task(), self.loop)
+        try:
+            # Wait briefly to ensure it's scheduled
+            future.result(timeout=1.0)
+        except Exception as e:
+            self.logger.error(f"Failed to schedule retry processor: {e}")
     
     def stop_retry_processor(self):
         """Stop the background retry processor."""

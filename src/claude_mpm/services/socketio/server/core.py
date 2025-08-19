@@ -138,8 +138,12 @@ class SocketIOServerCore:
         """Run the server event loop."""
         try:
             # Create new event loop for this thread
+            # WHY: We create and assign the loop immediately to minimize the race
+            # condition window where other threads might try to access it.
             self.loop = asyncio.new_event_loop()
             asyncio.set_event_loop(self.loop)
+            
+            self.logger.debug("Event loop created and set for background thread")
 
             # Run the server
             self.loop.run_until_complete(self._start_server())

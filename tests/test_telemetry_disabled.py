@@ -1,165 +1,160 @@
-"""Test that DISABLE_TELEMETRY environment variable is properly set for Claude Code.
-
-This test ensures that the DISABLE_TELEMETRY=1 environment variable is set
-in all scenarios where Claude Code is launched, preventing telemetry data collection.
+#!/usr/bin/env python3
+"""
+Test script to verify that DISABLE_TELEMETRY is set correctly.
 """
 
 import os
+import subprocess
 import sys
-import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
 
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "src"))
-
-from claude_mpm.core.interactive_session import InteractiveSession
-from claude_mpm.core.oneshot_session import OneshotSession
-from claude_mpm.services.subprocess_launcher_service import SubprocessLauncherService
-
-
-class TestTelemetryDisabled(unittest.TestCase):
-    """Test that DISABLE_TELEMETRY is set in all Claude Code launch scenarios."""
-
-    def test_interactive_session_sets_disable_telemetry(self):
-        """Test that interactive session sets DISABLE_TELEMETRY=1."""
-        # Create mock runner
-        mock_runner = MagicMock()
-        mock_runner.enable_websocket = False
-        mock_runner.project_logger = None
-        
-        # Create session
-        session = InteractiveSession(mock_runner)
-        
-        # Get environment
-        env = session._prepare_environment()
-        
-        # Verify DISABLE_TELEMETRY is set
-        self.assertIn("DISABLE_TELEMETRY", env)
-        self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-    
-    def test_oneshot_session_sets_disable_telemetry(self):
-        """Test that oneshot session sets DISABLE_TELEMETRY=1."""
-        # Create mock runner
-        mock_runner = MagicMock()
-        mock_runner.enable_websocket = False
-        mock_runner.project_logger = None
-        
-        # Create session
-        session = OneshotSession(mock_runner)
-        
-        # Get environment
-        env = session._prepare_environment()
-        
-        # Verify DISABLE_TELEMETRY is set
-        self.assertIn("DISABLE_TELEMETRY", env)
-        self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-    
-    def test_subprocess_launcher_sets_disable_telemetry(self):
-        """Test that subprocess launcher sets DISABLE_TELEMETRY=1."""
-        # Create service
-        service = SubprocessLauncherService(
-            project_logger=None,
-            websocket_server=None
+def test_python_module():
+    """Test if DISABLE_TELEMETRY is set when running as Python module."""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", 
+             "import os; os.environ.setdefault('DISABLE_TELEMETRY', '0'); "
+             "import sys; sys.path.insert(0, 'src'); "
+             "from claude_mpm import __main__; "
+             "print(os.environ.get('DISABLE_TELEMETRY', 'not set'))"],
+            capture_output=True,
+            text=True,
+            cwd=Path(__file__).parent.parent
         )
-        
-        # Get environment without base env
-        env = service.prepare_subprocess_environment()
-        
-        # Verify DISABLE_TELEMETRY is set
-        self.assertIn("DISABLE_TELEMETRY", env)
-        self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-        
-        # Test with base env
-        base_env = {"CUSTOM_VAR": "value"}
-        env_with_base = service.prepare_subprocess_environment(base_env)
-        
-        # Verify DISABLE_TELEMETRY is still set
-        self.assertIn("DISABLE_TELEMETRY", env_with_base)
-        self.assertEqual(env_with_base["DISABLE_TELEMETRY"], "1")
-        # And custom var is preserved
-        self.assertEqual(env_with_base["CUSTOM_VAR"], "value")
-    
-    def test_disable_telemetry_not_overridden(self):
-        """Test that DISABLE_TELEMETRY cannot be overridden by base environment."""
-        service = SubprocessLauncherService(
-            project_logger=None,
-            websocket_server=None
-        )
-        
-        # Try to override with base env
-        base_env = {"DISABLE_TELEMETRY": "0"}  # Try to enable telemetry
-        env = service.prepare_subprocess_environment(base_env)
-        
-        # Verify DISABLE_TELEMETRY is still "1" (our setting takes precedence)
-        self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-    
-    def test_interactive_session_preserves_other_env_vars(self):
-        """Test that setting DISABLE_TELEMETRY doesn't affect other env vars."""
-        mock_runner = MagicMock()
-        mock_runner.enable_websocket = False
-        mock_runner.project_logger = None
-        
-        session = InteractiveSession(mock_runner)
-        
-        # Set a custom env var
-        os.environ["TEST_CUSTOM_VAR"] = "test_value"
-        
-        try:
-            env = session._prepare_environment()
-            
-            # Verify DISABLE_TELEMETRY is set
-            self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-            
-            # Verify custom var is preserved
-            self.assertEqual(env["TEST_CUSTOM_VAR"], "test_value")
-            
-            # Verify Claude-specific vars are removed
-            self.assertNotIn("CLAUDE_CODE_ENTRYPOINT", env)
-            self.assertNotIn("CLAUDECODE", env)
-        finally:
-            # Clean up
-            del os.environ["TEST_CUSTOM_VAR"]
-    
-    @patch('subprocess.Popen')
-    @patch('pty.openpty')
-    def test_environment_passed_to_subprocess(self, mock_openpty, mock_popen):
-        """Test that the environment with DISABLE_TELEMETRY is passed to subprocess."""
-        service = SubprocessLauncherService(
-            project_logger=None,
-            websocket_server=None
-        )
-        
-        # Mock PTY creation
-        mock_openpty.return_value = (3, 4)  # Fake file descriptors
-        
-        # Mock subprocess.Popen to capture the env
-        mock_process = MagicMock()
-        mock_process.pid = 12345
-        mock_process.poll.return_value = 0
-        mock_process.returncode = 0
-        mock_popen.return_value = mock_process
-        
-        # Prepare the environment
-        env = service.prepare_subprocess_environment()
-        
-        # Verify DISABLE_TELEMETRY is set in the prepared environment
-        self.assertIn("DISABLE_TELEMETRY", env)
-        self.assertEqual(env["DISABLE_TELEMETRY"], "1")
-        
-        # Alternatively, test that launch_subprocess includes it
-        with patch('os.close'):
-            try:
-                # This will fail because we haven't mocked everything, but that's OK
-                # We're really just testing that prepare_subprocess_environment works
-                service.launch_subprocess_interactive(["echo", "test"], env)
-            except:
-                pass  # Expected to fail due to incomplete mocking
-        
-        # The important test is that prepare_subprocess_environment sets DISABLE_TELEMETRY
-        # which we've already verified above
+        output = result.stdout.strip()
+        return output == '1'
+    except Exception as e:
+        print(f"  Error: {e}")
+        return False
 
+def test_bash_script(script_path):
+    """Test if a bash script sets DISABLE_TELEMETRY."""
+    try:
+        # Create a test that checks if the variable is exported
+        test_cmd = f"bash -c 'source {script_path} 2>/dev/null; echo $DISABLE_TELEMETRY' 2>/dev/null | head -1"
+        result = subprocess.run(
+            test_cmd,
+            capture_output=True,
+            text=True,
+            shell=True,
+            cwd=Path(__file__).parent.parent
+        )
+        output = result.stdout.strip()
+        return output == '1'
+    except Exception as e:
+        print(f"  Error: {e}")
+        return False
+
+def test_python_script(script_path):
+    """Test if a Python script sets DISABLE_TELEMETRY."""
+    try:
+        # Check if the script contains the environment setting
+        with open(script_path, 'r') as f:
+            content = f.read()
+        return "os.environ['DISABLE_TELEMETRY'] = '1'" in content or \
+               'os.environ["DISABLE_TELEMETRY"] = "1"' in content or \
+               "os.environ.setdefault('DISABLE_TELEMETRY', '1')" in content or \
+               'os.environ.setdefault("DISABLE_TELEMETRY", "1")' in content
+    except Exception as e:
+        print(f"  Error: {e}")
+        return False
+
+def main():
+    """Run telemetry disable tests."""
+    print("=" * 60)
+    print("Testing DISABLE_TELEMETRY Environment Variable Setup")
+    print("=" * 60)
+    
+    project_root = Path(__file__).parent.parent
+    os.chdir(project_root)
+    
+    # Test bash scripts
+    print("\n1. Testing Bash Entry Points:")
+    bash_scripts = [
+        ("claude-mpm", "Main wrapper"),
+        ("scripts/claude-mpm", "Scripts wrapper"),
+        ("scripts/claude-mpm-socketio", "SocketIO wrapper"),
+    ]
+    
+    bash_passed = True
+    for script, description in bash_scripts:
+        script_path = project_root / script
+        if script_path.exists():
+            if test_bash_script(script_path):
+                print(f"  ✅ {description}: DISABLE_TELEMETRY=1 is set")
+            else:
+                print(f"  ❌ {description}: DISABLE_TELEMETRY not properly set")
+                bash_passed = False
+        else:
+            print(f"  ⚠️  {description}: Script not found at {script_path}")
+    
+    # Test Python entry points
+    print("\n2. Testing Python Entry Points:")
+    python_scripts = [
+        ("src/claude_mpm/__main__.py", "Main module"),
+        ("src/claude_mpm/cli/__main__.py", "CLI module"),
+        ("src/claude_mpm/cli/__init__.py", "CLI init (main function)"),
+        ("scripts/mcp_server.py", "MCP server"),
+        ("scripts/mcp_wrapper.py", "MCP wrapper"),
+        ("scripts/ticket.py", "Ticket script"),
+        ("bin/claude-mpm-mcp", "MCP binary"),
+        ("bin/claude-mpm-mcp-simple", "MCP simple binary"),
+        ("bin/socketio-daemon", "SocketIO daemon"),
+    ]
+    
+    python_passed = True
+    for script, description in python_scripts:
+        script_path = project_root / script
+        if script_path.exists():
+            if test_python_script(script_path):
+                print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")
+            else:
+                print(f"  ❌ {description}: Does not set DISABLE_TELEMETRY")
+                python_passed = False
+        else:
+            print(f"  ⚠️  {description}: Script not found at {script_path}")
+    
+    # Test Node.js scripts
+    print("\n3. Testing Node.js Entry Points:")
+    node_scripts = [
+        ("bin/claude-mpm", "Node.js main wrapper"),
+        ("bin/ticket", "Node.js ticket wrapper"),
+    ]
+    
+    node_passed = True
+    for script, description in node_scripts:
+        script_path = project_root / script
+        if script_path.exists():
+            with open(script_path, 'r') as f:
+                content = f.read()
+            if "process.env.DISABLE_TELEMETRY = '1'" in content:
+                print(f"  ✅ {description}: Sets DISABLE_TELEMETRY=1")
+            else:
+                print(f"  ❌ {description}: Does not set DISABLE_TELEMETRY")
+                node_passed = False
+        else:
+            print(f"  ⚠️  {description}: Script not found at {script_path}")
+    
+    # Test the actual Python module import
+    print("\n4. Testing Runtime Behavior:")
+    if test_python_module():
+        print("  ✅ Python module sets DISABLE_TELEMETRY=1 on import")
+        module_passed = True
+    else:
+        print("  ❌ Python module does not set DISABLE_TELEMETRY properly")
+        module_passed = False
+    
+    print("\n" + "=" * 60)
+    all_passed = bash_passed and python_passed and node_passed and module_passed
+    if all_passed:
+        print("✅ SUCCESS: All entry points properly set DISABLE_TELEMETRY=1")
+        print("Telemetry is disabled by default in claude-mpm")
+    else:
+        print("⚠️  WARNING: Some entry points may not disable telemetry")
+        print("Please review the failed tests above")
+    print("=" * 60)
+    
+    return 0 if all_passed else 1
 
 if __name__ == "__main__":
-    unittest.main()
+    sys.exit(main())

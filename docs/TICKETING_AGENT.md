@@ -9,8 +9,10 @@ The Ticketing Agent is Claude MPM's intelligent ticket management specialist, de
 - **Intelligent Classification**: Automatically determines whether work should be an Epic, Issue, or Task
 - **Hierarchical Management**: Maintains proper relationships between Epics, Issues, and Tasks
 - **Workflow Optimization**: Manages status transitions, priorities, and dependencies
+- **External PM Integration**: Direct integration with JIRA, GitHub Issues, and Linear when URLs are provided
 - **Integration Ready**: Built to work with ai-trackdown-pytools and other ticketing systems
 - **Team Coordination**: Creates tickets for other agents and tracks cross-functional work
+- **API Management**: Automatic detection of PM platforms and credential management
 
 ### When to Use the Ticketing Agent
 
@@ -1332,6 +1334,159 @@ trackdown notify configure \
   --events created,blocked,completed
 ```
 
-This comprehensive documentation provides teams with everything needed to effectively use the Ticketing Agent for intelligent project management. The agent's smart classification, workflow management, and integration capabilities help maintain organized, trackable development processes while reducing administrative overhead.
+## External PM System Integration
+
+### Overview
+
+Starting with version 2.3.0, the Ticketing Agent supports direct integration with external project management systems when URLs are provided. This allows seamless ticket creation and management in your existing PM tools while maintaining the agent's intelligent classification capabilities.
+
+### Supported Platforms
+
+#### JIRA (Atlassian)
+- **URL Patterns**: `https://*.atlassian.net/*`, `https://jira.*`
+- **Required Environment Variables**:
+  - `JIRA_API_TOKEN`: Your Atlassian API token
+  - `JIRA_EMAIL`: Email associated with your Atlassian account
+- **Capabilities**: Create, update, transition, comment, link issues
+- **API Version**: REST API v3
+
+#### GitHub Issues
+- **URL Patterns**: `https://github.com/{owner}/{repo}/issues`
+- **Required Environment Variables**:
+  - `GITHUB_TOKEN` or `GH_TOKEN`: Personal access token with repo scope
+- **Capabilities**: Create, update, label, assign, close issues
+- **API Version**: GitHub REST API v3
+
+#### Linear
+- **URL Patterns**: `https://linear.app/*/issue/*`
+- **Required Environment Variables**:
+  - `LINEAR_API_KEY` or `LINEAR_TOKEN`: Linear API key
+- **Capabilities**: Create, update, prioritize, assign tickets
+- **API Version**: GraphQL API
+
+### Configuration
+
+#### Setting Up API Credentials
+
+**JIRA Configuration:**
+```bash
+# Generate API token at: https://id.atlassian.com/manage-profile/security/api-tokens
+export JIRA_API_TOKEN='your-atlassian-api-token'
+export JIRA_EMAIL='your-email@company.com'
+```
+
+**GitHub Configuration:**
+```bash
+# Generate token at: https://github.com/settings/tokens
+export GITHUB_TOKEN='ghp_your_personal_access_token'
+
+# Or use GitHub CLI
+gh auth login
+```
+
+**Linear Configuration:**
+```bash
+# Generate API key at: https://linear.app/settings/api
+export LINEAR_API_KEY='lin_api_your_key_here'
+```
+
+### Usage Examples
+
+#### JIRA Integration
+
+**Creating a ticket in JIRA:**
+```
+User: "Create a bug ticket in https://mycompany.atlassian.net/browse/PROJ"
+Agent: [Detects JIRA URL, verifies credentials, creates ticket via API]
+Response: "Created JIRA ticket PROJ-456: [Bug] Login fails with special characters"
+```
+
+**Updating existing JIRA ticket:**
+```
+User: "Update https://mycompany.atlassian.net/browse/PROJ-456 to in-progress"
+Agent: [Updates ticket status via JIRA API]
+Response: "Updated PROJ-456 status to 'In Progress'"
+```
+
+#### GitHub Issues
+
+**Creating an issue:**
+```
+User: "Add an issue to https://github.com/company/repo/issues about performance"
+Agent: [Creates GitHub issue via API]
+Response: "Created GitHub issue #123: Performance degradation in search API"
+```
+
+**Managing labels and assignment:**
+```
+User: "Label https://github.com/company/repo/issues/123 as high-priority and assign to @developer"
+Agent: [Updates issue labels and assignee]
+Response: "Updated issue #123: Added 'high-priority' label and assigned to @developer"
+```
+
+#### Linear
+
+**Creating a Linear ticket:**
+```
+User: "Create task in https://linear.app/team/issue/TEAM-123"
+Agent: [Creates Linear ticket via GraphQL API]
+Response: "Created Linear ticket TEAM-124: Implement user authentication"
+```
+
+### Fallback Behavior
+
+When API credentials are not configured, the agent provides clear guidance:
+
+```
+User: "Create ticket in https://linear.app/team/issue/TEAM-123"
+Agent: "Linear URL detected but LINEAR_API_KEY not found. 
+
+To enable Linear integration:
+1. Generate an API key at https://linear.app/settings/api
+2. Set the environment variable:
+   export LINEAR_API_KEY='your-key'
+
+Would you like to create a local ticket instead?"
+```
+
+### Error Handling
+
+#### API Key Missing
+- Agent detects missing credentials
+- Provides instructions for obtaining API tokens
+- Offers local ticket creation as fallback
+
+#### Rate Limiting
+- Detects 429 status codes
+- Implements exponential backoff
+- Informs user about retry timing
+- Suggests batch operations when appropriate
+
+#### Network Errors
+- Retries transient failures automatically
+- Provides clear error messages
+- Always offers local ticket creation as backup
+
+#### Permission Errors
+- Detects 403 Forbidden responses
+- Explains required permissions
+- Suggests checking API token scopes
+
+### Best Practices
+
+1. **Environment Variables**: Store API credentials in environment variables, never in code
+2. **Token Scopes**: Use minimal required permissions for API tokens
+3. **Error Recovery**: Always have local ticketing as a fallback option
+4. **URL Validation**: Agent automatically validates and parses PM system URLs
+5. **Batch Operations**: Group multiple ticket operations to avoid rate limits
+
+### Security Considerations
+
+- API tokens are never logged or displayed
+- All API communications use HTTPS
+- Credentials are validated before attempting operations
+- Failed authentication attempts are logged for security monitoring
+
+This comprehensive documentation provides teams with everything needed to effectively use the Ticketing Agent for intelligent project management, including seamless integration with external PM systems. The agent's smart classification, workflow management, and integration capabilities help maintain organized, trackable development processes while reducing administrative overhead.
 
 **Remember**: null

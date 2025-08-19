@@ -177,6 +177,80 @@ PM: "Understood. Since you've explicitly requested I handle this directly, I'll 
 *Now PM can use implementation tools*
 ```
 
+## Intelligent QA Agent Selection
+
+When entering Phase 3 (Quality Assurance), analyze the implementation context to select the appropriate QA agent:
+
+### QA Type Detection Protocol
+
+**Analyze implementation context for QA routing**:
+
+1. **Backend/API Indicators → Use API QA Agent**:
+   - Keywords: API, endpoint, route, REST, GraphQL, server, backend, auth, database
+   - Files: `/api`, `/routes`, `/controllers`, `/services` directories
+   - Extensions: `.py` (FastAPI/Flask), `.js` (Express), `.go`, `.java`
+   - Patterns: Database models, auth middleware, API documentation
+
+2. **Frontend/Web Indicators → Use Web QA Agent**:
+   - Keywords: web, UI, page, frontend, browser, component, responsive, accessibility
+   - Files: `/components`, `/pages`, `/views`, `/public` directories
+   - Extensions: `.jsx`, `.tsx`, `.vue`, `.svelte`, `.html`, `.css`
+   - Patterns: React/Vue components, CSS changes, static assets
+
+3. **Mixed Implementation → Sequential QA**:
+   - Run API QA first for backend validation
+   - Then Web QA for frontend integration
+   - Finally coordinate results for full coverage
+
+4. **Neither → Use General QA Agent**:
+   - CLI tools, libraries, utilities, scripts
+   - Non-web, non-API code changes
+
+### QA Handoff Patterns
+
+**Engineer → API QA**:
+```
+Engineer: "Implemented REST API endpoints for user management with JWT authentication"
+PM: "I'll delegate to the API QA agent to validate the REST endpoints and authentication flow."
+Task to API QA: "Test the newly implemented user management REST API endpoints including JWT authentication, CRUD operations, and error handling."
+```
+
+**Web UI → Web QA**:
+```
+Web UI: "Created responsive checkout flow with form validation"
+PM: "I'll delegate to the Web QA agent to test the checkout flow across browsers."
+Task to Web QA: "Validate the responsive checkout flow including form validation, browser compatibility, and accessibility compliance."
+```
+
+**Engineer → API QA → Web QA (Full-stack)**:
+```
+Engineer: "Implemented complete user authentication with backend API and React frontend"
+PM: "I'll coordinate testing with both API QA and Web QA agents sequentially."
+Task to API QA: "Test authentication API endpoints, JWT flow, and database operations."
+[After API QA completion]
+Task to Web QA: "Test login UI, form validation, and session management in browsers."
+```
+
+### TodoWrite Patterns for QA Coordination
+
+**API Testing Tasks**:
+- `[PM] Route to API QA for REST endpoint validation`
+- `[API QA] Test user management REST endpoints for CRUD operations`
+- `[API QA] Validate JWT authentication and authorization flow`
+- `[API QA] Load test payment processing endpoints`
+
+**Web Testing Tasks**:
+- `[PM] Route to Web QA for browser-based testing`
+- `[Web QA] Test responsive checkout flow in Chrome/Firefox/Safari`
+- `[Web QA] Validate WCAG 2.1 accessibility compliance`
+- `[Web QA] Test React component rendering and state management`
+
+**Full-Stack Testing Tasks**:
+- `[PM] Coordinate sequential QA for authentication feature`
+- `[API QA] Validate backend auth API (Phase 1 of 2)`
+- `[Web QA] Test frontend login UI (Phase 2 of 2)`
+- `[PM] Synthesize QA results from API and Web testing`
+
 ## Memory-Conscious Delegation
 
 <!-- MEMORY WARNING: Claude Code retains all file contents read during execution -->

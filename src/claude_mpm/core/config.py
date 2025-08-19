@@ -8,6 +8,7 @@ and default values with proper validation and type conversion.
 import json
 import logging
 import os
+import threading
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -37,16 +38,23 @@ class Config:
     _instance = None
     _initialized = False
     _success_logged = False  # Class-level flag to track if success message was already logged
+    _lock = threading.Lock()  # Thread safety for singleton initialization
 
     def __new__(cls, *args, **kwargs):
         """Implement singleton pattern to ensure single configuration instance.
         
         WHY: Configuration was being loaded 11 times during startup, once for each service.
         This singleton pattern ensures configuration is loaded only once and reused.
+        Thread-safe implementation prevents race conditions during concurrent initialization.
         """
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            logger.info("Creating new Config singleton instance")
+            with cls._lock:
+                # Double-check locking pattern for thread safety
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    logger.info("Creating new Config singleton instance")
+                else:
+                    logger.debug("Reusing existing Config singleton instance (concurrent init)")
         else:
             logger.debug("Reusing existing Config singleton instance")
         return cls._instance
@@ -66,6 +74,7 @@ class Config:
             env_prefix: Prefix for environment variables
         """
         # Skip initialization if already done (singleton pattern)
+        # Use thread-safe check to prevent concurrent initialization
         if Config._initialized:
             logger.debug("Config already initialized, skipping re-initialization")
             # If someone tries to load a different config file after initialization,
@@ -77,45 +86,52 @@ class Config:
                 )
             return
         
-        Config._initialized = True
-        logger.info("Initializing Config singleton for the first time")
-        
-        self._config: Dict[str, Any] = {}
-        self._env_prefix = env_prefix
-        self._config_mgr = ConfigurationManager(cache_enabled=True)
+        # Thread-safe initialization - acquire lock for ENTIRE initialization process
+        with Config._lock:
+            # Double-check pattern - check again inside the lock
+            if Config._initialized:
+                logger.debug("Config already initialized (concurrent), skipping re-initialization")
+                return
+            
+            Config._initialized = True
+            logger.info("Initializing Config singleton for the first time")
+            
+            # Initialize instance variables inside the lock to ensure thread safety
+            self._config: Dict[str, Any] = {}
+            self._env_prefix = env_prefix
+            self._config_mgr = ConfigurationManager(cache_enabled=True)
 
-        # Load base configuration
-        if config:
-            self._config.update(config)
+            # Load base configuration
+            if config:
+                self._config.update(config)
 
-        # Track where configuration was loaded from
-        self._loaded_from = None
-        # Track the actual file we loaded from to prevent re-loading
-        self._actual_loaded_file = None
+            # Track where configuration was loaded from
+            self._loaded_from = None
+            # Track the actual file we loaded from to prevent re-loading
+            self._actual_loaded_file = None
 
-        # Load from file if provided
-        if config_file:
-            self.load_file(config_file, is_initial_load=True)
-            self._loaded_from = str(config_file)
-        else:
-            # Try to load from standard location: .claude-mpm/configuration.yaml
-            default_config = Path.cwd() / ".claude-mpm" / "configuration.yaml"
-            if default_config.exists():
-                self.load_file(default_config, is_initial_load=True)
-                self._loaded_from = str(default_config)
+            # Load from file if provided
+            # Note: Only ONE config file should be loaded, and success message shown only once
+            if config_file:
+                self.load_file(config_file, is_initial_load=True)
+                self._loaded_from = str(config_file)
             else:
-                # Also try .yml extension
-                alt_config = Path.cwd() / ".claude-mpm" / "configuration.yml"
-                if alt_config.exists():
+                # Try to load from standard location: .claude-mpm/configuration.yaml
+                default_config = Path.cwd() / ".claude-mpm" / "configuration.yaml"
+                if default_config.exists():
+                    self.load_file(default_config, is_initial_load=True)
+                    self._loaded_from = str(default_config)
+                elif (alt_config := Path.cwd() / ".claude-mpm" / "configuration.yml").exists():
+                    # Also try .yml extension (using walrus operator for cleaner code)
                     self.load_file(alt_config, is_initial_load=True)
                     self._loaded_from = str(alt_config)
 
-        # Load from environment variables (new and legacy prefixes)
-        self._load_env_vars()
-        self._load_legacy_env_vars()
+            # Load from environment variables (new and legacy prefixes)
+            self._load_env_vars()
+            self._load_legacy_env_vars()
 
-        # Apply defaults
-        self._apply_defaults()
+            # Apply defaults
+            self._apply_defaults()
 
     def load_file(self, file_path: Union[str, Path], is_initial_load: bool = True) -> None:
         """Load configuration from file with enhanced error handling.
@@ -161,11 +177,20 @@ class Config:
                 self._config = self._config_mgr.merge_configs(self._config, file_config)
                 # Track that we've successfully loaded from this file
                 self._actual_loaded_file = str(file_path)
+                
                 # Only log success message once using class-level flag to avoid duplicate messages
-                if is_initial_load and not Config._success_logged:
-                    logger.info(f"✓ Successfully loaded configuration from {file_path}")
-                    Config._success_logged = True
+                # Check if we should log success message (thread-safe for reads after initialization)
+                if is_initial_load:
+                    if not Config._success_logged:
+                        # Set flag IMMEDIATELY before logging to prevent any possibility of duplicate
+                        # messages. No lock needed here since we're already inside __init__ lock
+                        Config._success_logged = True
+                        logger.info(f"✓ Successfully loaded configuration from {file_path}")
+                    else:
+                        # Configuration already successfully loaded before, just debug log
+                        logger.debug(f"Configuration already loaded, skipping success message for {file_path}")
                 else:
+                    # Not initial load (shouldn't happen in normal flow, but handle gracefully)
                     logger.debug(f"Configuration reloaded from {file_path}")
 
                 # Log important configuration values for debugging

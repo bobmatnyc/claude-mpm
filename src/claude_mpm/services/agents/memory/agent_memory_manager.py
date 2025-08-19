@@ -83,16 +83,14 @@ class AgentMemoryManager(MemoryServiceInterface):
         # Use current working directory by default, not project root
         self.working_directory = working_directory or Path(os.getcwd())
         
-        # Set up both user and project memory directories
-        self.user_memories_dir = Path.home() / ".claude-mpm" / "memories"
+        # Use only project memory directory
         self.project_memories_dir = self.working_directory / ".claude-mpm" / "memories"
         
-        # Primary memories_dir points to project for backward compatibility
+        # Primary memories_dir points to project
         self.memories_dir = self.project_memories_dir
         
-        # Ensure both directories exist
+        # Ensure project directory exists
         self._ensure_memories_directory()
-        self._ensure_user_memories_directory()
 
         # Initialize memory limits from configuration
         self._init_memory_limits()
@@ -222,6 +220,8 @@ class AgentMemoryManager(MemoryServiceInterface):
                 try:
                     content = old_file_agent.read_text(encoding="utf-8")
                     new_file.write_text(content, encoding="utf-8")
+                    
+                    # Delete old file for all agents
                     old_file_agent.unlink()
                     self.logger.info(f"Migrated memory file from {old_file_agent.name} to {new_file.name}")
                 except Exception as e:
@@ -232,6 +232,8 @@ class AgentMemoryManager(MemoryServiceInterface):
                 try:
                     content = old_file_simple.read_text(encoding="utf-8")
                     new_file.write_text(content, encoding="utf-8")
+                    
+                    # Delete old file for all agents
                     old_file_simple.unlink()
                     self.logger.info(f"Migrated memory file from {old_file_simple.name} to {new_file.name}")
                 except Exception as e:
@@ -241,38 +243,20 @@ class AgentMemoryManager(MemoryServiceInterface):
         return new_file
 
     def load_agent_memory(self, agent_id: str) -> str:
-        """Load agent memory file content from both user and project directories.
+        """Load agent memory file content from project directory.
 
         WHY: Agents need to read their accumulated knowledge before starting tasks
-        to apply learned patterns and avoid repeated mistakes. This method now
-        aggregates memories from both user-level (global) and project-level sources.
-
-        Loading order:
-        1. User-level memory (~/.claude-mpm/memories/{agent_id}_memories.md)
-        2. Project-level memory (./.claude-mpm/memories/{agent_id}_memories.md)
-        3. Project memory overrides/extends user memory
+        to apply learned patterns and avoid repeated mistakes. All memories are
+        now stored at the project level for consistency.
 
         Args:
-            agent_id: The agent identifier (e.g., 'research', 'engineer')
+            agent_id: The agent identifier (e.g., 'PM', 'research', 'engineer')
 
         Returns:
-            str: The aggregated memory file content, creating default if doesn't exist
+            str: The memory file content, creating default if doesn't exist
         """
-        # Support both old and new naming conventions
-        user_memory_file = self._get_memory_file_with_migration(self.user_memories_dir, agent_id)
+        # All agents use project directory
         project_memory_file = self._get_memory_file_with_migration(self.project_memories_dir, agent_id)
-        
-        user_memory = None
-        project_memory = None
-        
-        # Load user-level memory if exists
-        if user_memory_file.exists():
-            try:
-                user_memory = user_memory_file.read_text(encoding="utf-8")
-                user_memory = self.content_manager.validate_and_repair(user_memory, agent_id)
-                self.logger.debug(f"Loaded user-level memory for {agent_id}")
-            except Exception as e:
-                self.logger.error(f"Error reading user memory file for {agent_id}: {e}")
         
         # Load project-level memory if exists
         if project_memory_file.exists():
@@ -280,25 +264,13 @@ class AgentMemoryManager(MemoryServiceInterface):
                 project_memory = project_memory_file.read_text(encoding="utf-8")
                 project_memory = self.content_manager.validate_and_repair(project_memory, agent_id)
                 self.logger.debug(f"Loaded project-level memory for {agent_id}")
+                return project_memory
             except Exception as e:
                 self.logger.error(f"Error reading project memory file for {agent_id}: {e}")
         
-        # Aggregate memories
-        if user_memory and project_memory:
-            # Both exist - aggregate them
-            aggregated = self._aggregate_agent_memories(user_memory, project_memory, agent_id)
-            self.logger.info(f"Aggregated user and project memories for {agent_id}")
-            return aggregated
-        elif project_memory:
-            # Only project memory exists
-            return project_memory
-        elif user_memory:
-            # Only user memory exists
-            return user_memory
-        else:
-            # Neither exists - create default in project directory
-            self.logger.info(f"Creating default memory for agent: {agent_id}")
-            return self._create_default_memory(agent_id)
+        # Memory doesn't exist - create default in project directory
+        self.logger.info(f"Creating default memory for agent: {agent_id}")
+        return self._create_default_memory(agent_id)
 
     def update_agent_memory(self, agent_id: str, section: str, new_item: str) -> bool:
         """Add new learning item to specified section.
@@ -389,9 +361,10 @@ class AgentMemoryManager(MemoryServiceInterface):
         # Delegate to template generator
         template = self.template_generator.create_default_memory(agent_id, limits)
 
-        # Save default file
+        # Save default file to project directory
         try:
-            memory_file = self.memories_dir / f"{agent_id}_memories.md"
+            target_dir = self.memories_dir
+            memory_file = target_dir / f"{agent_id}_memories.md"
             memory_file.write_text(template, encoding="utf-8")
             self.logger.info(f"Created project-specific memory file for {agent_id}")
 
@@ -400,32 +373,30 @@ class AgentMemoryManager(MemoryServiceInterface):
 
         return template
 
-    def _save_memory_file(self, agent_id: str, content: str, save_to_user: bool = False) -> bool:
+    def _save_memory_file(self, agent_id: str, content: str) -> bool:
         """Save memory content to file.
 
         WHY: Memory updates need to be persisted atomically to prevent corruption
-        and ensure learnings are preserved across agent invocations. By default,
-        saves to project directory, but can optionally save to user directory.
+        and ensure learnings are preserved across agent invocations.
 
         Args:
             agent_id: Agent identifier
             content: Content to save
-            save_to_user: If True, saves to user directory instead of project
 
         Returns:
             bool: True if save succeeded
         """
         try:
-            # Choose target directory
-            target_dir = self.user_memories_dir if save_to_user else self.project_memories_dir
-            memory_file = target_dir / f"{agent_id}_memories.md"
+            # All agents save to project directory
+            target_dir = self.project_memories_dir
             
             # Ensure directory exists
             target_dir.mkdir(parents=True, exist_ok=True)
             
+            memory_file = target_dir / f"{agent_id}_memories.md"
             memory_file.write_text(content, encoding="utf-8")
-            location = "user" if save_to_user else "project"
-            self.logger.debug(f"Saved memory for {agent_id} to {location} directory")
+            
+            self.logger.info(f"Saved {agent_id} memory to project directory: {memory_file}")
             return True
         except Exception as e:
             self.logger.error(f"Error saving memory for {agent_id}: {e}")
@@ -535,6 +506,10 @@ class AgentMemoryManager(MemoryServiceInterface):
             import json
             import re
             
+            # Log that we're processing memory for this agent
+            is_pm = agent_id.upper() == "PM"
+            self.logger.debug(f"Extracting memory for {agent_id} (is_pm={is_pm})")
+            
             # Look for JSON block in the response
             # Pattern matches ```json ... ``` blocks
             json_pattern = r'```json\s*(.*?)\s*```'
@@ -570,15 +545,20 @@ class AgentMemoryManager(MemoryServiceInterface):
                             
                             # Only proceed if we have valid items
                             if valid_items:
+                                self.logger.info(f"Found {len(valid_items)} memory items for {agent_id}: {valid_items[:2]}...")
                                 success = self._add_learnings_to_memory(agent_id, valid_items)
                                 if success:
-                                    self.logger.info(f"Added {len(valid_items)} new memories for {agent_id}")
+                                    self.logger.info(f"Successfully saved {len(valid_items)} memories for {agent_id} to project directory")
                                     return True
+                                else:
+                                    self.logger.error(f"Failed to save memories for {agent_id}")
                     
-                except json.JSONDecodeError:
+                except json.JSONDecodeError as je:
                     # Not valid JSON, continue to next match
+                    self.logger.debug(f"JSON decode error for {agent_id}: {je}")
                     continue
             
+            self.logger.debug(f"No memory items found in response for {agent_id}")
             return False
             
         except Exception as e:
@@ -590,7 +570,7 @@ class AgentMemoryManager(MemoryServiceInterface):
         
         WHY: Instead of replacing all memory, we want to intelligently merge new
         learnings with existing knowledge, avoiding duplicates and maintaining
-        the most relevant information.
+        the most relevant information. PM memories are always saved to user dir.
         
         Args:
             agent_id: The agent identifier
@@ -635,8 +615,9 @@ class AgentMemoryManager(MemoryServiceInterface):
                     if not learning.startswith("-"):
                         learning = f"- {learning}"
                     sections[section].append(learning)
+                    self.logger.info(f"Added new memory for {agent_id}: {learning[:50]}...")
                 else:
-                    self.logger.debug(f"Skipping duplicate memory: {learning}")
+                    self.logger.debug(f"Skipping duplicate memory for {agent_id}: {learning}")
             
             # Rebuild memory content
             new_content = self._build_memory_content(agent_id, sections)
@@ -647,6 +628,7 @@ class AgentMemoryManager(MemoryServiceInterface):
                 self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
                 new_content = self.content_manager.truncate_to_limits(new_content, agent_limits)
             
+            # All memories go to project directory
             return self._save_memory_file(agent_id, new_content)
             
         except Exception as e:
@@ -1005,150 +987,7 @@ Standard markdown with structured sections. Agents expect:
             self.logger.error(f"Error ensuring memories directory: {e}")
             # Continue anyway - memory system should not block operations
 
-    def _ensure_user_memories_directory(self):
-        """Ensure user-level memories directory exists with README.
 
-        WHY: User-level memories provide global defaults that apply across all projects,
-        allowing users to maintain common patterns and guidelines.
-        """
-        try:
-            self.user_memories_dir.mkdir(parents=True, exist_ok=True)
-            self.logger.debug(f"Ensured user memories directory exists: {self.user_memories_dir}")
-
-            readme_path = self.user_memories_dir / "README.md"
-            if not readme_path.exists():
-                readme_content = """# User-Level Agent Memory System
-
-## Purpose
-User-level memories provide global defaults that apply to all projects. These memories are 
-loaded first, then project-specific memories can override or extend them.
-
-## Directory Hierarchy
-1. **User-level memories** (~/.claude-mpm/memories/): Global defaults for all projects
-2. **Project-level memories** (./.claude-mpm/memories/): Project-specific overrides
-
-## How Memories Are Aggregated
-- User memories are loaded first as the base
-- Project memories override or extend user memories
-- Duplicate sections are merged with project taking precedence
-- Unique sections from both sources are preserved
-
-## Manual Editing
-Feel free to edit these files to add:
-- Common coding patterns you always use
-- Personal style guidelines
-- Frequently used architectural patterns
-- Global best practices
-
-## File Format
-Same as project memories - standard markdown with structured sections:
-- Project Architecture
-- Implementation Guidelines
-- Common Mistakes to Avoid
-- Current Technical Context
-
-## Examples of Good User-Level Memories
-- "Always use type hints in Python code"
-- "Prefer composition over inheritance"
-- "Write comprehensive docstrings for public APIs"
-- "Use dependency injection for testability"
-"""
-                readme_path.write_text(readme_content, encoding="utf-8")
-                self.logger.info("Created README.md in user memories directory")
-
-        except Exception as e:
-            self.logger.error(f"Error ensuring user memories directory: {e}")
-            # Continue anyway - memory system should not block operations
-
-    def _aggregate_agent_memories(self, user_memory: str, project_memory: str, agent_id: str) -> str:
-        """Aggregate user and project memories for an agent.
-        
-        WHY: When both user-level and project-level memories exist, they need to be
-        intelligently merged to provide comprehensive context while avoiding duplication
-        and respecting project-specific overrides.
-        
-        Strategy:
-        - Parse both memories into sections
-        - Merge sections with project taking precedence
-        - Remove exact duplicates within sections
-        - Preserve unique items from both sources
-        
-        Args:
-            user_memory: User-level memory content
-            project_memory: Project-level memory content
-            agent_id: Agent identifier for context
-            
-        Returns:
-            str: Aggregated memory content
-        """
-        # Parse memories into sections
-        user_sections = self._parse_memory_sections(user_memory)
-        project_sections = self._parse_memory_sections(project_memory)
-        
-        # Start with user sections as base
-        merged_sections = {}
-        
-        # Add all user sections first
-        for section_name, items in user_sections.items():
-            merged_sections[section_name] = set(items)
-        
-        # Merge project sections (overrides/extends user)
-        for section_name, items in project_sections.items():
-            if section_name in merged_sections:
-                # Merge items - project items take precedence
-                merged_sections[section_name].update(items)
-            else:
-                # New section from project
-                merged_sections[section_name] = set(items)
-        
-        # Build aggregated memory content
-        lines = []
-        
-        # Add header
-        lines.append(f"# {agent_id.capitalize()} Agent Memory")
-        lines.append("")
-        lines.append("*Aggregated from user-level and project-level memories*")
-        lines.append("")
-        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()} -->")
-        lines.append("")
-        
-        # Add sections in a consistent order
-        section_order = [
-            "Project Architecture",
-            "Implementation Guidelines",
-            "Common Mistakes to Avoid",
-            "Current Technical Context",
-            "Coding Patterns Learned",
-            "Effective Strategies",
-            "Integration Points",
-            "Performance Considerations",
-            "Domain-Specific Knowledge",
-            "Recent Learnings"
-        ]
-        
-        # First add ordered sections that exist
-        for section_name in section_order:
-            if section_name in merged_sections and merged_sections[section_name]:
-                lines.append(f"## {section_name}")
-                lines.append("")
-                # Sort items for consistent output
-                for item in sorted(merged_sections[section_name]):
-                    if item.strip():  # Skip empty items
-                        lines.append(item)
-                lines.append("")
-        
-        # Then add any remaining sections not in the order list
-        remaining_sections = set(merged_sections.keys()) - set(section_order)
-        for section_name in sorted(remaining_sections):
-            if merged_sections[section_name]:
-                lines.append(f"## {section_name}")
-                lines.append("")
-                for item in sorted(merged_sections[section_name]):
-                    if item.strip():
-                        lines.append(item)
-                lines.append("")
-        
-        return '\n'.join(lines)
     
     def _parse_memory_sections(self, memory_content: str) -> Dict[str, List[str]]:
         """Parse memory content into sections and items.
