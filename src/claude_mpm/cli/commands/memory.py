@@ -280,7 +280,12 @@ def _show_basic_status(memory_manager):
         print(f"   Expected location: {memory_dir}")
         return
 
-    memory_files = list(memory_dir.glob("*_agent.md"))
+    # Support both old and new formats
+    memory_files = list(memory_dir.glob("*_memories.md"))
+    # Also check for old formats for backward compatibility
+    memory_files.extend(memory_dir.glob("*_agent.md"))
+    memory_files.extend([f for f in memory_dir.glob("*.md") 
+                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
 
     if not memory_files:
         print("📭 No memory files found")
@@ -296,7 +301,13 @@ def _show_basic_status(memory_manager):
         size_kb = stat.st_size / 1024
         total_size += stat.st_size
 
-        agent_id = file_path.stem.replace("_agent", "")
+        # Extract agent name from various formats
+        if file_path.name.endswith("_memories.md"):
+            agent_id = file_path.stem[:-9]  # Remove "_memories"
+        elif file_path.name.endswith("_agent.md"):
+            agent_id = file_path.stem[:-6]  # Remove "_agent"
+        else:
+            agent_id = file_path.stem
         print(f"   {agent_id}: {size_kb:.1f} KB")
 
     print(f"💾 Total size: {total_size / 1024:.1f} KB")
@@ -395,7 +406,12 @@ def _clean_memory(args, memory_manager):
         print("📁 No memory directory found - nothing to clean")
         return
 
-    memory_files = list(memory_dir.glob("*_agent.md"))
+    # Support both old and new formats
+    memory_files = list(memory_dir.glob("*_memories.md"))
+    # Also check for old formats for backward compatibility
+    memory_files.extend(memory_dir.glob("*_agent.md"))
+    memory_files.extend([f for f in memory_dir.glob("*.md") 
+                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
     if not memory_files:
         print("📭 No memory files found - nothing to clean")
         return
@@ -651,7 +667,12 @@ def _show_all_agent_memories(format_type, memory_manager):
         print("📁 No memory directory found")
         return
 
-    memory_files = list(memory_dir.glob("*_agent.md"))
+    # Support both old and new formats
+    memory_files = list(memory_dir.glob("*_memories.md"))
+    # Also check for old formats for backward compatibility
+    memory_files.extend(memory_dir.glob("*_agent.md"))
+    memory_files.extend([f for f in memory_dir.glob("*.md") 
+                        if f.name != "README.md" and not f.name.endswith("_memories.md") and not f.name.endswith("_agent.md")])
     if not memory_files:
         print("📭 No agent memories found")
         return
@@ -664,7 +685,13 @@ def _show_all_agent_memories(format_type, memory_manager):
 
     # Load all agent memories
     for file_path in sorted(memory_files):
-        agent_id = file_path.stem.replace("_agent", "")
+        # Extract agent name from various formats
+        if file_path.name.endswith("_memories.md"):
+            agent_id = file_path.stem[:-9]  # Remove "_memories"
+        elif file_path.name.endswith("_agent.md"):
+            agent_id = file_path.stem[:-6]  # Remove "_agent"
+        else:
+            agent_id = file_path.stem
         try:
             memory_content = memory_manager.load_agent_memory(agent_id)
             if memory_content:
