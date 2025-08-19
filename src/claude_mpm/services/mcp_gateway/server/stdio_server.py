@@ -13,6 +13,7 @@ use JSON-RPC protocol, and exit cleanly when stdin closes.
 """
 
 import asyncio
+import json
 import logging
 import sys
 from typing import Any, Dict, List, Optional
@@ -22,6 +23,9 @@ from mcp.server import NotificationOptions, Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+
+# Import pydantic for model patching
+from pydantic import BaseModel
 
 from claude_mpm.core.logger import get_logger
 
@@ -36,6 +40,75 @@ except ImportError:
     TICKET_TOOLS_AVAILABLE = False
 
 
+def apply_backward_compatibility_patches():
+    """
+    Apply backward compatibility patches for MCP protocol differences.
+    
+    This function patches the MCP Server to handle missing clientInfo
+    in initialize requests from older Claude Desktop versions.
+    """
+    try:
+        from mcp.server import Server
+        
+        logger = get_logger("MCPPatcher")
+        logger.info("Applying MCP Server message handling patch for backward compatibility")
+        
+        # Store the original _handle_message method
+        original_handle_message = Server._handle_message
+        
+        async def patched_handle_message(self, message, session, lifespan_context, raise_exceptions=False):
+            """Patched message handler that adds clientInfo if missing from initialize requests."""
+            try:
+                # Check if this is a request responder with initialize method
+                if hasattr(message, 'request') and hasattr(message.request, 'method'):
+                    request = message.request
+                    if (request.method == 'initialize' and 
+                        hasattr(request, 'params') and 
+                        request.params is not None):
+                        
+                        # Convert params to dict to check for clientInfo
+                        params_dict = request.params
+                        if hasattr(params_dict, 'model_dump'):
+                            params_dict = params_dict.model_dump()
+                        elif hasattr(params_dict, 'dict'):
+                            params_dict = params_dict.dict()
+                        
+                        if isinstance(params_dict, dict) and 'clientInfo' not in params_dict:
+                            logger.info("Adding default clientInfo for backward compatibility")
+                            
+                            # Add default clientInfo
+                            params_dict['clientInfo'] = {
+                                'name': 'claude-desktop',
+                                'version': 'unknown'
+                            }
+                            
+                            # Try to update the params object
+                            if hasattr(request.params, '__dict__'):
+                                request.params.clientInfo = params_dict['clientInfo']
+                            
+                # Call the original handler
+                return await original_handle_message(self, message, session, lifespan_context, raise_exceptions)
+                
+            except Exception as e:
+                logger.warning(f"Error in patched message handler: {e}")
+                # Fall back to original handler
+                return await original_handle_message(self, message, session, lifespan_context, raise_exceptions)
+        
+        # Apply the patch
+        Server._handle_message = patched_handle_message
+        logger.info("Applied MCP Server message handling patch")
+        return True
+        
+    except ImportError as e:
+        get_logger("MCPPatcher").warning(f"Could not import MCP Server for patching: {e}")
+        return False
+    except Exception as e:
+        get_logger("MCPPatcher").error(f"Failed to apply backward compatibility patch: {e}")
+        return False
+
+
+
+
 class SimpleMCPServer:
     """
     A simple stdio-based MCP server implementation.
@@ -48,6 +121,7 @@ class SimpleMCPServer:
     - Spawned on-demand by Claude
     - Communicates via stdin/stdout
     - Exits when connection closes
+    - Includes backward compatibility for protocol differences
     """
 
     def __init__(self, name: str = "claude-mpm-gateway", version: str = "1.0.0"):
@@ -62,6 +136,9 @@ class SimpleMCPServer:
         self.version = version
         self.logger = get_logger("MCPStdioServer")
 
+        # Apply backward compatibility patches before creating server
+        apply_backward_compatibility_patches()
+        
         # Create MCP server instance
         self.server = Server(name)
 
@@ -356,19 +433,40 @@ class SimpleMCPServer:
         We register them using decorators on handler functions.
         """
         # Initialize unified ticket tool if available
+        # NOTE: Defer initialization to avoid event loop issues
         self.unified_ticket_tool = None
-        if TICKET_TOOLS_AVAILABLE:
-            try:
-                self.unified_ticket_tool = UnifiedTicketTool()
-                # Initialize the unified ticket tool
-                asyncio.create_task(self.unified_ticket_tool.initialize())
-            except Exception as e:
-                self.logger.warning(f"Failed to initialize unified ticket tool: {e}")
-                self.unified_ticket_tool = None
+        self._ticket_tool_initialized = False
+    
+    async def _initialize_ticket_tool(self):
+        """
+        Initialize the unified ticket tool asynchronously.
+        
+        This is called lazily when the tool is first needed,
+        ensuring an event loop is available.
+        """
+        if self._ticket_tool_initialized or not TICKET_TOOLS_AVAILABLE:
+            return
+        
+        try:
+            self.logger.info("Initializing unified ticket tool...")
+            self.unified_ticket_tool = UnifiedTicketTool()
+            # If the tool has an async init method, call it
+            if hasattr(self.unified_ticket_tool, 'initialize'):
+                await self.unified_ticket_tool.initialize()
+            self._ticket_tool_initialized = True
+            self.logger.info("Unified ticket tool initialized successfully")
+        except Exception as e:
+            self.logger.warning(f"Failed to initialize unified ticket tool: {e}")
+            self.unified_ticket_tool = None
+            self._ticket_tool_initialized = True  # Mark as attempted
 
         @self.server.list_tools()
         async def handle_list_tools() -> List[Tool]:
             """List available tools."""
+            # Initialize ticket tool lazily if needed
+            if not self._ticket_tool_initialized and TICKET_TOOLS_AVAILABLE:
+                await self._initialize_ticket_tool()
+            
             tools = [
                 Tool(
                     name="echo",
@@ -594,28 +692,35 @@ class SimpleMCPServer:
 
                     result = await self._summarize_content(content, style, max_length)
 
-                elif name == "ticket" and self.unified_ticket_tool:
-                    # Handle unified ticket tool invocations
-                    from claude_mpm.services.mcp_gateway.core.interfaces import (
-                        MCPToolInvocation,
-                    )
-
-                    invocation = MCPToolInvocation(
-                        tool_name=name,
-                        parameters=arguments,
-                        request_id=f"req_{name}_{id(arguments)}",
-                    )
-
-                    tool_result = await self.unified_ticket_tool.invoke(invocation)
-
-                    if tool_result.success:
-                        result = (
-                            tool_result.data
-                            if isinstance(tool_result.data, str)
-                            else str(tool_result.data)
+                elif name == "ticket":
+                    # Initialize ticket tool lazily if needed
+                    if not self._ticket_tool_initialized and TICKET_TOOLS_AVAILABLE:
+                        await self._initialize_ticket_tool()
+                    
+                    if self.unified_ticket_tool:
+                        # Handle unified ticket tool invocations
+                        from claude_mpm.services.mcp_gateway.core.interfaces import (
+                            MCPToolInvocation,
                         )
+
+                        invocation = MCPToolInvocation(
+                            tool_name=name,
+                            parameters=arguments,
+                            request_id=f"req_{name}_{id(arguments)}",
+                        )
+
+                        tool_result = await self.unified_ticket_tool.invoke(invocation)
+
+                        if tool_result.success:
+                            result = (
+                                tool_result.data
+                                if isinstance(tool_result.data, str)
+                                else str(tool_result.data)
+                            )
+                        else:
+                            result = f"Error: {tool_result.error}"
                     else:
-                        result = f"Error: {tool_result.error}"
+                        result = "Ticket tool not available"
 
                 else:
                     result = f"Unknown tool: {name}"
@@ -628,12 +733,14 @@ class SimpleMCPServer:
                 self.logger.error(error_msg)
                 return [TextContent(type="text", text=error_msg)]
 
+
     async def run(self):
         """
-        Run the MCP server using stdio communication.
+        Run the MCP server using stdio communication with backward compatibility.
 
         WHY: This is the main entry point that sets up stdio communication
-        and runs the server until the connection is closed.
+        and runs the server until the connection is closed. The backward
+        compatibility patches are applied during server initialization.
         """
         try:
             self.logger.info(f"Starting {self.name} v{self.version}")
@@ -652,7 +759,7 @@ class SimpleMCPServer:
                     ),
                 )
 
-                # Run the server
+                # Run the server (with patches already applied)
                 await self.server.run(read_stream, write_stream, init_options)
 
             self.logger.info("Server shutting down normally")
@@ -674,7 +781,16 @@ async def main():
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         stream=sys.stderr,
+        force=True  # Force reconfiguration even if already configured
     )
+    
+    # Ensure all loggers output to stderr
+    for logger_name in logging.Logger.manager.loggerDict:
+        logger = logging.getLogger(logger_name)
+        for handler in logger.handlers[:]:
+            # Remove any handlers that might write to stdout
+            if hasattr(handler, 'stream') and handler.stream == sys.stdout:
+                logger.removeHandler(handler)
 
     # Create and run server
     server = SimpleMCPServer()
