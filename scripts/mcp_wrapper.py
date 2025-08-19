@@ -18,7 +18,11 @@ import os
 import json
 import logging
 import traceback
+import signal
+import atexit
+import tempfile
 from pathlib import Path
+from datetime import datetime
 
 
 def setup_stderr_logging():
@@ -30,6 +34,133 @@ def setup_stderr_logging():
         force=True  # Force reconfiguration if already configured
     )
     return logging.getLogger("MCPWrapper")
+
+
+class ProcessMonitor:
+    """
+    Monitor and manage the MCP server process.
+    
+    WHY: We need to track process lifecycle, detect duplicate instances,
+    and ensure clean shutdown to prevent memory leaks.
+    """
+    
+    def __init__(self, logger):
+        """Initialize the process monitor."""
+        self.logger = logger
+        self.pid = os.getpid()
+        self.start_time = datetime.now()
+        self.pid_file = None
+        self.setup_pid_tracking()
+        self.setup_signal_handlers()
+        
+    def setup_pid_tracking(self):
+        """Set up PID file for process tracking."""
+        # Create PID file in temp directory
+        pid_dir = Path(tempfile.gettempdir()) / "claude-mpm-mcp"
+        pid_dir.mkdir(exist_ok=True)
+        
+        self.pid_file = pid_dir / f"mcp_server_{self.pid}.pid"
+        
+        # Write process info to PID file
+        pid_info = {
+            "pid": self.pid,
+            "start_time": self.start_time.isoformat(),
+            "python": sys.executable,
+            "cwd": os.getcwd(),
+            "ppid": os.getppid() if hasattr(os, 'getppid') else None
+        }
+        
+        try:
+            with open(self.pid_file, 'w') as f:
+                json.dump(pid_info, f, indent=2)
+            self.logger.info(f"Process tracking file created: {self.pid_file}")
+            
+            # Register cleanup on exit
+            atexit.register(self.cleanup_pid_file)
+        except Exception as e:
+            self.logger.warning(f"Could not create PID file: {e}")
+    
+    def cleanup_pid_file(self):
+        """Remove PID file on exit."""
+        if self.pid_file and self.pid_file.exists():
+            try:
+                self.pid_file.unlink()
+                self.logger.info(f"Cleaned up PID file: {self.pid_file}")
+            except Exception as e:
+                self.logger.warning(f"Could not remove PID file: {e}")
+    
+    def setup_signal_handlers(self):
+        """Set up signal handlers for graceful shutdown."""
+        def signal_handler(signum, frame):
+            """Handle shutdown signals."""
+            signal_name = signal.Signals(signum).name
+            self.logger.info(f"Received signal {signal_name} ({signum})")
+            self.logger.info("Initiating graceful shutdown...")
+            self.cleanup_pid_file()
+            sys.exit(0)
+        
+        # Register handlers for common termination signals
+        try:
+            signal.signal(signal.SIGTERM, signal_handler)
+            signal.signal(signal.SIGINT, signal_handler)
+            if hasattr(signal, 'SIGHUP'):
+                signal.signal(signal.SIGHUP, signal_handler)
+            self.logger.info("Signal handlers registered for graceful shutdown")
+        except Exception as e:
+            self.logger.warning(f"Could not set up all signal handlers: {e}")
+    
+    def check_for_other_instances(self):
+        """Check if other MCP server instances are running."""
+        pid_dir = Path(tempfile.gettempdir()) / "claude-mpm-mcp"
+        if not pid_dir.exists():
+            return []
+        
+        other_instances = []
+        for pid_file in pid_dir.glob("mcp_server_*.pid"):
+            if pid_file == self.pid_file:
+                continue
+            
+            try:
+                with open(pid_file, 'r') as f:
+                    info = json.load(f)
+                
+                # Check if process is still running
+                pid = info.get("pid")
+                if pid and self.is_process_running(pid):
+                    other_instances.append(info)
+                else:
+                    # Clean up stale PID file
+                    pid_file.unlink()
+                    self.logger.info(f"Cleaned up stale PID file for process {pid}")
+            except Exception as e:
+                self.logger.debug(f"Could not read PID file {pid_file}: {e}")
+        
+        return other_instances
+    
+    def is_process_running(self, pid):
+        """Check if a process with given PID is running."""
+        try:
+            # Send signal 0 to check if process exists
+            os.kill(pid, 0)
+            return True
+        except (OSError, ProcessLookupError):
+            return False
+    
+    def log_process_info(self):
+        """Log information about the current process."""
+        self.logger.info(f"Process Information:")
+        self.logger.info(f"  PID: {self.pid}")
+        self.logger.info(f"  Parent PID: {os.getppid() if hasattr(os, 'getppid') else 'unknown'}")
+        self.logger.info(f"  Start time: {self.start_time.isoformat()}")
+        
+        # Check for other instances
+        other_instances = self.check_for_other_instances()
+        if other_instances:
+            self.logger.warning(f"Found {len(other_instances)} other MCP server instance(s) running:")
+            for instance in other_instances:
+                self.logger.warning(f"  - PID {instance['pid']} started at {instance['start_time']}")
+        else:
+            self.logger.info("No other MCP server instances detected")
 
 
 def find_project_root():
@@ -249,6 +380,10 @@ def main():
     logger.info("=" * 60)
     logger.info("MCP Server Wrapper Starting")
     logger.info("=" * 60)
+    
+    # Initialize process monitor
+    monitor = ProcessMonitor(logger)
+    monitor.log_process_info()
     
     try:
         # Find project root

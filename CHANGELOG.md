@@ -19,6 +19,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.18] - 2025-08-19
+
+### Added
+- MCP gateway singleton installation and startup verification
+- Memory management instructions for QA agent
+
+### Changed
+- Moved MCP server script to proper module location
+
+### Fixed
+- Enhanced QA agent with memory management best practices
+
 ## v4.0.18 (2025-08-18)
 
 ### Feat
