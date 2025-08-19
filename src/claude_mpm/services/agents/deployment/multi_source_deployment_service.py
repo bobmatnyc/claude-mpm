@@ -1,0 +1,441 @@
+"""Multi-Source Agent Deployment Service
+
+This service implements proper version comparison across multiple agent sources,
+ensuring the highest version agent is deployed regardless of source.
+
+Key Features:
+- Discovers agents from multiple sources (system templates, project agents, user agents)
+- Compares versions across all sources
+- Deploys the highest version for each agent
+- Tracks which source provided the deployed agent
+- Maintains backward compatibility with existing deployment modes
+"""
+
+import json
+import logging
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from claude_mpm.core.config import Config
+from claude_mpm.core.logging_config import get_logger
+
+from .agent_discovery_service import AgentDiscoveryService
+from .agent_version_manager import AgentVersionManager
+
+
+class MultiSourceAgentDeploymentService:
+    """Service for deploying agents from multiple sources with version comparison.
+    
+    This service ensures that the highest version of each agent is deployed,
+    regardless of whether it comes from system templates, project agents, or
+    user agents.
+    
+    WHY: The current system processes agents from a single source at a time,
+    which can result in lower version agents being deployed if they exist in
+    a higher priority source. This service fixes that by comparing versions
+    across all sources.
+    """
+    
+    def __init__(self):
+        """Initialize the multi-source deployment service."""
+        self.logger = get_logger(__name__)
+        self.version_manager = AgentVersionManager()
+        
+    def discover_agents_from_all_sources(
+        self, 
+        system_templates_dir: Optional[Path] = None,
+        project_agents_dir: Optional[Path] = None,
+        user_agents_dir: Optional[Path] = None,
+        working_directory: Optional[Path] = None
+    ) -> Dict[str, List[Dict[str, Any]]]:
+        """Discover agents from all available sources.
+        
+        Args:
+            system_templates_dir: Directory containing system agent templates
+            project_agents_dir: Directory containing project-specific agents
+            user_agents_dir: Directory containing user custom agents
+            working_directory: Current working directory for finding project agents
+            
+        Returns:
+            Dictionary mapping agent names to list of agent info from different sources
+        """
+        agents_by_name = {}
+        
+        # Determine directories if not provided
+        if not system_templates_dir:
+            # Use default system templates location
+            from claude_mpm.config.paths import paths
+            system_templates_dir = paths.agents_dir / "templates"
+            
+        if not project_agents_dir and working_directory:
+            # Check for project agents in working directory
+            project_agents_dir = working_directory / ".claude-mpm" / "agents"
+            if not project_agents_dir.exists():
+                project_agents_dir = None
+                
+        if not user_agents_dir:
+            # Check for user agents in home directory
+            user_agents_dir = Path.home() / ".claude-mpm" / "agents"
+            if not user_agents_dir.exists():
+                user_agents_dir = None
+        
+        # Discover agents from each source
+        sources = [
+            ("system", system_templates_dir),
+            ("project", project_agents_dir),
+            ("user", user_agents_dir)
+        ]
+        
+        for source_name, source_dir in sources:
+            if source_dir and source_dir.exists():
+                self.logger.debug(f"Discovering agents from {source_name} source: {source_dir}")
+                discovery_service = AgentDiscoveryService(source_dir)
+                agents = discovery_service.list_available_agents()
+                
+                for agent_info in agents:
+                    agent_name = agent_info.get("name")
+                    if not agent_name:
+                        continue
+                        
+                    # Add source information
+                    agent_info["source"] = source_name
+                    agent_info["source_dir"] = str(source_dir)
+                    
+                    # Initialize list if this is the first occurrence of this agent
+                    if agent_name not in agents_by_name:
+                        agents_by_name[agent_name] = []
+                        
+                    agents_by_name[agent_name].append(agent_info)
+                    
+                self.logger.info(
+                    f"Discovered {len(agents)} agents from {source_name} source"
+                )
+        
+        return agents_by_name
+    
+    def select_highest_version_agents(
+        self, 
+        agents_by_name: Dict[str, List[Dict[str, Any]]]
+    ) -> Dict[str, Dict[str, Any]]:
+        """Select the highest version agent from multiple sources.
+        
+        Args:
+            agents_by_name: Dictionary mapping agent names to list of agent info
+            
+        Returns:
+            Dictionary mapping agent names to the highest version agent info
+        """
+        selected_agents = {}
+        
+        for agent_name, agent_versions in agents_by_name.items():
+            if not agent_versions:
+                continue
+                
+            # If only one version exists, use it
+            if len(agent_versions) == 1:
+                selected_agents[agent_name] = agent_versions[0]
+                self.logger.debug(
+                    f"Agent '{agent_name}' has single source: {agent_versions[0]['source']}"
+                )
+                continue
+            
+            # Compare versions to find the highest
+            highest_version_agent = None
+            highest_version_tuple = (0, 0, 0)
+            
+            for agent_info in agent_versions:
+                version_str = agent_info.get("version", "0.0.0")
+                version_tuple = self.version_manager.parse_version(version_str)
+                
+                self.logger.debug(
+                    f"Agent '{agent_name}' from {agent_info['source']}: "
+                    f"version {version_str} -> {version_tuple}"
+                )
+                
+                # Compare with current highest
+                if self.version_manager.compare_versions(version_tuple, highest_version_tuple) > 0:
+                    highest_version_agent = agent_info
+                    highest_version_tuple = version_tuple
+            
+            if highest_version_agent:
+                selected_agents[agent_name] = highest_version_agent
+                self.logger.info(
+                    f"Selected agent '{agent_name}' version {highest_version_agent['version']} "
+                    f"from {highest_version_agent['source']} source"
+                )
+                
+                # Log if a higher priority source was overridden by version
+                for other_agent in agent_versions:
+                    if other_agent != highest_version_agent:
+                        other_version = self.version_manager.parse_version(
+                            other_agent.get("version", "0.0.0")
+                        )
+                        if other_agent["source"] == "project" and highest_version_agent["source"] == "system":
+                            self.logger.warning(
+                                f"Project agent '{agent_name}' v{other_agent['version']} "
+                                f"overridden by higher system version v{highest_version_agent['version']}"
+                            )
+                        elif other_agent["source"] == "user" and highest_version_agent["source"] in ["system", "project"]:
+                            self.logger.warning(
+                                f"User agent '{agent_name}' v{other_agent['version']} "
+                                f"overridden by higher {highest_version_agent['source']} version v{highest_version_agent['version']}"
+                            )
+        
+        return selected_agents
+    
+    def get_agents_for_deployment(
+        self,
+        system_templates_dir: Optional[Path] = None,
+        project_agents_dir: Optional[Path] = None,
+        user_agents_dir: Optional[Path] = None,
+        working_directory: Optional[Path] = None,
+        excluded_agents: Optional[List[str]] = None,
+        config: Optional[Config] = None
+    ) -> Tuple[Dict[str, Path], Dict[str, str]]:
+        """Get the highest version agents from all sources for deployment.
+        
+        Args:
+            system_templates_dir: Directory containing system agent templates
+            project_agents_dir: Directory containing project-specific agents
+            user_agents_dir: Directory containing user custom agents
+            working_directory: Current working directory for finding project agents
+            excluded_agents: List of agent names to exclude from deployment
+            config: Configuration object for additional filtering
+            
+        Returns:
+            Tuple of:
+            - Dictionary mapping agent names to template file paths
+            - Dictionary mapping agent names to their source
+        """
+        # Discover all available agents
+        agents_by_name = self.discover_agents_from_all_sources(
+            system_templates_dir=system_templates_dir,
+            project_agents_dir=project_agents_dir,
+            user_agents_dir=user_agents_dir,
+            working_directory=working_directory
+        )
+        
+        # Select highest version for each agent
+        selected_agents = self.select_highest_version_agents(agents_by_name)
+        
+        # Apply exclusion filters
+        if excluded_agents:
+            for agent_name in excluded_agents:
+                if agent_name in selected_agents:
+                    self.logger.info(f"Excluding agent '{agent_name}' from deployment")
+                    del selected_agents[agent_name]
+        
+        # Apply config-based filtering if provided
+        if config:
+            selected_agents = self._apply_config_filters(selected_agents, config)
+        
+        # Create deployment mappings
+        agents_to_deploy = {}
+        agent_sources = {}
+        
+        for agent_name, agent_info in selected_agents.items():
+            template_path = Path(agent_info["path"])
+            if template_path.exists():
+                # Use the file stem as the key for consistency
+                file_stem = template_path.stem
+                agents_to_deploy[file_stem] = template_path
+                agent_sources[file_stem] = agent_info["source"]
+                
+                # Also keep the display name mapping for logging
+                if file_stem != agent_name:
+                    self.logger.debug(f"Mapping '{agent_name}' -> '{file_stem}'")
+            else:
+                self.logger.warning(
+                    f"Template file not found for agent '{agent_name}': {template_path}"
+                )
+        
+        self.logger.info(
+            f"Selected {len(agents_to_deploy)} agents for deployment "
+            f"(system: {sum(1 for s in agent_sources.values() if s == 'system')}, "
+            f"project: {sum(1 for s in agent_sources.values() if s == 'project')}, "
+            f"user: {sum(1 for s in agent_sources.values() if s == 'user')})"
+        )
+        
+        return agents_to_deploy, agent_sources
+    
+    def _apply_config_filters(
+        self, 
+        selected_agents: Dict[str, Dict[str, Any]], 
+        config: Config
+    ) -> Dict[str, Dict[str, Any]]:
+        """Apply configuration-based filtering to selected agents.
+        
+        Args:
+            selected_agents: Dictionary of selected agents
+            config: Configuration object
+            
+        Returns:
+            Filtered dictionary of agents
+        """
+        filtered_agents = {}
+        
+        # Get exclusion patterns from config
+        exclusion_patterns = config.get("agent_deployment.exclusion_patterns", [])
+        
+        # Get environment-specific exclusions
+        environment = config.get("environment", "development")
+        env_exclusions = config.get(f"agent_deployment.{environment}_exclusions", [])
+        
+        for agent_name, agent_info in selected_agents.items():
+            # Check exclusion patterns
+            excluded = False
+            
+            for pattern in exclusion_patterns:
+                if pattern in agent_name:
+                    self.logger.debug(f"Excluding '{agent_name}' due to pattern '{pattern}'")
+                    excluded = True
+                    break
+            
+            # Check environment exclusions
+            if not excluded and agent_name in env_exclusions:
+                self.logger.debug(f"Excluding '{agent_name}' due to {environment} environment")
+                excluded = True
+            
+            if not excluded:
+                filtered_agents[agent_name] = agent_info
+        
+        return filtered_agents
+    
+    def compare_deployed_versions(
+        self,
+        deployed_agents_dir: Path,
+        agents_to_deploy: Dict[str, Path],
+        agent_sources: Dict[str, str]
+    ) -> Dict[str, Any]:
+        """Compare deployed agent versions with candidates for deployment.
+        
+        Args:
+            deployed_agents_dir: Directory containing currently deployed agents
+            agents_to_deploy: Dictionary mapping agent names to template paths
+            agent_sources: Dictionary mapping agent names to their sources
+            
+        Returns:
+            Dictionary with comparison results including which agents need updates
+        """
+        comparison_results = {
+            "needs_update": [],
+            "up_to_date": [],
+            "new_agents": [],
+            "version_upgrades": [],
+            "version_downgrades": [],
+            "source_changes": []
+        }
+        
+        for agent_name, template_path in agents_to_deploy.items():
+            deployed_file = deployed_agents_dir / f"{agent_name}.md"
+            
+            if not deployed_file.exists():
+                comparison_results["new_agents"].append({
+                    "name": agent_name,
+                    "source": agent_sources[agent_name],
+                    "template": str(template_path)
+                })
+                comparison_results["needs_update"].append(agent_name)
+                continue
+            
+            # Read template version
+            try:
+                template_data = json.loads(template_path.read_text())
+                template_version = self.version_manager.parse_version(
+                    template_data.get("agent_version") or 
+                    template_data.get("version", "0.0.0")
+                )
+            except Exception as e:
+                self.logger.warning(f"Error reading template for '{agent_name}': {e}")
+                continue
+            
+            # Read deployed version
+            try:
+                deployed_content = deployed_file.read_text()
+                deployed_version, _, _ = self.version_manager.extract_version_from_frontmatter(
+                    deployed_content
+                )
+                
+                # Extract source from deployed agent if available
+                deployed_source = "unknown"
+                if "source:" in deployed_content:
+                    import re
+                    source_match = re.search(r'^source:\s*(.+)$', deployed_content, re.MULTILINE)
+                    if source_match:
+                        deployed_source = source_match.group(1).strip()
+            except Exception as e:
+                self.logger.warning(f"Error reading deployed agent '{agent_name}': {e}")
+                comparison_results["needs_update"].append(agent_name)
+                continue
+            
+            # Compare versions
+            version_comparison = self.version_manager.compare_versions(
+                template_version, deployed_version
+            )
+            
+            if version_comparison > 0:
+                # Template version is higher
+                comparison_results["version_upgrades"].append({
+                    "name": agent_name,
+                    "deployed_version": self.version_manager.format_version_display(deployed_version),
+                    "new_version": self.version_manager.format_version_display(template_version),
+                    "source": agent_sources[agent_name],
+                    "previous_source": deployed_source
+                })
+                comparison_results["needs_update"].append(agent_name)
+                
+                if deployed_source != agent_sources[agent_name]:
+                    comparison_results["source_changes"].append({
+                        "name": agent_name,
+                        "from_source": deployed_source,
+                        "to_source": agent_sources[agent_name]
+                    })
+            elif version_comparison < 0:
+                # Deployed version is higher (shouldn't happen with proper version management)
+                comparison_results["version_downgrades"].append({
+                    "name": agent_name,
+                    "deployed_version": self.version_manager.format_version_display(deployed_version),
+                    "template_version": self.version_manager.format_version_display(template_version),
+                    "warning": "Deployed version is higher than template"
+                })
+                # Don't add to needs_update - keep the higher version
+            else:
+                # Versions are equal
+                comparison_results["up_to_date"].append({
+                    "name": agent_name,
+                    "version": self.version_manager.format_version_display(deployed_version),
+                    "source": agent_sources[agent_name]
+                })
+        
+        # Log summary
+        self.logger.info(
+            f"Version comparison complete: "
+            f"{len(comparison_results['needs_update'])} need updates, "
+            f"{len(comparison_results['up_to_date'])} up to date, "
+            f"{len(comparison_results['new_agents'])} new agents"
+        )
+        
+        if comparison_results["version_upgrades"]:
+            for upgrade in comparison_results["version_upgrades"]:
+                self.logger.info(
+                    f"  Upgrade: {upgrade['name']} "
+                    f"{upgrade['deployed_version']} -> {upgrade['new_version']} "
+                    f"(from {upgrade['source']})"
+                )
+        
+        if comparison_results["source_changes"]:
+            for change in comparison_results["source_changes"]:
+                self.logger.info(
+                    f"  Source change: {change['name']} "
+                    f"from {change['from_source']} to {change['to_source']}"
+                )
+        
+        if comparison_results["version_downgrades"]:
+            for downgrade in comparison_results["version_downgrades"]:
+                self.logger.warning(
+                    f"  Warning: {downgrade['name']} deployed version "
+                    f"{downgrade['deployed_version']} is higher than template "
+                    f"{downgrade['template_version']}"
+                )
+        
+        return comparison_results

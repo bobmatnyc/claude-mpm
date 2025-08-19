@@ -58,6 +58,64 @@ class FrameworkLoader:
 
         # Initialize agent registry
         self.agent_registry = AgentRegistryAdapter(self.framework_path)
+        
+        # Initialize output style manager (must be after content is loaded)
+        self.output_style_manager = None
+        # Defer initialization until first use to ensure content is loaded
+
+    def _initialize_output_style(self) -> None:
+        """Initialize output style management and deploy if applicable."""
+        try:
+            from claude_mpm.core.output_style_manager import OutputStyleManager
+            
+            self.output_style_manager = OutputStyleManager()
+            
+            # Log detailed output style status
+            self._log_output_style_status()
+            
+            # Extract and save output style content (pass self to reuse loaded content)
+            output_style_content = self.output_style_manager.extract_output_style_content(framework_loader=self)
+            output_style_path = self.output_style_manager.save_output_style(output_style_content)
+            
+            # Deploy to Claude Desktop if supported
+            deployed = self.output_style_manager.deploy_output_style(output_style_content)
+            
+            if deployed:
+                self.logger.info("✅ Output style deployed to Claude Desktop >= 1.0.83")
+            else:
+                self.logger.info("📝 Output style will be injected into instructions for older Claude versions")
+                
+        except Exception as e:
+            self.logger.warning(f"❌ Failed to initialize output style manager: {e}")
+            # Continue without output style management
+    
+    def _log_output_style_status(self) -> None:
+        """Log comprehensive output style status information."""
+        if not self.output_style_manager:
+            return
+            
+        # Claude version detection
+        claude_version = self.output_style_manager.claude_version
+        if claude_version:
+            self.logger.info(f"Claude Desktop version detected: {claude_version}")
+            
+            # Check if version supports output styles
+            if self.output_style_manager.supports_output_styles():
+                self.logger.info("✅ Claude Desktop supports output styles (>= 1.0.83)")
+                
+                # Check deployment status
+                output_style_path = self.output_style_manager.output_style_path
+                if output_style_path.exists():
+                    self.logger.info(f"📁 Output style file exists: {output_style_path}")
+                else:
+                    self.logger.info(f"📝 Output style will be created at: {output_style_path}")
+                    
+            else:
+                self.logger.info(f"⚠️ Claude Desktop {claude_version} does not support output styles (< 1.0.83)")
+                self.logger.info("📝 Output style content will be injected into framework instructions")
+        else:
+            self.logger.info("⚠️ Claude Desktop not detected or version unknown")
+            self.logger.info("📝 Output style content will be injected into framework instructions as fallback")
 
     def _detect_framework_path(self) -> Optional[Path]:
         """Auto-detect claude-mpm framework using unified path management."""
@@ -228,6 +286,29 @@ class FrameworkLoader:
                 self.logger.error(f"Failed to load {file_type}: {e}")
             return None
 
+    def _migrate_memory_file(self, old_path: Path, new_path: Path) -> None:
+        """
+        Migrate memory file from old naming convention to new.
+        
+        WHY: Supports backward compatibility by automatically migrating from
+        the old {agent_id}_agent.md and {agent_id}.md formats to the new {agent_id}_memories.md format.
+        
+        Args:
+            old_path: Path to the old file
+            new_path: Path to the new file
+        """
+        if old_path.exists() and not new_path.exists():
+            try:
+                # Read content from old file
+                content = old_path.read_text(encoding="utf-8")
+                # Write to new file
+                new_path.write_text(content, encoding="utf-8")
+                # Remove old file
+                old_path.unlink()
+                self.logger.info(f"Migrated memory file from {old_path.name} to {new_path.name}")
+            except Exception as e:
+                self.logger.error(f"Failed to migrate memory file {old_path.name}: {e}")
+
     def _load_instructions_file(self, content: Dict[str, Any]) -> None:
         """
         Load INSTRUCTIONS.md or legacy CLAUDE.md from working directory.
@@ -344,23 +425,22 @@ class FrameworkLoader:
     
     def _load_actual_memories(self, content: Dict[str, Any]) -> None:
         """
-        Load actual memories from .claude-mpm/memories/ directory.
+        Load actual memories from both user and project directories.
+        
+        Loading order:
+        1. User-level memories from ~/.claude-mpm/memories/ (global defaults)
+        2. Project-level memories from ./.claude-mpm/memories/ (overrides user)
         
         This loads:
-        1. PM memories from PM.md (always loaded)
-        2. Agent memories from <agent>.md (only if agent is deployed)
+        1. PM memories from PM_memories.md (always loaded)
+        2. Agent memories from <agent>_memories.md (only if agent is deployed)
         
         Args:
             content: Dictionary to update with actual memories
         """
-        memories_dir = Path.cwd() / ".claude-mpm" / "memories"
-        
-        # Log the memory loading process
-        if memories_dir.exists():
-            self.logger.info(f"Loading memory files from: {memories_dir}")
-        else:
-            self.logger.debug(f"No memories directory found at: {memories_dir}")
-            return
+        # Define memory directories in priority order (user first, then project)
+        user_memories_dir = Path.home() / ".claude-mpm" / "memories"
+        project_memories_dir = Path.cwd() / ".claude-mpm" / "memories"
         
         # Check for deployed agents
         deployed_agents = self._get_deployed_agents()
@@ -369,49 +449,260 @@ class FrameworkLoader:
         loaded_count = 0
         skipped_count = 0
         
-        # Load PM memories (always loaded)
-        pm_memory_path = memories_dir / "PM.md"
-        if pm_memory_path.exists():
-            loaded_content = self._try_load_file(
-                pm_memory_path, "PM memory"
-            )
-            if loaded_content:
-                content["actual_memories"] = loaded_content
-                memory_size = len(loaded_content.encode('utf-8'))
-                self.logger.info(f"Loaded PM memory: {pm_memory_path} ({memory_size:,} bytes)")
-                loaded_count += 1
-        else:
-            self.logger.debug(f"No PM memory found at: {pm_memory_path}")
+        # Dictionary to store aggregated memories
+        pm_memories = []
+        agent_memories_dict = {}
         
-        # Load agent memories (only for deployed agents)
-        for memory_file in memories_dir.glob("*.md"):
-            # Skip PM.md as we already handled it
-            if memory_file.name == "PM.md":
-                continue
-            
-            # Extract agent name from file
-            agent_name = memory_file.stem
-            
-            # Check if agent is deployed
-            if agent_name in deployed_agents:
-                loaded_content = self._try_load_file(
-                    memory_file, f"agent memory: {agent_name}"
-                )
-                if loaded_content:
-                    # Store agent memories separately (for future use)
-                    if "agent_memories" not in content:
-                        content["agent_memories"] = {}
-                    content["agent_memories"][agent_name] = loaded_content
-                    memory_size = len(loaded_content.encode('utf-8'))
-                    self.logger.info(f"Loaded agent memory: {memory_file.name} (deployed agent found, {memory_size:,} bytes)")
-                    loaded_count += 1
-            else:
-                self.logger.info(f"Skipped agent memory: {memory_file.name} (agent not deployed)")
-                skipped_count += 1
+        # Load memories from user directory first
+        if user_memories_dir.exists():
+            self.logger.info(f"Loading user-level memory files from: {user_memories_dir}")
+            loaded, skipped = self._load_memories_from_directory(
+                user_memories_dir, deployed_agents, pm_memories, agent_memories_dict, "user"
+            )
+            loaded_count += loaded
+            skipped_count += skipped
+        else:
+            self.logger.debug(f"No user memories directory found at: {user_memories_dir}")
+        
+        # Load memories from project directory (overrides user memories)
+        if project_memories_dir.exists():
+            self.logger.info(f"Loading project-level memory files from: {project_memories_dir}")
+            loaded, skipped = self._load_memories_from_directory(
+                project_memories_dir, deployed_agents, pm_memories, agent_memories_dict, "project"
+            )
+            loaded_count += loaded
+            skipped_count += skipped
+        else:
+            self.logger.debug(f"No project memories directory found at: {project_memories_dir}")
+        
+        # Aggregate PM memories
+        if pm_memories:
+            aggregated_pm = self._aggregate_memories(pm_memories)
+            content["actual_memories"] = aggregated_pm
+            memory_size = len(aggregated_pm.encode('utf-8'))
+            self.logger.info(f"Aggregated PM memory ({memory_size:,} bytes) from {len(pm_memories)} source(s)")
+        
+        # Store agent memories (already aggregated per agent)
+        if agent_memories_dict:
+            content["agent_memories"] = agent_memories_dict
+            for agent_name, memory_content in agent_memories_dict.items():
+                memory_size = len(memory_content.encode('utf-8'))
+                self.logger.debug(f"Aggregated {agent_name} memory: {memory_size:,} bytes")
         
         # Log summary
         if loaded_count > 0 or skipped_count > 0:
             self.logger.info(f"Memory loading complete: {loaded_count} memories loaded, {skipped_count} skipped")
+    
+    def _load_memories_from_directory(
+        self,
+        memories_dir: Path,
+        deployed_agents: set,
+        pm_memories: list,
+        agent_memories_dict: dict,
+        source: str
+    ) -> tuple[int, int]:
+        """
+        Load memories from a specific directory.
+        
+        Args:
+            memories_dir: Directory to load memories from
+            deployed_agents: Set of deployed agent names
+            pm_memories: List to append PM memories to
+            agent_memories_dict: Dict to store agent memories
+            source: Source label ("user" or "project")
+        
+        Returns:
+            Tuple of (loaded_count, skipped_count)
+        """
+        loaded_count = 0
+        skipped_count = 0
+        
+        # Load PM memories (always loaded)
+        # Support migration from both old formats
+        pm_memory_path = memories_dir / "PM_memories.md"
+        old_pm_path = memories_dir / "PM.md"
+        
+        # Migrate from old PM.md if needed
+        if not pm_memory_path.exists() and old_pm_path.exists():
+            try:
+                old_pm_path.rename(pm_memory_path)
+                self.logger.info(f"Migrated PM.md to PM_memories.md")
+            except Exception as e:
+                self.logger.error(f"Failed to migrate PM.md: {e}")
+                pm_memory_path = old_pm_path  # Fall back to old path
+        if pm_memory_path.exists():
+            loaded_content = self._try_load_file(
+                pm_memory_path, f"PM memory ({source})"
+            )
+            if loaded_content:
+                pm_memories.append({
+                    "source": source,
+                    "content": loaded_content,
+                    "path": pm_memory_path
+                })
+                memory_size = len(loaded_content.encode('utf-8'))
+                self.logger.info(f"Loaded {source} PM memory: {pm_memory_path} ({memory_size:,} bytes)")
+                loaded_count += 1
+        
+        # Load agent memories (only for deployed agents)
+        for memory_file in memories_dir.glob("*.md"):
+            # Skip PM_memories.md and PM.md as we already handled them
+            if memory_file.name in ["PM_memories.md", "PM.md"]:
+                continue
+            
+            # Extract agent name from file
+            # Support migration from old formats to new {agent_name}_memories.md format
+            agent_name = memory_file.stem
+            new_path = None
+            
+            if agent_name.endswith("_agent"):
+                # Old format: {agent_name}_agent.md
+                agent_name = agent_name[:-6]  # Remove "_agent" suffix
+                new_path = memories_dir / f"{agent_name}_memories.md"
+            elif agent_name.endswith("_memories"):
+                # Already in new format: {agent_name}_memories.md
+                agent_name = agent_name[:-9]  # Remove "_memories" suffix
+            elif memory_file.name != "README.md":
+                # Intermediate format: {agent_name}.md
+                # agent_name already set from stem
+                new_path = memories_dir / f"{agent_name}_memories.md"
+            
+            # Skip README.md
+            if memory_file.name == "README.md":
+                continue
+                
+            # Migrate if needed
+            if new_path and not new_path.exists():
+                self._migrate_memory_file(memory_file, new_path)
+            
+            # Check if agent is deployed
+            if agent_name in deployed_agents:
+                loaded_content = self._try_load_file(
+                    memory_file, f"agent memory: {agent_name} ({source})"
+                )
+                if loaded_content:
+                    # Store or merge agent memories
+                    if agent_name not in agent_memories_dict:
+                        agent_memories_dict[agent_name] = []
+                    
+                    # If it's a list, append the new memory entry
+                    if isinstance(agent_memories_dict[agent_name], list):
+                        agent_memories_dict[agent_name].append({
+                            "source": source,
+                            "content": loaded_content,
+                            "path": memory_file
+                        })
+                    
+                    memory_size = len(loaded_content.encode('utf-8'))
+                    self.logger.info(f"Loaded {source} memory for {agent_name}: {memory_file.name} ({memory_size:,} bytes)")
+                    loaded_count += 1
+            else:
+                self.logger.info(f"Skipped {source} memory: {memory_file.name} (agent not deployed)")
+                skipped_count += 1
+        
+        # After loading all memories for this directory, aggregate agent memories
+        for agent_name in list(agent_memories_dict.keys()):
+            if isinstance(agent_memories_dict[agent_name], list) and agent_memories_dict[agent_name]:
+                # Aggregate memories for this agent
+                aggregated = self._aggregate_memories(agent_memories_dict[agent_name])
+                agent_memories_dict[agent_name] = aggregated
+        
+        return loaded_count, skipped_count
+    
+    def _aggregate_memories(self, memory_entries: list) -> str:
+        """
+        Aggregate multiple memory entries into a single memory string.
+        
+        Strategy:
+        - Parse memories by sections
+        - Merge sections, with project-level taking precedence
+        - Remove exact duplicates within sections
+        - Preserve unique entries from both sources
+        
+        Args:
+            memory_entries: List of memory entries with source, content, and path
+        
+        Returns:
+            Aggregated memory content as a string
+        """
+        if not memory_entries:
+            return ""
+        
+        # If only one entry, return it as-is
+        if len(memory_entries) == 1:
+            return memory_entries[0]["content"]
+        
+        # Parse all memories into sections
+        all_sections = {}
+        metadata_lines = []
+        
+        for entry in memory_entries:
+            content = entry["content"]
+            source = entry["source"]
+            
+            # Parse content into sections
+            current_section = None
+            current_items = []
+            
+            for line in content.split('\n'):
+                # Check for metadata lines
+                if line.startswith('<!-- ') and line.endswith(' -->'):
+                    # Only keep metadata from project source or if not already present
+                    if source == "project" or line not in metadata_lines:
+                        metadata_lines.append(line)
+                # Check for section headers (## Level 2 headers)
+                elif line.startswith('## '):
+                    # Save previous section if exists
+                    if current_section and current_items:
+                        if current_section not in all_sections:
+                            all_sections[current_section] = {}
+                        # Store items with their source
+                        for item in current_items:
+                            # Use content as key to detect duplicates
+                            all_sections[current_section][item] = source
+                    
+                    # Start new section
+                    current_section = line
+                    current_items = []
+                # Check for content lines (skip empty lines)
+                elif line.strip() and current_section:
+                    current_items.append(line)
+            
+            # Save last section
+            if current_section and current_items:
+                if current_section not in all_sections:
+                    all_sections[current_section] = {}
+                for item in current_items:
+                    # Project source overrides user source
+                    if item not in all_sections[current_section] or source == "project":
+                        all_sections[current_section][item] = source
+        
+        # Build aggregated content
+        lines = []
+        
+        # Add metadata
+        if metadata_lines:
+            lines.extend(metadata_lines)
+            lines.append("")
+        
+        # Add header
+        lines.append("# Aggregated Memory")
+        lines.append("")
+        lines.append("*This memory combines user-level and project-level memories.*")
+        lines.append("")
+        
+        # Add sections
+        for section_header in sorted(all_sections.keys()):
+            lines.append(section_header)
+            section_items = all_sections[section_header]
+            
+            # Sort items to ensure consistent output
+            for item in sorted(section_items.keys()):
+                lines.append(item)
+            
+            lines.append("")  # Empty line after section
+        
+        return '\n'.join(lines)
 
     def _load_single_agent(
         self, agent_file: Path
@@ -498,7 +789,7 @@ class FrameworkLoader:
             "project_workflow": "",
             "memory_instructions": "",
             "project_memory": "",
-            "actual_memories": "",  # Add field for actual memories from PM.md
+            "actual_memories": "",  # Add field for actual memories from PM_memories.md
         }
 
         # Load instructions file from working directory
@@ -551,7 +842,7 @@ class FrameworkLoader:
         # Load MEMORY.md - check for project-specific first, then system
         self._load_memory_instructions(content)
         
-        # Load actual memories from .claude-mpm/memories/PM.md
+        # Load actual memories from .claude-mpm/memories/PM_memories.md
         self._load_actual_memories(content)
 
         # Discover agent directories
@@ -742,6 +1033,17 @@ class FrameworkLoader:
         """Format full framework instructions."""
         from datetime import datetime
 
+        # Initialize output style manager on first use (ensures content is loaded)
+        if self.output_style_manager is None:
+            self._initialize_output_style()
+
+        # Check if we need to inject output style content for older Claude versions
+        inject_output_style = False
+        if self.output_style_manager:
+            inject_output_style = self.output_style_manager.should_inject_content()
+            if inject_output_style:
+                self.logger.info("Injecting output style content into instructions for Claude < 1.0.83")
+
         # If we have the full framework INSTRUCTIONS.md, use it
         if self.framework_content.get("framework_instructions"):
             instructions = self._strip_metadata_comments(
@@ -789,6 +1091,15 @@ class FrameworkLoader:
                     self.framework_content["base_pm_instructions"]
                 )
                 instructions += f"\n\n{base_pm}"
+            
+            # Inject output style content if needed (for Claude < 1.0.83)
+            if inject_output_style and self.output_style_manager:
+                output_style_content = self.output_style_manager.get_injectable_content(framework_loader=self)
+                if output_style_content:
+                    instructions += "\n\n## Output Style Configuration\n"
+                    instructions += "**Note: The following output style is injected for Claude < 1.0.83**\n\n"
+                    instructions += output_style_content
+                    instructions += "\n"
 
             # Clean up any trailing whitespace
             instructions = instructions.rstrip() + "\n"

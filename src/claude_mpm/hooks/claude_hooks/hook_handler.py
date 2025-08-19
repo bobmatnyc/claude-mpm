@@ -65,6 +65,10 @@ except ImportError:
 _global_handler = None
 _handler_lock = threading.Lock()
 
+# Track recent events to detect duplicates
+_recent_events = deque(maxlen=10)
+_events_lock = threading.Lock()
+
 
 class ClaudeHookHandler:
     """Optimized hook handler with direct Socket.IO client.
@@ -288,12 +292,16 @@ class ClaudeHookHandler:
         - Always continues regardless of event status
         - Process exits after handling to prevent accumulation
         """
+        _continue_sent = False  # Track if continue has been sent
 
         def timeout_handler(signum, frame):
             """Handle timeout by forcing exit."""
+            nonlocal _continue_sent
             if DEBUG:
                 print(f"Hook handler timeout (pid: {os.getpid()})", file=sys.stderr)
-            self._continue_execution()
+            if not _continue_sent:
+                self._continue_execution()
+                _continue_sent = True
             sys.exit(0)
 
         try:
@@ -304,8 +312,35 @@ class ClaudeHookHandler:
             # Read and parse event
             event = self._read_hook_event()
             if not event:
-                self._continue_execution()
+                if not _continue_sent:
+                    self._continue_execution()
+                    _continue_sent = True
                 return
+            
+            # Check for duplicate events (same event within 100ms)
+            global _recent_events, _events_lock
+            event_key = self._get_event_key(event)
+            current_time = time.time()
+            
+            with _events_lock:
+                # Check if we've seen this event recently
+                for recent_key, recent_time in _recent_events:
+                    if recent_key == event_key and (current_time - recent_time) < 0.1:
+                        if DEBUG:
+                            print(f"[{datetime.now().isoformat()}] Skipping duplicate event: {event.get('hook_event_name', 'unknown')} (PID: {os.getpid()})", file=sys.stderr)
+                        # Still need to output continue for this invocation
+                        if not _continue_sent:
+                            self._continue_execution()
+                            _continue_sent = True
+                        return
+                
+                # Not a duplicate, record it
+                _recent_events.append((event_key, current_time))
+            
+            # Debug: Log that we're processing an event
+            if DEBUG:
+                hook_type = event.get("hook_event_name", "unknown")
+                print(f"\n[{datetime.now().isoformat()}] Processing hook event: {hook_type} (PID: {os.getpid()})", file=sys.stderr)
 
             # Increment event counter and perform periodic cleanup
             self.events_processed += 1
@@ -320,12 +355,16 @@ class ClaudeHookHandler:
             # Route event to appropriate handler
             self._route_event(event)
 
-            # Always continue execution
-            self._continue_execution()
+            # Always continue execution (only if not already sent)
+            if not _continue_sent:
+                self._continue_execution()
+                _continue_sent = True
 
-        except:
-            # Fail fast and silent
-            self._continue_execution()
+        except Exception:
+            # Fail fast and silent (only send continue if not already sent)
+            if not _continue_sent:
+                self._continue_execution()
+                _continue_sent = True
         finally:
             # Cancel the alarm
             signal.alarm(0)
@@ -402,6 +441,35 @@ class ClaudeHookHandler:
                 if DEBUG:
                     print(f"Error handling {hook_type}: {e}", file=sys.stderr)
 
+    def _get_event_key(self, event: dict) -> str:
+        """Generate a unique key for an event to detect duplicates.
+        
+        WHY: Claude Code may call the hook multiple times for the same event
+        because the hook is registered for multiple event types. We need to
+        detect and skip duplicate processing while still returning continue.
+        """
+        # Create a key from event type, session_id, and key data
+        hook_type = event.get("hook_event_name", "unknown")
+        session_id = event.get("session_id", "")
+        
+        # Add type-specific data to make the key unique
+        if hook_type == "PreToolUse":
+            tool_name = event.get("tool_name", "")
+            # For some tools, include parameters to distinguish calls
+            if tool_name == "Task":
+                tool_input = event.get("tool_input", {})
+                agent = tool_input.get("subagent_type", "")
+                prompt_preview = (tool_input.get("prompt", "") or tool_input.get("description", ""))[:50]
+                return f"{hook_type}:{session_id}:{tool_name}:{agent}:{prompt_preview}"
+            else:
+                return f"{hook_type}:{session_id}:{tool_name}"
+        elif hook_type == "UserPromptSubmit":
+            prompt_preview = event.get("prompt", "")[:50]
+            return f"{hook_type}:{session_id}:{prompt_preview}"
+        else:
+            # For other events, just use type and session
+            return f"{hook_type}:{session_id}"
+    
     def _continue_execution(self) -> None:
         """
         Send continue action to Claude.
@@ -893,24 +961,26 @@ class ClaudeHookHandler:
 def main():
     """Entry point with singleton pattern and proper cleanup."""
     global _global_handler
+    _continue_printed = False  # Track if we've already printed continue
 
     def cleanup_handler(signum=None, frame=None):
         """Cleanup handler for signals and exit."""
+        nonlocal _continue_printed
         if DEBUG:
             print(
                 f"Hook handler cleanup (pid: {os.getpid()}, signal: {signum})",
                 file=sys.stderr,
             )
-        # Always output continue action to not block Claude
-        print(json.dumps({"action": "continue"}))
-        # Only exit if this is a signal handler call, not atexit
-        if signum is not None:
+        # Only output continue if we haven't already (i.e., if interrupted by signal)
+        if signum is not None and not _continue_printed:
+            print(json.dumps({"action": "continue"}))
+            _continue_printed = True
             sys.exit(0)
 
     # Register cleanup handlers
     signal.signal(signal.SIGTERM, cleanup_handler)
     signal.signal(signal.SIGINT, cleanup_handler)
-    atexit.register(cleanup_handler)
+    # Don't register atexit handler since we're handling exit properly in main
 
     try:
         # Use singleton pattern to prevent creating multiple instances
@@ -931,14 +1001,19 @@ def main():
 
             handler = _global_handler
 
+        # Mark that handle() will print continue
         handler.handle()
+        _continue_printed = True  # Mark as printed since handle() always prints it
 
-        # Ensure we exit after handling
-        cleanup_handler()
+        # handler.handle() already calls _continue_execution(), so we don't need to do it again
+        # Just exit cleanly
+        sys.exit(0)
 
     except Exception as e:
-        # Always output continue action to not block Claude
-        print(json.dumps({"action": "continue"}))
+        # Only output continue if not already printed
+        if not _continue_printed:
+            print(json.dumps({"action": "continue"}))
+            _continue_printed = True
         # Log error for debugging
         if DEBUG:
             print(f"Hook handler error: {e}", file=sys.stderr)

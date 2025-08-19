@@ -16,7 +16,11 @@ This is equivalent to calling the claude-mpm script directly but ensures
 proper Python module context and import resolution.
 """
 
+import os
 import sys
+
+# Disable telemetry by default
+os.environ['DISABLE_TELEMETRY'] = '1'
 
 from . import main
 

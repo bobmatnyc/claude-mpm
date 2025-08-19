@@ -159,7 +159,7 @@ class BaseService(LoggerMixin, ABC):
 
         # Only log if not in quiet mode
         if not os.environ.get("CLAUDE_PM_QUIET_MODE", "").lower() == "true":
-            self.logger.info(f"Initialized {self.name} service")
+            self.logger.debug(f"Initialized {self.name} service")
 
     def _init_enhanced_features(self):
         """Initialize enhanced features when enabled."""

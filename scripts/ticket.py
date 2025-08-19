@@ -28,6 +28,10 @@ This wrapper delegates to:
     ... etc
 """
 
+import os
+# Disable telemetry by default
+os.environ['DISABLE_TELEMETRY'] = '1'
+
 import subprocess
 import sys
 from pathlib import Path

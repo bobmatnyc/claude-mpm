@@ -33,7 +33,8 @@ def filter_claude_mpm_args(claude_args):
     flags and will error if they're passed through.
 
     DESIGN DECISION: We maintain a list of known claude-mpm flags to filter out,
-    ensuring only genuine Claude CLI arguments are passed through.
+    ensuring only genuine Claude CLI arguments are passed through. We also remove
+    the '--' separator that argparse uses, as it's not needed by Claude CLI.
 
     Args:
         claude_args: List of arguments captured by argparse.REMAINDER
@@ -82,6 +83,11 @@ def filter_claude_mpm_args(claude_args):
     i = 0
     while i < len(claude_args):
         arg = claude_args[i]
+
+        # Skip the '--' separator used by argparse - Claude doesn't need it
+        if arg == "--":
+            i += 1
+            continue
 
         # Check if this is a claude-mpm flag
         if arg in mpm_flags:
@@ -379,16 +385,37 @@ def run_session(args):
     # Create simple runner
     enable_tickets = not args.no_tickets
     raw_claude_args = getattr(args, "claude_args", []) or []
+    
+    # Add --resume to claude_args if the flag is set
+    resume_flag_present = getattr(args, "resume", False)
+    if resume_flag_present:
+        logger.info("📌 --resume flag detected in args")
+        if "--resume" not in raw_claude_args:
+            raw_claude_args = ["--resume"] + raw_claude_args
+            logger.info("✅ Added --resume to claude_args")
+        else:
+            logger.info("ℹ️ --resume already in claude_args")
+    
     # Filter out claude-mpm specific flags before passing to Claude CLI
+    logger.debug(f"Pre-filter claude_args: {raw_claude_args}")
     claude_args = filter_claude_mpm_args(raw_claude_args)
     monitor_mode = getattr(args, "monitor", False)
 
-    # Debug logging for argument filtering
+    # Enhanced debug logging for argument filtering
     if raw_claude_args != claude_args:
-        logger.debug(
-            f"Filtered claude-mpm args: {set(raw_claude_args) - set(claude_args)}"
-        )
-        logger.debug(f"Passing to Claude CLI: {claude_args}")
+        filtered_out = list(set(raw_claude_args) - set(claude_args))
+        logger.debug(f"Filtered out MPM-specific args: {filtered_out}")
+    
+    logger.info(f"Final claude_args being passed: {claude_args}")
+    
+    # Explicit verification of --resume flag
+    if resume_flag_present:
+        if "--resume" in claude_args:
+            logger.info("✅ CONFIRMED: --resume flag will be passed to Claude CLI")
+        else:
+            logger.error("❌ WARNING: --resume flag was filtered out! This is a bug!")
+            logger.error(f"   Original args: {raw_claude_args}")
+            logger.error(f"   Filtered args: {claude_args}")
 
     # Use the specified launch method (default: exec)
     launch_method = getattr(args, "launch_method", "exec")

@@ -24,12 +24,32 @@ class Config:
     """
     Configuration manager for Claude PM services.
 
+    Implements singleton pattern to ensure configuration is loaded only once
+    and shared across all services.
+
     Supports loading from:
     - Python dictionaries
     - JSON files
     - YAML files
     - Environment variables
     """
+
+    _instance = None
+    _initialized = False
+    _success_logged = False  # Class-level flag to track if success message was already logged
+
+    def __new__(cls, *args, **kwargs):
+        """Implement singleton pattern to ensure single configuration instance.
+        
+        WHY: Configuration was being loaded 11 times during startup, once for each service.
+        This singleton pattern ensures configuration is loaded only once and reused.
+        """
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            logger.info("Creating new Config singleton instance")
+        else:
+            logger.debug("Reusing existing Config singleton instance")
+        return cls._instance
 
     def __init__(
         self,
@@ -45,6 +65,21 @@ class Config:
             config_file: Path to configuration file (JSON or YAML)
             env_prefix: Prefix for environment variables
         """
+        # Skip initialization if already done (singleton pattern)
+        if Config._initialized:
+            logger.debug("Config already initialized, skipping re-initialization")
+            # If someone tries to load a different config file after initialization,
+            # log a debug message but don't reload
+            if config_file and str(config_file) != getattr(self, '_loaded_from', None):
+                logger.debug(
+                    f"Ignoring config_file parameter '{config_file}' - "
+                    f"configuration already loaded from '{getattr(self, '_loaded_from', 'defaults')}'"
+                )
+            return
+        
+        Config._initialized = True
+        logger.info("Initializing Config singleton for the first time")
+        
         self._config: Dict[str, Any] = {}
         self._env_prefix = env_prefix
         self._config_mgr = ConfigurationManager(cache_enabled=True)
@@ -55,22 +90,24 @@ class Config:
 
         # Track where configuration was loaded from
         self._loaded_from = None
+        # Track the actual file we loaded from to prevent re-loading
+        self._actual_loaded_file = None
 
         # Load from file if provided
         if config_file:
-            self.load_file(config_file)
+            self.load_file(config_file, is_initial_load=True)
             self._loaded_from = str(config_file)
         else:
             # Try to load from standard location: .claude-mpm/configuration.yaml
             default_config = Path.cwd() / ".claude-mpm" / "configuration.yaml"
             if default_config.exists():
-                self.load_file(default_config)
+                self.load_file(default_config, is_initial_load=True)
                 self._loaded_from = str(default_config)
             else:
                 # Also try .yml extension
                 alt_config = Path.cwd() / ".claude-mpm" / "configuration.yml"
                 if alt_config.exists():
-                    self.load_file(alt_config)
+                    self.load_file(alt_config, is_initial_load=True)
                     self._loaded_from = str(alt_config)
 
         # Load from environment variables (new and legacy prefixes)
@@ -80,13 +117,22 @@ class Config:
         # Apply defaults
         self._apply_defaults()
 
-    def load_file(self, file_path: Union[str, Path]) -> None:
+    def load_file(self, file_path: Union[str, Path], is_initial_load: bool = True) -> None:
         """Load configuration from file with enhanced error handling.
 
         WHY: Configuration loading failures can cause silent issues. We need
         to provide clear, actionable error messages to help users fix problems.
+        
+        Args:
+            file_path: Path to the configuration file
+            is_initial_load: Whether this is the initial configuration load (for logging control)
         """
         file_path = Path(file_path)
+        
+        # Check if we've already loaded from this exact file to prevent duplicate messages
+        if hasattr(self, '_actual_loaded_file') and self._actual_loaded_file == str(file_path):
+            logger.debug(f"Configuration already loaded from {file_path}, skipping reload")
+            return
 
         if not file_path.exists():
             logger.warning(f"Configuration file not found: {file_path}")
@@ -113,7 +159,14 @@ class Config:
             file_config = self._config_mgr.load_auto(file_path)
             if file_config:
                 self._config = self._config_mgr.merge_configs(self._config, file_config)
-                logger.info(f"✓ Successfully loaded configuration from {file_path}")
+                # Track that we've successfully loaded from this file
+                self._actual_loaded_file = str(file_path)
+                # Only log success message once using class-level flag to avoid duplicate messages
+                if is_initial_load and not Config._success_logged:
+                    logger.info(f"✓ Successfully loaded configuration from {file_path}")
+                    Config._success_logged = True
+                else:
+                    logger.debug(f"Configuration reloaded from {file_path}")
 
                 # Log important configuration values for debugging
                 if logger.isEnabledFor(logging.DEBUG):
@@ -789,3 +842,15 @@ class Config:
     def __repr__(self) -> str:
         """String representation of configuration."""
         return f"<Config({len(self._config)} keys)>"
+    
+    @classmethod
+    def reset_singleton(cls):
+        """Reset the singleton instance (mainly for testing purposes).
+        
+        WHY: During testing, we may need to reset the singleton to test different
+        configurations. This method allows controlled reset of the singleton state.
+        """
+        cls._instance = None
+        cls._initialized = False
+        cls._success_logged = False
+        logger.debug("Config singleton reset")

@@ -1,0 +1,63 @@
+claude_mpm.core.unified_paths - INFO - Detected claude-mpm development directory at /Users/masa/Projects/claude-mpm
+claude_mpm.core.unified_paths - INFO - Using development mode for local source preference
+claude_mpm.core.unified_paths - INFO - UnifiedPathManager initialized with context: development
+claude_mpm.core.config - INFO - Creating new Config singleton instance
+claude_mpm.core.config - INFO - Initializing Config singleton for the first time
+claude_mpm.core.config - INFO - ✓ Successfully loaded configuration from /Users/masa/Projects/claude-mpm/.claude-mpm/configuration.yaml
+claude_mpm.claude_mpm.services.agents.deployment.agent_deployment - INFO - Working directory for deployment: /Users/masa/Projects/claude-mpm
+claude_mpm.claude_mpm.services.agents.deployment.agent_deployment - INFO - Templates directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/templates
+claude_mpm.claude_mpm.services.agents.deployment.agent_deployment - INFO - Base agent path: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/base_agent.json
+claude_mpm.services.claude_session_logger - INFO - No Claude session ID found, using generated: 20250819_124516
+claude_mpm.services.async_session_logger - INFO - Generated session ID: 20250819_124516
+claude_mpm.services.claude_session_logger - INFO - Using async logger for improved performance
+claude_mpm.claude_mpm.services.hook_service - INFO - Registered pre-delegation hook: memory_load (priority: 10)
+claude_mpm.claude_mpm.services.hook_service - INFO - Registered post-delegation hook: memory_save (priority: 90)
+claude_mpm.framework_loader - INFO - Using claude-mpm development installation at: /Users/masa/Projects/claude-mpm
+claude_mpm.framework_loader - INFO - Loaded framework INSTRUCTIONS.md from: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/INSTRUCTIONS.md
+claude_mpm.framework_loader - INFO - Framework version: 0010
+claude_mpm.framework_loader - INFO - Last modified: 2025-08-10T00:00:00Z
+claude_mpm.framework_loader - INFO - Loaded BASE_PM framework requirements from: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/BASE_PM.md
+claude_mpm.framework_loader - INFO - Loaded system WORKFLOW.md from: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/WORKFLOW.md
+claude_mpm.framework_loader - INFO - Last modified: 2025-01-14T18:30:00Z
+claude_mpm.framework_loader - INFO - Using system WORKFLOW.md
+claude_mpm.framework_loader - INFO - Loaded system MEMORY.md from: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/MEMORY.md
+claude_mpm.framework_loader - INFO - Using system MEMORY.md
+claude_mpm.framework_loader - INFO - Loading user-level memory files from: /Users/masa/.claude-mpm/memories
+claude_mpm.framework_loader - INFO - Loaded PM memory (user) from: /Users/masa/.claude-mpm/memories/PM_memories.md
+claude_mpm.framework_loader - INFO - Loaded user PM memory: /Users/masa/.claude-mpm/memories/PM_memories.md (42 bytes)
+claude_mpm.framework_loader - INFO - Skipped user memory: test_qa_memories copy_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Loading project-level memory files from: /Users/masa/Projects/claude-mpm/.claude-mpm/memories
+claude_mpm.framework_loader - INFO - Skipped project memory: test_empty_strings_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_edge_cases_agent_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Loaded agent memory: qa (project) from: /Users/masa/Projects/claude-mpm/.claude-mpm/memories/qa_memories.md
+claude_mpm.framework_loader - INFO - Loaded project memory for qa: qa_memories.md (1,067 bytes)
+claude_mpm.framework_loader - INFO - Loaded agent memory: documentation (project) from: /Users/masa/Projects/claude-mpm/.claude-mpm/memories/documentation_memories.md
+claude_mpm.framework_loader - INFO - Loaded project memory for documentation: documentation_memories.md (1,089 bytes)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_duplicate_agent_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Loaded agent memory: research (project) from: /Users/masa/Projects/claude-mpm/.claude-mpm/memories/research_memories.md
+claude_mpm.framework_loader - INFO - Loaded project memory for research: research_memories.md (1,079 bytes)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_categorization_agent_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_agent_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: debug_duplicate_agent_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_fixed_duplicates_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: version-control_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_categorization_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Loaded agent memory: engineer (project) from: /Users/masa/Projects/claude-mpm/.claude-mpm/memories/engineer_memories.md
+claude_mpm.framework_loader - INFO - Loaded project memory for engineer: engineer_memories.md (1,079 bytes)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_duplicate_prevention_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_fixed_categorization_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Skipped project memory: test_fixed_empty_strings_memories.md (agent not deployed)
+claude_mpm.framework_loader - INFO - Aggregated PM memory (42 bytes) from 1 source(s)
+claude_mpm.framework_loader - INFO - Memory loading complete: 5 memories loaded, 13 skipped
+claude_mpm.framework_loader - INFO - Using agents from main directory: /Users/masa/Projects/claude-mpm/src/claude_mpm/agents
+claude_mpm.core.unified_agent_registry - INFO - UnifiedAgentRegistry initialized with cache=enabled
+claude_mpm.core.unified_agent_registry - INFO - Discovered 33 agents in 0.01s
+claude_mpm.output_style_manager - INFO - Detected Claude version: 1.0.83
+claude_mpm.framework_loader - INFO - Claude Desktop version detected: 1.0.83
+claude_mpm.framework_loader - INFO - ✅ Claude Desktop supports output styles (>= 1.0.83)
+claude_mpm.framework_loader - INFO - 📁 Output style file exists: /Users/masa/.claude/output-styles/claude-mpm.md
+claude_mpm.output_style_manager - INFO - Saved output style to /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/OUTPUT_STYLE.md
+claude_mpm.output_style_manager - INFO - Deployed output style to /Users/masa/.claude/output-styles/claude-mpm.md
+claude_mpm.framework_loader - INFO - ✅ Output style deployed to Claude Desktop >= 1.0.83
+claude_mpm.framework_loader - INFO - Loaded 15 user agents: code-analyzer, data-engineer, documentation, engineer, memory-manager, ops, project-organizer, qa, refactoring-engineer, research, security, ticketing, version-control, web-qa, web-ui
+claude_mpm.services.system_instructions_service.SystemInstructionsService.system_instructions_service - INFO - Loaded and cached framework instructions via FrameworkLoader

@@ -57,3 +57,6 @@ if ! "$PYTHON_CMD" -m claude_mpm.hooks.claude_hooks.hook_handler "$@" 2>/tmp/hoo
     echo "[$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)] Hook handler failed, see /tmp/hook-error.log" >> /tmp/hook-wrapper.log
     exit 0
 fi
+
+# Success - Python handler already printed continue, just exit
+exit 0

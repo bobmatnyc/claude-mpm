@@ -188,6 +188,11 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
         help="Resume an MPM session (last session if no ID specified, or specific session ID)",
     )
     run_group.add_argument(
+        "--resume",
+        action="store_true",
+        help="Pass --resume flag to Claude Desktop to resume the last conversation",
+    )
+    run_group.add_argument(
         "--force",
         action="store_true",
         help="Force operations even with warnings (e.g., large .claude.json file)",

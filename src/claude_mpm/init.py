@@ -47,6 +47,7 @@ class ProjectInitializer:
                 self.user_dir / "logs",
                 self.user_dir / "templates",
                 self.user_dir / "registry",
+                self.user_dir / "memories",  # Add user-level memories directory
             ]
 
             for directory in directories:

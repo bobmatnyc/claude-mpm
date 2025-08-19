@@ -71,6 +71,10 @@ def main(argv: Optional[list] = None):
     Returns:
         Exit code (0 for success, non-zero for errors)
     """
+    # Disable telemetry by default (set early in case any imported modules check it)
+    import os
+    os.environ.setdefault('DISABLE_TELEMETRY', '1')
+    
     # Ensure directories are initialized on first run
     ensure_directories()
 
@@ -247,10 +251,28 @@ def _ensure_run_attributes(args):
     args.input = getattr(args, "input", None)
     args.non_interactive = getattr(args, "non_interactive", False)
     args.no_native_agents = getattr(args, "no_native_agents", False)
-    args.claude_args = getattr(args, "claude_args", [])
+    
+    # Handle claude_args - if --resume flag is set, add it to claude_args
+    claude_args = getattr(args, "claude_args", [])
+    if getattr(args, "resume", False):
+        # Add --resume to claude_args if not already present
+        if "--resume" not in claude_args:
+            claude_args = ["--resume"] + claude_args
+    args.claude_args = claude_args
+    
     args.launch_method = getattr(args, "launch_method", "exec")
     args.websocket = getattr(args, "websocket", False)
     args.websocket_port = getattr(args, "websocket_port", 8765)
+    # CRITICAL: Include mpm_resume attribute for session resumption
+    args.mpm_resume = getattr(args, "mpm_resume", None)
+    # Also include monitor and force attributes
+    args.monitor = getattr(args, "monitor", False)
+    args.force = getattr(args, "force", False)
+    # Include dependency checking attributes
+    args.check_dependencies = getattr(args, "check_dependencies", True)
+    args.force_check_dependencies = getattr(args, "force_check_dependencies", False)
+    args.no_prompt = getattr(args, "no_prompt", False)
+    args.force_prompt = getattr(args, "force_prompt", False)
 
 
 def _execute_command(command: str, args) -> int:

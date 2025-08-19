@@ -15,6 +15,10 @@ to make debugging easier when things go wrong.
 
 import sys
 import os
+
+# Disable telemetry by default (set as early as possible)
+os.environ['DISABLE_TELEMETRY'] = '1'
+
 import json
 import logging
 import traceback
