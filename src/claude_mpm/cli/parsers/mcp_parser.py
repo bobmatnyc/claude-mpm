@@ -149,4 +149,27 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
         help="Configuration action (default: view)",
     )
 
+    # MCP Server command (direct server execution)
+    server_mcp_parser = mcp_subparsers.add_parser(
+        MCPCommands.SERVER.value, help="Run the MCP Gateway server directly"
+    )
+    server_mcp_parser.add_argument(
+        "--mode",
+        choices=["stdio", "standalone"],
+        default="stdio",
+        help="Server mode: stdio for Claude integration, standalone for testing (default: stdio)",
+    )
+    server_mcp_parser.add_argument(
+        "--port",
+        type=int,
+        default=8766,
+        help="Port for standalone mode (default: 8766)",
+    )
+    server_mcp_parser.add_argument(
+        "--config-file", type=Path, help="Path to MCP configuration file"
+    )
+    server_mcp_parser.add_argument(
+        "--test", action="store_true", help="Run in test mode with debug output"
+    )
+
     return mcp_parser

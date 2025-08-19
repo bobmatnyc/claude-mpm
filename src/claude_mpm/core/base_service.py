@@ -120,7 +120,13 @@ class BaseService(LoggerMixin, ABC):
             container: Optional service container for dependency injection
         """
         self.name = name
-        self.config = Config(config or {}, config_path)
+        # Use singleton Config instance to prevent duplicate configuration loading
+        # Only pass config_path if it's different from what might already be loaded
+        if config_path:
+            self.config = Config(config or {}, config_path)
+        else:
+            # Use existing singleton instance without forcing reload
+            self.config = Config(config or {})
         self._enable_enhanced = enable_enhanced_features
         self._container = container
 

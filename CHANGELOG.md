@@ -19,6 +19,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.22] - 2025-08-19
+
+### Added
+
+- New `claude-mpm mcp server` command for direct MCP server execution
+- Enhanced `claude-mpm mcp install` command with user-level configuration management
+- Cross-platform Claude Desktop configuration support (macOS, Windows, Linux)
+- Smart configuration detection and backup functionality
+
+### Changed
+
+- Moved MCP gateway from script-based to CLI-integrated approach
+- Enhanced MCP install command to configure Claude Desktop directly
+- Updated Claude Desktop configuration to use `claude-mpm mcp server` instead of wrapper scripts
+- Improved error handling and logging for MCP commands
+
+### Fixed
+
+- Resolved placeholder message issue in MCP install command
+- Fixed Python cache conflicts causing outdated command execution
+- Eliminated confusion between pipx and development installations
+
+### Removed
+
+- Removed dependency on wrapper scripts for MCP server execution
+- Cleaned up pipx installation to avoid version conflicts
+
+## [4.0.21] - 2025-08-19
+
+### Changed
+
+- Version increment for MCP gateway enhancements
+
 ## [4.0.20] - 2025-08-19
 
 ### Chore

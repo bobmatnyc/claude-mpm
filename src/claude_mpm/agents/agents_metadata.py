@@ -75,6 +75,56 @@ QA_CONFIG = {
     },
 }
 
+# API QA Agent Metadata
+API_QA_CONFIG = {
+    "name": "api_qa_agent",
+    "version": "1.0.0",
+    "type": "core_agent",
+    "capabilities": [
+        "rest_api_testing",
+        "graphql_testing",
+        "endpoint_validation",
+        "authentication_testing",
+        "authorization_testing",
+        "contract_testing",
+        "load_testing",
+        "api_performance_testing",
+    ],
+    "primary_interface": "api_testing_framework",
+    "performance_targets": {
+        "endpoint_validation": "2m",
+        "auth_flow_testing": "5m",
+        "load_testing": "10m",
+        "contract_validation": "5m",
+        "response_time_target": "200ms",
+    },
+}
+
+# Web QA Agent Metadata
+WEB_QA_CONFIG = {
+    "name": "web_qa_agent",
+    "version": "1.0.0",
+    "type": "core_agent",
+    "capabilities": [
+        "browser_automation",
+        "e2e_testing",
+        "ui_testing",
+        "responsive_testing",
+        "accessibility_testing",
+        "cross_browser_testing",
+        "performance_testing",
+        "visual_regression",
+    ],
+    "primary_interface": "browser_testing_framework",
+    "performance_targets": {
+        "e2e_test_suite": "15m",
+        "accessibility_audit": "5m",
+        "cross_browser_test": "20m",
+        "page_load_target": "2.5s",
+        "lighthouse_score": "90",
+    },
+}
+
 # Research Agent Metadata
 RESEARCH_CONFIG = {
     "name": "research_agent",
@@ -218,6 +268,8 @@ ALL_AGENT_CONFIGS = {
     "documentation": DOCUMENTATION_CONFIG,
     "version_control": VERSION_CONTROL_CONFIG,
     "qa": QA_CONFIG,
+    "api_qa": API_QA_CONFIG,
+    "web_qa": WEB_QA_CONFIG,
     "research": RESEARCH_CONFIG,
     "ops": OPS_CONFIG,
     "security": SECURITY_CONFIG,

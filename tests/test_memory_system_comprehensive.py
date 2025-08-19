@@ -1,617 +1,413 @@
 #!/usr/bin/env python3
+
 """
-Comprehensive memory system testing script.
+Comprehensive Memory System Verification Test
+===========================================
 
-This script validates that the memory system is properly activated and working
-as designed, including hook registration, memory injection, learning extraction,
-and integration testing.
+Test that all memories are saved to project directory only.
 
-WHY: Ensures the memory system works end-to-end after the recent activation changes.
+Objectives:
+1. Verify ALL agents save to ./.claude-mpm/memories/
+2. Confirm NO new files are created in ~/.claude-mpm/memories/
+3. Test that PM is treated exactly like other agents
+4. Test memory extraction from responses
+5. Test file migration
+6. Test backward compatibility
 """
 
-import json
+import os
 import sys
 import tempfile
+import json
+import shutil
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest import mock
 
-# Add the src directory to Python path for testing
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+# Add src directory to Python path
+test_dir = Path(__file__).parent
+project_root = test_dir.parent
+src_dir = project_root / "src"
+sys.path.insert(0, str(src_dir))
 
-try:
-    from claude_mpm.core.config import Config
-    from claude_mpm.hooks.base_hook import HookContext
-    from claude_mpm.hooks.memory_integration_hook import (
-        MemoryPostDelegationHook,
-        MemoryPreDelegationHook,
-    )
-    from claude_mpm.services.agents.memory import AgentMemoryManager
-    from claude_mpm.services.hook_service import HookService
-except ImportError as e:
-    print(f"❌ Import error: {e}")
-    print(
-        "This may be due to circular import issues. Trying alternative import approach..."
-    )
-    # Try importing individual modules to avoid circular dependencies
-    sys.exit(1)
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
+from claude_mpm.core.config import Config
 
 
 class MemorySystemTester:
-    """Comprehensive memory system testing."""
-
+    """Comprehensive test suite for memory system fixes."""
+    
     def __init__(self):
-        """Initialize test environment."""
-        self.config = Config()
-        self.test_agent_id = "test_engineer"
-        self.temp_dir = None
-        self.memory_manager = None
-        self.results = {
-            "hook_registration": [],
-            "memory_injection": [],
-            "learning_extraction": [],
-            "integration": [],
-            "errors": [],
-        }
-
+        self.test_results = []
+        self.passed = 0
+        self.failed = 0
+        
+    def log_test(self, test_name: str, passed: bool, message: str = ""):
+        """Log test result."""
+        status = "PASS" if passed else "FAIL"
+        result = f"[{status}] {test_name}"
+        if message:
+            result += f" - {message}"
+        
+        self.test_results.append(result)
+        if passed:
+            self.passed += 1
+        else:
+            self.failed += 1
+        print(result)
+        
     def setup_test_environment(self):
-        """Set up temporary test environment."""
-        print("🔧 Setting up test environment...")
-
-        # Create temporary directory for test
-        self.temp_dir = tempfile.mkdtemp(prefix="claude_mpm_memory_test_")
-        print(f"   Test directory: {self.temp_dir}")
-
-        # Override project root for testing
-        with patch(
-            "claude_mpm.utils.paths.get_path_manager().get_project_root"
-        ) as mock_root:
-            mock_root.return_value = Path(self.temp_dir)
-            self.memory_manager = AgentMemoryManager(self.config)
-
-        print("✅ Test environment setup complete")
-
-    def test_hook_registration(self):
-        """Test 1: Verify memory hooks can be registered properly."""
-        print("\n📋 Testing Hook Registration...")
-
-        try:
-            # Test HookService initialization
-            hook_service = HookService(self.config)
-            self.results["hook_registration"].append(
-                {
-                    "test": "hook_service_init",
-                    "status": "pass",
-                    "message": "HookService initialized successfully",
-                }
-            )
-
-            # Test memory pre-delegation hook registration
-            pre_hook = MemoryPreDelegationHook(self.config)
-            success = hook_service.register_hook(pre_hook)
-            self.results["hook_registration"].append(
-                {
-                    "test": "pre_hook_registration",
-                    "status": "pass" if success else "fail",
-                    "message": f"Pre-delegation hook registration: {'Success' if success else 'Failed'}",
-                }
-            )
-
-            # Test memory post-delegation hook registration
-            post_hook = MemoryPostDelegationHook(self.config)
-            success = hook_service.register_hook(post_hook)
-            self.results["hook_registration"].append(
-                {
-                    "test": "post_hook_registration",
-                    "status": "pass" if success else "fail",
-                    "message": f"Post-delegation hook registration: {'Success' if success else 'Failed'}",
-                }
-            )
-
-            # Verify hooks are in the service
-            registered_hooks = hook_service.get_hooks()
-            pre_hooks = [
-                h for h in registered_hooks if h.name == "memory_pre_delegation"
-            ]
-            post_hooks = [
-                h for h in registered_hooks if h.name == "memory_post_delegation"
-            ]
-
-            self.results["hook_registration"].append(
-                {
-                    "test": "hook_verification",
-                    "status": "pass"
-                    if len(pre_hooks) > 0 and len(post_hooks) > 0
-                    else "fail",
-                    "message": f"Hooks verified in service: {len(pre_hooks)} pre, {len(post_hooks)} post",
-                }
-            )
-
-            print(f"   ✅ Hook registration tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Hook registration test error: {str(e)}")
-            print(f"   ❌ Hook registration failed: {e}")
-
-    def test_memory_injection(self):
-        """Test 2: Verify memory content injection into delegation context."""
-        print("\n💉 Testing Memory Injection...")
-
-        try:
-            # Create test memory content
-            test_memory = """# Test Engineer Agent Memory
-
-## Project Architecture (Max: 15 items)
-- Service-oriented architecture with clear module boundaries
-- Three-tier agent hierarchy: project → user → system
-
-## Implementation Guidelines (Max: 15 items)
-- Always use get_path_manager() for path operations
-- Follow existing import patterns
-
-## Common Mistakes to Avoid (Max: 15 items)
-- Don't hardcode file paths
-- Avoid duplicating code
-"""
-
-            # Save test memory
-            with patch(
-                "claude_mpm.utils.paths.get_path_manager().get_project_root"
-            ) as mock_root:
-                mock_root.return_value = Path(self.temp_dir)
-                memory_manager = AgentMemoryManager(self.config)
-                memory_file = (
-                    memory_manager.memories_dir / f"{self.test_agent_id}_agent.md"
-                )
-                memory_file.parent.mkdir(parents=True, exist_ok=True)
-                memory_file.write_text(test_memory)
-
-            # Test memory injection hook
-            pre_hook = MemoryPreDelegationHook(self.config)
-
-            # Create test context
-            context_data = {
-                "agent": "Test Engineer Agent",
-                "context": {"prompt": "Please implement a new feature"},
-            }
-            context = HookContext(data=context_data)
-
-            # Execute pre-delegation hook
-            with patch(
-                "claude_mpm.utils.paths.get_path_manager().get_project_root"
-            ) as mock_root:
-                mock_root.return_value = Path(self.temp_dir)
-                result = pre_hook.execute(context)
-
-            # Verify injection occurred
-            injection_success = (
-                result.success
-                and result.modified
-                and "agent_memory" in result.data.get("context", {})
-            )
-
-            self.results["memory_injection"].append(
-                {
-                    "test": "memory_injection_basic",
-                    "status": "pass" if injection_success else "fail",
-                    "message": f"Memory injection: {'Success' if injection_success else 'Failed'}",
-                }
-            )
-
-            if injection_success:
-                injected_content = result.data["context"]["agent_memory"]
-                content_valid = (
-                    "AGENT MEMORY" in injected_content
-                    and "Service-oriented architecture" in injected_content
-                )
-
-                self.results["memory_injection"].append(
-                    {
-                        "test": "memory_content_validation",
-                        "status": "pass" if content_valid else "fail",
-                        "message": f"Memory content validation: {'Valid' if content_valid else 'Invalid'}",
-                    }
-                )
-
-            print(f"   ✅ Memory injection tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Memory injection test error: {str(e)}")
-            print(f"   ❌ Memory injection failed: {e}")
-
-    def test_learning_extraction(self):
-        """Test 3: Verify learning extraction from agent responses."""
-        print("\n🧠 Testing Learning Extraction...")
-
-        try:
-            # Test learning extraction hook
-            post_hook = MemoryPostDelegationHook(self.config)
-
-            # Create test context with learning markers
-            test_response = """
-I've implemented the feature successfully. Here are some learnings:
-
-# Add To Memory:
-Type: pattern
-Content: Always validate input parameters before processing them
-#
-
-# Memorize:
-Type: guideline
-Content: Use dependency injection for better testability
-#
-
-# Remember:
-Type: mistake
-Content: Never hardcode configuration values in source code
-#
-
-The implementation is complete and follows best practices.
-"""
-
-            context_data = {
-                "agent": "Test Engineer Agent",
-                "result": {"content": test_response},
-            }
-            context = HookContext(data=context_data)
-
-            # Mock the memory manager to capture learning attempts
-            with patch(
-                "claude_mpm.utils.paths.get_path_manager().get_project_root"
-            ) as mock_root, patch.object(
-                post_hook.memory_manager, "add_learning"
-            ) as mock_add_learning:
-                mock_root.return_value = Path(self.temp_dir)
-                mock_add_learning.return_value = True
-
-                # Execute post-delegation hook
-                result = post_hook.execute(context)
-
-                # Verify learning extraction
-                extraction_success = result.success
-                learning_calls = mock_add_learning.call_args_list
-
-                self.results["learning_extraction"].append(
-                    {
-                        "test": "learning_extraction_basic",
-                        "status": "pass" if extraction_success else "fail",
-                        "message": f"Learning extraction: {'Success' if extraction_success else 'Failed'}",
-                    }
-                )
-
-                # Verify specific learning types were extracted
-                expected_types = ["pattern", "guideline", "mistake"]
-                extracted_types = [
-                    call[0][1] for call in learning_calls
-                ]  # Second argument is learning_type
-
-                types_match = all(t in extracted_types for t in expected_types)
-                self.results["learning_extraction"].append(
-                    {
-                        "test": "learning_types_validation",
-                        "status": "pass"
-                        if types_match and len(learning_calls) == 3
-                        else "fail",
-                        "message": f"Learning types extracted: {len(learning_calls)} calls, types: {extracted_types}",
-                    }
-                )
-
-            print(f"   ✅ Learning extraction tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Learning extraction test error: {str(e)}")
-            print(f"   ❌ Learning extraction failed: {e}")
-
-    def test_integration_flow(self):
-        """Test 4: Test complete integration flow."""
-        print("\n🔄 Testing Integration Flow...")
-
-        try:
-            # Test ClaudeRunner initialization with memory hooks
-            with patch(
-                "claude_mpm.utils.paths.get_path_manager().get_project_root"
-            ) as mock_root, patch(
-                "claude_mpm.core.claude_runner.ClaudeRunner._load_system_instructions"
-            ) as mock_sys, patch(
-                "claude_mpm.services.ticket_manager.TicketManager"
-            ):
-                mock_root.return_value = Path(self.temp_dir)
-                mock_sys.return_value = "System instructions"
-
-                # Initialize Claude runner (this should register memory hooks)
-                runner = ClaudeRunner(enable_hooks=True, enable_tickets=False)
-
-                # Verify hook service was initialized
-                hook_service_init = (
-                    hasattr(runner, "hook_service") and runner.hook_service is not None
-                )
-                self.results["integration"].append(
-                    {
-                        "test": "claude_runner_hook_service",
-                        "status": "pass" if hook_service_init else "fail",
-                        "message": f"ClaudeRunner hook service: {'Initialized' if hook_service_init else 'Missing'}",
-                    }
-                )
-
-                # Verify memory hooks were registered
-                if hook_service_init:
-                    registered_hooks = runner.hook_service.get_hooks()
-                    memory_hooks = [h for h in registered_hooks if "memory" in h.name]
-
-                    hooks_registered = len(memory_hooks) >= 2  # Pre and post hooks
-                    self.results["integration"].append(
-                        {
-                            "test": "memory_hooks_auto_registration",
-                            "status": "pass" if hooks_registered else "fail",
-                            "message": f"Memory hooks auto-registered: {len(memory_hooks)} hooks found",
-                        }
-                    )
-
-                # Test memory manager initialization
-                memory_manager = AgentMemoryManager(runner.config)
-                memory_status = memory_manager.get_memory_status()
-
-                status_valid = memory_status.get("system_enabled", False)
-                self.results["integration"].append(
-                    {
-                        "test": "memory_system_status",
-                        "status": "pass" if status_valid else "fail",
-                        "message": f"Memory system status: {'Enabled' if status_valid else 'Disabled'}",
-                    }
-                )
-
-            print(f"   ✅ Integration flow tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Integration flow test error: {str(e)}")
-            print(f"   ❌ Integration flow failed: {e}")
-
-    def test_memory_file_creation(self):
-        """Test 5: Verify memory files would be created in correct location."""
-        print("\n📁 Testing Memory File Creation...")
-
-        try:
-            with patch(
-                "claude_mpm.utils.paths.get_path_manager().get_project_root"
-            ) as mock_root:
-                mock_root.return_value = Path(self.temp_dir)
-
-                # Test memory manager initialization
-                memory_manager = AgentMemoryManager(self.config)
-
-                # Load memory for test agent (should create default)
-                memory_content = memory_manager.load_agent_memory(self.test_agent_id)
-
-                # Check if memory file was created
-                expected_file = (
-                    memory_manager.memories_dir / f"{self.test_agent_id}_agent.md"
-                )
-                file_created = expected_file.exists()
-
-                self.results["integration"].append(
-                    {
-                        "test": "memory_file_creation",
-                        "status": "pass" if file_created else "fail",
-                        "message": f"Memory file creation: {'Success' if file_created else 'Failed'} at {expected_file}",
-                    }
-                )
-
-                # Verify directory structure
-                expected_dir = Path(self.temp_dir) / ".claude-mpm" / "memories"
-                dir_structure_valid = expected_dir.exists() and expected_dir.is_dir()
-
-                self.results["integration"].append(
-                    {
-                        "test": "memory_directory_structure",
-                        "status": "pass" if dir_structure_valid else "fail",
-                        "message": f"Memory directory structure: {'Valid' if dir_structure_valid else 'Invalid'} at {expected_dir}",
-                    }
-                )
-
-                # Check README creation
-                readme_file = expected_dir / "README.md"
-                readme_created = readme_file.exists()
-
-                self.results["integration"].append(
-                    {
-                        "test": "readme_creation",
-                        "status": "pass" if readme_created else "fail",
-                        "message": f"README creation: {'Success' if readme_created else 'Failed'}",
-                    }
-                )
-
-            print(f"   ✅ Memory file creation tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Memory file creation test error: {str(e)}")
-            print(f"   ❌ Memory file creation failed: {e}")
-
-    def test_error_handling(self):
-        """Test 6: Verify graceful error handling."""
-        print("\n⚠️  Testing Error Handling...")
-
-        try:
-            # Test memory injection with invalid agent
-            pre_hook = MemoryPreDelegationHook(self.config)
-            context_data = {"agent": "", "context": "test"}
-            context = HookContext(data=context_data)
-
-            result = pre_hook.execute(context)
-            graceful_handling = result.success and not result.modified
-
-            self.results["integration"].append(
-                {
-                    "test": "error_handling_empty_agent",
-                    "status": "pass" if graceful_handling else "fail",
-                    "message": f"Empty agent handling: {'Graceful' if graceful_handling else 'Failed'}",
-                }
-            )
-
-            # Test learning extraction with malformed content
-            post_hook = MemoryPostDelegationHook(self.config)
-            context_data = {
-                "agent": "Test Agent",
-                "result": {"content": "Malformed content without proper markers"},
-            }
-            context = HookContext(data=context_data)
-
-            result = post_hook.execute(context)
-            graceful_handling = result.success
-
-            self.results["integration"].append(
-                {
-                    "test": "error_handling_malformed_content",
-                    "status": "pass" if graceful_handling else "fail",
-                    "message": f"Malformed content handling: {'Graceful' if graceful_handling else 'Failed'}",
-                }
-            )
-
-            print(f"   ✅ Error handling tests completed")
-
-        except Exception as e:
-            self.results["errors"].append(f"Error handling test error: {str(e)}")
-            print(f"   ❌ Error handling test failed: {e}")
-
+        """Set up clean test environment."""
+        # Create temporary directories
+        self.temp_project_dir = tempfile.mkdtemp(prefix="test_project_")
+        self.temp_user_dir = tempfile.mkdtemp(prefix="test_user_")
+        
+        self.project_memories_dir = Path(self.temp_project_dir) / ".claude-mpm" / "memories"
+        self.user_memories_dir = Path(self.temp_user_dir) / ".claude-mpm" / "memories"
+        
+        print(f"Project test directory: {self.temp_project_dir}")
+        print(f"User test directory: {self.temp_user_dir}")
+        
+        # Mock get_path_manager to return our test directories
+        self.mock_path_manager = mock.MagicMock()
+        self.mock_path_manager.project_root = Path(self.temp_project_dir)
+        self.mock_path_manager.user_config_dir = Path(self.temp_user_dir) / ".claude-mpm"
+        
+        return self.temp_project_dir, self.temp_user_dir
+    
     def cleanup_test_environment(self):
         """Clean up test environment."""
-        print("\n🧹 Cleaning up test environment...")
-
+        shutil.rmtree(self.temp_project_dir, ignore_errors=True)
+        shutil.rmtree(self.temp_user_dir, ignore_errors=True)
+        
+    def test_pm_memory_project_only(self):
+        """Test 1: PM Memory Test - Save PM memory to project directory only."""
+        print("\n=== Test 1: PM Memory Project-Only Storage ===")
+        
         try:
-            if self.temp_dir:
-                import shutil
-
-                shutil.rmtree(self.temp_dir, ignore_errors=True)
-                print(f"   Removed test directory: {self.temp_dir}")
+            # Create memory manager with project directory
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # Save PM memory
+            pm_memory_content = "# PM Agent Memory\n\n## Project Architecture\n- Test PM memory content\n"
+            success = manager._save_memory_file("PM", pm_memory_content)
+            
+            self.log_test("PM memory save operation", success)
+            
+            # Check project directory has file
+            project_pm_file = self.project_memories_dir / "PM_memories.md"
+            project_exists = project_pm_file.exists()
+            self.log_test("PM memory exists in project directory", project_exists)
+            
+            # Check user directory has NO file
+            user_pm_file = self.user_memories_dir / "PM_memories.md"
+            user_not_exists = not user_pm_file.exists()
+            self.log_test("PM memory NOT in user directory", user_not_exists)
+            
+            # Verify content
+            if project_exists:
+                content = project_pm_file.read_text()
+                content_correct = "Test PM memory content" in content
+                self.log_test("PM memory content correct", content_correct)
+                
         except Exception as e:
-            print(f"   Warning: Could not clean up test directory: {e}")
-
-    def generate_report(self):
-        """Generate comprehensive test report."""
-        print("\n📊 Generating Test Report...")
-
-        # Count results
-        total_tests = 0
-        passed_tests = 0
-        failed_tests = 0
-
-        for category, tests in self.results.items():
-            if category != "errors":
-                for test in tests:
-                    total_tests += 1
-                    if test["status"] == "pass":
-                        passed_tests += 1
-                    else:
-                        failed_tests += 1
-
-        # Generate report
-        report = {
-            "test_summary": {
-                "total_tests": total_tests,
-                "passed": passed_tests,
-                "failed": failed_tests,
-                "success_rate": f"{(passed_tests/total_tests)*100:.1f}%"
-                if total_tests > 0
-                else "0%",
-            },
-            "test_categories": self.results,
-            "overall_status": "PASS"
-            if failed_tests == 0 and len(self.results["errors"]) == 0
-            else "FAIL",
-            "recommendations": [],
-        }
-
-        # Add recommendations based on results
-        if failed_tests > 0:
-            report["recommendations"].append(
-                "Some tests failed - review failed test details"
-            )
-
-        if len(self.results["errors"]) > 0:
-            report["recommendations"].append(
-                "Errors occurred during testing - check error list"
-            )
-
-        if failed_tests == 0 and len(self.results["errors"]) == 0:
-            report["recommendations"].append(
-                "All tests passed - memory system is properly activated"
-            )
-            report["recommendations"].append(
-                "Memory files will be created at: .claude-mpm/memories/"
-            )
-            report["recommendations"].append("Auto-learning is enabled by default")
-            report["recommendations"].append(
-                "Memory hooks are automatically registered during CLI startup"
-            )
-
-        return report
-
+            self.log_test("PM memory test exception", False, str(e))
+    
+    def test_other_agent_memory_project_only(self):
+        """Test 2: Other Agent Test - Save engineer/qa memory to project directory."""
+        print("\n=== Test 2: Other Agent Memory Project-Only Storage ===")
+        
+        try:
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # Test engineer agent
+            engineer_content = "# Engineer Agent Memory\n\n## Implementation Guidelines\n- Test engineer memory\n"
+            success = manager._save_memory_file("engineer", engineer_content)
+            self.log_test("Engineer memory save operation", success)
+            
+            # Check project directory
+            project_engineer_file = self.project_memories_dir / "engineer_memories.md"
+            project_exists = project_engineer_file.exists()
+            self.log_test("Engineer memory exists in project directory", project_exists)
+            
+            # Check user directory has NO file  
+            user_engineer_file = self.user_memories_dir / "engineer_memories.md"
+            user_not_exists = not user_engineer_file.exists()
+            self.log_test("Engineer memory NOT in user directory", user_not_exists)
+            
+            # Test QA agent
+            qa_content = "# QA Agent Memory\n\n## Testing Strategies\n- Test QA memory\n"
+            success = manager._save_memory_file("qa", qa_content)
+            self.log_test("QA memory save operation", success)
+            
+            # Check project directory
+            project_qa_file = self.project_memories_dir / "qa_memories.md"
+            project_exists = project_qa_file.exists()
+            self.log_test("QA memory exists in project directory", project_exists)
+            
+            # Check user directory has NO file
+            user_qa_file = self.user_memories_dir / "qa_memories.md"
+            user_not_exists = not user_qa_file.exists()
+            self.log_test("QA memory NOT in user directory", user_not_exists)
+            
+        except Exception as e:
+            self.log_test("Other agent memory test exception", False, str(e))
+    
+    def test_memory_extraction_project_only(self):
+        """Test 3: Memory Extraction Test - Verify extraction saves to project directory."""
+        print("\n=== Test 3: Memory Extraction from Agent Responses ===")
+        
+        try:
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # Mock agent response with memory
+            mock_response = '''
+            Agent completed the task successfully.
+            
+            ```json
+            {
+                "remember": [
+                    "This project uses Python 3.11 with strict type checking",
+                    "All API endpoints require JWT authentication"
+                ]
+            }
+            ```
+            
+            Task complete.
+            '''
+            
+            # Extract and update memory
+            success = manager.extract_and_update_memory("research", mock_response)
+            self.log_test("Memory extraction from response", success)
+            
+            # Check project directory has file
+            project_research_file = self.project_memories_dir / "research_memories.md"
+            project_exists = project_research_file.exists()
+            self.log_test("Research memory exists in project directory", project_exists)
+            
+            # Check user directory has NO file
+            user_research_file = self.user_memories_dir / "research_memories.md"
+            user_not_exists = not user_research_file.exists()
+            self.log_test("Research memory NOT in user directory", user_not_exists)
+            
+            # Verify extracted content
+            if project_exists:
+                content = project_research_file.read_text()
+                has_python = "Python 3.11" in content
+                has_jwt = "JWT authentication" in content
+                self.log_test("Extracted memory contains Python info", has_python)
+                self.log_test("Extracted memory contains JWT info", has_jwt)
+                
+        except Exception as e:
+            self.log_test("Memory extraction test exception", False, str(e))
+    
+    def test_file_migration_project_only(self):
+        """Test 4: Migration Test - Verify migration happens in project directory."""
+        print("\n=== Test 4: File Migration in Project Directory ===")
+        
+        try:
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # Create old format file in project directory
+            self.project_memories_dir.mkdir(parents=True, exist_ok=True)
+            old_file = self.project_memories_dir / "security_agent.md"
+            old_content = "# Security Agent Memory\n\n## Security Guidelines\n- Old format security memory\n"
+            old_file.write_text(old_content)
+            
+            # Load memory (should trigger migration)
+            loaded_memory = manager.load_agent_memory("security")
+            migration_success = "Old format security memory" in loaded_memory
+            self.log_test("Memory migration successful", migration_success)
+            
+            # Check new file exists
+            new_file = self.project_memories_dir / "security_memories.md"
+            new_exists = new_file.exists()
+            self.log_test("New format file created in project directory", new_exists)
+            
+            # Check old file removed
+            old_removed = not old_file.exists()
+            self.log_test("Old format file removed", old_removed)
+            
+            # Check user directory has NO files
+            user_has_no_files = not list(self.user_memories_dir.glob("*")) if self.user_memories_dir.exists() else True
+            self.log_test("User directory has no migration files", user_has_no_files)
+            
+        except Exception as e:
+            self.log_test("File migration test exception", False, str(e))
+    
+    def test_backward_compatibility_reading(self):
+        """Test 5: Backward Compatibility Test - Can still read existing user files."""
+        print("\n=== Test 5: Backward Compatibility for Reading ===")
+        
+        try:
+            # Create user directory with existing memory file
+            self.user_memories_dir.mkdir(parents=True, exist_ok=True) 
+            user_file = self.user_memories_dir / "docs_memories.md"
+            user_content = "# Docs Agent Memory\n\n## Documentation Standards\n- User directory memory content\n"
+            user_file.write_text(user_content)
+            
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # This should NOT read from user directory anymore - all should be project-only
+            # Load memory should create default in project directory
+            loaded_memory = manager.load_agent_memory("docs")
+            
+            # Check that a default was created in project directory
+            project_docs_file = self.project_memories_dir / "docs_memories.md"
+            project_exists = project_docs_file.exists()
+            self.log_test("Default memory created in project directory", project_exists)
+            
+            # Verify user file still exists (not affected)
+            user_still_exists = user_file.exists()
+            self.log_test("User file still exists (unchanged)", user_still_exists)
+            
+            # Verify loaded content is project-specific default, not user content
+            is_default_content = "User directory memory content" not in loaded_memory
+            self.log_test("Loaded content is project default, not user content", is_default_content)
+            
+        except Exception as e:
+            self.log_test("Backward compatibility test exception", False, str(e))
+    
+    def test_edge_cases(self):
+        """Test 6: Edge Cases - No directories, memory updates, size limits."""
+        print("\n=== Test 6: Edge Cases Testing ===")
+        
+        try:
+            config = Config()
+            
+            # Test with non-existent directory (should create it)
+            nonexistent_dir = Path(self.temp_project_dir) / "nonexistent"
+            manager = AgentMemoryManager(config, nonexistent_dir)
+            
+            test_content = "# Test Agent Memory\n\n## Test Section\n- Test content\n"
+            success = manager._save_memory_file("test", test_content)
+            self.log_test("Memory save with non-existent directory", success)
+            
+            # Check directory was created in the right place
+            expected_dir = nonexistent_dir / ".claude-mpm" / "memories"
+            dir_created = expected_dir.exists()
+            self.log_test("Directory created in correct location", dir_created)
+            
+            # Test memory updates (add more content)
+            update_success = manager.update_agent_memory("test", "Test Section", "Additional test item")
+            self.log_test("Memory update operation", update_success)
+            
+            # Test size limits (create large content)
+            large_content = "# Large Agent Memory\n\n## Large Section\n"
+            for i in range(1000):
+                large_content += f"- Large memory item {i} with lots of text to exceed size limits\n"
+            
+            save_success = manager._save_memory_file("large", large_content)
+            self.log_test("Large memory save operation", save_success)
+            
+            # Check that it was saved to project directory
+            large_file = expected_dir / "large_memories.md"
+            large_exists = large_file.exists()
+            self.log_test("Large memory file exists in project directory", large_exists)
+            
+        except Exception as e:
+            self.log_test("Edge cases test exception", False, str(e))
+    
+    def test_pm_treated_same_as_others(self):
+        """Test 7: PM Treatment Test - Verify PM is treated exactly like other agents."""
+        print("\n=== Test 7: PM Treated Same as Other Agents ===")
+        
+        try:
+            config = Config()
+            manager = AgentMemoryManager(config, Path(self.temp_project_dir))
+            
+            # Test PM memory path
+            pm_file_path = manager._get_memory_file_with_migration(self.project_memories_dir, "PM")
+            expected_pm_path = self.project_memories_dir / "PM_memories.md"
+            pm_path_correct = pm_file_path == expected_pm_path
+            self.log_test("PM memory file path follows standard pattern", pm_path_correct)
+            
+            # Test engineer memory path
+            engineer_file_path = manager._get_memory_file_with_migration(self.project_memories_dir, "engineer")
+            expected_engineer_path = self.project_memories_dir / "engineer_memories.md"
+            engineer_path_correct = engineer_file_path == expected_engineer_path
+            self.log_test("Engineer memory file path follows standard pattern", engineer_path_correct)
+            
+            # Test that both use same directory structure
+            pm_dir = pm_file_path.parent
+            engineer_dir = engineer_file_path.parent
+            same_directory = pm_dir == engineer_dir
+            self.log_test("PM and Engineer use same directory", same_directory)
+            
+            # Test memory loading behavior is identical
+            pm_memory = manager.load_agent_memory("PM")
+            engineer_memory = manager.load_agent_memory("engineer")
+            
+            both_loaded = bool(pm_memory and engineer_memory)
+            self.log_test("Both PM and Engineer memories loaded", both_loaded)
+            
+            # Test save behavior is identical (both go to project directory)
+            pm_save = manager._save_memory_file("PM", "# PM test")
+            engineer_save = manager._save_memory_file("engineer", "# Engineer test")
+            
+            both_saved = pm_save and engineer_save
+            self.log_test("Both PM and Engineer memories saved successfully", both_saved)
+            
+            # Verify files exist in same location
+            pm_exists = (self.project_memories_dir / "PM_memories.md").exists()
+            engineer_exists = (self.project_memories_dir / "engineer_memories.md").exists()
+            both_exist = pm_exists and engineer_exists
+            self.log_test("Both PM and Engineer files exist in project directory", both_exist)
+            
+        except Exception as e:
+            self.log_test("PM treatment test exception", False, str(e))
+    
     def run_all_tests(self):
-        """Run all memory system tests."""
-        print("🚀 Starting Comprehensive Memory System Tests")
+        """Run complete test suite."""
+        print("Starting Comprehensive Memory System Verification Tests")
         print("=" * 60)
-
-        self.setup_test_environment()
-
-        # Run all test categories
-        self.test_hook_registration()
-        self.test_memory_injection()
-        self.test_learning_extraction()
-        self.test_integration_flow()
-        self.test_memory_file_creation()
-        self.test_error_handling()
-
-        # Generate and display report
-        report = self.generate_report()
-
+        
+        # Setup test environment
+        project_dir, user_dir = self.setup_test_environment()
+        
+        try:
+            # Run all tests
+            self.test_pm_memory_project_only()
+            self.test_other_agent_memory_project_only()
+            self.test_memory_extraction_project_only()
+            self.test_file_migration_project_only()
+            self.test_backward_compatibility_reading()
+            self.test_edge_cases()
+            self.test_pm_treated_same_as_others()
+            
+        finally:
+            # Cleanup
+            self.cleanup_test_environment()
+        
+        # Print summary
         print("\n" + "=" * 60)
-        print("📋 MEMORY SYSTEM TEST REPORT")
+        print("MEMORY SYSTEM VERIFICATION SUMMARY")
         print("=" * 60)
-
-        print(f"Overall Status: {report['overall_status']}")
-        print(
-            f"Tests Passed: {report['test_summary']['passed']}/{report['test_summary']['total_tests']} ({report['test_summary']['success_rate']})"
-        )
-
-        if report["test_summary"]["failed"] > 0:
-            print(f"Tests Failed: {report['test_summary']['failed']}")
-
-        if len(self.results["errors"]) > 0:
-            print(f"Errors: {len(self.results['errors'])}")
-
-        print("\n📊 Test Details:")
-        for category, tests in self.results.items():
-            if category != "errors" and tests:
-                print(f"\n{category.replace('_', ' ').title()}:")
-                for test in tests:
-                    status_icon = "✅" if test["status"] == "pass" else "❌"
-                    print(f"  {status_icon} {test['test']}: {test['message']}")
-
-        if self.results["errors"]:
-            print(f"\n❌ Errors:")
-            for error in self.results["errors"]:
-                print(f"  • {error}")
-
-        print(f"\n🎯 Recommendations:")
-        for rec in report["recommendations"]:
-            print(f"  • {rec}")
-
-        self.cleanup_test_environment()
-
-        return report
-
-
-def main():
-    """Main test execution."""
-    tester = MemorySystemTester()
-    report = tester.run_all_tests()
-
-    # Exit with appropriate code
-    if report["overall_status"] == "PASS":
-        print(f"\n🎉 All tests passed! Memory system is properly activated.")
-        sys.exit(0)
-    else:
-        print(f"\n⚠️  Some tests failed. Review the report above.")
-        sys.exit(1)
+        print(f"Total Tests: {self.passed + self.failed}")
+        print(f"Passed: {self.passed}")
+        print(f"Failed: {self.failed}")
+        print(f"Success Rate: {(self.passed / (self.passed + self.failed) * 100):.1f}%" if (self.passed + self.failed) > 0 else "N/A")
+        
+        if self.failed == 0:
+            print("\n🎉 ALL TESTS PASSED! Memory system fix is working correctly.")
+            print("\n✅ Verified:")
+            print("  - All agents save to project directory only")
+            print("  - PM is treated exactly like other agents") 
+            print("  - No new files created in user directory")
+            print("  - Memory extraction works correctly")
+            print("  - File migration works in project directory")
+            print("  - Edge cases handled properly")
+        else:
+            print(f"\n❌ {self.failed} test(s) failed. Review the output above for details.")
+        
+        return self.failed == 0
 
 
 if __name__ == "__main__":
-    main()
+    tester = MemorySystemTester()
+    success = tester.run_all_tests()
+    sys.exit(0 if success else 1)

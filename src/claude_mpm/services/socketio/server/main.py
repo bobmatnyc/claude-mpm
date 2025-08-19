@@ -117,11 +117,30 @@ class SocketIOServer(SocketIOServiceInterface):
             server=self,  # Pass server reference for event history access
         )
 
-        # Set the loop reference for broadcaster
-        self.broadcaster.loop = self.core.loop
+        # Wait for the event loop to be initialized in the background thread
+        # WHY: The core server starts in a background thread and creates the event
+        # loop asynchronously. We must wait for it to be ready before using it.
+        max_wait = 5.0  # Maximum wait time in seconds
+        wait_interval = 0.1  # Check interval
+        waited = 0.0
         
-        # Start the retry processor for resilient event delivery
-        self.broadcaster.start_retry_processor()
+        while self.core.loop is None and waited < max_wait:
+            time.sleep(wait_interval)
+            waited += wait_interval
+        
+        if self.core.loop is None:
+            self.logger.warning(
+                f"Event loop not initialized after {max_wait}s wait. "
+                "Retry processor may not function correctly."
+            )
+        else:
+            self.logger.debug(f"Event loop ready after {waited:.1f}s")
+            
+            # Set the loop reference for broadcaster
+            self.broadcaster.loop = self.core.loop
+            
+            # Start the retry processor for resilient event delivery
+            self.broadcaster.start_retry_processor()
 
         # Register events
         self._register_events()

@@ -1,0 +1,36 @@
+#!/usr/bin/env python3
+"""
+Wrapper script to simulate installed mcp-vector-search command.
+This allows testing the tool on other projects as if it were installed.
+"""
+
+import sys
+import os
+import subprocess
+
+# Path to the development environment
+MCP_VECTOR_SEARCH_ROOT = "/Users/masa/Projects/managed/mcp-vector-search"
+VENV_PYTHON = os.path.join(MCP_VECTOR_SEARCH_ROOT, ".venv", "bin", "python3")
+MCP_SCRIPT = os.path.join(MCP_VECTOR_SEARCH_ROOT, ".venv", "bin", "mcp-vector-search")
+
+# Check if the development environment exists
+if not os.path.exists(VENV_PYTHON):
+    print(f"Error: Development environment not found at {MCP_VECTOR_SEARCH_ROOT}")
+    print("Make sure the project is set up with: cd /Users/masa/Projects/managed/mcp-vector-search && uv sync")
+    sys.exit(1)
+
+if not os.path.exists(MCP_SCRIPT):
+    print(f"Error: mcp-vector-search script not found at {MCP_SCRIPT}")
+    print("Make sure the project is installed in development mode")
+    sys.exit(1)
+
+# Save current directory and execute the script
+current_dir = os.getcwd()
+try:
+    result = subprocess.run([MCP_SCRIPT] + sys.argv[1:], check=False, cwd=os.getcwd())
+    # Ensure we are still in the original directory
+    os.chdir(current_dir)
+    sys.exit(result.returncode)
+except Exception as e:
+    print(f"Error running mcp-vector-search: {e}")
+    sys.exit(1)

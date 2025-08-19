@@ -26,7 +26,7 @@ if not os.path.exists(MCP_SCRIPT):
 
 # Execute the actual mcp-vector-search script with the virtual environment
 try:
-    result = subprocess.run([MCP_SCRIPT] + sys.argv[1:], check=False)
+    result = subprocess.run([MCP_SCRIPT] + sys.argv[1:], check=False, cwd=os.getcwd())
     sys.exit(result.returncode)
 except Exception as e:
     print(f"Error running mcp-vector-search: {e}")
