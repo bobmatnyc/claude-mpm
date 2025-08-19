@@ -15,7 +15,8 @@ This module provides:
 import logging
 import re
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from difflib import SequenceMatcher
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class MemoryContentManager:
@@ -43,11 +44,13 @@ class MemoryContentManager:
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     def add_item_to_section(self, content: str, section: str, new_item: str) -> str:
-        """Add item to specified section, respecting limits.
+        """Add item to specified section with NLP-based deduplication.
 
         WHY: Each section has a maximum item limit to prevent information overload
-        and maintain readability. When limits are reached, oldest items are removed
-        to make room for new learnings (FIFO strategy).
+        and maintain readability. Additionally, we use NLP-based similarity detection
+        to prevent duplicate or highly similar items from cluttering the memory.
+        When similar items are found (>80% similarity), the newer item replaces the
+        older one to maintain recency while avoiding redundancy.
 
         Args:
             content: Current memory file content
@@ -55,7 +58,7 @@ class MemoryContentManager:
             new_item: Item to add
 
         Returns:
-            str: Updated content with new item added
+            str: Updated content with new item added and duplicates removed
         """
         lines = content.split("\n")
         section_start = None
@@ -76,7 +79,34 @@ class MemoryContentManager:
         if section_end is None:
             section_end = len(lines)
 
-        # Count existing items in section and find first item index
+        # Ensure line length limit (account for "- " prefix)
+        max_item_length = (
+            self.memory_limits["max_line_length"] - 2
+        )  # Subtract 2 for "- " prefix
+        if len(new_item) > max_item_length:
+            new_item = new_item[: max_item_length - 3] + "..."
+
+        # Check for duplicates or similar items using NLP similarity
+        items_to_remove = []
+        for i in range(section_start + 1, section_end):
+            if lines[i].strip().startswith("- "):
+                existing_item = lines[i].strip()[2:]  # Remove "- " prefix
+                similarity = self._calculate_similarity(existing_item, new_item)
+                
+                # If highly similar (>80%), mark for removal
+                if similarity > 0.8:
+                    items_to_remove.append(i)
+                    self.logger.debug(
+                        f"Found similar item (similarity={similarity:.2f}): "
+                        f"replacing '{existing_item[:50]}...' with '{new_item[:50]}...'"
+                    )
+
+        # Remove similar items (in reverse order to maintain indices)
+        for idx in reversed(items_to_remove):
+            lines.pop(idx)
+            section_end -= 1
+
+        # Count remaining items after deduplication
         item_count = 0
         first_item_index = None
         for i in range(section_start + 1, section_end):
@@ -85,7 +115,7 @@ class MemoryContentManager:
                     first_item_index = i
                 item_count += 1
 
-        # Check if we can add more items
+        # Check if we need to remove oldest item due to section limits
         if item_count >= self.memory_limits["max_items_per_section"]:
             # Remove oldest item (first one) to make room
             if first_item_index is not None:
@@ -99,13 +129,6 @@ class MemoryContentManager:
             or lines[insert_point].strip().startswith("<!--")
         ):
             insert_point += 1
-
-        # Ensure line length limit (account for "- " prefix)
-        max_item_length = (
-            self.memory_limits["max_line_length"] - 2
-        )  # Subtract 2 for "- " prefix
-        if len(new_item) > max_item_length:
-            new_item = new_item[: max_item_length - 3] + "..."
 
         lines.insert(insert_point, f"- {new_item}")
 
@@ -334,6 +357,113 @@ class MemoryContentManager:
             sections[current_section] = current_items
 
         return sections
+
+    def _calculate_similarity(self, str1: str, str2: str) -> float:
+        """Calculate similarity between two strings using fuzzy matching.
+
+        WHY: We use difflib's SequenceMatcher for lightweight NLP-based similarity
+        detection. This avoids heavy ML dependencies while still providing effective
+        duplicate detection. The algorithm finds the longest contiguous matching
+        subsequences and calculates a ratio between 0 and 1.
+
+        DESIGN DECISION: We normalize strings before comparison by:
+        - Converting to lowercase for case-insensitive matching
+        - Stripping whitespace to ignore formatting differences
+        - This balances accuracy with performance for real-time deduplication
+
+        Args:
+            str1: First string to compare
+            str2: Second string to compare
+
+        Returns:
+            float: Similarity score between 0 (completely different) and 1 (identical)
+        """
+        # Normalize strings for comparison
+        str1_normalized = str1.lower().strip()
+        str2_normalized = str2.lower().strip()
+        
+        # Handle exact matches quickly
+        if str1_normalized == str2_normalized:
+            return 1.0
+        
+        # Use SequenceMatcher for fuzzy matching
+        # None as first param tells it to use automatic junk heuristic
+        matcher = SequenceMatcher(None, str1_normalized, str2_normalized)
+        similarity = matcher.ratio()
+        
+        # Additional check: if one string contains the other (substring match)
+        # This catches cases where one item is a more detailed version of another
+        if len(str1_normalized) > 20 and len(str2_normalized) > 20:
+            if str1_normalized in str2_normalized or str2_normalized in str1_normalized:
+                # Boost similarity for substring matches
+                similarity = max(similarity, 0.85)
+        
+        return similarity
+
+    def deduplicate_section(self, content: str, section: str) -> Tuple[str, int]:
+        """Deduplicate items within a section using NLP similarity.
+
+        WHY: Over time, sections can accumulate similar or duplicate items from
+        different sessions. This method cleans up existing sections by removing
+        similar items while preserving the most recent/relevant ones.
+
+        Args:
+            content: Current memory file content
+            section: Section name to deduplicate
+
+        Returns:
+            Tuple of (updated content, number of items removed)
+        """
+        lines = content.split("\n")
+        section_start = None
+        section_end = None
+        
+        # Find section boundaries
+        for i, line in enumerate(lines):
+            if line.startswith(f"## {section}"):
+                section_start = i
+            elif section_start is not None and line.startswith("## "):
+                section_end = i
+                break
+        
+        if section_start is None:
+            return content, 0  # Section not found
+        
+        if section_end is None:
+            section_end = len(lines)
+        
+        # Collect all items in the section
+        items = []
+        item_indices = []
+        for i in range(section_start + 1, section_end):
+            if lines[i].strip().startswith("- "):
+                items.append(lines[i].strip()[2:])  # Remove "- " prefix
+                item_indices.append(i)
+        
+        # Find duplicates using pairwise comparison
+        duplicates_to_remove = set()
+        for i in range(len(items)):
+            if i in duplicates_to_remove:
+                continue
+            for j in range(i + 1, len(items)):
+                if j in duplicates_to_remove:
+                    continue
+                similarity = self._calculate_similarity(items[i], items[j])
+                if similarity > 0.8:
+                    # Remove the older item (lower index)
+                    duplicates_to_remove.add(i)
+                    self.logger.debug(
+                        f"Deduplicating: '{items[i][:50]}...' "
+                        f"(keeping newer: '{items[j][:50]}...')"
+                    )
+                    break  # Move to next item
+        
+        # Remove duplicates (in reverse order to maintain indices)
+        removed_count = len(duplicates_to_remove)
+        for idx in sorted(duplicates_to_remove, reverse=True):
+            lines.pop(item_indices[idx])
+        
+        return "\n".join(lines), removed_count
 
     def validate_memory_size(self, content: str) -> tuple[bool, Optional[str]]:
         """Validate memory content size and structure.
