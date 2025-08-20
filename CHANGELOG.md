@@ -11,76 +11,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-### Deprecated
+### Fixed
 
 ### Removed
 
-### Fixed
-
-### Security
-
-## [4.0.23] - 2025-08-20
-
-### Added
-- Memory protection mechanism to prevent reading large cached agent responses
-- Memory aggregation and deduplication improvements for agent memory system
-- Format update for memory system to use simple list format
-- Test suite for memory aggregation functionality
-
-### Fixed
-- NLP-based memory deduplication to reduce duplicate entries
-- Memory file size growth issue with cached agent response data
-- Framework loader to properly validate and clean memory entries
-
-### Changed
-- Memory format standardized to simple list format for better processing
-- Framework loader enhanced with memory protection and validation
-
-## [4.0.22] - 2025-08-19
+## v4.0.24 (2025-08-20)
 
 ### Added
 
-- New `claude-mpm mcp server` command for direct MCP server execution
-- Enhanced `claude-mpm mcp install` command with user-level configuration management
-- Cross-platform Claude Desktop configuration support (macOS, Windows, Linux)
-- Smart configuration detection and backup functionality
-
-### Changed
-
-- Moved MCP gateway from script-based to CLI-integrated approach
-- Enhanced MCP install command to configure Claude Desktop directly
-- Updated Claude Desktop configuration to use `claude-mpm mcp server` instead of wrapper scripts
-- Improved error handling and logging for MCP commands
-
-### Fixed
-
-- Resolved placeholder message issue in MCP install command
-- Fixed Python cache conflicts causing outdated command execution
-- Eliminated confusion between pipx and development installations
-
-### Removed
-
-- Removed dependency on wrapper scripts for MCP server execution
-- Cleaned up pipx installation to avoid version conflicts
-
-## [4.0.21] - 2025-08-19
-
-### Changed
-
-- Version increment for MCP gateway enhancements
-
-## [4.0.20] - 2025-08-19
-
-### Chore
-
-- add comprehensive .gitignore for .mcp-vector-search directory
-- remove large binary files from repository to comply with GitHub size limits
-- improve repository hygiene by excluding vector search data from version control
-
-## [4.0.19] - 2025-08-19
+- comprehensive unit tests for memory command functionality with 28% coverage
 
 ### Fix
 
+- update MCP installation to use claude-mcp command instead of Python script
+
+## v4.0.23 (2025-08-20)
+
+### Feat
+
+- add comprehensive memory protection to all file-processing agents
+
+## v4.0.22 (2025-08-19)
+
+### Fix
+
+- implement NLP-based memory deduplication and standardize simple list format
+- implement NLP-based memory deduplication and standardize simple list format
+- correct version format in CHANGELOG.md for 4.0.19
 - add memory management instructions to QA agent
 
 ### Refactor
