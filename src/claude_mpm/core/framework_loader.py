@@ -640,9 +640,10 @@ class FrameworkLoader:
         Aggregate multiple memory entries into a single memory string.
         
         Strategy:
-        - Parse memories by sections
-        - Merge sections, with project-level taking precedence
-        - Remove exact duplicates within sections
+        - Support both sectioned and non-sectioned memories
+        - Preserve all bullet-point items (lines starting with -)
+        - Merge sections when present, with project-level taking precedence
+        - Remove exact duplicates within sections and unsectioned items
         - Preserve unique entries from both sources
         
         Args:
@@ -658,15 +659,16 @@ class FrameworkLoader:
         if len(memory_entries) == 1:
             return memory_entries[0]["content"]
         
-        # Parse all memories into sections
+        # Parse all memories into sections and unsectioned items
         all_sections = {}
+        unsectioned_items = {}  # Items without a section header
         metadata_lines = []
         
         for entry in memory_entries:
             content = entry["content"]
             source = entry["source"]
             
-            # Parse content into sections
+            # Parse content into sections and unsectioned items
             current_section = None
             current_items = []
             
@@ -690,11 +692,25 @@ class FrameworkLoader:
                     # Start new section
                     current_section = line
                     current_items = []
-                # Check for content lines (skip empty lines)
-                elif line.strip() and current_section:
-                    current_items.append(line)
+                # Check for content lines (including unsectioned bullet points)
+                elif line.strip():
+                    # If it's a bullet point or regular content
+                    if current_section:
+                        # Add to current section
+                        current_items.append(line)
+                    elif line.strip().startswith('-'):
+                        # It's an unsectioned bullet point - preserve it
+                        # Use content as key to detect duplicates
+                        # Project source overrides user source
+                        if line not in unsectioned_items or source == "project":
+                            unsectioned_items[line] = source
+                    # Skip other non-bullet unsectioned content (like headers)
+                    elif not line.strip().startswith('#'):
+                        # Include non-header orphaned content in unsectioned items
+                        if line not in unsectioned_items or source == "project":
+                            unsectioned_items[line] = source
             
-            # Save last section
+            # Save last section if exists
             if current_section and current_items:
                 if current_section not in all_sections:
                     all_sections[current_section] = {}
@@ -716,6 +732,13 @@ class FrameworkLoader:
         lines.append("")
         lines.append("*This memory combines user-level and project-level memories.*")
         lines.append("")
+        
+        # Add unsectioned items first (if any)
+        if unsectioned_items:
+            # Sort items to ensure consistent output
+            for item in sorted(unsectioned_items.keys()):
+                lines.append(item)
+            lines.append("")  # Empty line after unsectioned items
         
         # Add sections
         for section_header in sorted(all_sections.keys()):
