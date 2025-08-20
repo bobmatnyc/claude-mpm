@@ -119,7 +119,7 @@ asyncio_mode = "auto"
 
 [tool.commitizen]
 name = "cz_conventional_commits"
-version = "4.0.22"
+version = "4.0.23"
 version_files = [
     "VERSION",
     "src/claude_mpm/VERSION",

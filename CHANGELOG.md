@@ -19,6 +19,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.23] - 2025-08-20
+
+### Added
+- Memory protection mechanism to prevent reading large cached agent responses
+- Memory aggregation and deduplication improvements for agent memory system
+- Format update for memory system to use simple list format
+- Test suite for memory aggregation functionality
+
+### Fixed
+- NLP-based memory deduplication to reduce duplicate entries
+- Memory file size growth issue with cached agent response data
+- Framework loader to properly validate and clean memory entries
+
+### Changed
+- Memory format standardized to simple list format for better processing
+- Framework loader enhanced with memory protection and validation
+
 ## [4.0.22] - 2025-08-19
 
 ### Added
