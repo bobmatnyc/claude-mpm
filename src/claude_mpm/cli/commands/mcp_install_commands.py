@@ -20,7 +20,7 @@ class MCPInstallCommands:
         """Install and configure MCP gateway.
 
         WHY: This command installs the MCP package dependencies and configures
-        Claude Desktop to use the MCP gateway server directly via the CLI command.
+        Claude Code to use the MCP gateway server directly via the CLI command.
 
         DESIGN DECISION: We handle both package installation and configuration
         in one command for user convenience, using the new direct CLI approach.
@@ -44,15 +44,15 @@ class MCPInstallCommands:
                 print("\nPlease install manually with: pip install mcp")
                 return 1
 
-        # Step 2: Configure Claude Desktop with the new CLI command
-        print("\n2️⃣  Configuring Claude Desktop...")
+        # Step 2: Configure Claude Code with the new CLI command
+        print("\n2️⃣  Configuring Claude Code...")
         try:
             success = self._configure_claude_desktop(args.force)
             if success:
                 print("✅ Configuration completed successfully")
                 print("\n🎉 MCP Gateway is ready to use!")
                 print("\nNext steps:")
-                print("1. Restart Claude Desktop")
+                print("1. Restart Claude Code")
                 print("2. Test the server: claude-mpm mcp server --test")
                 print("3. Check status: claude-mpm mcp status")
                 return 0
@@ -65,7 +65,7 @@ class MCPInstallCommands:
             return 1
 
     def _configure_claude_desktop(self, force=False):
-        """Configure Claude Desktop to use the MCP gateway via CLI command.
+        """Configure Claude Code to use the MCP gateway via CLI command.
 
         Args:
             force: Whether to overwrite existing configuration
@@ -78,10 +78,10 @@ class MCPInstallCommands:
         from pathlib import Path
         from datetime import datetime
 
-        # Determine Claude Desktop config path based on platform
+        # Determine Claude Code config path
         config_path = self._get_claude_config_path()
         if not config_path:
-            print("❌ Could not determine Claude Desktop configuration path")
+            print("❌ Could not determine Claude Code configuration path")
             return False
 
         print(f"   Configuration path: {config_path}")
@@ -97,14 +97,27 @@ class MCPInstallCommands:
             print("❌ Could not find claude-mpm executable")
             return False
 
-        mcp_config = {
-            "command": claude_mpm_path,
-            "args": ["mcp", "server"],
-            "env": {
-                "PYTHONPATH": str(Path(__file__).parent.parent.parent.parent),
-                "MCP_MODE": "production"
+        # Determine if we need to use -m claude_mpm or direct command
+        if claude_mpm_path.endswith(('python', 'python3', 'python.exe', 'python3.exe')):
+            # Using Python interpreter directly
+            mcp_config = {
+                "command": claude_mpm_path,
+                "args": ["-m", "claude_mpm", "mcp", "server"],
+                "env": {
+                    "PYTHONPATH": str(Path(__file__).parent.parent.parent.parent),
+                    "MCP_MODE": "production"
+                }
             }
-        }
+        else:
+            # Using installed claude-mpm command
+            mcp_config = {
+                "command": claude_mpm_path,
+                "args": ["mcp", "server"],
+                "env": {
+                    "PYTHONPATH": str(Path(__file__).parent.parent.parent.parent),
+                    "MCP_MODE": "production"
+                }
+            }
 
         # Update configuration
         if "mcpServers" not in config:
@@ -121,53 +134,66 @@ class MCPInstallCommands:
         return self._save_config(config, config_path)
 
     def _get_claude_config_path(self):
-        """Get the Claude Desktop configuration file path based on platform.
+        """Get the Claude Code configuration file path.
 
         Returns:
-            Path or None: Path to Claude Desktop config file
+            Path or None: Path to Claude Code config file
         """
-        import platform
         from pathlib import Path
 
-        system = platform.system()
-
-        if system == "Darwin":  # macOS
-            return Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
-        elif system == "Windows":
-            return Path.home() / "AppData" / "Roaming" / "Claude" / "claude_desktop_config.json"
-        elif system == "Linux":
-            return Path.home() / ".config" / "Claude" / "claude_desktop_config.json"
-        else:
-            print(f"❌ Unsupported platform: {system}")
-            return None
+        # Claude Code uses ~/.claude/settings.local.json regardless of platform
+        return Path.home() / ".claude" / "settings.local.json"
 
     def _find_claude_mpm_executable(self):
         """Find the claude-mpm executable path.
+
+        WHY: We need to find the installed claude-mpm command to use as the
+        MCP server command. This ensures we're using the properly installed
+        version with all dependencies, not a raw Python script.
+
+        DESIGN DECISION: We prioritize in this order:
+        1. System-installed claude-mpm (most reliable)
+        2. Virtual environment claude-mpm (development)
+        3. Python module invocation (fallback)
 
         Returns:
             str or None: Path to claude-mpm executable
         """
         import shutil
         import sys
+        import os
 
-        # Try to find claude-mpm in PATH
+        # 1. Try to find claude-mpm in PATH (system-wide or venv)
         claude_mpm_path = shutil.which("claude-mpm")
         if claude_mpm_path:
+            print(f"   Found claude-mpm: {claude_mpm_path}")
             return claude_mpm_path
 
-        # If not in PATH, try using python -m claude_mpm
-        # This works if claude-mpm is installed in the current Python environment
+        # 2. Check if we're in a virtual environment
+        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+            # We're in a virtual environment
+            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+            venv_claude_mpm = venv_bin / "claude-mpm"
+            if venv_claude_mpm.exists():
+                print(f"   Found claude-mpm in venv: {venv_claude_mpm}")
+                return str(venv_claude_mpm)
+
+        # 3. Check if claude_mpm module is installed and use Python to run it
         try:
             import claude_mpm
-            return f"{sys.executable} -m claude_mpm"
+            # Return the Python executable - we'll handle the -m args separately
+            print(f"   Using Python module: {sys.executable} -m claude_mpm")
+            return sys.executable
         except ImportError:
             pass
 
-        # Last resort: try relative to current script
+        # 4. Last resort: check project's local venv (development mode)
         project_root = Path(__file__).parent.parent.parent.parent.parent
-        local_script = project_root / "scripts" / "claude-mpm"
-        if local_script.exists():
-            return str(local_script)
+        local_venv_bin = project_root / "venv" / ("Scripts" if sys.platform == "win32" else "bin")
+        local_claude_mpm = local_venv_bin / "claude-mpm"
+        if local_claude_mpm.exists():
+            print(f"   Found claude-mpm in project venv: {local_claude_mpm}")
+            return str(local_claude_mpm)
 
         return None
 
