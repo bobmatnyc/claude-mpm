@@ -185,7 +185,7 @@ class AgentProcessor:
         """
         try:
             return self.template_builder.build_agent_markdown(
-                context.agent_name, context.template_file, context.base_agent_data
+                context.agent_name, context.template_file, context.base_agent_data, context.source_info
             )
         except Exception as e:
             raise AgentDeploymentError(

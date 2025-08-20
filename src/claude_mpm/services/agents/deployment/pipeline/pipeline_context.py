@@ -42,6 +42,7 @@ class PipelineContext:
     template_files: List[Path] = field(default_factory=list)
     base_agent_data: Optional[Dict[str, Any]] = None
     base_agent_version: Optional[tuple] = None
+    agent_sources: Dict[str, str] = field(default_factory=dict)  # Maps agent names to sources
 
     # Deployment results
     results: Dict[str, Any] = field(default_factory=dict)
