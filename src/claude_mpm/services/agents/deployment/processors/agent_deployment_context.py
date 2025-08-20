@@ -21,6 +21,7 @@ class AgentDeploymentContext:
     # Deployment configuration
     force_rebuild: bool = False
     deployment_mode: str = "update"
+    source_info: str = "unknown"  # Source of the agent (system/project/user)
 
     # Base agent data
     base_agent_data: Optional[Dict[str, Any]] = None
@@ -53,6 +54,7 @@ class AgentDeploymentContext:
         base_agent_version: tuple,
         force_rebuild: bool = False,
         deployment_mode: str = "update",
+        source_info: str = "unknown",
     ) -> "AgentDeploymentContext":
         """Create context from template file.
 
@@ -63,6 +65,7 @@ class AgentDeploymentContext:
             base_agent_version: Base agent version
             force_rebuild: Whether to force rebuild
             deployment_mode: Deployment mode
+            source_info: Source of the agent (system/project/user)
 
         Returns:
             AgentDeploymentContext instance
@@ -79,6 +82,7 @@ class AgentDeploymentContext:
             base_agent_data=base_agent_data,
             base_agent_version=base_agent_version,
             agents_dir=agents_dir,
+            source_info=source_info,
         )
 
     def is_update(self) -> bool:
