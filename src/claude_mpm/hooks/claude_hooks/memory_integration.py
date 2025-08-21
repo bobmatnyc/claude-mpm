@@ -22,6 +22,7 @@ try:
     paths.ensure_in_path()
 
     from claude_mpm.core.config import Config
+    from claude_mpm.core.shared.config_loader import ConfigLoader
     from claude_mpm.hooks.base_hook import HookContext, HookType
     from claude_mpm.hooks.memory_integration_hook import (
         MemoryPostDelegationHook,
@@ -60,8 +61,9 @@ class MemoryHookManager:
         are triggered at the right times during agent delegation.
         """
         try:
-            # Create configuration
-            config = Config()
+            # Create configuration using ConfigLoader
+            config_loader = ConfigLoader()
+            config = config_loader.load_main_config()
 
             # Only initialize if memory system is enabled
             if not config.get("memory.enabled", True):

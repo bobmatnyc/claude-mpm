@@ -6,7 +6,7 @@ Extracted from mcp.py to reduce complexity and improve maintainability.
 
 import asyncio
 import os
-import subprocess
+import shutil
 import sys
 from pathlib import Path
 
@@ -25,8 +25,8 @@ class MCPServerCommands:
         implementation that Claude Desktop can communicate with.
         NOTE: MCP is for Claude Desktop's Code features.
 
-        DESIGN DECISION: We now use the wrapper script to ensure proper
-        environment setup regardless of how the server is invoked.
+        DESIGN DECISION: Run the server directly in the same process to ensure
+        Claude Desktop sees the correct command path, not a wrapper script.
         """
         self.logger.info("MCP server start command called")
 
@@ -54,22 +54,28 @@ class MCPServerCommands:
             
             # Find project root for paths
             project_root = Path(__file__).parent.parent.parent.parent.parent
-            wrapper_path = project_root / "scripts" / "mcp_wrapper.py"
+            
+            # Use the direct command, not the wrapper
+            import shutil
+            claude_mpm_path = shutil.which("claude-mpm")
+            if not claude_mpm_path:
+                # Fallback to current executable
+                claude_mpm_path = sys.executable.replace("python", "claude-mpm")
             
             print("\n   Add this to your Claude Desktop configuration:")
             print("   (~/Library/Application Support/Claude/claude_desktop_config.json on macOS)")
             print("\n   {")
             print('     "mcpServers": {')
             print('       "claude-mpm-gateway": {')
-            print(f'         "command": "{sys.executable}",')
-            print(f'         "args": ["{wrapper_path}"],')
+            print(f'         "command": "{claude_mpm_path}",')
+            print(f'         "args": ["mcp", "server"],')
             print(f'         "cwd": "{project_root}"')
             print('       }')
             print('     }')
             print('   }')
             print("\n3. Restart Claude Desktop to load the MCP server")
             print("\nTo test the server directly:")
-            print("   python scripts/mcp_wrapper.py")
+            print("   claude-mpm mcp server")
             print("\nTo check running MCP processes:")
             print("   python scripts/check_mcp_processes.py")
             print("\nFor more information, see:")
@@ -77,46 +83,35 @@ class MCPServerCommands:
 
             return 0
 
-        # Default behavior: Use the wrapper script for proper environment setup
+        # Default behavior: Run the server directly in this process
         if test_mode:
-            print("🧪 Starting MCP server in test mode...")
-            print("   This will run the server with stdio communication.")
-            print("   Press Ctrl+C to stop.\n")
+            print("🧪 Starting MCP server in test mode...", file=sys.stderr)
+            print("   This will run the server with stdio communication.", file=sys.stderr)
+            print("   Press Ctrl+C to stop.\n", file=sys.stderr)
 
         try:
-            # Instead of running directly, we should use the wrapper script
-            # for consistent environment setup
-            import subprocess
-            from pathlib import Path
+            # Import and run the server directly
+            from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
             
-            # Find the wrapper script
-            project_root = Path(__file__).parent.parent.parent.parent.parent
-            wrapper_script = project_root / "scripts" / "mcp_wrapper.py"
+            # Set environment variable if in test mode
+            if test_mode:
+                os.environ["MCP_MODE"] = "test"
+            else:
+                os.environ["MCP_MODE"] = "production"
             
-            if not wrapper_script.exists():
-                print(f"❌ Error: Wrapper script not found at {wrapper_script}", file=sys.stderr)
-                print("\nPlease ensure the wrapper script is installed.", file=sys.stderr)
-                return 1
+            # Create and run the server
+            self.logger.info("Starting MCP Gateway Server directly...")
+            server = SimpleMCPServer(name="claude-mpm-gateway", version="1.0.0")
             
-            # Run the wrapper script
-            print(f"Starting MCP server via wrapper: {wrapper_script}", file=sys.stderr)
+            # Run the server asynchronously
+            await server.run()
             
-            # Use subprocess to run the wrapper
-            # This ensures proper environment setup
-            result = subprocess.run(
-                [sys.executable, str(wrapper_script)],
-                cwd=str(project_root),
-                env={**os.environ, "MCP_MODE": "test" if test_mode else "production"}
-            )
-            
-            return result.returncode
+            return 0
 
         except ImportError as e:
             self.logger.error(f"Failed to import MCP server: {e}")
             # Don't print to stdout as it would interfere with JSON-RPC protocol
             # Log to stderr instead
-            import sys
-
             print(
                 f"❌ Error: Could not import MCP server components: {e}", file=sys.stderr
             )
@@ -129,8 +124,6 @@ class MCPServerCommands:
             return 0
         except Exception as e:
             self.logger.error(f"Server error: {e}")
-            import sys
-
             print(f"❌ Error running server: {e}", file=sys.stderr)
             return 1
 

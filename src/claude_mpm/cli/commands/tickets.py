@@ -5,9 +5,12 @@ WHY: This module provides comprehensive ticket management functionality, allowin
 to create, view, update, and manage tickets through the CLI. It integrates with
 ai-trackdown-pytools for persistent ticket storage.
 
-DESIGN DECISION: We implement full CRUD operations plus search and workflow management
-to provide a complete ticket management system within the claude-mpm CLI. The commands
-mirror the scripts/ticket.py interface for consistency.
+DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Maintain backward compatibility with existing ai-trackdown integration
+- Support multiple output formats (json, yaml, table, text)
+- Implement full CRUD operations plus search and workflow management
 """
 
 import json
@@ -17,14 +20,193 @@ from typing import Any, Dict, List, Optional
 
 from ...constants import TicketCommands
 from ...core.logger import get_logger
+from ..shared import BaseCommand, CommandResult
+
+
+class TicketsCommand(BaseCommand):
+    """Tickets command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("tickets")
+
+    def validate_args(self, args) -> Optional[str]:
+        """Validate command arguments."""
+        if not hasattr(args, 'tickets_command') or not args.tickets_command:
+            return "No tickets subcommand specified"
+
+        valid_commands = [cmd.value for cmd in TicketCommands]
+        if args.tickets_command not in valid_commands:
+            return f"Unknown tickets command: {args.tickets_command}. Valid commands: {', '.join(valid_commands)}"
+
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the tickets command."""
+        try:
+            # Route to specific subcommand handlers
+            command_map = {
+                TicketCommands.CREATE.value: self._create_ticket,
+                TicketCommands.LIST.value: self._list_tickets,
+                TicketCommands.VIEW.value: self._view_ticket,
+                TicketCommands.UPDATE.value: self._update_ticket,
+                TicketCommands.CLOSE.value: self._close_ticket,
+                TicketCommands.DELETE.value: self._delete_ticket,
+                TicketCommands.SEARCH.value: self._search_tickets,
+                TicketCommands.COMMENT.value: self._add_comment,
+                TicketCommands.WORKFLOW.value: self._update_workflow,
+            }
+
+            if args.tickets_command in command_map:
+                return command_map[args.tickets_command](args)
+            else:
+                return CommandResult.error_result(f"Unknown tickets command: {args.tickets_command}")
+
+        except Exception as e:
+            self.logger.error(f"Error executing tickets command: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error executing tickets command: {e}")
+
+    def _create_ticket(self, args) -> CommandResult:
+        """Create a new ticket."""
+        try:
+            exit_code = create_ticket_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Ticket created successfully")
+            else:
+                return CommandResult.error_result("Failed to create ticket", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error creating ticket: {e}")
+            return CommandResult.error_result(f"Error creating ticket: {e}")
+
+    def _list_tickets(self, args) -> CommandResult:
+        """List tickets."""
+        try:
+            exit_code = list_tickets_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Tickets listed successfully")
+            else:
+                return CommandResult.error_result("Failed to list tickets", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error listing tickets: {e}")
+            return CommandResult.error_result(f"Error listing tickets: {e}")
+
+    def _view_ticket(self, args) -> CommandResult:
+        """View a specific ticket."""
+        try:
+            exit_code = view_ticket_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Ticket viewed successfully")
+            else:
+                return CommandResult.error_result("Failed to view ticket", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error viewing ticket: {e}")
+            return CommandResult.error_result(f"Error viewing ticket: {e}")
+
+    def _update_ticket(self, args) -> CommandResult:
+        """Update a ticket."""
+        try:
+            exit_code = update_ticket_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Ticket updated successfully")
+            else:
+                return CommandResult.error_result("Failed to update ticket", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error updating ticket: {e}")
+            return CommandResult.error_result(f"Error updating ticket: {e}")
+
+    def _close_ticket(self, args) -> CommandResult:
+        """Close a ticket."""
+        try:
+            exit_code = close_ticket_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Ticket closed successfully")
+            else:
+                return CommandResult.error_result("Failed to close ticket", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error closing ticket: {e}")
+            return CommandResult.error_result(f"Error closing ticket: {e}")
+
+    def _delete_ticket(self, args) -> CommandResult:
+        """Delete a ticket."""
+        try:
+            exit_code = delete_ticket_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Ticket deleted successfully")
+            else:
+                return CommandResult.error_result("Failed to delete ticket", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error deleting ticket: {e}")
+            return CommandResult.error_result(f"Error deleting ticket: {e}")
+
+    def _search_tickets(self, args) -> CommandResult:
+        """Search tickets."""
+        try:
+            exit_code = search_tickets_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Tickets searched successfully")
+            else:
+                return CommandResult.error_result("Failed to search tickets", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error searching tickets: {e}")
+            return CommandResult.error_result(f"Error searching tickets: {e}")
+
+    def _add_comment(self, args) -> CommandResult:
+        """Add a comment to a ticket."""
+        try:
+            exit_code = add_comment_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Comment added successfully")
+            else:
+                return CommandResult.error_result("Failed to add comment", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error adding comment: {e}")
+            return CommandResult.error_result(f"Error adding comment: {e}")
+
+    def _update_workflow(self, args) -> CommandResult:
+        """Update workflow state."""
+        try:
+            exit_code = update_workflow_legacy(args)
+            if exit_code == 0:
+                return CommandResult.success_result("Workflow updated successfully")
+            else:
+                return CommandResult.error_result("Failed to update workflow", exit_code=exit_code)
+        except Exception as e:
+            self.logger.error(f"Error updating workflow: {e}")
+            return CommandResult.error_result(f"Error updating workflow: {e}")
 
 
 def manage_tickets(args):
     """
-    Main ticket command dispatcher.
+    Main entry point for tickets command.
 
-    WHY: This function routes ticket subcommands to their appropriate handlers,
-    providing a single entry point for all ticket-related operations.
+    This function maintains backward compatibility while using the new BaseCommand pattern.
+    """
+    command = TicketsCommand()
+    result = command.execute(args)
+
+    # Print result if structured output format is requested
+    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+        command.print_result(result, args)
+
+    return result.exit_code
+
+
+def list_tickets(args):
+    """
+    Compatibility function for list_tickets.
+
+    This maintains backward compatibility for imports while using the new TicketsCommand pattern.
+    """
+    # Create a tickets command and execute the list subcommand
+    args.tickets_command = TicketCommands.LIST.value
+    return manage_tickets(args)
+
+
+def manage_tickets_legacy(args):
+    """
+    Legacy ticket command dispatcher.
+
+    WHY: This contains the original manage_tickets logic, preserved during migration
+    to BaseCommand pattern. Will be gradually refactored into the TicketsCommand class.
 
     DESIGN DECISION: We use a subcommand pattern similar to git, allowing for
     intuitive command structure like 'claude-mpm tickets create "title"'.
@@ -49,15 +231,15 @@ def manage_tickets(args):
 
     # Map subcommands to handler functions
     handlers = {
-        TicketCommands.CREATE.value: create_ticket,
-        TicketCommands.LIST.value: list_tickets,
-        TicketCommands.VIEW.value: view_ticket,
-        TicketCommands.UPDATE.value: update_ticket,
-        TicketCommands.CLOSE.value: close_ticket,
-        TicketCommands.DELETE.value: delete_ticket,
-        TicketCommands.SEARCH.value: search_tickets,
-        TicketCommands.COMMENT.value: add_comment,
-        TicketCommands.WORKFLOW.value: update_workflow,
+        TicketCommands.CREATE.value: create_ticket_legacy,
+        TicketCommands.LIST.value: list_tickets_legacy,
+        TicketCommands.VIEW.value: view_ticket_legacy,
+        TicketCommands.UPDATE.value: update_ticket_legacy,
+        TicketCommands.CLOSE.value: close_ticket_legacy,
+        TicketCommands.DELETE.value: delete_ticket_legacy,
+        TicketCommands.SEARCH.value: search_tickets_legacy,
+        TicketCommands.COMMENT.value: add_comment_legacy,
+        TicketCommands.WORKFLOW.value: update_workflow_legacy,
     }
 
     # Execute the appropriate handler
@@ -80,7 +262,7 @@ def manage_tickets(args):
         return 1
 
 
-def create_ticket(args):
+def create_ticket_legacy(args):
     """
     Create a new ticket.
 
@@ -140,7 +322,7 @@ def create_ticket(args):
         return 1
 
 
-def list_tickets(args):
+def list_tickets_legacy(args):
     """
     List recent tickets with optional filtering.
 
@@ -306,7 +488,7 @@ def list_tickets(args):
         return 1
 
 
-def view_ticket(args):
+def view_ticket_legacy(args):
     """
     View a specific ticket in detail.
 
@@ -379,7 +561,7 @@ def view_ticket(args):
     return 0
 
 
-def update_ticket(args):
+def update_ticket_legacy(args):
     """
     Update a ticket's properties.
 
@@ -470,7 +652,7 @@ def update_ticket(args):
             return 1
 
 
-def close_ticket(args):
+def close_ticket_legacy(args):
     """
     Close a ticket.
 
@@ -521,7 +703,7 @@ def close_ticket(args):
             return 1
 
 
-def delete_ticket(args):
+def delete_ticket_legacy(args):
     """
     Delete a ticket.
 
@@ -592,7 +774,7 @@ def delete_ticket(args):
         return 1
 
 
-def search_tickets(args):
+def search_tickets_legacy(args):
     """
     Search tickets by query string.
 
@@ -680,7 +862,7 @@ def search_tickets(args):
     return 0
 
 
-def add_comment(args):
+def add_comment_legacy(args):
     """
     Add a comment to a ticket.
 
@@ -719,7 +901,7 @@ def add_comment(args):
         return 1
 
 
-def update_workflow(args):
+def update_workflow_legacy(args):
     """
     Update ticket workflow state.
 

@@ -5,6 +5,12 @@ Run command implementation for claude-mpm.
 
 WHY: This module handles the main 'run' command which starts Claude sessions.
 It's the most commonly used command and handles both interactive and non-interactive modes.
+
+DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Maintain backward compatibility with existing functionality
+- Support multiple output formats (json, yaml, table, text)
 """
 
 import logging
@@ -14,13 +20,16 @@ import sys
 import time
 import webbrowser
 from datetime import datetime
+from typing import Dict, Any, Optional
 
 from ...constants import LogLevel
 from ...core.config import Config
 from ...core.logger import get_logger
+from ...core.shared.config_loader import ConfigLoader
 from ...core.unified_paths import get_package_root, get_scripts_dir
 from ...services.port_manager import PortManager
 from ...utils.dependency_manager import ensure_socketio_dependencies
+from ..shared import BaseCommand, CommandResult
 from ..utils import get_user_input, list_agent_versions_at_startup
 
 
@@ -175,12 +184,363 @@ You are resuming session {session_id[:8]}... which was:
     return base_context + session_info
 
 
+class RunCommand(BaseCommand):
+    """Run command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("run")
+
+    def validate_args(self, args) -> Optional[str]:
+        """Validate command arguments."""
+        # Run command has minimal validation requirements
+        # Most validation is handled by the ClaudeRunner and related services
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the run command."""
+        try:
+            # Execute the main run logic
+            success = self._execute_run_session(args)
+
+            if success:
+                return CommandResult.success_result("Claude session completed successfully")
+            else:
+                return CommandResult.error_result("Claude session failed", exit_code=1)
+
+        except KeyboardInterrupt:
+            self.logger.info("Session interrupted by user")
+            return CommandResult.error_result("Session cancelled by user", exit_code=130)
+        except Exception as e:
+            self.logger.error(f"Error running Claude session: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error running Claude session: {e}")
+
+    def _execute_run_session(self, args) -> bool:
+        """Execute the main run session logic."""
+        # For now, delegate to the legacy function to maintain compatibility
+        # TODO: Gradually migrate logic into the individual helper methods
+        try:
+            run_session_legacy(args)
+            return True
+        except Exception as e:
+            self.logger.error(f"Run session failed: {e}")
+            return False
+
+    def _execute_run_session_new(self, args) -> bool:
+        """Execute the main run session logic using new pattern."""
+        try:
+            # Log session start
+            if args.logging != LogLevel.OFF.value:
+                self.logger.info("Starting Claude MPM session")
+
+            # Perform startup checks
+            self._check_configuration_health()
+            self._check_claude_json_memory(args)
+
+            # Handle session management
+            session_manager, resume_session_id, resume_context = self._setup_session_management(args)
+
+            # Handle dependency checking
+            self._handle_dependency_checking(args)
+
+            # Setup monitoring if requested
+            monitor_mode, websocket_port = self._setup_monitoring(args)
+
+            # Configure Claude runner
+            runner = self._setup_claude_runner(args, monitor_mode, websocket_port)
+
+            # Create context and run session
+            context = self._create_session_context(args, session_manager, resume_session_id, resume_context)
+
+            # Execute the session
+            return self._execute_session(args, runner, context)
+
+        except Exception as e:
+            self.logger.error(f"Run session failed: {e}")
+            return False
+
+    def _check_configuration_health(self):
+        """Check configuration health at startup."""
+        from .run_config_checker import RunConfigChecker
+        checker = RunConfigChecker(self.logger)
+        checker.check_configuration_health()
+
+    def _check_claude_json_memory(self, args):
+        """Check .claude.json file size and warn about memory issues."""
+        from .run_config_checker import RunConfigChecker
+        checker = RunConfigChecker(self.logger)
+        checker.check_claude_json_memory(args)
+
+    def _setup_session_management(self, args):
+        """Setup session management and handle resumption."""
+        try:
+            from ...core.session_manager import SessionManager
+        except ImportError:
+            from claude_mpm.core.session_manager import SessionManager
+
+        session_manager = SessionManager()
+        resume_session_id = None
+        resume_context = None
+
+        if hasattr(args, "mpm_resume") and args.mpm_resume:
+            if args.mpm_resume == "last":
+                # Resume the last interactive session
+                resume_session_id = session_manager.get_last_interactive_session()
+                if resume_session_id:
+                    session_data = session_manager.get_session_by_id(resume_session_id)
+                    if session_data:
+                        resume_context = session_data.get("context", "default")
+                        self.logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
+                        print(f"🔄 Resuming session {resume_session_id[:8]}... (created: {session_data.get('created_at', 'unknown')})")
+                    else:
+                        self.logger.warning(f"Session {resume_session_id} not found")
+                else:
+                    self.logger.info("No recent interactive sessions found")
+                    print("ℹ️  No recent interactive sessions found to resume")
+            else:
+                # Resume specific session by ID
+                resume_session_id = args.mpm_resume
+                session_data = session_manager.get_session_by_id(resume_session_id)
+                if session_data:
+                    resume_context = session_data.get("context", "default")
+                    self.logger.info(f"Resuming session {resume_session_id} (context: {resume_context})")
+                    print(f"🔄 Resuming session {resume_session_id[:8]}... (context: {resume_context})")
+                else:
+                    self.logger.error(f"Session {resume_session_id} not found")
+                    print(f"❌ Session {resume_session_id} not found")
+                    print("💡 Use 'claude-mpm sessions' to list available sessions")
+                    raise RuntimeError(f"Session {resume_session_id} not found")
+
+        return session_manager, resume_session_id, resume_context
+
+    def _handle_dependency_checking(self, args):
+        """Handle smart dependency checking."""
+        # Smart dependency checking - only when needed
+        if getattr(args, "check_dependencies", True):  # Default to checking
+            try:
+                from ...utils.agent_dependency_loader import AgentDependencyLoader
+                from ...utils.dependency_cache import SmartDependencyChecker
+                from ...utils.environment_context import should_prompt_for_dependencies
+
+                # Initialize smart checker
+                smart_checker = SmartDependencyChecker()
+                loader = AgentDependencyLoader(auto_install=False)
+
+                # Check if agents have changed
+                has_changed, deployment_hash = loader.has_agents_changed()
+
+                # Determine if we should check dependencies
+                should_check, check_reason = smart_checker.should_check_dependencies(
+                    force_check=getattr(args, "force_check_dependencies", False),
+                    deployment_hash=deployment_hash,
+                )
+
+                if should_check:
+                    self.logger.info(f"Checking dependencies: {check_reason}")
+
+                    # Check if we should prompt for dependencies
+                    should_prompt = should_prompt_for_dependencies()
+
+                    if should_prompt:
+                        # Check dependencies and prompt for installation if needed
+                        missing_deps = loader.check_dependencies()
+                        if missing_deps:
+                            self.logger.info(f"Found {len(missing_deps)} missing dependencies")
+
+                            # Prompt user for installation
+                            print(f"\n📦 Found {len(missing_deps)} missing dependencies:")
+                            for dep in missing_deps[:5]:  # Show first 5
+                                print(f"  • {dep}")
+                            if len(missing_deps) > 5:
+                                print(f"  ... and {len(missing_deps) - 5} more")
+
+                            response = input("\nInstall missing dependencies? (y/N): ").strip().lower()
+                            if response in ['y', 'yes']:
+                                loader.auto_install = True
+                                loader.install_dependencies(missing_deps)
+                                print("✅ Dependencies installed successfully")
+                            else:
+                                print("⚠️  Continuing without installing dependencies")
+                    else:
+                        # Just check without prompting
+                        missing_deps = loader.check_dependencies()
+                        if missing_deps:
+                            self.logger.warning(f"Found {len(missing_deps)} missing dependencies")
+                            print(f"⚠️  Found {len(missing_deps)} missing dependencies. Use --force-check-dependencies to install.")
+
+                    # Update cache
+                    smart_checker.update_cache(deployment_hash)
+                else:
+                    self.logger.debug(f"Skipping dependency check: {check_reason}")
+
+            except ImportError as e:
+                self.logger.warning(f"Dependency checking not available: {e}")
+            except Exception as e:
+                self.logger.warning(f"Dependency check failed: {e}")
+
+    def _setup_monitoring(self, args):
+        """Setup monitoring configuration."""
+        monitor_mode = getattr(args, "monitor", False)
+        websocket_port = 8765  # Default port
+
+        if monitor_mode:
+            # Ensure Socket.IO dependencies are available
+            if not ensure_socketio_dependencies():
+                self.logger.warning("Socket.IO dependencies not available, disabling monitor mode")
+                monitor_mode = False
+            else:
+                # Get available port
+                port_manager = PortManager()
+                websocket_port = port_manager.get_available_port(8765)
+
+                # Start Socket.IO server if not running
+                if not self._is_socketio_server_running(websocket_port):
+                    if not _start_socketio_server(websocket_port, self.logger):
+                        self.logger.warning("Failed to start Socket.IO server, disabling monitor mode")
+                        monitor_mode = False
+                    else:
+                        # Give server time to start
+                        time.sleep(2)
+
+                if monitor_mode:
+                    # Open browser to monitoring interface
+                    monitor_url = f"http://localhost:{websocket_port}"
+                    self.logger.info(f"Opening monitor interface: {monitor_url}")
+                    try:
+                        webbrowser.open(monitor_url)
+                        args._browser_opened_by_cli = True
+                    except Exception as e:
+                        self.logger.warning(f"Could not open browser: {e}")
+                        print(f"💡 Monitor interface available at: {monitor_url}")
+
+        return monitor_mode, websocket_port
+
+    def _setup_claude_runner(self, args, monitor_mode: bool, websocket_port: int):
+        """Setup and configure the Claude runner."""
+        try:
+            from ...core.claude_runner import ClaudeRunner
+        except ImportError:
+            from claude_mpm.core.claude_runner import ClaudeRunner
+
+        # Configure tickets
+        enable_tickets = not getattr(args, "no_tickets", False)
+
+        # Configure launch method
+        launch_method = "exec"  # Default
+        if getattr(args, "subprocess", False):
+            launch_method = "subprocess"
+
+        # Configure WebSocket
+        enable_websocket = monitor_mode
+
+        # Build Claude arguments
+        claude_args = []
+        if hasattr(args, "claude_args") and args.claude_args:
+            claude_args.extend(args.claude_args)
+
+        # Create runner
+        runner = ClaudeRunner(
+            enable_tickets=enable_tickets,
+            log_level=args.logging,
+            claude_args=claude_args,
+            launch_method=launch_method,
+            enable_websocket=enable_websocket,
+            websocket_port=websocket_port,
+        )
+
+        # Set browser opening flag for monitor mode
+        if monitor_mode:
+            runner._should_open_monitor_browser = True
+            runner._browser_opened_by_cli = getattr(args, "_browser_opened_by_cli", False)
+
+        return runner
+
+    def _create_session_context(self, args, session_manager, resume_session_id, resume_context):
+        """Create session context."""
+        try:
+            from ...core.claude_runner import create_simple_context
+        except ImportError:
+            from claude_mpm.core.claude_runner import create_simple_context
+
+        if resume_session_id and resume_context:
+            # For resumed sessions, create enhanced context with session information
+            context = create_session_context(resume_session_id, session_manager)
+            # Update session usage
+            session_manager.active_sessions[resume_session_id]["last_used"] = datetime.now().isoformat()
+            session_manager.active_sessions[resume_session_id]["use_count"] += 1
+            session_manager._save_sessions()
+        else:
+            # Create a new session for tracking
+            new_session_id = session_manager.create_session("default")
+            context = create_simple_context()
+            self.logger.info(f"Created new session {new_session_id}")
+
+        return context
+
+    def _execute_session(self, args, runner, context) -> bool:
+        """Execute the Claude session."""
+        try:
+            # Run session based on mode
+            non_interactive = getattr(args, "non_interactive", False)
+            input_arg = getattr(args, "input", None)
+
+            if non_interactive or input_arg:
+                # Non-interactive mode
+                user_input = get_user_input(input_arg, self.logger)
+                success = runner.run_oneshot(user_input, context)
+                if not success:
+                    self.logger.error("Session failed")
+                    return False
+            else:
+                # Interactive mode
+                if getattr(args, "intercept_commands", False):
+                    wrapper_path = get_scripts_dir() / "interactive_wrapper.py"
+                    if wrapper_path.exists():
+                        print("Starting interactive session with command interception...")
+                        subprocess.run([sys.executable, str(wrapper_path)])
+                    else:
+                        self.logger.warning("Interactive wrapper not found, falling back to normal mode")
+                        runner.run_interactive(context)
+                else:
+                    runner.run_interactive(context)
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Session execution failed: {e}")
+            return False
+
+    def _is_socketio_server_running(self, port: int) -> bool:
+        """Check if Socket.IO server is running on the specified port."""
+        try:
+            import socket
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(1)
+                result = s.connect_ex(('localhost', port))
+                return result == 0
+        except Exception:
+            return False
+
+
 def run_session(args):
     """
-    Run a simplified Claude session.
+    Main entry point for run command.
 
-    WHY: This is the primary command that users interact with. It sets up the
-    environment, optionally deploys agents, and launches Claude with the MPM framework.
+    This function maintains backward compatibility while using the new BaseCommand pattern.
+    """
+    command = RunCommand()
+    result = command.execute(args)
+
+    # For run command, we don't typically need structured output
+    # but we should respect the exit code
+    return result.exit_code
+
+
+def run_session_legacy(args):
+    """
+    Legacy run session implementation.
+
+    WHY: This contains the original run_session logic, preserved during migration
+    to BaseCommand pattern. Will be gradually refactored into the RunCommand class.
 
     DESIGN DECISION: We use ClaudeRunner to handle the complexity of
     subprocess management and hook integration, keeping this function focused
@@ -779,9 +1139,8 @@ def _check_claude_json_memory(args, logger):
 
     # Get thresholds from configuration
     try:
-        from ...core.config import Config
-
-        config = Config()
+        config_loader = ConfigLoader()
+        config = config_loader.load_main_config()
         memory_config = config.get("memory_management", {})
         warning_threshold = (
             memory_config.get("claude_json_warning_threshold_kb", 500) * 1024
@@ -874,8 +1233,9 @@ def _check_configuration_health(logger):
         logger: Logger instance for output
     """
     try:
-        # Load configuration
-        config = Config()
+        # Load configuration using ConfigLoader
+        config_loader = ConfigLoader()
+        config = config_loader.load_main_config()
 
         # Validate configuration
         is_valid, errors, warnings = config.validate_configuration()

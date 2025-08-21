@@ -60,10 +60,12 @@ class EventAggregator:
         self.port = port
         self.logger = get_logger("event_aggregator")
 
-        # Load configuration
+        # Load configuration using ConfigLoader
         from claude_mpm.core.config import Config
+        from claude_mpm.core.shared.config_loader import ConfigLoader
 
-        self.config = Config()
+        config_loader = ConfigLoader()
+        self.config = config_loader.load_main_config()
 
         # Session storage
         self.active_sessions: Dict[str, AgentSession] = {}

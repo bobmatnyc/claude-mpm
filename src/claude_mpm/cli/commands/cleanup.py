@@ -1,5 +1,3 @@
-from pathlib import Path
-
 """
 Memory cleanup command implementation for claude-mpm.
 
@@ -8,19 +6,22 @@ Claude Desktop loads the entire conversation history into memory, leading to 2GB
 consumption. This command helps users manage and clean up their conversation history.
 
 DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
 - Archive old conversations instead of deleting them
 - Provide clear feedback about space savings
 - Default to safe operations with confirmation prompts
 - Keep recent conversations (30 days by default) in active memory
+- Support multiple output formats (json, yaml, table, text)
 """
 
 import json
 import shutil
 import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-from ...core.logger import get_logger
+from ..shared import BaseCommand, CommandResult
 
 
 def add_cleanup_parser(subparsers):
@@ -269,16 +270,147 @@ def clean_claude_json(
     return original_size, original_size
 
 
+class CleanupCommand(BaseCommand):
+    """Memory cleanup command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("cleanup")
+
+    def validate_args(self, args) -> str:
+        """Validate command arguments."""
+        # Validate max_size format
+        max_size = getattr(args, 'max_size', '500KB')
+        try:
+            parse_size(max_size)
+        except ValueError as e:
+            return str(e)
+
+        # Validate days
+        days = getattr(args, 'days', 30)
+        if days < 0:
+            return "Days must be a positive number"
+
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the cleanup command."""
+        try:
+            # Gather cleanup information
+            cleanup_data = self._analyze_cleanup_needs(args)
+
+            output_format = getattr(args, 'format', 'text')
+
+            if output_format in ['json', 'yaml']:
+                # Structured output
+                if getattr(args, 'dry_run', False):
+                    return CommandResult.success_result("Cleanup analysis completed (dry run)", data=cleanup_data)
+                else:
+                    # Perform actual cleanup
+                    result_data = self._perform_cleanup(args, cleanup_data)
+                    return CommandResult.success_result("Cleanup completed", data=result_data)
+            else:
+                # Text output using existing function
+                cleanup_memory(args)
+                return CommandResult.success_result("Cleanup completed")
+
+        except Exception as e:
+            self.logger.error(f"Error during cleanup: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error during cleanup: {e}")
+
+    def _analyze_cleanup_needs(self, args) -> Dict[str, Any]:
+        """Analyze what needs to be cleaned up."""
+        claude_json = Path.home() / ".claude.json"
+        archive_dir = Path.home() / ".claude-mpm" / "archives"
+
+        if not claude_json.exists():
+            return {
+                "file_exists": False,
+                "file_path": str(claude_json),
+                "needs_cleanup": False,
+                "message": "No .claude.json file found - nothing to clean up"
+            }
+
+        # Analyze current state
+        stats, issues = analyze_claude_json(claude_json)
+
+        # Check if cleanup is needed
+        max_size = parse_size(getattr(args, 'max_size', '500KB'))
+        needs_cleanup = stats["file_size"] > max_size
+
+        return {
+            "file_exists": True,
+            "file_path": str(claude_json),
+            "archive_dir": str(archive_dir),
+            "stats": stats,
+            "issues": issues,
+            "needs_cleanup": needs_cleanup,
+            "max_size_bytes": max_size,
+            "max_size_formatted": format_size(max_size),
+            "current_size_formatted": format_size(stats["file_size"]),
+            "settings": {
+                "days": getattr(args, 'days', 30),
+                "archive": getattr(args, 'archive', True),
+                "force": getattr(args, 'force', False),
+                "dry_run": getattr(args, 'dry_run', False)
+            }
+        }
+
+    def _perform_cleanup(self, args, cleanup_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform the actual cleanup operation."""
+        claude_json = Path(cleanup_data["file_path"])
+        archive_dir = Path(cleanup_data["archive_dir"])
+
+        result = {
+            "archive_created": False,
+            "archive_path": None,
+            "original_size": cleanup_data["stats"]["file_size"],
+            "new_size": cleanup_data["stats"]["file_size"],
+            "savings": 0,
+            "old_archives_removed": 0
+        }
+
+        # Create archive if requested
+        if cleanup_data["settings"]["archive"] and not cleanup_data["settings"]["dry_run"]:
+            try:
+                archive_path = create_archive(claude_json, archive_dir)
+                result["archive_created"] = True
+                result["archive_path"] = str(archive_path)
+            except Exception as e:
+                raise Exception(f"Failed to create archive: {e}")
+
+        # Perform cleanup
+        original_size, new_size = clean_claude_json(
+            claude_json,
+            keep_days=cleanup_data["settings"]["days"],
+            dry_run=cleanup_data["settings"]["dry_run"]
+        )
+
+        result["original_size"] = original_size
+        result["new_size"] = new_size
+        result["savings"] = original_size - new_size
+
+        # Clean up old archives
+        if cleanup_data["settings"]["archive"] and not cleanup_data["settings"]["dry_run"]:
+            old_archives = clean_old_archives(archive_dir, keep_days=90)
+            result["old_archives_removed"] = len(old_archives)
+
+        return result
+
+
 def cleanup_memory(args):
-    """Clean up Claude conversation history to reduce memory usage.
-
-    WHY: This command addresses the 2GB memory leak issue when using --resume
-    with large .claude.json files. It provides users with tools to manage
-    their conversation history and prevent memory issues.
-
-    Args:
-        args: Parsed command line arguments
     """
+    Main entry point for cleanup command.
+
+    This function maintains backward compatibility while using the new BaseCommand pattern.
+    """
+    # For complex interactive commands like this, we'll delegate to the original implementation
+    # but could be refactored to use the new pattern in the future
+    _cleanup_memory_original(args)
+
+
+def _cleanup_memory_original(args):
+    """Original cleanup implementation for backward compatibility."""
+    from ...core.logger import get_logger
     logger = get_logger("cleanup")
 
     # File paths

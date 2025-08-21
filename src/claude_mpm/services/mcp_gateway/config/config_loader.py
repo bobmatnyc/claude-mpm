@@ -7,6 +7,8 @@ MCP Gateway Configuration Loader
 Handles loading and discovery of MCP configuration files.
 
 Part of ISS-0034: Infrastructure Setup - MCP Gateway Project Foundation
+
+UPDATED: Migrated to use shared ConfigLoader pattern (TSK-0141)
 """
 
 import os
@@ -15,6 +17,7 @@ from typing import List, Optional
 import yaml
 
 from claude_mpm.core.logger import get_logger
+from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 
 
 class MCPConfigLoader:
@@ -27,25 +30,41 @@ class MCPConfigLoader:
     WHY: We separate configuration loading from the main configuration
     service to support multiple configuration sources and provide a clean
     abstraction for configuration discovery.
+
+    UPDATED: Now uses shared ConfigLoader pattern for consistency (TSK-0141)
     """
 
-    # Standard configuration file search paths
-    CONFIG_SEARCH_PATHS = [
-        # User-specific configurations
-        Path("~/.claude/mcp/config.yaml"),
-        Path("~/.claude/mcp_gateway.yaml"),
-        Path("~/.config/claude-mpm/mcp_gateway.yaml"),
-        # Project-specific configurations
-        Path("./mcp_gateway.yaml"),
-        Path("./config/mcp_gateway.yaml"),
-        Path("./.claude/mcp_gateway.yaml"),
-        # System-wide configurations
-        Path("/etc/claude-mpm/mcp_gateway.yaml"),
-    ]
+    # MCP Gateway configuration pattern
+    MCP_CONFIG_PATTERN = ConfigPattern(
+        filenames=[
+            "mcp_gateway.yaml",
+            "mcp_gateway.yml",
+            ".mcp_gateway.yaml",
+            ".mcp_gateway.yml",
+            "config.yaml",
+            "config.yml"
+        ],
+        search_paths=[
+            "~/.claude/mcp",
+            "~/.config/claude-mpm",
+            ".",
+            "./config",
+            "./.claude",
+            "/etc/claude-mpm"
+        ],
+        env_prefix="CLAUDE_MPM_MCP_",
+        defaults={
+            "host": "localhost",
+            "port": 3000,
+            "debug": False,
+            "timeout": 30
+        }
+    )
 
     def __init__(self):
         """Initialize configuration loader."""
         self.logger = get_logger("MCPConfigLoader")
+        self._shared_loader = ConfigLoader()
 
     def find_config_file(self) -> Optional[Path]:
         """
@@ -154,22 +173,64 @@ class MCPConfigLoader:
         """
         from .configuration import MCPConfiguration
 
-        # Start with defaults
-        config = MCPConfiguration.DEFAULT_CONFIG.copy()
+        if config_path:
+            # Use specific config file with shared loader
+            pattern = ConfigPattern(
+                filenames=[config_path.name],
+                search_paths=[str(config_path.parent)],
+                env_prefix=self.MCP_CONFIG_PATTERN.env_prefix,
+                defaults=MCPConfiguration.DEFAULT_CONFIG.copy()
+            )
+            config_obj = self._shared_loader.load_config(pattern, cache_key=f"mcp_{config_path}")
+            return config_obj.to_dict()
+        else:
+            # Use standard MCP pattern with defaults
+            pattern = ConfigPattern(
+                filenames=self.MCP_CONFIG_PATTERN.filenames,
+                search_paths=self.MCP_CONFIG_PATTERN.search_paths,
+                env_prefix=self.MCP_CONFIG_PATTERN.env_prefix,
+                defaults=MCPConfiguration.DEFAULT_CONFIG.copy()
+            )
+            config_obj = self._shared_loader.load_config(pattern, cache_key="mcp_gateway")
+            return config_obj.to_dict()
 
-        # Load from file
-        file_path = config_path or self.find_config_file()
-        if file_path:
-            file_config = self.load_from_file(file_path)
-            if file_config:
-                config = self._merge_configs(config, file_config)
+    # Backward compatibility methods (deprecated)
+    def find_config_file(self) -> Optional[Path]:
+        """Find configuration file using legacy method (deprecated)."""
+        import warnings
+        warnings.warn(
+            "find_config_file is deprecated. Use load() method instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
 
-        # Apply environment overrides
-        env_config = self.load_from_env()
-        if env_config:
-            config = self._merge_configs(config, env_config)
+        # Use shared loader to find config file
+        config_file = self._shared_loader._find_config_file(self.MCP_CONFIG_PATTERN)
+        return config_file
 
-        return config
+    def load_from_file(self, config_path: Path) -> Optional[dict]:
+        """Load from file using legacy method (deprecated)."""
+        import warnings
+        warnings.warn(
+            "load_from_file is deprecated. Use load() method instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+        # Use shared loader
+        return self._shared_loader._load_config_file(config_path)
+
+    def load_from_env(self, prefix: str = "CLAUDE_MPM_MCP_") -> dict:
+        """Load from environment using legacy method (deprecated)."""
+        import warnings
+        warnings.warn(
+            "load_from_env is deprecated. Use load() method instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+
+        # Use shared loader
+        return self._shared_loader._load_env_config(prefix)
 
     def _merge_configs(self, base: dict, overlay: dict) -> dict:
         """

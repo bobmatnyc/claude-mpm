@@ -131,21 +131,30 @@ def configure_mcp_server(config, project_root):
     if "mcpServers" not in config:
         config["mcpServers"] = {}
     
-    # Path to the wrapper script
-    wrapper_script = project_root / "scripts" / "mcp_wrapper.py"
-    
-    if not wrapper_script.exists():
-        raise RuntimeError(f"Wrapper script not found at {wrapper_script}")
+    # Find the claude-mpm command
+    claude_mpm_path = shutil.which("claude-mpm")
+    if not claude_mpm_path:
+        # Try to find it in the virtual environment
+        venv_path = project_root / "venv" / "bin" / "claude-mpm"
+        if venv_path.exists():
+            claude_mpm_path = str(venv_path)
+        else:
+            # Fallback to using python -m
+            claude_mpm_path = sys.executable
+            args = ["-m", "claude_mpm.cli", "mcp", "server"]
+    else:
+        args = ["mcp", "server"]
     
     # Configure the claude-mpm-gateway server
     mcp_config = {
-        "command": sys.executable or "python3",  # Use current Python interpreter
-        "args": [str(wrapper_script)],
+        "command": claude_mpm_path,  # Use the claude-mpm command directly
+        "args": args,  # Run mcp server subcommand
         "cwd": str(project_root),
         "env": {
             "PYTHONPATH": str(project_root / "src"),
             "CLAUDE_MPM_ROOT": str(project_root),
-            "MCP_MODE": "production"
+            "MCP_MODE": "production",
+            "DISABLE_TELEMETRY": "1"
         }
     }
     

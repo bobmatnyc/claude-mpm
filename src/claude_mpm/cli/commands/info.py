@@ -1,90 +1,199 @@
-from pathlib import Path
-
 """
 Info command implementation for claude-mpm.
 
 WHY: This module provides system information and configuration details to help
 users understand their claude-mpm setup and troubleshoot issues.
+
+DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Support multiple output formats (json, yaml, table, text)
+- Provide comprehensive system information for troubleshooting
 """
 
 import shutil
+from pathlib import Path
+from typing import Dict, Any, List
 
-from ...core.logger import get_logger
+from ..shared import BaseCommand, CommandResult
+
+
+class InfoCommand(BaseCommand):
+    """Information display command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("info")
+
+    def validate_args(self, args) -> str:
+        """Validate command arguments."""
+        # Info command doesn't require specific validation
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the info command."""
+        try:
+            # Gather system information
+            info_data = self._gather_system_info(args)
+
+            output_format = getattr(args, 'format', 'text')
+
+            if output_format in ['json', 'yaml']:
+                # Structured output
+                return CommandResult.success_result("System information retrieved", data=info_data)
+            else:
+                # Text output
+                self._display_text_info(info_data)
+                return CommandResult.success_result("System information displayed")
+
+        except Exception as e:
+            self.logger.error(f"Error gathering system info: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error gathering system info: {e}")
+
+    def _gather_system_info(self, args) -> Dict[str, Any]:
+        """Gather comprehensive system information."""
+        try:
+            from ...core.framework_loader import FrameworkLoader
+        except ImportError:
+            from claude_mpm.core.framework_loader import FrameworkLoader
+
+        # Framework information
+        framework_path = getattr(args, 'framework_path', None)
+        loader = FrameworkLoader(framework_path)
+
+        framework_info = {
+            "loaded": loader.framework_content["loaded"],
+            "name": "claude-multiagent-pm" if loader.framework_content["loaded"] else "Not found",
+            "version": loader.framework_content.get('version', 'unknown'),
+            "path": str(loader.framework_path) if loader.framework_path else None,
+            "agents": loader.get_agent_list() if loader.framework_content["loaded"] else []
+        }
+
+        # Configuration information
+        config_info = {
+            "log_directory": getattr(args, 'log_dir', None) or '~/.claude-mpm/logs'
+        }
+
+        # Agent hierarchy
+        agent_hierarchy = {}
+        core_agents = []
+        if loader.agent_registry:
+            hierarchy = loader.agent_registry.get_agent_hierarchy()
+            agent_hierarchy = {
+                "project_agents": len(hierarchy['project']),
+                "user_agents": len(hierarchy['user']),
+                "system_agents": len(hierarchy['system']),
+                "project_agent_list": hierarchy['project'],
+                "user_agent_list": hierarchy['user'],
+                "system_agent_list": hierarchy['system']
+            }
+            core_agents = loader.agent_registry.get_core_agents()
+
+        # Dependencies check
+        dependencies = self._check_dependencies()
+
+        return {
+            "framework": framework_info,
+            "configuration": config_info,
+            "agent_hierarchy": agent_hierarchy,
+            "core_agents": core_agents,
+            "dependencies": dependencies
+        }
+
+    def _check_dependencies(self) -> Dict[str, Any]:
+        """Check system dependencies."""
+        dependencies = {}
+
+        # Check Claude CLI
+        claude_path = shutil.which("claude")
+        dependencies["claude_cli"] = {
+            "installed": bool(claude_path),
+            "path": claude_path,
+            "status": "✓ Installed" if claude_path else "✗ Not found in PATH"
+        }
+
+        # Check ai-trackdown-pytools
+        try:
+            import ai_trackdown_pytools
+            dependencies["ai_trackdown_pytools"] = {
+                "installed": True,
+                "status": "✓ Installed"
+            }
+        except ImportError:
+            dependencies["ai_trackdown_pytools"] = {
+                "installed": False,
+                "status": "✗ Not installed"
+            }
+
+        # Check Claude Code hooks
+        claude_settings = Path.home() / ".claude" / "settings.json"
+        dependencies["claude_code_hooks"] = {
+            "installed": claude_settings.exists(),
+            "settings_path": str(claude_settings),
+            "status": "✓ Installed" if claude_settings.exists() else "✗ Not installed",
+            "install_command": "python scripts/install_hooks.py" if not claude_settings.exists() else None
+        }
+
+        return dependencies
+
+    def _display_text_info(self, info_data: Dict[str, Any]) -> None:
+        """Display information in text format."""
+        print("Claude MPM - Multi-Agent Project Manager")
+        print("=" * 50)
+
+        # Framework info
+        framework = info_data["framework"]
+        print(f"Framework: {framework['name']}")
+        if framework["loaded"]:
+            print(f"Version: {framework['version']}")
+            print(f"Path: {framework['path']}")
+            print(f"Agents: {', '.join(framework['agents'])}")
+
+        print()
+
+        # Configuration
+        config = info_data["configuration"]
+        print("Configuration:")
+        print(f"  Log directory: {config['log_directory']}")
+
+        # Agent hierarchy
+        hierarchy = info_data["agent_hierarchy"]
+        if hierarchy:
+            print("\nAgent Hierarchy:")
+            print(f"  Project agents: {hierarchy['project_agents']}")
+            print(f"  User agents: {hierarchy['user_agents']}")
+            print(f"  System agents: {hierarchy['system_agents']}")
+
+        # Core agents
+        core_agents = info_data["core_agents"]
+        if core_agents:
+            print(f"\nCore Agents: {', '.join(core_agents)}")
+
+        # Dependencies
+        print("\nDependencies:")
+        deps = info_data["dependencies"]
+
+        for dep_name, dep_info in deps.items():
+            print(f"  {dep_info['status']}")
+            if dep_name == "claude_cli" and dep_info["path"]:
+                print(f"    Path: {dep_info['path']}")
+            elif dep_name == "claude_code_hooks":
+                if dep_info["installed"]:
+                    print("     Use /mpm commands in Claude Code")
+                else:
+                    print(f"     Run: {dep_info['install_command']}")
 
 
 def show_info(args):
     """
-    Show framework and configuration information.
+    Main entry point for info command.
 
-    WHY: Users need to verify their installation, check dependencies, and understand
-    what agents are available. This command provides a comprehensive overview of
-    the claude-mpm environment.
-
-    DESIGN DECISION: We check for all major components and dependencies, showing
-    both what's working (✓) and what's missing (✗) to help with troubleshooting.
-
-    Args:
-        args: Parsed command line arguments
+    This function maintains backward compatibility while using the new BaseCommand pattern.
     """
-    try:
-        from ...core.framework_loader import FrameworkLoader
-    except ImportError:
-        from claude_mpm.core.framework_loader import FrameworkLoader
+    command = InfoCommand()
+    result = command.execute(args)
 
-    print("Claude MPM - Multi-Agent Project Manager")
-    print("=" * 50)
+    # Print result if structured output format is requested
+    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+        command.print_result(result, args)
 
-    # Framework info
-    loader = FrameworkLoader(args.framework_path)
-    if loader.framework_content["loaded"]:
-        print(f"Framework: claude-multiagent-pm")
-        print(f"Version: {loader.framework_content['version']}")
-        print(f"Path: {loader.framework_path}")
-        print(f"Agents: {', '.join(loader.get_agent_list())}")
-    else:
-        print("Framework: Not found (using minimal instructions)")
-
-    print()
-
-    # Configuration
-    print("Configuration:")
-    print(f"  Log directory: {args.log_dir or '~/.claude-mpm/logs'}")
-
-    # Show agent hierarchy
-    if loader.agent_registry:
-        hierarchy = loader.agent_registry.get_agent_hierarchy()
-        print("\nAgent Hierarchy:")
-        print(f"  Project agents: {len(hierarchy['project'])}")
-        print(f"  User agents: {len(hierarchy['user'])}")
-        print(f"  System agents: {len(hierarchy['system'])}")
-
-        # Show core agents
-        core_agents = loader.agent_registry.get_core_agents()
-        print(f"\nCore Agents: {', '.join(core_agents)}")
-
-    # Check dependencies
-    print("\nDependencies:")
-
-    # Check Claude CLI
-    claude_path = shutil.which("claude")
-    if claude_path:
-        print(f"  ✓ Claude CLI: {claude_path}")
-    else:
-        print("  ✗ Claude CLI: Not found in PATH")
-
-    # Check ai-trackdown-pytools
-    try:
-        import ai_trackdown_pytools
-
-        print("  ✓ ai-trackdown-pytools: Installed")
-    except ImportError:
-        print("  ✗ ai-trackdown-pytools: Not installed")
-
-    # Check Claude Code hooks
-    claude_settings = Path.home() / ".claude" / "settings.json"
-    if claude_settings.exists():
-        print("  ✓ Claude Code Hooks: Installed")
-        print("     Use /mpm commands in Claude Code")
-    else:
-        print("  ✗ Claude Code Hooks: Not installed")
-        print("     Run: python scripts/install_hooks.py")
+    return result.exit_code

@@ -10,6 +10,8 @@ This module handles:
 - Environment variable support for agent paths
 - Project-specific agent overrides
 - Tier precedence configuration
+
+UPDATED: Migrated to use shared ConfigLoader pattern (TSK-0141)
 """
 
 import json
@@ -21,6 +23,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +64,9 @@ class AgentConfig:
     # Validation settings
     validate_on_load: bool = True
     strict_validation: bool = False
+
+    # ConfigLoader instance for consistent configuration loading
+    _config_loader: ConfigLoader = field(default_factory=ConfigLoader, init=False)
 
     @classmethod
     def from_environment(cls) -> "AgentConfig":
@@ -147,14 +153,29 @@ class AgentConfig:
             return cls()
 
         try:
-            if config_file.suffix in [".yaml", ".yml"]:
-                import yaml
+            # Use ConfigLoader for consistent file loading
+            config_loader = ConfigLoader()
 
-                with open(config_file, "r") as f:
-                    data = yaml.safe_load(f)
-            else:
-                with open(config_file, "r") as f:
-                    data = json.load(f)
+            # Create a pattern for agent configuration
+            pattern = ConfigPattern(
+                filenames=[config_file.name],
+                search_paths=[str(config_file.parent)],
+                env_prefix="CLAUDE_MPM_AGENT_",
+                defaults={
+                    "enable_project_agents": True,
+                    "enable_user_agents": True,
+                    "enable_system_agents": True,
+                    "enable_hot_reload": True,
+                    "cache_ttl_seconds": 3600,
+                    "enable_caching": True,
+                    "validate_on_load": True,
+                    "strict_validation": False,
+                    "precedence_mode": "override"
+                }
+            )
+
+            loaded_config = config_loader.load_config(pattern, cache_key=f"agent_{config_file}")
+            data = loaded_config.to_dict()
 
             config = cls()
 
