@@ -30,6 +30,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.mixins import LoggerMixin
+from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.core.unified_paths import get_path_manager
 from claude_mpm.services.memory.router import MemoryRouter
 from claude_mpm.services.project.analyzer import ProjectAnalyzer
@@ -110,7 +111,11 @@ class MemoryBuilder(LoggerMixin):
             working_directory: Optional working directory for project-specific analysis
         """
         super().__init__()
-        self.config = config or Config()
+        if config:
+            self.config = config
+        else:
+            config_loader = ConfigLoader()
+            self.config = config_loader.load_main_config()
         self.project_root = get_path_manager().project_root
         # Use current working directory by default, not project root
         self.working_directory = working_directory or Path(os.getcwd())

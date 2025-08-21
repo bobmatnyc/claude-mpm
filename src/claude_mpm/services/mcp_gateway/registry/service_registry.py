@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
+from claude_mpm.services.shared import ManagerBase
 from claude_mpm.services.mcp_gateway.core.interfaces import (
     IMCPCommunication,
     IMCPConfiguration,
@@ -26,7 +27,7 @@ from claude_mpm.services.mcp_gateway.core.interfaces import (
 T = TypeVar("T")
 
 
-class MCPServiceRegistry:
+class MCPServiceRegistry(ManagerBase):
     """
     Service registry for MCP Gateway components.
 
@@ -42,19 +43,19 @@ class MCPServiceRegistry:
     - Support service dependency chains
     """
 
-    def __init__(self):
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
         """Initialize the service registry."""
-        self.logger = get_logger(self.__class__.__name__)
+        super().__init__("mcp_service_registry", config=config)
 
         # Thread safety
         self._lock = RLock()
 
-        # Service storage
+        # Service storage (in addition to base class _items)
         self._services: Dict[Type, Any] = {}
         self._singletons: Dict[Type, Any] = {}
         self._factories: Dict[Type, callable] = {}
 
-        # Service metadata
+        # Service metadata (note: base class has _item_metadata, this is for service-specific metadata)
         self._metadata: Dict[Type, Dict[str, Any]] = {}
 
         # Service health tracking
@@ -349,6 +350,22 @@ class MCPServiceRegistry:
             self._health_checks.clear()
 
             self.logger.info("Service registry cleared")
+
+    # Abstract methods required by ManagerBase
+    def _do_initialize(self) -> bool:
+        """Initialize the service registry."""
+        self.logger.info("MCP Service Registry initialized")
+        return True
+
+    def _validate_item(self, item_id: str, item: Any) -> bool:
+        """Validate a service before registration."""
+        # For services, we validate that they implement the expected interface
+        return item is not None
+
+    def _do_scan_items(self) -> int:
+        """Scan for available services."""
+        # For service registry, we don't auto-scan - services are explicitly registered
+        return len(self._services)
 
 
 # Global service registry instance

@@ -2,10 +2,18 @@
 Agents command implementation for claude-mpm.
 
 WHY: This module manages Claude Code native agents, including listing, deploying,
-and cleaning agent deployments.
+and cleaning agent deployments. Refactored to use shared utilities for consistency.
+
+DESIGN DECISIONS:
+- Use AgentCommand base class for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Maintain backward compatibility with existing functionality
+- Support multiple output formats (json, yaml, table, text)
 """
 
 import json
+import os
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
@@ -14,145 +22,476 @@ from ...agents.frontmatter_validator import FrontmatterValidator
 from ...constants import AgentCommands
 from ...core.agent_registry import AgentRegistryAdapter
 from ...core.config import Config
-from ...core.logger import get_logger
+from ...core.shared.config_loader import ConfigLoader
+from ..shared import AgentCommand, CommandResult, add_agent_arguments, add_output_arguments
 from ..utils import get_agent_versions_display
+
+
+class AgentsCommand(AgentCommand):
+    """Agent management command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("agents")
+        self._deployment_service = None
+
+    @property
+    def deployment_service(self):
+        """Get deployment service instance (lazy loaded)."""
+        if self._deployment_service is None:
+            try:
+                from ...services import AgentDeploymentService
+                from ...services.agents.deployment.deployment_wrapper import DeploymentServiceWrapper
+                base_service = AgentDeploymentService()
+                self._deployment_service = DeploymentServiceWrapper(base_service)
+            except ImportError:
+                raise ImportError("Agent deployment service not available")
+        return self._deployment_service
+
+    def validate_args(self, args) -> str:
+        """Validate command arguments."""
+        # Most agent commands are optional, so basic validation
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the agent command."""
+        try:
+            # Handle default case (no subcommand)
+            if not hasattr(args, 'agents_command') or not args.agents_command:
+                return self._show_agent_versions(args)
+
+            # Route to appropriate subcommand
+            command_map = {
+                AgentCommands.LIST.value: self._list_agents,
+                AgentCommands.DEPLOY.value: lambda a: self._deploy_agents(a, force=False),
+                AgentCommands.FORCE_DEPLOY.value: lambda a: self._deploy_agents(a, force=True),
+                AgentCommands.CLEAN.value: self._clean_agents,
+                AgentCommands.VIEW.value: self._view_agent,
+                AgentCommands.FIX.value: self._fix_agents,
+                "deps-check": self._check_agent_dependencies,
+                "deps-install": self._install_agent_dependencies,
+                "deps-list": self._list_agent_dependencies,
+                "deps-fix": self._fix_agent_dependencies,
+            }
+
+            if args.agents_command in command_map:
+                return command_map[args.agents_command](args)
+            else:
+                return CommandResult.error_result(f"Unknown agent command: {args.agents_command}")
+
+        except ImportError as e:
+            self.logger.error("Agent deployment service not available")
+            return CommandResult.error_result("Agent deployment service not available")
+        except Exception as e:
+            self.logger.error(f"Error managing agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error managing agents: {e}")
+
+    def _show_agent_versions(self, args) -> CommandResult:
+        """Show current agent versions as default action."""
+        try:
+            agent_versions = get_agent_versions_display()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                # Parse the agent versions display into structured data
+                if agent_versions:
+                    data = {"agent_versions": agent_versions, "has_agents": True}
+                    return CommandResult.success_result("Agent versions retrieved", data=data)
+                else:
+                    data = {"agent_versions": None, "has_agents": False, "suggestion": "To deploy agents, run: claude-mpm --mpm:agents deploy"}
+                    return CommandResult.success_result("No deployed agents found", data=data)
+            else:
+                # Text output
+                if agent_versions:
+                    print(agent_versions)
+                    return CommandResult.success_result("Agent versions displayed")
+                else:
+                    print("No deployed agents found")
+                    print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
+                    return CommandResult.success_result("No deployed agents found")
+
+        except Exception as e:
+            self.logger.error(f"Error getting agent versions: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error getting agent versions: {e}")
+
+
+    def _list_agents(self, args) -> CommandResult:
+        """List available or deployed agents."""
+        try:
+            output_format = getattr(args, 'format', 'text')
+
+            if hasattr(args, "by_tier") and args.by_tier:
+                return self._list_agents_by_tier(args)
+            elif getattr(args, 'system', False):
+                return self._list_system_agents(args)
+            elif getattr(args, 'deployed', False):
+                return self._list_deployed_agents(args)
+            else:
+                # Default: show usage
+                usage_msg = "Use --system to list system agents, --deployed to list deployed agents, or --by-tier to group by precedence"
+
+                if output_format in ['json', 'yaml']:
+                    return CommandResult.error_result(
+                        "No list option specified",
+                        data={"usage": usage_msg, "available_options": ["--system", "--deployed", "--by-tier"]}
+                    )
+                else:
+                    print(usage_msg)
+                    return CommandResult.error_result("No list option specified")
+
+        except Exception as e:
+            self.logger.error(f"Error listing agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing agents: {e}")
+
+    def _list_system_agents(self, args) -> CommandResult:
+        """List available agent templates."""
+        try:
+            agents = self.deployment_service.list_available_agents()
+            output_format = getattr(args, 'format', 'text')
+
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Found {len(agents)} agent templates",
+                    data={"agents": agents, "count": len(agents)}
+                )
+            else:
+                # Text output
+                print("Available Agent Templates:")
+                print("-" * 80)
+                if not agents:
+                    print("No agent templates found")
+                else:
+                    for agent in agents:
+                        print(f"📄 {agent['file']}")
+                        if "name" in agent:
+                            print(f"   Name: {agent['name']}")
+                        if "description" in agent:
+                            print(f"   Description: {agent['description']}")
+                        if "version" in agent:
+                            print(f"   Version: {agent['version']}")
+                        print()
+
+                return CommandResult.success_result(f"Listed {len(agents)} agent templates")
+
+        except Exception as e:
+            self.logger.error(f"Error listing system agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing system agents: {e}")
+
+    def _list_deployed_agents(self, args) -> CommandResult:
+        """List deployed agents."""
+        try:
+            verification = self.deployment_service.verify_deployment()
+            output_format = getattr(args, 'format', 'text')
+
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Found {len(verification['agents_found'])} deployed agents",
+                    data={
+                        "agents": verification["agents_found"],
+                        "warnings": verification.get("warnings", []),
+                        "count": len(verification["agents_found"])
+                    }
+                )
+            else:
+                # Text output
+                print("Deployed Agents:")
+                print("-" * 80)
+                if not verification["agents_found"]:
+                    print("No deployed agents found")
+                else:
+                    for agent in verification["agents_found"]:
+                        print(f"📄 {agent['file']}")
+                        if "name" in agent:
+                            print(f"   Name: {agent['name']}")
+                        print(f"   Path: {agent['path']}")
+                        print()
+
+                if verification["warnings"]:
+                    print("\nWarnings:")
+                    for warning in verification["warnings"]:
+                        print(f"  ⚠️  {warning}")
+
+                return CommandResult.success_result(f"Listed {len(verification['agents_found'])} deployed agents")
+
+        except Exception as e:
+            self.logger.error(f"Error listing deployed agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing deployed agents: {e}")
+
+    def _list_agents_by_tier(self, args) -> CommandResult:
+        """List agents grouped by tier/precedence."""
+        try:
+            agents_by_tier = self.deployment_service.list_agents_by_tier()
+            output_format = getattr(args, 'format', 'text')
+
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    "Agents listed by tier",
+                    data=agents_by_tier
+                )
+            else:
+                # Text output
+                print("Agents by Tier/Precedence:")
+                print("=" * 50)
+
+                for tier, agents in agents_by_tier.items():
+                    print(f"\n{tier.upper()}:")
+                    print("-" * 20)
+                    if agents:
+                        for agent in agents:
+                            print(f"  • {agent}")
+                    else:
+                        print("  (none)")
+
+                return CommandResult.success_result("Agents listed by tier")
+
+        except Exception as e:
+            self.logger.error(f"Error listing agents by tier: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing agents by tier: {e}")
+
+    def _deploy_agents(self, args, force=False) -> CommandResult:
+        """Deploy both system and project agents."""
+        try:
+            # Deploy system agents
+            system_result = self.deployment_service.deploy_system_agents(force=force)
+
+            # Deploy project agents if they exist
+            project_result = self.deployment_service.deploy_project_agents(force=force)
+
+            # Combine results
+            total_deployed = system_result.get('deployed_count', 0) + project_result.get('deployed_count', 0)
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Deployed {total_deployed} agents",
+                    data={
+                        "system_agents": system_result,
+                        "project_agents": project_result,
+                        "total_deployed": total_deployed
+                    }
+                )
+            else:
+                # Text output
+                if system_result.get('deployed_count', 0) > 0:
+                    print(f"✓ Deployed {system_result['deployed_count']} system agents")
+                if project_result.get('deployed_count', 0) > 0:
+                    print(f"✓ Deployed {project_result['deployed_count']} project agents")
+
+                if total_deployed == 0:
+                    print("No agents were deployed (all up to date)")
+
+                return CommandResult.success_result(f"Deployed {total_deployed} agents")
+
+        except Exception as e:
+            self.logger.error(f"Error deploying agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error deploying agents: {e}")
+
+    def _clean_agents(self, args) -> CommandResult:
+        """Clean deployed agents."""
+        try:
+            result = self.deployment_service.clean_deployment()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Cleaned {result.get('cleaned_count', 0)} agents",
+                    data=result
+                )
+            else:
+                # Text output
+                cleaned_count = result.get('cleaned_count', 0)
+                if cleaned_count > 0:
+                    print(f"✓ Cleaned {cleaned_count} deployed agents")
+                else:
+                    print("No deployed agents to clean")
+
+                return CommandResult.success_result(f"Cleaned {cleaned_count} agents")
+
+        except Exception as e:
+            self.logger.error(f"Error cleaning agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error cleaning agents: {e}")
+
+    def _view_agent(self, args) -> CommandResult:
+        """View details of a specific agent."""
+        try:
+            agent_name = getattr(args, 'agent_name', None)
+            if not agent_name:
+                return CommandResult.error_result("Agent name is required for view command")
+
+            # Get agent details from deployment service
+            agent_details = self.deployment_service.get_agent_details(agent_name)
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Agent details for {agent_name}",
+                    data=agent_details
+                )
+            else:
+                # Text output
+                print(f"Agent: {agent_name}")
+                print("-" * 40)
+                for key, value in agent_details.items():
+                    print(f"{key}: {value}")
+
+                return CommandResult.success_result(f"Displayed details for {agent_name}")
+
+        except Exception as e:
+            self.logger.error(f"Error viewing agent: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error viewing agent: {e}")
+
+    def _fix_agents(self, args) -> CommandResult:
+        """Fix agent deployment issues."""
+        try:
+            result = self.deployment_service.fix_deployment()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    "Agent deployment fixed",
+                    data=result
+                )
+            else:
+                # Text output
+                print("✓ Agent deployment issues fixed")
+                if result.get('fixes_applied'):
+                    for fix in result['fixes_applied']:
+                        print(f"  - {fix}")
+
+                return CommandResult.success_result("Agent deployment fixed")
+
+        except Exception as e:
+            self.logger.error(f"Error fixing agents: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error fixing agents: {e}")
+
+    def _check_agent_dependencies(self, args) -> CommandResult:
+        """Check agent dependencies."""
+        try:
+            result = self.deployment_service.check_dependencies()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    "Dependency check completed",
+                    data=result
+                )
+            else:
+                # Text output
+                print("Agent Dependencies Check:")
+                print("-" * 40)
+                if result.get('missing_dependencies'):
+                    print("Missing dependencies:")
+                    for dep in result['missing_dependencies']:
+                        print(f"  - {dep}")
+                else:
+                    print("✓ All dependencies satisfied")
+
+                return CommandResult.success_result("Dependency check completed")
+
+        except Exception as e:
+            self.logger.error(f"Error checking dependencies: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error checking dependencies: {e}")
+
+    def _install_agent_dependencies(self, args) -> CommandResult:
+        """Install agent dependencies."""
+        try:
+            result = self.deployment_service.install_dependencies()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Installed {result.get('installed_count', 0)} dependencies",
+                    data=result
+                )
+            else:
+                # Text output
+                installed_count = result.get('installed_count', 0)
+                if installed_count > 0:
+                    print(f"✓ Installed {installed_count} dependencies")
+                else:
+                    print("No dependencies needed installation")
+
+                return CommandResult.success_result(f"Installed {installed_count} dependencies")
+
+        except Exception as e:
+            self.logger.error(f"Error installing dependencies: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error installing dependencies: {e}")
+
+    def _list_agent_dependencies(self, args) -> CommandResult:
+        """List agent dependencies."""
+        try:
+            result = self.deployment_service.list_dependencies()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Found {len(result.get('dependencies', []))} dependencies",
+                    data=result
+                )
+            else:
+                # Text output
+                dependencies = result.get('dependencies', [])
+                print("Agent Dependencies:")
+                print("-" * 40)
+                if dependencies:
+                    for dep in dependencies:
+                        status = "✓" if dep.get('installed') else "✗"
+                        print(f"{status} {dep.get('name', 'Unknown')}")
+                else:
+                    print("No dependencies found")
+
+                return CommandResult.success_result(f"Listed {len(dependencies)} dependencies")
+
+        except Exception as e:
+            self.logger.error(f"Error listing dependencies: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error listing dependencies: {e}")
+
+    def _fix_agent_dependencies(self, args) -> CommandResult:
+        """Fix agent dependency issues."""
+        try:
+            result = self.deployment_service.fix_dependencies()
+
+            output_format = getattr(args, 'format', 'text')
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    "Dependency issues fixed",
+                    data=result
+                )
+            else:
+                # Text output
+                print("✓ Agent dependency issues fixed")
+                if result.get('fixes_applied'):
+                    for fix in result['fixes_applied']:
+                        print(f"  - {fix}")
+
+                return CommandResult.success_result("Dependency issues fixed")
+
+        except Exception as e:
+            self.logger.error(f"Error fixing dependencies: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error fixing dependencies: {e}")
 
 
 def manage_agents(args):
     """
-    Manage Claude Code native agents.
+    Main entry point for agent management commands.
 
-    WHY: Claude Code agents need to be deployed and managed. This command provides
-    a unified interface for all agent-related operations.
-
-    DESIGN DECISION: When no subcommand is provided, we show the current agent
-    versions as a quick status check. This matches the behavior users see at startup.
-
-    Args:
-        args: Parsed command line arguments with agents_command attribute
+    This function maintains backward compatibility while using the new AgentCommand pattern.
     """
-    logger = get_logger("cli")
+    command = AgentsCommand()
+    result = command.execute(args)
 
-    try:
-        import os
-        from pathlib import Path
+    # Print result if structured output format is requested
+    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+        command.print_result(result, args)
 
-        from ...services import AgentDeploymentService
-
-        # Determine the user's working directory from environment
-        # This ensures agents are deployed to the correct directory
-        user_working_dir = None
-        if "CLAUDE_MPM_USER_PWD" in os.environ:
-            user_working_dir = Path(os.environ["CLAUDE_MPM_USER_PWD"])
-
-        # For system agents, don't pass working_directory so they deploy to ~/.claude/agents/
-        # The service will determine the correct path based on the agent source
-        deployment_service = AgentDeploymentService()
-
-        if not args.agents_command:
-            agent_versions = get_agent_versions_display()
-            if agent_versions:
-                print(agent_versions)
-            else:
-                print("No deployed agents found")
-                print("\nTo deploy agents, run: claude-mpm --mpm:agents deploy")
-            return
-
-        if args.agents_command == AgentCommands.LIST.value:
-            _list_agents(args, deployment_service)
-
-        elif args.agents_command == AgentCommands.DEPLOY.value:
-            _deploy_agents(args, deployment_service, force=False)
-
-        elif args.agents_command == AgentCommands.FORCE_DEPLOY.value:
-            _deploy_agents(args, deployment_service, force=True)
-
-        elif args.agents_command == AgentCommands.CLEAN.value:
-            _clean_agents(args, deployment_service)
-
-        elif args.agents_command == AgentCommands.VIEW.value:
-            _view_agent(args)
-
-        elif args.agents_command == AgentCommands.FIX.value:
-            _fix_agents(args)
-
-        elif args.agents_command == "deps-check":
-            _check_agent_dependencies(args)
-
-        elif args.agents_command == "deps-install":
-            _install_agent_dependencies(args)
-
-        elif args.agents_command == "deps-list":
-            _list_agent_dependencies(args)
-
-        elif args.agents_command == "deps-fix":
-            _fix_agent_dependencies(args)
-
-    except ImportError:
-        logger.error("Agent deployment service not available")
-        print("Error: Agent deployment service not available")
-    except Exception as e:
-        logger.error(f"Error managing agents: {e}")
-        print(f"Error: {e}")
+    return result.exit_code
 
 
 def _list_agents(args, deployment_service):
-    """
-    List available or deployed agents.
-
-    WHY: Users need to see what agents are available in the system and what's
-    currently deployed. This helps them understand the agent ecosystem.
-
-    Args:
-        args: Command arguments with 'system', 'deployed', and 'by_tier' flags
-        deployment_service: Agent deployment service instance
-    """
-    if hasattr(args, "by_tier") and args.by_tier:
-        # List agents grouped by tier
-        _list_agents_by_tier()
-    elif args.system:
-        # List available agent templates
-        print("Available Agent Templates:")
-        print("-" * 80)
-        agents = deployment_service.list_available_agents()
-        if not agents:
-            print("No agent templates found")
-        else:
-            for agent in agents:
-                print(f"📄 {agent['file']}")
-                if "name" in agent:
-                    print(f"   Name: {agent['name']}")
-                if "description" in agent:
-                    print(f"   Description: {agent['description']}")
-                if "version" in agent:
-                    print(f"   Version: {agent['version']}")
-                print()
-
-    elif args.deployed:
-        # List deployed agents
-        print("Deployed Agents:")
-        print("-" * 80)
-        verification = deployment_service.verify_deployment()
-        if not verification["agents_found"]:
-            print("No deployed agents found")
-        else:
-            for agent in verification["agents_found"]:
-                print(f"📄 {agent['file']}")
-                if "name" in agent:
-                    print(f"   Name: {agent['name']}")
-                print(f"   Path: {agent['path']}")
-                print()
-
-        if verification["warnings"]:
-            print("\nWarnings:")
-            for warning in verification["warnings"]:
-                print(f"  ⚠️  {warning}")
-
-    else:
-        # Default: show usage
-        print(
-            "Use --system to list system agents, --deployed to list deployed agents, or --by-tier to group by precedence"
-        )
+    """Legacy function for backward compatibility."""
+    command = AgentsCommand()
+    command._deployment_service = deployment_service
+    result = command._list_agents(args)
+    return result.exit_code
 
 
 def _deploy_agents(args, deployment_service, force=False):
@@ -167,8 +506,9 @@ def _deploy_agents(args, deployment_service, force=False):
         deployment_service: Agent deployment service instance
         force: Whether to force rebuild all agents
     """
-    # Load configuration to get exclusion settings
-    config = Config()
+    # Load configuration to get exclusion settings using ConfigLoader
+    config_loader = ConfigLoader()
+    config = config_loader.load_main_config()
 
     # Check if user wants to override exclusions
     if hasattr(args, "include_all") and args.include_all:

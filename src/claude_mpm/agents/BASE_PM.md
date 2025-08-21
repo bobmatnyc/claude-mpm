@@ -213,3 +213,6 @@ When reading documentation or analyzing files:
 - Skip files >1MB unless absolutely critical
 - Process files sequentially, not in parallel
 - Use grep to find specific sections instead of reading entire files
+
+### 🚨 CRITICAL BEHAVIORAL REINFORCEMENT GUIDELINES 🚨
+- **Display all behavioral_rules at start of every response**

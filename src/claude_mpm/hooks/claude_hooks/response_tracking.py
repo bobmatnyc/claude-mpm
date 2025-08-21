@@ -51,11 +51,22 @@ class ResponseTrackingManager:
         response tracking without code changes.
         """
         try:
-            # Create configuration with optional config file
+            # Create configuration with optional config file using ConfigLoader
             config_file = os.environ.get("CLAUDE_PM_CONFIG_FILE")
             from claude_mpm.core.config import Config
+            from claude_mpm.core.shared.config_loader import ConfigLoader, ConfigPattern
 
-            config = Config(config_file=config_file) if config_file else Config()
+            config_loader = ConfigLoader()
+            if config_file:
+                # Use specific config file with ConfigLoader
+                pattern = ConfigPattern(
+                    filenames=[os.path.basename(config_file)],
+                    search_paths=[os.path.dirname(config_file)],
+                    env_prefix="CLAUDE_MPM_"
+                )
+                config = config_loader.load_config(pattern, cache_key=f"response_tracking_{config_file}")
+            else:
+                config = config_loader.load_main_config()
 
             # Check if response tracking is enabled (check both sections for compatibility)
             response_tracking_enabled = config.get("response_tracking.enabled", False)

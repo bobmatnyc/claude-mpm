@@ -11,6 +11,7 @@ from .base_service import BaseService
 from .config import Config
 from .container import DIContainer, ServiceLifetime, get_container
 from .logger import get_logger
+from .shared.config_loader import ConfigLoader
 
 if TYPE_CHECKING:
     from claude_mpm.services.agents.deployment import AgentDeploymentService
@@ -46,8 +47,9 @@ class ServiceRegistry:
         from .agent_session_manager import AgentSessionManager
         from .session_manager import SessionManager
 
-        # Register configuration as singleton with name
-        config = Config()
+        # Register configuration as singleton with name using ConfigLoader
+        config_loader = ConfigLoader()
+        config = config_loader.load_main_config()
         self.container.register_singleton(Config, instance=config, name="main_config")
 
         # Register core services with proper lifetime management

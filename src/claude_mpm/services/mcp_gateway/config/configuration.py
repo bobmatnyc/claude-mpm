@@ -17,6 +17,7 @@ import yaml
 from claude_mpm.services.mcp_gateway.core.base import BaseMCPService
 from claude_mpm.services.mcp_gateway.core.exceptions import MCPConfigurationError
 from claude_mpm.services.mcp_gateway.core.interfaces import IMCPConfiguration
+from claude_mpm.services.shared import ConfigServiceBase
 
 
 class MCPConfiguration(BaseMCPService, IMCPConfiguration):
@@ -87,6 +88,12 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
         self._config_path = config_path
         self._config_data: Dict[str, Any] = {}
         self._is_loaded = False
+
+        # Initialize shared configuration utilities
+        self._config_helper = ConfigServiceBase("mcp_configuration")
+
+        # Merge environment configuration
+        self._config_helper.merge_env_config("CLAUDE_MPM_MCP_")
 
     async def _do_initialize(self) -> bool:
         """
@@ -376,3 +383,25 @@ class MCPConfiguration(BaseMCPService, IMCPConfiguration):
 
         # Revalidate
         return self.validate()
+
+    def get_config_with_validation(self, key: str, default: Any = None, config_type: type = None) -> Any:
+        """
+        Get configuration value with validation using shared utilities.
+
+        Args:
+            key: Configuration key (supports dot notation)
+            default: Default value if not found
+            config_type: Expected type for validation
+
+        Returns:
+            Configuration value
+        """
+        try:
+            return self._config_helper.get_config_value(key, default, config_type=config_type)
+        except ValueError:
+            # Fall back to standard get method
+            return self.get(key, default)
+
+    def get_config_summary(self) -> Dict[str, Any]:
+        """Get configuration summary using shared utilities."""
+        return self._config_helper.get_config_summary()

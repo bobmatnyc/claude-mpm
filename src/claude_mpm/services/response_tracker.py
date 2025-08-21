@@ -23,6 +23,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from claude_mpm.core.config import Config
+from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.services.claude_session_logger import ClaudeSessionLogger
 
 logger = logging.getLogger(__name__)
@@ -48,7 +49,8 @@ class ResponseTracker:
         """
         # Load configuration if not provided
         if config is None:
-            config = Config()
+            config_loader = ConfigLoader()
+            config = config_loader.load_main_config()
         self.config = config
 
         # Check if response tracking is enabled

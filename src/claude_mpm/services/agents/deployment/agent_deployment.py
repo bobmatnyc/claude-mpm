@@ -45,6 +45,7 @@ from claude_mpm.core.logging_config import (
     log_operation,
     log_performance_context,
 )
+from claude_mpm.services.shared import ConfigServiceBase
 
 from .agent_configuration_manager import AgentConfigurationManager
 from .agent_discovery_service import AgentDiscoveryService
@@ -58,7 +59,7 @@ from .agent_version_manager import AgentVersionManager
 from .multi_source_deployment_service import MultiSourceAgentDeploymentService
 
 
-class AgentDeploymentService(AgentDeploymentInterface):
+class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     """Service for deploying Claude Code native agents.
 
     METRICS COLLECTION OPPORTUNITIES:
@@ -94,6 +95,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
         templates_dir: Optional[Path] = None,
         base_agent_path: Optional[Path] = None,
         working_directory: Optional[Path] = None,
+        config: Optional[Config] = None,
     ):
         """
         Initialize agent deployment service.
@@ -102,13 +104,15 @@ class AgentDeploymentService(AgentDeploymentInterface):
             templates_dir: Directory containing agent JSON files
             base_agent_path: Path to base_agent.md file
             working_directory: User's working directory (for project agents)
+            config: Configuration instance
 
         METRICS OPPORTUNITY: Track initialization performance:
         - Template directory scan time
         - Base agent loading time
         - Initial validation overhead
         """
-        self.logger = get_logger(__name__)
+        # Initialize base class with configuration
+        super().__init__("agent_deployment", config=config)
 
         # Initialize template builder service
         self.template_builder = AgentTemplateBuilder()
@@ -139,26 +143,22 @@ class AgentDeploymentService(AgentDeploymentInterface):
             "deployment_errors": {},
         }
 
-        # Determine the actual working directory
-        # For deployment, we need to track the working directory but NOT use it
-        # for determining where system agents go (they always go to ~/.claude/agents/)
-        # Priority: working_directory param > current directory
-        if working_directory:
-            self.working_directory = Path(working_directory)
-        else:
-            # Use current directory but don't let CLAUDE_MPM_USER_PWD affect system agent deployment
-            self.working_directory = Path.cwd()
-
+        # Determine the actual working directory using configuration
+        # Priority: param > config > environment > current directory
+        self.working_directory = self.get_config_value(
+            "working_directory",
+            default=working_directory or Path.cwd(),
+            config_type=Path
+        )
         self.logger.info(f"Working directory for deployment: {self.working_directory}")
 
-        # Find templates directory using centralized path management
-        if templates_dir:
-            self.templates_dir = Path(templates_dir)
-        else:
-            # Use centralized paths instead of fragile parent calculations
-            # For system agents, still use templates subdirectory
-            # For project/user agents, this should be overridden with actual agents dir
-            self.templates_dir = paths.agents_dir / "templates"
+        # Find templates directory using configuration
+        # Priority: param > config > default paths
+        self.templates_dir = self.get_config_value(
+            "templates_dir",
+            default=templates_dir or paths.agents_dir / "templates",
+            config_type=Path
+        )
 
         # Initialize discovery service (after templates_dir is set)
         self.discovery_service = AgentDiscoveryService(self.templates_dir)
@@ -166,9 +166,13 @@ class AgentDeploymentService(AgentDeploymentInterface):
         # Initialize multi-source deployment service for version comparison
         self.multi_source_service = MultiSourceAgentDeploymentService()
 
-        # Find base agent file with priority-based search
+        # Find base agent file using configuration
+        # Priority: param > config > search
+        configured_base_agent = self.get_config_value("base_agent_path", config_type=Path)
         if base_agent_path:
             self.base_agent_path = Path(base_agent_path)
+        elif configured_base_agent:
+            self.base_agent_path = configured_base_agent
         else:
             # Priority-based search for base_agent.json
             self.base_agent_path = self._find_base_agent_file()
@@ -382,7 +386,7 @@ class AgentDeploymentService(AgentDeploymentInterface):
             if use_multi_source:
                 # Use multi-source deployment to get highest version agents
                 template_files, agent_sources = self._get_multi_source_templates(
-                    excluded_agents, config, agents_dir
+                    excluded_agents, config, agents_dir, force_rebuild
                 )
                 results["total"] = len(template_files)
                 results["multi_source"] = True
@@ -1056,7 +1060,8 @@ class AgentDeploymentService(AgentDeploymentInterface):
         return False
     
     def _get_multi_source_templates(
-        self, excluded_agents: List[str], config: Config, agents_dir: Path
+        self, excluded_agents: List[str], config: Config, agents_dir: Path, 
+        force_rebuild: bool = False
     ) -> Tuple[List[Path], Dict[str, str]]:
         """Get agent templates from multiple sources with version comparison.
         
@@ -1113,6 +1118,27 @@ class AgentDeploymentService(AgentDeploymentInterface):
                 self.logger.info(f"Version upgrades available for {len(comparison_results['version_upgrades'])} agents")
             if comparison_results.get("source_changes"):
                 self.logger.info(f"Source changes for {len(comparison_results['source_changes'])} agents")
+            
+            # Filter agents based on comparison results (unless force_rebuild is set)
+            if not force_rebuild:
+                # Only deploy agents that need updates or are new
+                agents_needing_update = set(comparison_results.get("needs_update", []))
+                
+                # Extract agent names from new_agents list (which contains dicts)
+                new_agent_names = [
+                    agent["name"] if isinstance(agent, dict) else agent
+                    for agent in comparison_results.get("new_agents", [])
+                ]
+                agents_needing_update.update(new_agent_names)
+                
+                # Filter agents_to_deploy to only include those needing updates
+                filtered_agents = {
+                    name: path for name, path in agents_to_deploy.items()
+                    if name in agents_needing_update
+                }
+                agents_to_deploy = filtered_agents
+                
+                self.logger.info(f"Filtered to {len(agents_to_deploy)} agents needing deployment")
         
         # Convert to list of Path objects
         template_files = list(agents_to_deploy.values())

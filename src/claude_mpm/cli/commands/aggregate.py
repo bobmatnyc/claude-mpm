@@ -4,10 +4,17 @@ from pathlib import Path
 
 WHY: Provides command-line interface for managing the event aggregator service
 that captures Socket.IO events and saves them as structured session documents.
+
+DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Maintain backward compatibility with existing event aggregator integration
+- Support multiple output formats (json, yaml, table, text)
 """
 
 import json
 import sys
+from typing import Optional
 
 from ...core.logger import get_logger
 from ...models.agent_session import AgentSession
@@ -17,36 +24,121 @@ from ...services.event_aggregator import (
     start_aggregator,
     stop_aggregator,
 )
+from ..shared import BaseCommand, CommandResult
 
 logger = get_logger("cli.aggregate")
 
 
-def aggregate_command(args):
-    """Main entry point for aggregate commands.
+class AggregateCommand(BaseCommand):
+    """Aggregate command using shared utilities."""
 
-    WHY: Routes subcommands to appropriate handlers for managing the
-    event aggregator service.
+    def __init__(self):
+        super().__init__("aggregate")
+
+    def validate_args(self, args) -> Optional[str]:
+        """Validate command arguments."""
+        if not hasattr(args, 'aggregate_subcommand') or not args.aggregate_subcommand:
+            return "No aggregate subcommand specified"
+
+        valid_commands = ["start", "stop", "status", "sessions", "view", "export"]
+        if args.aggregate_subcommand not in valid_commands:
+            return f"Unknown aggregate command: {args.aggregate_subcommand}. Valid commands: {', '.join(valid_commands)}"
+
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the aggregate command."""
+        try:
+            # Route to specific subcommand handlers
+            command_map = {
+                "start": self._start_command,
+                "stop": self._stop_command,
+                "status": self._status_command,
+                "sessions": self._sessions_command,
+                "view": self._view_command,
+                "export": self._export_command,
+            }
+
+            if args.aggregate_subcommand in command_map:
+                exit_code = command_map[args.aggregate_subcommand](args)
+                if exit_code == 0:
+                    return CommandResult.success_result(f"Aggregate {args.aggregate_subcommand} completed successfully")
+                else:
+                    return CommandResult.error_result(f"Aggregate {args.aggregate_subcommand} failed", exit_code=exit_code)
+            else:
+                return CommandResult.error_result(f"Unknown aggregate command: {args.aggregate_subcommand}")
+
+        except Exception as e:
+            self.logger.error(f"Error executing aggregate command: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error executing aggregate command: {e}")
+
+    def _start_command(self, args) -> int:
+        """Start the event aggregator service."""
+        return start_command_legacy(args)
+
+    def _stop_command(self, args) -> int:
+        """Stop the event aggregator service."""
+        return stop_command_legacy(args)
+
+    def _status_command(self, args) -> int:
+        """Show status of the event aggregator service."""
+        return status_command_legacy(args)
+
+    def _sessions_command(self, args) -> int:
+        """List captured sessions."""
+        return sessions_command_legacy(args)
+
+    def _view_command(self, args) -> int:
+        """View details of a specific session."""
+        return view_command_legacy(args)
+
+    def _export_command(self, args) -> int:
+        """Export a session to a file."""
+        return export_command_legacy(args)
+
+
+def aggregate_command(args):
+    """
+    Main entry point for aggregate command.
+
+    This function maintains backward compatibility while using the new BaseCommand pattern.
+    """
+    command = AggregateCommand()
+    result = command.execute(args)
+
+    # Print result if structured output format is requested
+    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+        command.print_result(result, args)
+
+    return result.exit_code
+
+
+def aggregate_command_legacy(args):
+    """Legacy aggregate command dispatcher.
+
+    WHY: This contains the original aggregate_command logic, preserved during migration
+    to BaseCommand pattern. Will be gradually refactored into the AggregateCommand class.
     """
     subcommand = args.aggregate_subcommand
 
     if subcommand == "start":
-        return start_command(args)
+        return start_command_legacy(args)
     elif subcommand == "stop":
-        return stop_command(args)
+        return stop_command_legacy(args)
     elif subcommand == "status":
-        return status_command(args)
+        return status_command_legacy(args)
     elif subcommand == "sessions":
-        return sessions_command(args)
+        return sessions_command_legacy(args)
     elif subcommand == "view":
-        return view_command(args)
+        return view_command_legacy(args)
     elif subcommand == "export":
-        return export_command(args)
+        return export_command_legacy(args)
     else:
         print(f"Unknown subcommand: {subcommand}", file=sys.stderr)
         return 1
 
 
-def start_command(args):
+def start_command_legacy(args):
     """Start the event aggregator service.
 
     WHY: Starts capturing events from the Socket.IO dashboard server
@@ -105,7 +197,7 @@ def start_command(args):
         return 1
 
 
-def stop_command(args):
+def stop_command_legacy(args):
     """Stop the event aggregator service.
 
     WHY: Gracefully stops the aggregator and saves any active sessions.
@@ -136,7 +228,7 @@ def stop_command(args):
     return 0
 
 
-def status_command(args):
+def status_command_legacy(args):
     """Show status of the event aggregator service.
 
     WHY: Provides visibility into what the aggregator is doing and
@@ -169,7 +261,7 @@ def status_command(args):
     return 0
 
 
-def sessions_command(args):
+def sessions_command_legacy(args):
     """List captured sessions.
 
     WHY: Shows what sessions have been captured for analysis.
@@ -198,7 +290,7 @@ def sessions_command(args):
     return 0
 
 
-def view_command(args):
+def view_command_legacy(args):
     """View details of a specific session.
 
     WHY: Allows detailed inspection of what happened during a session.
@@ -293,7 +385,7 @@ def view_command(args):
     return 0
 
 
-def export_command(args):
+def export_command_legacy(args):
     """Export a session to a file.
 
     WHY: Allows sessions to be exported for external analysis or sharing.

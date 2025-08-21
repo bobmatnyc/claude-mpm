@@ -171,5 +171,8 @@ def add_mcp_subparser(subparsers) -> argparse.ArgumentParser:
     server_mcp_parser.add_argument(
         "--test", action="store_true", help="Run in test mode with debug output"
     )
+    server_mcp_parser.add_argument(
+        "--instructions", action="store_true", help="Show setup instructions for Claude Desktop"
+    )
 
     return mcp_parser

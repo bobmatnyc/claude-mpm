@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 
 from claude_mpm.agents.base_agent_loader import clear_base_agent_cache
 from claude_mpm.services.memory.cache.shared_prompt_cache import SharedPromptCache
+from claude_mpm.services.shared import ConfigServiceBase
 
 logger = logging.getLogger(__name__)
 
@@ -63,12 +64,19 @@ class BaseAgentStructure:
     raw_sections: Dict[str, str] = field(default_factory=dict)
 
 
-class BaseAgentManager:
+class BaseAgentManager(ConfigServiceBase):
     """Manages base_agent.md with structured updates and validation."""
 
-    def __init__(self, agents_dir: Optional[Path] = None):
+    def __init__(self, agents_dir: Optional[Path] = None, config: Optional[Dict[str, Any]] = None):
         """Initialize BaseAgentManager."""
-        self.agents_dir = agents_dir or Path(__file__).parent.parent / "agents"
+        super().__init__("base_agent_manager", config=config)
+
+        # Initialize paths using configuration
+        self.agents_dir = self.get_config_value(
+            "agents_dir",
+            default=agents_dir or Path(__file__).parent.parent / "agents",
+            config_type=Path
+        )
         self.base_agent_path = self.agents_dir / "BASE_AGENT_TEMPLATE.md"
         self.cache = SharedPromptCache.get_instance()
 
