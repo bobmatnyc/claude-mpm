@@ -5,6 +5,47 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+## [4.0.28] - 2025-08-21
+
+### Features
+
+- closed TSK-0148 (documentation consolidation completed)
+- closed 11 completed tickets (5 epics, 1 issue, 5 tasks)
+- ticket system cleanup and organization
+
+### Fixed
+
+- version synchronization across all package files
+- enhanced project structure compliance
+
+
+## [4.0.26] - 2025-08-21
+
+### Features
+
+- documentation consolidation and cleanup across project
+- updated CLAUDE.md with current documentation references
+- version references updated to v4.0.25 throughout documentation
+
+### Fixed
+
+- archived temporary QA reports and fix documentation
+- consolidated shared utilities and CLI patterns
+- enhanced testing framework with comprehensive coverage
+
 ## v4.0.25 (2025-08-20)
 
 ### Fix

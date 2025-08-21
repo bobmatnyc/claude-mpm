@@ -250,8 +250,9 @@ class DIContainer(IServiceContainer):
             instance: Pre-created instance to register as singleton
 
         Examples:
-            # Register a pre-created instance
-            config = Config()
+            # Register a pre-created instance using ConfigLoader
+            config_loader = ConfigLoader()
+            config = config_loader.load_main_config()
             container.register_instance(IConfig, config)
         """
         self._register_internal(
@@ -307,8 +308,9 @@ class DIContainer(IServiceContainer):
             # Register with implementation class
             container.register_singleton(ILogger, ConsoleLogger)
 
-            # Register with instance
-            container.register_singleton(IConfig, instance=Config())
+            # Register with instance using ConfigLoader
+            config_loader = ConfigLoader()
+            container.register_singleton(IConfig, instance=config_loader.load_main_config())
 
             # Register with disposal handler
             container.register_singleton(

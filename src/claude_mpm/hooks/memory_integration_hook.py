@@ -17,6 +17,7 @@ from typing import Any, Dict, List
 
 from claude_mpm.core.config import Config
 from claude_mpm.core.logger import get_logger
+from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.hooks.base_hook import (
     HookContext,
     HookResult,
@@ -65,7 +66,11 @@ class MemoryPreDelegationHook(PreDelegationHook):
             config: Optional Config object. If not provided, will create default Config.
         """
         super().__init__(name="memory_pre_delegation", priority=20)
-        self.config = config or Config()
+        if config:
+            self.config = config
+        else:
+            config_loader = ConfigLoader()
+            self.config = config_loader.load_main_config()
 
         # Initialize memory manager only if available
         if MEMORY_MANAGER_AVAILABLE and AgentMemoryManager:
@@ -196,7 +201,11 @@ class MemoryPostDelegationHook(PostDelegationHook):
             config: Optional Config object. If not provided, will create default Config.
         """
         super().__init__(name="memory_post_delegation", priority=80)
-        self.config = config or Config()
+        if config:
+            self.config = config
+        else:
+            config_loader = ConfigLoader()
+            self.config = config_loader.load_main_config()
 
         # Initialize memory manager only if available
         if MEMORY_MANAGER_AVAILABLE and AgentMemoryManager:

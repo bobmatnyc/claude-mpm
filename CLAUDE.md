@@ -6,7 +6,7 @@ This document provides development guidelines for the claude-mpm project codebas
 
 Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Desktop with multi-agent orchestration capabilities, featuring a modern service-oriented architecture with interface-based contracts and dependency injection.
 
-## Architecture (v3.8.2+)
+## Architecture (v4.0.25+)
 
 Following the TSK-0053 refactoring, Claude MPM features:
 
@@ -18,6 +18,9 @@ Following the TSK-0053 refactoring, Claude MPM features:
 - **Backward Compatibility**: Lazy imports maintain existing import paths
 
 ## Key Documentation
+
+### 📚 **Primary Entry Point**
+- **[Documentation Index](docs/README.md)** - Start here! Complete navigation guide to all documentation
 
 ### Architecture and Development
 - 🏗️ **Architecture Overview**: See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for service-oriented architecture
@@ -31,9 +34,10 @@ Following the TSK-0053 refactoring, Claude MPM features:
 ### Operations and Quality
 - 🧪 **Quality Assurance**: See [docs/QA.md](docs/QA.md) for testing guidelines
 - 🚀 **Deployment**: See [docs/DEPLOY.md](docs/DEPLOY.md) for versioning and deployment
-- 📊 **Logging**: See [docs/RESPONSE_LOGGING_CONFIG.md](docs/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
+- 📊 **Response Logging**: See [docs/archive/RESPONSE_LOGGING_CONFIG.md](docs/archive/RESPONSE_LOGGING_CONFIG.md) for response logging configuration
 - 🔢 **Versioning**: See [docs/VERSIONING.md](docs/VERSIONING.md) for version management
 - 🧠 **Memory System**: See [docs/MEMORY.md](docs/MEMORY.md) for agent memory management
+- 🎨 **Output Style**: See [docs/OUTPUT_STYLE.md](docs/OUTPUT_STYLE.md) for agent response formatting standards
 
 ## Development Guidelines
 
@@ -209,7 +213,7 @@ def test_service_implements_interface():
 
 ### Version Management
 
-Claude MPM uses a dual tracking system as of v3.9.5:
+Claude MPM uses a dual tracking system as of v4.0.25:
 - **VERSION file**: Contains semantic version only (e.g., "3.9.5")
 - **BUILD_NUMBER file**: Contains serial build number only (e.g., "275")
 - **Combined display**: Three formats for different contexts:
@@ -259,7 +263,7 @@ The service layer architecture refactoring delivered:
 - **Modularity**: Clear service boundaries enable independent development
 - **Performance**: Intelligent caching and resource optimization foundations
 
-## v3.9.5 Updates
+## v4.0.25 Updates
 
 ### Version Tracking System Enhancement
 - **BUILD_NUMBER file**: Replaces BUILDVERSION for cleaner naming

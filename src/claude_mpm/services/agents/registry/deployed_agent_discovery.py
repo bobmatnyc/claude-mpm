@@ -7,26 +7,35 @@ handling both new standardized schema and legacy agent formats.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from claude_mpm.core.agent_registry import AgentRegistryAdapter
 from claude_mpm.core.unified_paths import get_path_manager
+from claude_mpm.services.shared import ConfigServiceBase
 
 logger = logging.getLogger(__name__)
 
 
-class DeployedAgentDiscovery:
+class DeployedAgentDiscovery(ConfigServiceBase):
     """Discovers and analyzes deployed agents in the project."""
 
-    def __init__(self, project_root: Path = None):
+    def __init__(self, project_root: Path = None, config: Optional[Dict[str, Any]] = None):
         """Initialize the discovery service.
 
         Args:
             project_root: Project root path. Defaults to auto-detected root.
+            config: Configuration dictionary
         """
-        self.project_root = project_root or get_path_manager().get_project_root()
+        super().__init__("deployed_agent_discovery", config=config)
+
+        # Initialize project root using configuration
+        self.project_root = self.get_config_value(
+            "project_root",
+            default=project_root or get_path_manager().project_root,
+            config_type=Path
+        )
         self.agent_registry = AgentRegistryAdapter()
-        logger.debug(
+        self.logger.debug(
             f"Initialized DeployedAgentDiscovery with root: {self.project_root}"
         )
 

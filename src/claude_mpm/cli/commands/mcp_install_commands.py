@@ -45,14 +45,14 @@ class MCPInstallCommands:
                 return 1
 
         # Step 2: Configure Claude Code with the new CLI command
-        print("\n2️⃣  Configuring Claude Code...")
+        print("\n2️⃣  Configuring Claude Code (~/.claude.json)...")
         try:
             success = self._configure_claude_desktop(args.force)
             if success:
                 print("✅ Configuration completed successfully")
                 print("\n🎉 MCP Gateway is ready to use!")
                 print("\nNext steps:")
-                print("1. Restart Claude Code")
+                print("1. Restart Claude Code (if running)")
                 print("2. Test the server: claude-mpm mcp server --test")
                 print("3. Check status: claude-mpm mcp status")
                 return 0
@@ -66,6 +66,10 @@ class MCPInstallCommands:
 
     def _configure_claude_desktop(self, force=False):
         """Configure Claude Code to use the MCP gateway via CLI command.
+        
+        WHY: Claude Code reads MCP server configurations from ~/.claude.json
+        (not ~/.claude/settings.local.json). This method updates that file
+        to include the claude-mpm-gateway server configuration.
 
         Args:
             force: Whether to overwrite existing configuration
@@ -141,8 +145,10 @@ class MCPInstallCommands:
         """
         from pathlib import Path
 
-        # Claude Code uses ~/.claude/settings.local.json regardless of platform
-        return Path.home() / ".claude" / "settings.local.json"
+        # Claude Code reads MCP server configurations from ~/.claude.json
+        # This is the actual file that Claude Code uses for MCP servers
+        # NOT ~/.claude/settings.local.json
+        return Path.home() / ".claude.json"
 
     def _find_claude_mpm_executable(self):
         """Find the claude-mpm executable path.

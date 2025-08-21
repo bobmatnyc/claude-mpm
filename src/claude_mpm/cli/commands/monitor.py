@@ -4,25 +4,119 @@ Monitor command implementation for claude-mpm.
 WHY: This module provides CLI commands for managing the Socket.IO monitoring server,
 allowing users to start, stop, restart, and check status of the monitoring infrastructure.
 
-DESIGN DECISION: We follow the existing CLI pattern using a main function
-that dispatches to specific subcommand handlers, maintaining consistency
-with other command modules like agents.py and memory.py.
+DESIGN DECISIONS:
+- Use BaseCommand for consistent CLI patterns
+- Leverage shared utilities for argument parsing and output formatting
+- Maintain backward compatibility with existing Socket.IO server management
+- Support multiple output formats (json, yaml, table, text)
 """
 
 import subprocess
 import sys
+from typing import Optional
 
 from ...constants import MonitorCommands
 from ...core.logger import get_logger
+from ..shared import BaseCommand, CommandResult
+
+
+class MonitorCommand(BaseCommand):
+    """Monitor command using shared utilities."""
+
+    def __init__(self):
+        super().__init__("monitor")
+
+    def validate_args(self, args) -> Optional[str]:
+        """Validate command arguments."""
+        # Monitor command allows no subcommand (defaults to status)
+        if hasattr(args, 'monitor_command') and args.monitor_command:
+            valid_commands = [cmd.value for cmd in MonitorCommands]
+            if args.monitor_command not in valid_commands:
+                return f"Unknown monitor command: {args.monitor_command}. Valid commands: {', '.join(valid_commands)}"
+
+        return None
+
+    def run(self, args) -> CommandResult:
+        """Execute the monitor command."""
+        try:
+            # Import ServerManager
+            from ...scripts.socketio_server_manager import ServerManager
+            server_manager = ServerManager()
+
+            # Handle default case (no subcommand)
+            if not hasattr(args, 'monitor_command') or not args.monitor_command:
+                # Default to status
+                success = self._status_server(args, server_manager)
+                if success:
+                    return CommandResult.success_result("Monitor status retrieved successfully")
+                else:
+                    return CommandResult.error_result("Failed to retrieve monitor status")
+
+            # Route to specific subcommand handlers
+            command_map = {
+                MonitorCommands.START.value: self._start_server,
+                MonitorCommands.STOP.value: self._stop_server,
+                MonitorCommands.RESTART.value: self._restart_server,
+                MonitorCommands.STATUS.value: self._status_server,
+                MonitorCommands.PORT.value: self._port_server,
+            }
+
+            if args.monitor_command in command_map:
+                success = command_map[args.monitor_command](args, server_manager)
+                if success:
+                    return CommandResult.success_result(f"Monitor {args.monitor_command} completed successfully")
+                else:
+                    return CommandResult.error_result(f"Monitor {args.monitor_command} failed")
+            else:
+                return CommandResult.error_result(f"Unknown monitor command: {args.monitor_command}")
+
+        except Exception as e:
+            self.logger.error(f"Error executing monitor command: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error executing monitor command: {e}")
+
+    def _start_server(self, args, server_manager) -> bool:
+        """Start the monitoring server."""
+        return _start_server(args, server_manager)
+
+    def _stop_server(self, args, server_manager) -> bool:
+        """Stop the monitoring server."""
+        return _stop_server(args, server_manager)
+
+    def _restart_server(self, args, server_manager) -> bool:
+        """Restart the monitoring server."""
+        return _restart_server(args, server_manager)
+
+    def _status_server(self, args, server_manager) -> bool:
+        """Get monitoring server status."""
+        return _status_server(args, server_manager)
+
+    def _port_server(self, args, server_manager) -> bool:
+        """Start/restart server on specific port."""
+        return _port_server(args, server_manager)
 
 
 def manage_monitor(args):
     """
-    Manage Socket.IO monitoring server.
+    Main entry point for monitor command.
 
-    WHY: The monitoring server provides real-time insights into Claude MPM sessions,
-    websocket connections, and system performance. This command provides a unified
-    interface for all monitor-related operations.
+    This function maintains backward compatibility while using the new BaseCommand pattern.
+    """
+    command = MonitorCommand()
+    result = command.execute(args)
+
+    # Print result if structured output format is requested
+    if hasattr(args, 'format') and args.format in ['json', 'yaml']:
+        command.print_result(result, args)
+
+    return result.exit_code
+
+
+def manage_monitor_legacy(args):
+    """
+    Legacy monitor command dispatcher.
+
+    WHY: This contains the original manage_monitor logic, preserved during migration
+    to BaseCommand pattern. Will be gradually refactored into the MonitorCommand class.
 
     DESIGN DECISION: When no subcommand is provided, we show the server status
     as the default action, giving users a quick overview of the monitoring system.

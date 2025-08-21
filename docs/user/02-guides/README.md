@@ -11,7 +11,15 @@ Learn the fundamental commands and workflows for daily use.
 - Using flags effectively
 - Common patterns
 
-### [Ticket Management](ticket-management.md)  
+### [CLI Commands Reference](cli-commands-reference.md)
+Complete reference for all CLI commands using the new BaseCommand patterns.
+- Configuration management
+- Memory system operations
+- Agent management
+- Output formatting options
+- Error handling and troubleshooting
+
+### [Ticket Management](ticket-management-aitrackdown.md)
 Master the ticket system for project organization.
 - Creating tickets
 - Managing ticket lifecycle

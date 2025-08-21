@@ -20,6 +20,7 @@ from claude_mpm.core.config import Config
 from claude_mpm.core.container import ServiceLifetime, get_container
 from claude_mpm.core.logger import get_project_logger
 from claude_mpm.core.logging_config import get_logger
+from claude_mpm.core.shared.config_loader import ConfigLoader
 from claude_mpm.services.core.interfaces import RunnerConfigurationInterface
 
 
@@ -73,12 +74,19 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
         """
         try:
             # Use singleton Config instance to prevent duplicate loading
+            config_loader = ConfigLoader()
             if config_path:
-                # Only pass config_path if it's different from what might already be loaded
-                config = Config({}, config_path)
+                # Use specific config file with ConfigLoader
+                from claude_mpm.core.shared.config_loader import ConfigPattern
+                pattern = ConfigPattern(
+                    filenames=[Path(config_path).name],
+                    search_paths=[str(Path(config_path).parent)],
+                    env_prefix="CLAUDE_MPM_"
+                )
+                config = config_loader.load_config(pattern, cache_key=f"runner_{config_path}")
             else:
-                # Use existing singleton instance
-                config = Config()
+                # Use main config
+                config = config_loader.load_main_config()
 
             return {
                 "config": config,
@@ -163,9 +171,10 @@ class RunnerConfigurationService(BaseService, RunnerConfigurationInterface):
             "websocket_port": kwargs.get("websocket_port", 8765),
         }
 
-        # Initialize main configuration (singleton will prevent duplicate loading)
+        # Initialize main configuration using ConfigLoader
         try:
-            config = Config()
+            config_loader = ConfigLoader()
+            config = config_loader.load_main_config()
         except Exception as e:
             self.logger.error("Failed to load configuration", exc_info=True)
             raise RuntimeError(f"Configuration initialization failed: {e}") from e
