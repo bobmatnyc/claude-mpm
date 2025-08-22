@@ -5,67 +5,29 @@ All notable changes to claude-mpm will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
 
 ### Added
 
 ### Changed
 
-### Deprecated
+### Fixed
 
 ### Removed
 
-### Fixed
 
-### Security
-## [4.0.29] - 2025-08-22
+## v4.0.30 (2025-08-22)
 
-### Features
+### Fix
 
-- Added Agent Manager for agent customization and deployment
-- Enhanced agent template system with JSON/MD formats
-- Major test infrastructure improvements (1,842% test discovery improvement)
+- Fix incorrect documentation that referenced CLAUDE.md for PM customization
+- Code was always correct, only docs needed updating
+- Add warning about v4.0.29 documentation issue in CHANGELOG
 
-### Fixed
+## v4.0.29 (2025-08-21)
 
-- Resolved 312+ test failures across all test suites
-- Fixed import structure issues (command_base → base_command)
-- CLI command registration and parser improvements
-- SocketIO connection pool optimizations
-
-### Documentation
-
-- Major documentation consolidation and cleanup
-- Closed 11 completed tickets and improved organization
-- Enhanced agent management documentation
-
-## [4.0.28] - 2025-08-21
-
-### Features
-
-- closed TSK-0148 (documentation consolidation completed)
-- closed 11 completed tickets (5 epics, 1 issue, 5 tasks)
-- ticket system cleanup and organization
-
-### Fixed
-
-- version synchronization across all package files
-- enhanced project structure compliance
-
-
-## [4.0.26] - 2025-08-21
-
-### Features
-
-- documentation consolidation and cleanup across project
-- updated CLAUDE.md with current documentation references
-- version references updated to v4.0.25 throughout documentation
-
-### Fixed
-
-- archived temporary QA reports and fix documentation
-- consolidated shared utilities and CLI patterns
-- enhanced testing framework with comprehensive coverage
+## v4.0.28 (2025-08-21)
 
 ## v4.0.25 (2025-08-20)
 
