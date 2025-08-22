@@ -31,7 +31,7 @@ from claude_mpm.agents.agent_loader import (
     get_agent_prompt,
     load_agent_prompt_from_md,
 )
-from claude_mpm.services.agents.base_agent_loader import (
+from claude_mpm.agents.base_agent_loader import (
     PromptTemplate,
     _remove_test_mode_instructions,
     clear_base_agent_cache,

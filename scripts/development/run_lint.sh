@@ -15,7 +15,7 @@ echo "Running comprehensive code quality checks"
 echo "========================================="
 
 # Change to project root
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 
 # Check if virtual environment is activated
 if [[ -z "$VIRTUAL_ENV" ]]; then

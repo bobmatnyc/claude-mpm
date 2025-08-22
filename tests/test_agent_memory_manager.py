@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
-from claude_mpm.services.memory.manager import AgentMemoryManager
+from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
 
 class TestAgentMemoryManager:
