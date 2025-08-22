@@ -74,11 +74,16 @@ The dual-logger design addresses several critical requirements:
   "session_id": "claude-session-abc123",
   "request": "Implement authentication system",
   "response": "I'll help you implement an authentication system...",
+  "memory_fields": {
+    "remember": ["JWT tokens expire after 24 hours", "Use Redis for session storage"],
+    "MEMORIES": null
+  },
   "metadata": {
     "response_time_ms": 2543,
     "token_count": 1856,
     "tool_calls": ["Read", "Write", "Edit"],
     "memory_extracted": true,
+    "memory_update_type": "incremental",
     "error": null
   },
   "microseconds": 1234567890
@@ -92,7 +97,11 @@ The dual-logger design addresses several critical requirements:
 - **session_id**: Claude Code session identifier for correlation
 - **request**: Original user prompt or task description
 - **response**: Complete agent response text
+- **memory_fields**: Extracted memory update fields from agent response
+  - **remember**: Array of new memories for incremental updates
+  - **MEMORIES**: Complete memory replacement array (when provided)
 - **metadata**: Additional context and performance metrics
+  - **memory_update_type**: Type of memory update ("incremental", "complete", or null)
 - **microseconds**: Unix timestamp in microseconds for precise ordering
 
 #### Why These Fields?
@@ -277,17 +286,39 @@ Response Capture → Memory Extraction → Memory Storage
 
 ### Memory Extraction Process
 
-1. **Marker Detection**: Scan responses for memory markers
-   ```
-   # Add To Memory:
-   Type: pattern
-   Content: Always validate user input at API boundaries
-   #
+The memory system now uses JSON response fields for memory capture:
+
+1. **Response Field Detection**: Scan agent responses for memory fields
+   - `"remember"`: Array of new memories to add incrementally
+   - `"MEMORIES"`: Complete replacement array for all memories
+
+2. **Field Processing**: Parse and validate memory content
+   ```json
+   // Incremental update
+   {
+     "remember": [
+       "Project uses FastAPI for REST API",
+       "Database migrations stored in /migrations/"
+     ]
+   }
+   
+   // Complete replacement
+   {
+     "MEMORIES": [
+       "Complete optimized list of all memories",
+       "Including both existing and new knowledge"
+     ]
+   }
    ```
 
-2. **Content Extraction**: Parse memory type and content
+3. **Memory Update**: Process memories based on field type
+   - **Incremental (`remember`)**: Append to existing memory list with deduplication
+   - **Complete (`MEMORIES`)**: Replace entire memory file content
 
-3. **Memory Update**: Append to agent-specific memory files
+4. **Automatic Processing**: 
+   - Timestamp updates for tracking changes
+   - Deduplication across all memory entries
+   - Validation against memory capture criteria
 
 ### Why Response-Driven Memory?
 

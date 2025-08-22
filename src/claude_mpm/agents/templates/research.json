@@ -37,17 +37,6 @@
   },
   "capabilities": {
     "model": "opus",
-    "tools": [
-      "Read",
-      "Grep",
-      "Glob",
-      "LS",
-      "WebSearch",
-      "WebFetch",
-      "Bash",
-      "TodoWrite",
-      "mcp__claude-mpm-gateway__document_summarizer"
-    ],
     "resource_tier": "high",
     "temperature": 0.2,
     "max_tokens": 16384,

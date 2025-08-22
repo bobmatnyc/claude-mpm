@@ -2,7 +2,7 @@
 
 The Agent Memory System enables agents to learn and apply project-specific knowledge over time, creating persistent learnings that improve agent effectiveness across sessions.
 
-Last Updated: 2025-08-14
+Last Updated: 2025-08-22
 
 ## Overview
 
@@ -20,8 +20,8 @@ The memory system allows agents to accumulate project-specific knowledge, patter
 ### How Agents Learn
 
 Agents accumulate knowledge through:
-1. **Explicit Memory Commands**: Users say "remember this" or "add to memory"
-2. **Auto-Learning**: Automatic extraction from agent outputs (when enabled)
+1. **Response Field Learning**: Agents include "remember" or "MEMORIES" fields in their JSON responses
+2. **Explicit Memory Commands**: Users say "remember this" or "add to memory"
 3. **Project-Specific Memory Generation**: Automated analysis of project characteristics
 4. **Manual Addition**: Direct memory file editing or CLI commands
 
@@ -81,7 +81,7 @@ claude-mpm: Python CLI Application
 
 ### Memory Storage
 
-Agents store memories in structured markdown files in `.claude-mpm/memories/`:
+Agents store memories in simple list format in `.claude-mpm/memories/`:
 
 ```
 .claude-mpm/memories/
@@ -91,11 +91,11 @@ Agents store memories in structured markdown files in `.claude-mpm/memories/`:
 └── documentation_agent.md
 ```
 
-Each memory file contains sections for:
-- **Project Architecture**: Project-specific patterns and conventions
-- **Implementation Guidelines**: Coding standards and best practices
-- **Common Mistakes**: Issues to avoid based on past experience
-- **Useful Patterns**: Successful approaches and templates
+Each memory file contains:
+- **Simple List Format**: Bulleted list of project-specific knowledge
+- **Automatic Timestamps**: Last updated timestamp for tracking changes
+- **Deduplication**: Automatic removal of duplicate entries
+- **Project-Specific Focus**: Only PROJECT-based memories (.claude-mpm/memories/)
 
 ### Memory Management
 
@@ -152,29 +152,62 @@ memory:
 
 ## Memory Format
 
-Memory files follow a structured markdown format:
+Memory files follow a simple list format:
 
 ```markdown
-# Agent Memory: Engineer
+# Agent Memory: engineer
+<!-- Last Updated: 2025-08-22T14:30:45.123456Z -->
 
-## Project Architecture
 - Use src/ layout pattern for Python packages
 - Follow service-oriented architecture with clear separation
 - Store all scripts in /scripts/, never in project root
-
-## Implementation Guidelines  
 - All imports use full package name: from claude_mpm.module import ...
 - Run E2E tests after significant changes
 - Create backups before major optimizations
-
-## Common Mistakes to Avoid
 - Don't place test files outside of /tests/ directory
 - Never update git config in automated scripts
-
-## Useful Patterns
 - Use dependency injection for service classes
 - Implement caching for expensive operations
 ```
+
+### Key Features
+
+- **Simple Format**: No categorization - just a bulleted list
+- **Automatic Timestamps**: Updated automatically when memories change
+- **Deduplication**: System automatically removes duplicate entries
+- **Project-Specific**: Only stores knowledge specific to this project
+
+### Memory Update Modes
+
+Agents can update memories using two response fields:
+
+#### Incremental Updates ("remember" field)
+Adds new memories to existing list:
+```json
+{
+  "remember": ["New memory 1", "New memory 2"]
+}
+```
+
+#### Complete Replacement ("MEMORIES" field)
+Replaces entire memory list:
+```json
+{
+  "MEMORIES": [
+    "Complete optimized list of all memories",
+    "Including both existing and new memories",
+    "Properly deduplicated and organized"
+  ]
+}
+```
+
+### Memory Capture Criteria
+
+Memories should only include:
+- **Project-Specific Facts**: Information not easily found in docs/code
+- **Explicit Instructions**: When users say "remember", "don't forget", "memorize"
+- **Project Patterns**: Specific configurations, constraints, or approaches for this project
+- **Implementation Specifics**: Project-specific coding standards or architectural decisions
 
 ## Best Practices
 

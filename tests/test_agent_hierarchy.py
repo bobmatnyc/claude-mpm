@@ -1,127 +1,175 @@
 #!/usr/bin/env python3
 """
-Test script to verify agent hierarchy and project agent precedence.
+Test script to verify agent hierarchy display in the dashboard.
+
+This script simulates PM and subagent events to test the hierarchical
+visualization in the monitor dashboard.
 """
 
-import sys
+import json
+import time
+from datetime import datetime
 from pathlib import Path
 
-# Add src to path to import claude_mpm modules
-src_path = Path(__file__).parent.parent / "src"
-sys.path.insert(0, str(src_path))
+def create_test_events():
+    """Create test events that simulate PM delegating to subagents."""
+    events = []
+    base_time = datetime.now().isoformat()
+    
+    # PM starts
+    events.append({
+        "type": "hook.start",
+        "hook_event_name": "Start",
+        "session_id": "main_session",
+        "timestamp": base_time,
+        "data": {
+            "agent_type": "pm",
+            "hook_event_name": "Start"
+        }
+    })
+    
+    # PM delegates to research agent
+    events.append({
+        "type": "hook.pre_tool",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Task",
+        "session_id": "main_session",
+        "timestamp": base_time,
+        "data": {
+            "tool_name": "Task",
+            "tool_parameters": {
+                "subagent_type": "research",
+                "task": "Analyze the codebase structure and identify key components"
+            }
+        }
+    })
+    
+    # Research agent events
+    for i in range(5):
+        events.append({
+            "type": "hook.subagent_event",
+            "hook_event_name": "SubagentEvent",
+            "session_id": "research_session",
+            "timestamp": base_time,
+            "data": {
+                "agent_type": "research",
+                "event_index": i,
+                "message": f"Research event {i+1}"
+            }
+        })
+    
+    # Research agent completes
+    events.append({
+        "type": "hook.subagent_stop",
+        "hook_event_name": "SubagentStop",
+        "session_id": "research_session",
+        "timestamp": base_time,
+        "data": {
+            "agent_type": "research",
+            "subagent_type": "research"
+        }
+    })
+    
+    # PM delegates to engineer agent
+    events.append({
+        "type": "hook.pre_tool",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Task",
+        "session_id": "main_session",
+        "timestamp": base_time,
+        "data": {
+            "tool_name": "Task",
+            "tool_parameters": {
+                "subagent_type": "engineer",
+                "task": "Implement the user authentication feature"
+            }
+        }
+    })
+    
+    # Engineer agent events
+    for i in range(10):
+        events.append({
+            "type": "hook.subagent_event",
+            "hook_event_name": "SubagentEvent",
+            "session_id": "engineer_session",
+            "timestamp": base_time,
+            "data": {
+                "agent_type": "engineer",
+                "event_index": i,
+                "message": f"Engineer event {i+1}"
+            }
+        })
+    
+    # Engineer still active (no stop event)
+    
+    # Some orphan security agent events (no explicit PM delegation)
+    for i in range(3):
+        events.append({
+            "type": "hook.subagent_event",
+            "hook_event_name": "SubagentEvent",
+            "session_id": "security_session",
+            "timestamp": base_time,
+            "data": {
+                "agent_type": "security",
+                "subagent_type": "security",
+                "event_index": i,
+                "message": f"Security audit event {i+1}"
+            }
+        })
+    
+    # Security agent completes
+    events.append({
+        "type": "hook.subagent_stop",
+        "hook_event_name": "SubagentStop",
+        "session_id": "security_session",
+        "timestamp": base_time,
+        "data": {
+            "agent_type": "security",
+            "subagent_type": "security"
+        }
+    })
+    
+    # PM delegates to QA agent
+    events.append({
+        "type": "hook.pre_tool",
+        "hook_event_name": "PreToolUse",
+        "tool_name": "Task",
+        "session_id": "main_session",
+        "timestamp": base_time,
+        "data": {
+            "tool_name": "Task",
+            "tool_parameters": {
+                "subagent_type": "qa",
+                "task": "Test the authentication implementation"
+            }
+        }
+    })
+    
+    # QA is pending (no events yet)
+    
+    return events
 
-from claude_mpm.core.agent_registry import AgentRegistryAdapter
-
-
-def main():
-    print("🔍 Testing Agent Hierarchy and Project Agent Discovery\n")
-
-    # Initialize adapter
-    adapter = AgentRegistryAdapter()
-
-    if not adapter.registry:
-        print("❌ Failed to initialize agent registry")
-        return 1
-
-    # Get agent hierarchy
-    hierarchy = adapter.get_agent_hierarchy()
-
-    print("📊 Agent Hierarchy:")
-    print("=" * 50)
-
-    for tier in ["project", "user", "system"]:
-        agents = hierarchy.get(tier, [])
-        print(f"\n{tier.upper()} TIER ({len(agents)} agents):")
-        if agents:
-            for agent in sorted(agents):
-                print(f"  - {agent}")
-        else:
-            print("  (none)")
-
-    # Test specific project agents
-    print("\n🧪 Specific Project Agent Tests:")
-    print("=" * 50)
-
-    test_agents = ["test_project_qa", "custom_engineer", "qa"]
-
-    for agent_name in test_agents:
-        agent = adapter.registry.get_agent(agent_name)
-        if agent:
-            print(f"\n✓ Agent '{agent_name}':")
-            tier_value = (
-                agent.tier.value if hasattr(agent.tier, "value") else agent.tier
-            )
-            print(f"    Tier: {tier_value}")
-            print(f"    Path: {agent.path}")
-            if hasattr(agent, "version"):
-                print(f"    Version: {agent.version}")
-            if hasattr(agent, "description"):
-                print(f"    Description: {agent.description}")
-            print(
-                f"    Available attributes: {[attr for attr in dir(agent) if not attr.startswith('_')]}"
-            )
-        else:
-            print(f"\n❌ Agent '{agent_name}' not found")
-
-    # Test precedence
-    print("\n⚖️ Testing Precedence:")
-    print("=" * 50)
-
-    # Look for QA agents across tiers
-    all_agents = adapter.registry.list_agents()
-    qa_agents = []
-
-    # Handle both dict and list responses
-    if isinstance(all_agents, dict):
-        # Convert dict values to list if needed
-        all_agents = list(all_agents.values())
-
-    for agent in all_agents:
-        agent_name = agent.name if hasattr(agent, "name") else str(agent)
-        if "qa" in agent_name.lower():
-            qa_agents.append(agent)
-
-    if qa_agents:
-        print("\nQA Agents found:")
-        for qa_agent in qa_agents:
-            tier_value = (
-                qa_agent.tier.value
-                if hasattr(qa_agent.tier, "value")
-                else qa_agent.tier
-            )
-            print(f"  - {qa_agent.name} ({tier_value} tier)")
-
-        # Check which one would be selected
-        selected_qa = adapter.registry.get_agent("qa")
-        if selected_qa:
-            tier_value = (
-                selected_qa.tier.value
-                if hasattr(selected_qa.tier, "value")
-                else selected_qa.tier
-            )
-            print(f"\nSelected QA agent: {selected_qa.name} from {tier_value} tier")
-            if tier_value == "project":
-                print("✅ PROJECT tier agent has precedence!")
-            else:
-                print(f"⚠️  Expected PROJECT tier, got {tier_value}")
-        else:
-            print("❌ No QA agent selected")
-    else:
-        print("❌ No QA agents found")
-
-    # Show statistics
-    stats = adapter.registry.get_statistics()
-    print(f"\n📈 Registry Statistics:")
-    print("=" * 50)
-    print(f"Total agents: {stats['total_agents']}")
-    print(f"By tier: {stats['agents_by_tier']}")
-    print(f"By type: {stats['agents_by_type']}")
-    print(f"Discovery time: {stats['discovery_stats']['discovery_duration']:.3f}s")
-    print(f"Cache hits: {stats['discovery_stats']['cache_hits']}")
-    print(f"Cache misses: {stats['discovery_stats']['cache_misses']}")
-
-    return 0
-
+def save_test_events():
+    """Save test events to a file for manual testing."""
+    events = create_test_events()
+    
+    output_file = Path("/tmp/test_agent_hierarchy_events.json")
+    with open(output_file, 'w') as f:
+        json.dump(events, f, indent=2)
+    
+    print(f"Test events saved to: {output_file}")
+    print(f"Total events: {len(events)}")
+    print("\nEvent summary:")
+    print("- PM: Main session with delegations")
+    print("- Research Agent: 5 events (completed)")
+    print("- Engineer Agent: 10 events (active)")
+    print("- Security Agent: 3 events (implied PM, completed)")
+    print("- QA Agent: 0 events (pending)")
+    print("\nTo test in the dashboard:")
+    print("1. Start the dashboard: claude-mpm monitor")
+    print("2. Open the dashboard in your browser")
+    print("3. Go to the Agents tab")
+    print("4. You should see a hierarchical tree structure")
 
 if __name__ == "__main__":
-    sys.exit(main())
+    save_test_events()

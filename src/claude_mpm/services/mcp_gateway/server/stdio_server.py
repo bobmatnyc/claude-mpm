@@ -15,7 +15,10 @@ use JSON-RPC protocol, and exit cleanly when stdin closes.
 import asyncio
 import json
 import logging
+import os
 import sys
+import time
+from pathlib import Path
 from typing import Any, Dict, Optional
 
 # Import MCP SDK components
@@ -28,6 +31,7 @@ from mcp.types import TextContent, Tool
 from pydantic import BaseModel
 
 from claude_mpm.core.logger import get_logger
+from claude_mpm.services.mcp_gateway.core.singleton_manager import get_gateway_manager
 
 # Import unified ticket tool if available
 try:
@@ -135,6 +139,11 @@ class SimpleMCPServer:
         self.name = name
         self.version = version
         self.logger = get_logger("MCPStdioServer")
+        self.startup_time = time.time()
+        
+        # Log startup timing
+        self.logger.info(f"Initializing MCP server {name} v{version}")
+        start_time = time.time()
 
         # Apply backward compatibility patches before creating server
         apply_backward_compatibility_patches()
@@ -144,6 +153,10 @@ class SimpleMCPServer:
 
         # Register default tools
         self._register_tools()
+        
+        # Log initialization time
+        init_time = time.time() - start_time
+        self.logger.info(f"MCP server initialized in {init_time:.2f} seconds")
 
     async def _summarize_content(
         self, content: str, style: str, max_length: int

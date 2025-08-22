@@ -178,34 +178,71 @@ def _initialize_project_registry():
 
 def _verify_mcp_gateway_startup():
     """
-    Verify MCP Gateway configuration on startup.
+    Verify MCP Gateway configuration on startup and pre-warm MCP services.
 
     WHY: The MCP gateway should be automatically configured and verified on startup
     to provide a seamless experience with diagnostic tools, file summarizer, and
-    ticket service.
+    ticket service. Pre-warming MCP services eliminates the 11.9s delay on first use.
 
     DESIGN DECISION: This is non-blocking - failures are logged but don't prevent
     startup to ensure claude-mpm remains functional even if MCP gateway has issues.
     """
     try:
         import asyncio
+        import time
         from ..services.mcp_gateway.core.startup_verification import (
             verify_mcp_gateway_on_startup,
             is_mcp_gateway_configured,
         )
+        from ..services.mcp_gateway.core.process_pool import pre_warm_mcp_servers
+        from ..core.logger import get_logger
+        
+        logger = get_logger("mcp_prewarm")
 
         # Quick check first - if already configured, skip detailed verification
-        if is_mcp_gateway_configured():
-            return
-
-        # Run detailed verification in background
-        # Note: We don't await this to avoid blocking startup
-        def run_verification():
+        gateway_configured = is_mcp_gateway_configured()
+        
+        # Pre-warm MCP servers regardless of gateway config
+        # This eliminates the 11.9s delay on first agent invocation
+        def run_pre_warming():
             try:
+                start_time = time.time()
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-                results = loop.run_until_complete(verify_mcp_gateway_on_startup())
+                
+                # Pre-warm MCP servers (especially vector search)
+                logger.info("Pre-warming MCP servers to eliminate startup delay...")
+                loop.run_until_complete(pre_warm_mcp_servers())
+                
+                pre_warm_time = time.time() - start_time
+                if pre_warm_time > 1.0:
+                    logger.info(f"MCP servers pre-warmed in {pre_warm_time:.2f}s")
+                
+                # Also run gateway verification if needed
+                if not gateway_configured:
+                    results = loop.run_until_complete(verify_mcp_gateway_on_startup())
+                
                 loop.close()
+            except Exception as e:
+                # Non-blocking - log but don't fail
+                logger.debug(f"MCP pre-warming error (non-critical): {e}")
+        
+        # Run pre-warming in background thread
+        import threading
+        pre_warm_thread = threading.Thread(target=run_pre_warming, daemon=True)
+        pre_warm_thread.start()
+        
+        return
+
+        # Run detailed verification in background if not configured
+        if not gateway_configured:
+            # Note: We don't await this to avoid blocking startup
+            def run_verification():
+                try:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    results = loop.run_until_complete(verify_mcp_gateway_on_startup())
+                    loop.close()
 
                 # Log results but don't block
                 from ..core.logger import get_logger

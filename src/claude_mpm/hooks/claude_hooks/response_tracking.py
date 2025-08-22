@@ -203,7 +203,17 @@ class ResponseTrackingManager:
                     "files_modified": structured_response.get("files_modified", []),
                     "tools_used": structured_response.get("tools_used", []),
                     "remember": structured_response.get("remember"),
+                    "MEMORIES": structured_response.get("MEMORIES"),  # Complete memory replacement
                 }
+                
+                # Log if MEMORIES field is present  
+                if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+                    if DEBUG:
+                        memories_count = len(structured_response["MEMORIES"])
+                        print(
+                            f"Agent {agent_type} returned MEMORIES field with {memories_count} items",
+                            file=sys.stderr,
+                        )
 
                 # Check if task was completed for logging purposes
                 if structured_response.get("task_completed"):

@@ -284,6 +284,19 @@ class ConnectionEventHandler(BaseEventHandler):
             self.logger.info(f"📱 User Agent: {user_agent[:100]}...")
             self.logger.info(f"📈 Total clients now: {len(self.clients)}")
 
+            # Get monitor build info
+            monitor_build_info = {}
+            try:
+                from ....services.monitor_build_service import get_monitor_build_service
+                monitor_service = get_monitor_build_service()
+                monitor_build_info = monitor_service.get_build_info_sync()
+            except Exception as e:
+                self.logger.debug(f"Could not get monitor build info: {e}")
+                monitor_build_info = {
+                    "monitor": {"version": "1.0.0", "build": 1, "formatted_build": "0001"},
+                    "mpm": {"version": "unknown", "build": "unknown"}
+                }
+
             # Send initial status immediately with enhanced data
             status_data = {
                 "server": "claude-mpm-python-socketio",
@@ -294,6 +307,7 @@ class ConnectionEventHandler(BaseEventHandler):
                 "claude_pid": self.server.claude_pid,
                 "server_version": "2.0.0",
                 "client_id": sid,
+                "build_info": monitor_build_info,
             }
 
             try:
@@ -305,6 +319,7 @@ class ConnectionEventHandler(BaseEventHandler):
                         "message": "Connected to Claude MPM Socket.IO server",
                         "client_id": sid,
                         "server_time": datetime.utcnow().isoformat() + "Z",
+                        "build_info": monitor_build_info,
                     },
                 )
 

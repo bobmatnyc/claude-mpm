@@ -3,9 +3,10 @@
 import logging
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Set, Tuple
 
 # Import resource handling for packaged installations
 try:
@@ -86,6 +87,22 @@ class FrameworkLoader:
         self.agents_dir = agents_dir
         self.framework_version = None
         self.framework_last_modified = None
+        
+        # Performance optimization: Initialize caches
+        self._agent_capabilities_cache: Optional[str] = None
+        self._agent_capabilities_cache_time: float = 0
+        self._deployed_agents_cache: Optional[Set[str]] = None
+        self._deployed_agents_cache_time: float = 0
+        self._agent_metadata_cache: Dict[str, Tuple[Optional[Dict[str, Any]], float]] = {}
+        self._memories_cache: Optional[Dict[str, Any]] = None
+        self._memories_cache_time: float = 0
+        
+        # Cache TTL settings (in seconds)
+        self.CAPABILITIES_CACHE_TTL = 60  # 60 seconds for capabilities
+        self.DEPLOYED_AGENTS_CACHE_TTL = 30  # 30 seconds for deployed agents
+        self.METADATA_CACHE_TTL = 60  # 60 seconds for agent metadata
+        self.MEMORIES_CACHE_TTL = 60  # 60 seconds for memories
+        
         self.framework_content = self._load_framework_content()
 
         # Initialize agent registry
@@ -94,6 +111,32 @@ class FrameworkLoader:
         # Initialize output style manager (must be after content is loaded)
         self.output_style_manager = None
         # Defer initialization until first use to ensure content is loaded
+    
+    def clear_all_caches(self) -> None:
+        """Clear all caches to force reload on next access."""
+        self.logger.info("Clearing all framework loader caches")
+        self._agent_capabilities_cache = None
+        self._agent_capabilities_cache_time = 0
+        self._deployed_agents_cache = None
+        self._deployed_agents_cache_time = 0
+        self._agent_metadata_cache.clear()
+        self._memories_cache = None
+        self._memories_cache_time = 0
+    
+    def clear_agent_caches(self) -> None:
+        """Clear agent-related caches (capabilities, deployed agents, metadata)."""
+        self.logger.info("Clearing agent-related caches")
+        self._agent_capabilities_cache = None
+        self._agent_capabilities_cache_time = 0
+        self._deployed_agents_cache = None
+        self._deployed_agents_cache_time = 0
+        self._agent_metadata_cache.clear()
+    
+    def clear_memory_caches(self) -> None:
+        """Clear memory-related caches."""
+        self.logger.info("Clearing memory caches")
+        self._memories_cache = None
+        self._memories_cache_time = 0
 
     def _initialize_output_style(self) -> None:
         """Initialize output style management and deploy if applicable."""
@@ -486,10 +529,20 @@ class FrameworkLoader:
     def _get_deployed_agents(self) -> set:
         """
         Get a set of deployed agent names from .claude/agents/ directories.
+        Uses caching to avoid repeated filesystem scans.
         
         Returns:
             Set of agent names (file stems) that are deployed
         """
+        # Check if cache is valid
+        current_time = time.time()
+        if (self._deployed_agents_cache is not None and 
+            current_time - self._deployed_agents_cache_time < self.DEPLOYED_AGENTS_CACHE_TTL):
+            self.logger.debug(f"Using cached deployed agents (age: {current_time - self._deployed_agents_cache_time:.1f}s)")
+            return self._deployed_agents_cache
+        
+        # Cache miss or expired - perform actual scan
+        self.logger.debug("Scanning for deployed agents (cache miss or expired)")
         deployed = set()
         
         # Check multiple locations for deployed agents
@@ -507,11 +560,17 @@ class FrameworkLoader:
                         self.logger.debug(f"Found deployed agent: {agent_file.stem} in {agents_dir}")
         
         self.logger.debug(f"Total deployed agents found: {len(deployed)}")
+        
+        # Update cache
+        self._deployed_agents_cache = deployed
+        self._deployed_agents_cache_time = current_time
+        
         return deployed
     
     def _load_actual_memories(self, content: Dict[str, Any]) -> None:
         """
         Load actual memories from both user and project directories.
+        Uses caching to avoid repeated file I/O operations.
         
         Loading order:
         1. User-level memories from ~/.claude-mpm/memories/ (global defaults)
@@ -524,6 +583,23 @@ class FrameworkLoader:
         Args:
             content: Dictionary to update with actual memories
         """
+        # Check if cache is valid
+        current_time = time.time()
+        if (self._memories_cache is not None and 
+            current_time - self._memories_cache_time < self.MEMORIES_CACHE_TTL):
+            cache_age = current_time - self._memories_cache_time
+            self.logger.debug(f"Using cached memories (age: {cache_age:.1f}s)")
+            
+            # Apply cached memories to content
+            if "actual_memories" in self._memories_cache:
+                content["actual_memories"] = self._memories_cache["actual_memories"]
+            if "agent_memories" in self._memories_cache:
+                content["agent_memories"] = self._memories_cache["agent_memories"]
+            return
+        
+        # Cache miss or expired - perform actual loading
+        self.logger.debug("Loading memories from disk (cache miss or expired)")
+        
         # Define memory directories in priority order (user first, then project)
         user_memories_dir = Path.home() / ".claude-mpm" / "memories"
         project_memories_dir = Path.cwd() / ".claude-mpm" / "memories"
@@ -574,6 +650,14 @@ class FrameworkLoader:
             for agent_name, memory_content in agent_memories_dict.items():
                 memory_size = len(memory_content.encode('utf-8'))
                 self.logger.debug(f"Aggregated {agent_name} memory: {memory_size:,} bytes")
+        
+        # Update cache with loaded memories
+        self._memories_cache = {}
+        if "actual_memories" in content:
+            self._memories_cache["actual_memories"] = content["actual_memories"]
+        if "agent_memories" in content:
+            self._memories_cache["agent_memories"] = content["agent_memories"]
+        self._memories_cache_time = current_time
         
         # Log detailed summary
         if loaded_count > 0 or skipped_count > 0:
@@ -726,11 +810,10 @@ class FrameworkLoader:
         Aggregate multiple memory entries into a single memory string.
         
         Strategy:
-        - Support both sectioned and non-sectioned memories
-        - Preserve all bullet-point items (lines starting with -)
-        - Merge sections when present, with project-level taking precedence
-        - Remove exact duplicates within sections and unsectioned items
-        - Preserve unique entries from both sources
+        - Simplified to support list-based memories only
+        - Preserve all unique bullet-point items (lines starting with -)
+        - Remove exact duplicates
+        - Project-level memories take precedence over user-level
         
         Args:
             memory_entries: List of memory entries with source, content, and path
@@ -745,97 +828,52 @@ class FrameworkLoader:
         if len(memory_entries) == 1:
             return memory_entries[0]["content"]
         
-        # Parse all memories into sections and unsectioned items
-        all_sections = {}
-        unsectioned_items = {}  # Items without a section header
+        # Parse all memories into a simple list
+        all_items = {}  # Dict to track items and their source
         metadata_lines = []
+        agent_id = None
         
         for entry in memory_entries:
             content = entry["content"]
             source = entry["source"]
             
-            # Parse content into sections and unsectioned items
-            current_section = None
-            current_items = []
-            
             for line in content.split('\n'):
+                # Check for header to extract agent_id
+                if line.startswith('# Agent Memory:'):
+                    agent_id = line.replace('# Agent Memory:', '').strip()
                 # Check for metadata lines
-                if line.startswith('<!-- ') and line.endswith(' -->'):
+                elif line.startswith('<!-- ') and line.endswith(' -->'):
                     # Only keep metadata from project source or if not already present
                     if source == "project" or line not in metadata_lines:
                         metadata_lines.append(line)
-                # Check for section headers (## Level 2 headers)
-                elif line.startswith('## '):
-                    # Save previous section if exists
-                    if current_section and current_items:
-                        if current_section not in all_sections:
-                            all_sections[current_section] = {}
-                        # Store items with their source
-                        for item in current_items:
-                            # Use content as key to detect duplicates
-                            all_sections[current_section][item] = source
+                # Check for list items
+                elif line.strip().startswith('-'):
+                    # Normalize the item for comparison
+                    item_text = line.strip()
+                    normalized = item_text.lstrip('- ').strip().lower()
                     
-                    # Start new section
-                    current_section = line
-                    current_items = []
-                # Check for content lines (including unsectioned bullet points)
-                elif line.strip():
-                    # If it's a bullet point or regular content
-                    if current_section:
-                        # Add to current section
-                        current_items.append(line)
-                    elif line.strip().startswith('-'):
-                        # It's an unsectioned bullet point - preserve it
-                        # Use content as key to detect duplicates
-                        # Project source overrides user source
-                        if line not in unsectioned_items or source == "project":
-                            unsectioned_items[line] = source
-                    # Skip other non-bullet unsectioned content (like headers)
-                    elif not line.strip().startswith('#'):
-                        # Include non-header orphaned content in unsectioned items
-                        if line not in unsectioned_items or source == "project":
-                            unsectioned_items[line] = source
-            
-            # Save last section if exists
-            if current_section and current_items:
-                if current_section not in all_sections:
-                    all_sections[current_section] = {}
-                for item in current_items:
-                    # Project source overrides user source
-                    if item not in all_sections[current_section] or source == "project":
-                        all_sections[current_section][item] = source
+                    # Add item if new or if project source overrides user source
+                    if normalized not in all_items or source == "project":
+                        all_items[normalized] = (item_text, source)
         
-        # Build aggregated content
+        # Build aggregated content as simple list
         lines = []
         
-        # Add metadata
-        if metadata_lines:
-            lines.extend(metadata_lines)
-            lines.append("")
-        
         # Add header
-        lines.append("# Aggregated Memory")
-        lines.append("")
-        lines.append("*This memory combines user-level and project-level memories.*")
+        if agent_id:
+            lines.append(f"# Agent Memory: {agent_id}")
+        else:
+            lines.append("# Agent Memory")
+        
+        # Add latest timestamp from metadata
+        from datetime import datetime
+        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
         lines.append("")
         
-        # Add unsectioned items first (if any)
-        if unsectioned_items:
-            # Sort items to ensure consistent output
-            for item in sorted(unsectioned_items.keys()):
-                lines.append(item)
-            lines.append("")  # Empty line after unsectioned items
-        
-        # Add sections
-        for section_header in sorted(all_sections.keys()):
-            lines.append(section_header)
-            section_items = all_sections[section_header]
-            
-            # Sort items to ensure consistent output
-            for item in sorted(section_items.keys()):
-                lines.append(item)
-            
-            lines.append("")  # Empty line after section
+        # Add all unique items (sorted for consistency)
+        for normalized_key in sorted(all_items.keys()):
+            item_text, source = all_items[normalized_key]
+            lines.append(item_text)
         
         return '\n'.join(lines)
 
@@ -1392,7 +1430,20 @@ Extract tickets from these patterns:
         return instructions
 
     def _generate_agent_capabilities_section(self) -> str:
-        """Generate dynamic agent capabilities section from deployed agents."""
+        """Generate dynamic agent capabilities section from deployed agents.
+        Uses caching to avoid repeated file I/O and parsing operations."""
+        
+        # Check if cache is valid
+        current_time = time.time()
+        if (self._agent_capabilities_cache is not None and 
+            current_time - self._agent_capabilities_cache_time < self.CAPABILITIES_CACHE_TTL):
+            cache_age = current_time - self._agent_capabilities_cache_time
+            self.logger.debug(f"Using cached agent capabilities (age: {cache_age:.1f}s)")
+            return self._agent_capabilities_cache
+        
+        # Cache miss or expired - generate capabilities
+        self.logger.debug("Generating agent capabilities (cache miss or expired)")
+        
         try:
             from pathlib import Path
 
@@ -1419,7 +1470,7 @@ Extract tickets from these patterns:
                         if agent_file.name.startswith("."):
                             continue
                         
-                        # Parse agent metadata
+                        # Parse agent metadata (with caching)
                         agent_data = self._parse_agent_metadata(agent_file)
                         if agent_data:
                             agent_id = agent_data["id"]
@@ -1431,7 +1482,11 @@ Extract tickets from these patterns:
 
             if not all_agents:
                 self.logger.warning(f"No agents found in any location: {agents_dirs}")
-                return self._get_fallback_capabilities()
+                result = self._get_fallback_capabilities()
+                # Cache the fallback result too
+                self._agent_capabilities_cache = result
+                self._agent_capabilities_cache_time = current_time
+                return result
             
             # Log agent collection summary
             project_agents = [aid for aid, (_, pri) in all_agents.items() if pri == 0]
@@ -1449,7 +1504,11 @@ Extract tickets from these patterns:
             deployed_agents = [agent_data for agent_data, _ in all_agents.values()]
 
             if not deployed_agents:
-                return self._get_fallback_capabilities()
+                result = self._get_fallback_capabilities()
+                # Cache the fallback result
+                self._agent_capabilities_cache = result
+                self._agent_capabilities_cache_time = current_time
+                return result
 
             # Sort agents alphabetically by ID
             deployed_agents.sort(key=lambda x: x["id"])
@@ -1496,19 +1555,46 @@ Extract tickets from these patterns:
             # Add summary
             section += f"\n**Total Available Agents**: {len(deployed_agents)}\n"
 
+            # Cache the generated capabilities
+            self._agent_capabilities_cache = section
+            self._agent_capabilities_cache_time = current_time
+            self.logger.debug(f"Cached agent capabilities section ({len(section)} chars)")
+            
             return section
 
         except Exception as e:
             self.logger.warning(f"Could not generate dynamic agent capabilities: {e}")
-            return self._get_fallback_capabilities()
+            result = self._get_fallback_capabilities()
+            # Cache even the fallback result
+            self._agent_capabilities_cache = result
+            self._agent_capabilities_cache_time = current_time
+            return result
 
     def _parse_agent_metadata(self, agent_file: Path) -> Optional[Dict[str, Any]]:
         """Parse agent metadata from deployed agent file.
+        Uses caching based on file path and modification time.
 
         Returns:
             Dictionary with agent metadata directly from YAML frontmatter.
         """
         try:
+            # Check cache based on file path and modification time
+            cache_key = str(agent_file)
+            file_mtime = agent_file.stat().st_mtime
+            current_time = time.time()
+            
+            # Check if we have cached data for this file
+            if cache_key in self._agent_metadata_cache:
+                cached_data, cached_mtime = self._agent_metadata_cache[cache_key]
+                # Use cache if file hasn't been modified and cache isn't too old
+                if (cached_mtime == file_mtime and 
+                    current_time - cached_mtime < self.METADATA_CACHE_TTL):
+                    self.logger.debug(f"Using cached metadata for {agent_file.name}")
+                    return cached_data
+            
+            # Cache miss or expired - parse the file
+            self.logger.debug(f"Parsing metadata for {agent_file.name} (cache miss or expired)")
+            
             import yaml
 
             with open(agent_file, "r") as f:
@@ -1546,6 +1632,9 @@ Extract tickets from these patterns:
                         # IMPORTANT: Do NOT add spaces to tools field - it breaks deployment!
                         # Tools must remain as comma-separated without spaces: "Read,Write,Edit"
 
+            # Cache the parsed metadata
+            self._agent_metadata_cache[cache_key] = (agent_data, file_mtime)
+            
             return agent_data
 
         except Exception as e:
