@@ -277,7 +277,7 @@ class TestMCPGatewayStartupIntegration:
         # Function should return immediately (non-blocking)
         assert True  # If we get here, the function didn't block
     
-    @patch("claude_mpm.cli.commands.is_mcp_gateway_configured')
+    @patch("claude_mpm.cli.commands.is_mcp_gateway_configured")
     def test_cli_startup_with_configured_gateway(mock_is_configured):
         """Test CLI startup when gateway is already configured."""
         mock_is_configured.return_value = True

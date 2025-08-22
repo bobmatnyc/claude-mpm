@@ -131,6 +131,21 @@ pytest tests/security/ -v
 pytest --cov=src/claude_mpm --cov-report=html --cov-report=term
 ```
 
+### Script Organization and Compatibility
+
+Scripts are organized in subdirectories under `/scripts/` for better organization:
+- `scripts/development/` - Development and debugging tools
+- `scripts/monitoring/` - Runtime monitoring utilities  
+- `scripts/utilities/` - MCP and configuration tools
+- `scripts/verification/` - System verification scripts
+
+**Backward Compatibility**: Symbolic links maintain compatibility with existing documentation and workflows:
+- `./scripts/run_e2e_tests.sh` → `./scripts/development/run_e2e_tests.sh`
+- `./scripts/run_all_tests.sh` → `./scripts/development/run_all_tests.sh`
+- `./scripts/run_lint.sh` → `./scripts/development/run_lint.sh`
+
+Both the symlinked paths and the actual subdirectory paths work correctly.
+
 ## E2E Test Coverage
 
 The E2E tests verify:
