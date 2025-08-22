@@ -23,7 +23,7 @@ If you installed via pipx, use the automated configuration command:
 claude-mpm mcp-pipx-config
 
 # Alternative: Download and run configuration script
-curl -sSL https://raw.githubusercontent.com/Shredmetal/claude-mpm/main/scripts/configure_mcp_pipx.py | python3
+curl -sSL https://raw.githubusercontent.com/Shredmetal/claude-mpm/main/scripts/utilities/configure_mcp_pipx.py | python3
 ```
 
 This will:
@@ -104,7 +104,7 @@ After configuration changes, restart Claude Code to load the MCP server.
 Run the diagnostics script to check your setup:
 
 ```bash
-python3 scripts/mcp_diagnostics.py
+python3 scripts/utilities/mcp_diagnostics.py
 ```
 
 ### 2. Configure Claude Code
@@ -120,7 +120,7 @@ Configuration for source installation:
     "claude-mpm-gateway": {
       "command": "python3",
       "args": [
-        "/path/to/claude-mpm/scripts/mcp_wrapper.py"
+        "/path/to/claude-mpm/scripts/utilities/mcp_wrapper.py"
       ],
       "cwd": "/path/to/claude-mpm"
     }
@@ -136,7 +136,7 @@ After configuration changes, restart Claude Code to load the MCP server.
 
 ### Components
 
-1. **MCP Wrapper Script** (`scripts/mcp_wrapper.py`)
+1. **MCP Wrapper Script** (`scripts/utilities/mcp_wrapper.py`)
    - Robust environment setup
    - Comprehensive error handling
    - Debug logging to stderr
@@ -173,20 +173,20 @@ After configuration changes, restart Claude Code to load the MCP server.
 
 ```bash
 # Run the wrapper test
-python3 scripts/test_mcp_wrapper.py
+python3 scripts/verification/test_mcp_wrapper.py
 
 # Verify all invocation methods
-python3 scripts/verify_mcp_setup.py
+python3 scripts/verification/verify_mcp_setup.py
 ```
 
 ### Manual Testing
 
 ```bash
 # Test the wrapper directly (will wait for stdin)
-python3 scripts/mcp_wrapper.py
+python3 scripts/utilities/mcp_wrapper.py
 
 # Test with a simple request
-echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-01","clientInfo":{"name":"test","version":"1.0"}},"id":1}' | python3 scripts/mcp_wrapper.py
+echo '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2024-11-01","clientInfo":{"name":"test","version":"1.0"}},"id":1}' | python3 scripts/utilities/mcp_wrapper.py
 
 # Alternative: Use the installed command (if claude-mpm is installed)
 claude-mpm-mcp
@@ -210,7 +210,7 @@ python3 src/claude_mpm/scripts/mcp_server.py
    which claude-mpm-mcp
    
    # For source installation
-   python3 /path/to/scripts/mcp_wrapper.py --version
+   python3 /path/to/scripts/utilities/mcp_wrapper.py --version
    ```
 
 #### 2. Server Fails to Start
@@ -221,7 +221,7 @@ python3 src/claude_mpm/scripts/mcp_server.py
 claude-mpm doctor
 
 # For source installation only
-python3 scripts/mcp_diagnostics.py
+python3 scripts/utilities/mcp_diagnostics.py
 ```
 
 **Common Fixes by Installation Method**:
@@ -255,7 +255,7 @@ pip install claude-mpm
 pip install -e .
 
 # Check file permissions
-chmod +x scripts/mcp_wrapper.py
+chmod +x scripts/utilities/mcp_wrapper.py
 
 # Verify Python path
 cd /path/to/claude-mpm
@@ -311,7 +311,7 @@ jq . ~/Library/Application\ Support/Claude/claude_desktop_config.json
 **Source Installation**:
 ```bash
 # Fix script permissions
-chmod +x scripts/mcp_wrapper.py
+chmod +x scripts/utilities/mcp_wrapper.py
 chmod +x scripts/utilities/mcp_server.py
 ```
 
@@ -382,7 +382,7 @@ The MCP wrapper provides detailed debug logging to stderr:
 
 ```bash
 # View logs when running manually
-python3 scripts/mcp_wrapper.py 2>mcp_debug.log
+python3 scripts/utilities/mcp_wrapper.py 2>mcp_debug.log
 
 # In another terminal, watch the logs
 tail -f mcp_debug.log
@@ -404,13 +404,13 @@ Log information includes:
    - Configuration check
    - Startup test
 
-2. **Setup Verification** (`scripts/verify_mcp_setup.py`)
+2. **Setup Verification** (`scripts/verification/verify_mcp_setup.py`)
    - Tests all invocation methods
    - Verifies file existence
    - Checks Claude Code config
    - Provides test summary
 
-3. **Wrapper Test** (`scripts/test_mcp_wrapper.py`)
+3. **Wrapper Test** (`scripts/verification/test_mcp_wrapper.py`)
    - Tests wrapper functionality
    - Sends test requests
    - Captures stderr output
@@ -505,7 +505,7 @@ The wrapper script includes optimizations for:
 
 If you encounter issues:
 
-1. Run `python3 scripts/mcp_diagnostics.py`
+1. Run `python3 scripts/utilities/mcp_diagnostics.py`
 2. Check the troubleshooting section above
 3. Review Claude Code's developer console
 4. Check the project's issue tracker

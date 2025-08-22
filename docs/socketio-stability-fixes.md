@@ -65,7 +65,7 @@ self.client.connect(
 )
 ```
 
-### 5. Stability Test Script (`scripts/test_socketio_stability.py`)
+### 5. Stability Test Script (`scripts/verification/test_socketio_stability.py`)
 **Created new comprehensive test script that:**
 - Monitors connection stability over 2 minutes
 - Tracks uptime/downtime percentages
@@ -97,7 +97,7 @@ Run the stability test to verify improvements:
 claude-mpm monitor
 
 # In another terminal, run the stability test
-python scripts/test_socketio_stability.py
+python scripts/verification/verify_socketio_stability.py
 ```
 
 The test will run for 2 minutes and provide:
