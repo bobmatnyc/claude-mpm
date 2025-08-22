@@ -51,7 +51,6 @@ def test_deployment():
                 target_dir=target_dir,
                 force_rebuild=True,
                 results=results,
-                is_project_specific=True,
             )
             
             # Check what files were created in .claude directory
@@ -67,7 +66,7 @@ def test_deployment():
                 
                 if claude_md_path.exists():
                     print("\n❌ ERROR: CLAUDE.md was created (this should not happen!)")
-                    return False
+                    assert False, "CLAUDE.md should not be created"
                 else:
                     print("\n✓ CLAUDE.md was NOT created (correct)")
                 
@@ -90,13 +89,11 @@ def test_deployment():
                 for error in results['errors']:
                     print(f"  - {error}")
                     
-            return True
-            
         except Exception as e:
             print(f"\n❌ Test failed with error: {e}")
             import traceback
             traceback.print_exc()
-            return False
+            assert False, f"Test failed with error: {e}"
 
 
 if __name__ == "__main__":

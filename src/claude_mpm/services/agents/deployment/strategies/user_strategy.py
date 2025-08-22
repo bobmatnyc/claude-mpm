@@ -57,26 +57,22 @@ class UserAgentDeploymentStrategy(BaseDeploymentStrategy):
     def determine_target_directory(self, context: DeploymentContext) -> Path:
         """Determine target directory for user agents.
 
-        User agents can be deployed to various user-specific locations.
+        MODIFIED: User agents are now deployed to project .claude/agents/
+        to maintain consistency with the new deployment behavior.
+        All agents (system, user, project) deploy to the project level.
 
         Args:
             context: Deployment context
 
         Returns:
-            Path to user agents directory
+            Path to <project>/.claude/agents/
         """
-        if context.target_dir:
-            return context.target_dir
-
-        # Check for user-specific environment variable
-        import os
-
-        if "CLAUDE_MPM_USER_PWD" in os.environ:
-            user_pwd = Path(os.environ["CLAUDE_MPM_USER_PWD"])
-            return user_pwd / ".claude" / "agents"
-
-        # Default to user's home directory
-        return Path.home() / ".claude-mpm" / "agents"
+        # Always deploy to project directory
+        if context.working_directory:
+            return context.working_directory / ".claude" / "agents"
+        else:
+            # Fallback to current working directory if not specified
+            return Path.cwd() / ".claude" / "agents"
 
     def get_templates_directory(self, context: DeploymentContext) -> Path:
         """Get templates directory for user agents.
