@@ -1,3 +1,5 @@
+import pytest
+import pytest
 #!/usr/bin/env python3
 """Test script to verify the Socket.IO server refactoring.
 
@@ -131,6 +133,7 @@ def test_file_handler_methods():
         # Test _read_file_safely with a known file
         test_file = __file__  # This script itself
 
+        @pytest.mark.asyncio
         async def test_read():
             result = await handler._read_file_safely(test_file)
             return result
@@ -147,6 +150,7 @@ def test_file_handler_methods():
             return False
 
         # Test with non-existent file
+        @pytest.mark.asyncio
         async def test_nonexistent():
             result = await handler._read_file_safely("/nonexistent/file.txt")
             return result

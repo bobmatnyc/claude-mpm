@@ -11,7 +11,7 @@ import shutil
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_memory_project_only():
@@ -21,7 +21,7 @@ def test_memory_project_only():
     print("=" * 60)
     
     # Create temporary directory for testing
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         test_dir = Path(tmpdir)
         print(f"Test directory: {test_dir}")
         

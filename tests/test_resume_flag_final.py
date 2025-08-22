@@ -18,7 +18,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
-from claude_mpm.cli.parsers import create_parser
+from claude_mpm.cli.commands.parsers import create_parser
 from claude_mpm.cli.commands.run import filter_claude_mpm_args
 
 

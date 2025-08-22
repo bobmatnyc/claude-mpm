@@ -18,7 +18,7 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.agents.deployment.agent_discovery_service import (
     AgentDiscoveryService,
 )
@@ -30,7 +30,7 @@ class TestAgentDiscoveryService:
     @pytest.fixture
     def temp_templates_dir(self):
         """Create temporary templates directory with test files."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             templates_dir = Path(temp_dir) / "templates"
             templates_dir.mkdir()
 
@@ -122,13 +122,13 @@ class TestAgentDiscoveryService:
         """Create AgentDiscoveryService instance."""
         return AgentDiscoveryService(temp_templates_dir)
 
-    def test_initialization(self, temp_templates_dir):
+    def test_initialization(temp_templates_dir):
         """Test AgentDiscoveryService initialization."""
         service = AgentDiscoveryService(temp_templates_dir)
         assert service.templates_dir == temp_templates_dir
         assert hasattr(service, "logger")
 
-    def test_list_available_agents(self, discovery_service):
+    def test_list_available_agents(discovery_service):
         """Test listing available agents."""
         agents = discovery_service.list_available_agents()
 
@@ -148,9 +148,9 @@ class TestAgentDiscoveryService:
         assert test_agent["tools"] == ["Read", "Write"]
         assert test_agent["specializations"] == ["testing"]
 
-    def test_list_available_agents_empty_directory(self):
+    def test_list_available_agents_empty_directory():
         """Test listing agents from empty directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             empty_dir = Path(temp_dir) / "empty"
             empty_dir.mkdir()
 
@@ -159,7 +159,7 @@ class TestAgentDiscoveryService:
 
             assert agents == []
 
-    def test_list_available_agents_nonexistent_directory(self):
+    def test_list_available_agents_nonexistent_directory():
         """Test listing agents from nonexistent directory."""
         nonexistent_dir = Path("/nonexistent/directory")
         service = AgentDiscoveryService(nonexistent_dir)
@@ -167,7 +167,7 @@ class TestAgentDiscoveryService:
 
         assert agents == []
 
-    def test_get_filtered_templates_no_exclusions(self, discovery_service):
+    def test_get_filtered_templates_no_exclusions(discovery_service):
         """Test getting filtered templates with no exclusions."""
         templates = discovery_service.get_filtered_templates([], None)
 
@@ -178,7 +178,7 @@ class TestAgentDiscoveryService:
         assert "qa-agent" in template_names
         assert "security-agent" in template_names
 
-    def test_get_filtered_templates_with_exclusions(self, discovery_service):
+    def test_get_filtered_templates_with_exclusions(discovery_service):
         """Test getting filtered templates with exclusions."""
         excluded_agents = ["test-agent", "qa-agent"]
         templates = discovery_service.get_filtered_templates(excluded_agents, None)
@@ -188,7 +188,7 @@ class TestAgentDiscoveryService:
         assert "qa-agent" not in template_names
         assert "security-agent" in template_names
 
-    def test_get_filtered_templates_case_insensitive(self, discovery_service):
+    def test_get_filtered_templates_case_insensitive(discovery_service):
         """Test case-insensitive filtering."""
         config = Mock()
         config.get.side_effect = lambda key, default=None: {
@@ -206,7 +206,7 @@ class TestAgentDiscoveryService:
         assert "qa-agent" not in template_names
         assert "security-agent" in template_names
 
-    def test_find_agent_template_exists(self, discovery_service):
+    def test_find_agent_template_exists(discovery_service):
         """Test finding existing agent template."""
         template_path = discovery_service.find_agent_template("test-agent")
 
@@ -214,13 +214,13 @@ class TestAgentDiscoveryService:
         assert template_path.name == "test-agent.json"
         assert template_path.exists()
 
-    def test_find_agent_template_not_exists(self, discovery_service):
+    def test_find_agent_template_not_exists(discovery_service):
         """Test finding non-existent agent template."""
         template_path = discovery_service.find_agent_template("nonexistent-agent")
 
         assert template_path is None
 
-    def test_get_agent_categories(self, discovery_service):
+    def test_get_agent_categories(discovery_service):
         """Test getting agent categories."""
         categories = discovery_service.get_agent_categories()
 
@@ -234,7 +234,7 @@ class TestAgentDiscoveryService:
         assert "qa-agent" in categories["qa"]
         assert "security-agent" in categories["security"]
 
-    def test_extract_agent_metadata_valid(self, discovery_service):
+    def test_extract_agent_metadata_valid(discovery_service):
         """Test extracting metadata from valid template."""
         template_file = discovery_service.templates_dir / "test-agent.json"
         metadata = discovery_service._extract_agent_metadata(template_file)
@@ -246,14 +246,14 @@ class TestAgentDiscoveryService:
         assert metadata["tools"] == ["Read", "Write"]
         assert metadata["specializations"] == ["testing"]
 
-    def test_extract_agent_metadata_invalid_json(self, discovery_service):
+    def test_extract_agent_metadata_invalid_json(discovery_service):
         """Test extracting metadata from invalid JSON."""
         template_file = discovery_service.templates_dir / "invalid-agent.json"
         metadata = discovery_service._extract_agent_metadata(template_file)
 
         assert metadata is None
 
-    def test_is_agent_excluded_explicit(self, discovery_service):
+    def test_is_agent_excluded_explicit(discovery_service):
         """Test explicit agent exclusion."""
         excluded_agents = ["test-agent", "qa-agent"]
 
@@ -263,7 +263,7 @@ class TestAgentDiscoveryService:
             "security-agent", excluded_agents, None
         )
 
-    def test_is_agent_excluded_case_insensitive(self, discovery_service):
+    def test_is_agent_excluded_case_insensitive(discovery_service):
         """Test case-insensitive agent exclusion."""
         config = Mock()
         config.get.side_effect = lambda key, default=None: {
@@ -279,25 +279,25 @@ class TestAgentDiscoveryService:
             "security-agent", excluded_agents, config
         )
 
-    def test_validate_template_file_valid(self, discovery_service):
+    def test_validate_template_file_valid(discovery_service):
         """Test validating valid template file."""
         template_file = discovery_service.templates_dir / "test-agent.json"
 
         assert discovery_service._validate_template_file(template_file)
 
-    def test_validate_template_file_invalid_json(self, discovery_service):
+    def test_validate_template_file_invalid_json(discovery_service):
         """Test validating invalid JSON template."""
         template_file = discovery_service.templates_dir / "invalid-agent.json"
 
         assert not discovery_service._validate_template_file(template_file)
 
-    def test_validate_template_file_missing_fields(self, discovery_service):
+    def test_validate_template_file_missing_fields(discovery_service):
         """Test validating template with missing required fields."""
         template_file = discovery_service.templates_dir / "incomplete-agent.json"
 
         assert not discovery_service._validate_template_file(template_file)
 
-    def test_is_valid_agent_name(self, discovery_service):
+    def test_is_valid_agent_name(discovery_service):
         """Test agent name validation."""
         # Valid names
         assert discovery_service._is_valid_agent_name("test-agent")
@@ -321,7 +321,7 @@ class TestAgentDiscoveryService:
             "123-agent"
         )  # starts with number
 
-    def test_get_discovery_stats(self, discovery_service):
+    def test_get_discovery_stats(discovery_service):
         """Test getting discovery statistics."""
         stats = discovery_service.get_discovery_stats()
 
@@ -337,7 +337,7 @@ class TestAgentDiscoveryService:
         assert stats["valid_templates"] >= 3
         assert isinstance(stats["categories"], dict)
 
-    def test_get_discovery_stats_nonexistent_directory(self):
+    def test_get_discovery_stats_nonexistent_directory():
         """Test getting stats for nonexistent directory."""
         nonexistent_dir = Path("/nonexistent/directory")
         service = AgentDiscoveryService(nonexistent_dir)

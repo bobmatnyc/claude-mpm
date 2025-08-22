@@ -230,7 +230,7 @@ if __name__ == "__main__":
 
     # Create temporary test files
     import tempfile
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tmp_path
 
     for filename, description in test_files:
         filepath = os.path.join(temp_dir, filename)

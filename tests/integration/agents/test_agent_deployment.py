@@ -22,7 +22,7 @@ def test_agent_deployment():
     from claude_mpm.services.agents.deployment import AgentDeploymentService
 
     # Create a temporary user directory
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         user_dir = Path(tmpdir) / "user_project"
         user_dir.mkdir(exist_ok=True)
 
@@ -84,7 +84,7 @@ def test_claude_runner():
     from claude_mpm.core.claude_runner import ClaudeRunner
 
     # Create a temporary user directory
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         user_dir = Path(tmpdir) / "user_project"
         user_dir.mkdir(exist_ok=True)
 

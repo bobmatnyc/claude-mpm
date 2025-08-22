@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 
 
-def run_command(cmd, capture_output=True):
+def run_subcommand(cmd, capture_output=True):
     """Run a command and return the result."""
     try:
         result = subprocess.run(
@@ -45,13 +45,13 @@ def test_makefile_targets():
     ]
     
     # Check if targets are defined
-    success, stdout, stderr = run_command("make -n help")
+    success, stdout, stderr = run_subcommand("make -n help")
     if not success:
         print(f"❌ Failed to run 'make help': {stderr}")
         return False
         
     # Check if release targets appear in help
-    success, stdout, stderr = run_command("make help | grep release")
+    success, stdout, stderr = run_subcommand("make help | grep release")
     if success and stdout:
         print(f"✅ Found release targets in help output")
         print(f"   Targets: {len(stdout.strip().split(chr(10)))} release targets found")
@@ -60,7 +60,7 @@ def test_makefile_targets():
     
     # Test dry run of release-check (safest to test)
     print("\n🧪 Testing release-check target...")
-    success, stdout, stderr = run_command("make -n release-check")
+    success, stdout, stderr = run_subcommand("make -n release-check")
     if success:
         print("✅ release-check target is properly defined")
     else:
@@ -69,7 +69,7 @@ def test_makefile_targets():
         
     # Test dry run of release-help
     print("\n📖 Testing release-help target...")
-    success, stdout, stderr = run_command("make -n release-help")
+    success, stdout, stderr = run_subcommand("make -n release-help")
     if success:
         print("✅ release-help target is properly defined")
     else:
@@ -99,7 +99,7 @@ def test_prerequisites():
     all_good = True
     
     for tool, description in tools:
-        success, _, _ = run_command(f"which {tool}")
+        success, _, _ = run_subcommand(f"which {tool}")
         if success:
             print(f"✅ {tool} - {description}")
         else:
@@ -107,7 +107,7 @@ def test_prerequisites():
             all_good = False
             
     for tool, description in optional_tools:
-        success, _, _ = run_command(f"which {tool}")
+        success, _, _ = run_subcommand(f"which {tool}")
         if success:
             print(f"✅ {tool} - {description}")
         else:

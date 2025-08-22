@@ -79,7 +79,7 @@ def main():
         0 on success, non-zero on failure
     """
     # Create temporary directory for testing
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
         print(f"Testing deployment to: {temp_path}")
 

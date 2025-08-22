@@ -11,14 +11,14 @@ from claude_mpm.core.agent_registry import AgentRegistryAdapter
 class TestAgentRegistryAdapter:
     """Test the AgentRegistryAdapter class."""
 
-    def test_init_without_framework(self, tmp_path):
+    def test_init_without_framework(tmp_path):
         """Test initialization when framework not found."""
         with patch.object(AgentRegistryAdapter, "_find_framework", return_value=None):
             adapter = AgentRegistryAdapter()
             assert adapter.framework_path is None
             assert adapter.registry is None
 
-    def test_find_framework(self, tmp_path, monkeypatch):
+    def test_find_framework(tmp_path, monkeypatch):
         """Test framework detection."""
         # Create mock framework with correct structure
         framework_dir = tmp_path / "Projects" / "claude-mpm"
@@ -40,7 +40,7 @@ class TestAgentRegistryAdapter:
         adapter = AgentRegistryAdapter()
         assert adapter.framework_path == framework_dir
 
-    def test_initialize_registry_success(self, tmp_path):
+    def test_initialize_registry_success(tmp_path):
         """Test successful registry initialization."""
         # Create mock framework with correct structure
         framework_dir = tmp_path / "framework"
@@ -56,7 +56,7 @@ class TestAgentRegistryAdapter:
         # Just verify the adapter was created successfully
         assert adapter.framework_path == framework_dir
 
-    def test_list_agents_no_registry(self):
+    def test_list_agents_no_registry():
         """Test list_agents when no registry available."""
         adapter = AgentRegistryAdapter()
         adapter.registry = None
@@ -64,7 +64,7 @@ class TestAgentRegistryAdapter:
         result = adapter.list_agents()
         assert result == {}
 
-    def test_list_agents_with_registry(self):
+    def test_list_agents_with_registry():
         """Test list_agents with registry."""
         adapter = AgentRegistryAdapter()
 
@@ -81,7 +81,7 @@ class TestAgentRegistryAdapter:
         assert result == mock_agents
         mock_registry.list_agents.assert_called_once()
 
-    def test_get_agent_definition(self, tmp_path):
+    def test_get_agent_definition(tmp_path):
         """Test getting agent definition."""
         adapter = AgentRegistryAdapter()
 
@@ -101,7 +101,7 @@ class TestAgentRegistryAdapter:
         assert "Engineer Agent" in result
         assert "Implements code" in result
 
-    def test_select_agent_for_task(self):
+    def test_select_agent_for_task():
         """Test selecting agent for task."""
         adapter = AgentRegistryAdapter()
 
@@ -117,7 +117,7 @@ class TestAgentRegistryAdapter:
         assert result is not None
         assert result["id"] == "engineer"
 
-    def test_get_agent_hierarchy(self):
+    def test_get_agent_hierarchy():
         """Test getting agent hierarchy."""
         adapter = AgentRegistryAdapter()
 
@@ -130,7 +130,7 @@ class TestAgentRegistryAdapter:
         assert "system" in hierarchy
         assert isinstance(hierarchy["system"], list)
 
-    def test_get_core_agents(self):
+    def test_get_core_agents():
         """Test getting core agents list."""
         adapter = AgentRegistryAdapter()
         core_agents = adapter.get_core_agents()
@@ -141,7 +141,7 @@ class TestAgentRegistryAdapter:
         assert "research" in core_agents
         assert len(core_agents) == 8
 
-    def test_format_agent_for_task_tool(self):
+    def test_format_agent_for_task_tool():
         """Test formatting agent delegation."""
         adapter = AgentRegistryAdapter()
 

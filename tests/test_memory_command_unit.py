@@ -24,9 +24,9 @@ from claude_mpm.cli.commands.memory import (
     _show_status,
     manage_memory,
 )
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.agents.memory import AgentMemoryManager
-from claude_mpm.cli.shared.command_base import CommandResult
+from claude_mpm.cli.shared.base_command import CommandResult
 
 
 class TestMemoryManagementCommand:
@@ -37,7 +37,7 @@ class TestMemoryManagementCommand:
         """Create a mock AgentMemoryManager."""
         manager = Mock(spec=AgentMemoryManager)
         manager.memories_dir = Path("/test/memories")
-        manager.project_memories_dir = Path("/test/.claude-mpm/memories")
+        manager.project_memories_dir = Path("/test/.claude/memories")
         manager.load_agent_memory.return_value = (
             "# Test Memory\n## Patterns\n- Test pattern"
         )
@@ -45,7 +45,7 @@ class TestMemoryManagementCommand:
             "success": True,
             "system_enabled": True,
             "auto_learning": True,
-            "memory_directory": "/test/.claude-mpm/memories",
+            "memory_directory": "/test/.claude/memories",
             "system_health": "healthy",
             "total_agents": 2,
             "total_size_kb": 100,
@@ -66,7 +66,7 @@ class TestMemoryManagementCommand:
         return manager
 
     @pytest.fixture
-    def memory_command(self, mock_memory_manager):
+    def memory_subcommand(self, mock_memory_manager):
         """Create MemoryManagementCommand instance with mocked dependencies."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -77,7 +77,7 @@ class TestMemoryManagementCommand:
             command = MemoryManagementCommand()
             return command
 
-    def test_run_no_subcommand_shows_status(self, memory_command):
+    def test_run_no_subcommand_shows_status(memory_command):
         """Test that run() with no subcommand shows status."""
         args = Namespace(memory_command=None)
         
@@ -87,7 +87,7 @@ class TestMemoryManagementCommand:
         assert result.success is True
         assert "status" in result.message.lower()
 
-    def test_run_status_command(self, memory_command):
+    def test_run_status_command(memory_command):
         """Test run() with status command."""
         args = Namespace(memory_command="status", format="text")
         
@@ -97,7 +97,7 @@ class TestMemoryManagementCommand:
         assert result.success is True
         assert "status" in result.message.lower()
 
-    def test_run_init_command(self, memory_command):
+    def test_run_init_command(memory_command):
         """Test run() with init command."""
         args = Namespace(memory_command="init", format="text")
         
@@ -107,7 +107,7 @@ class TestMemoryManagementCommand:
         assert result.success is True
         assert "initialization" in result.message.lower()
 
-    def test_run_show_memories_command(self, memory_command):
+    def test_run_show_memories_command(memory_command):
         """Test run() with show/view command."""
         args = Namespace(memory_command="show", format="text", agent=None)
         
@@ -118,7 +118,7 @@ class TestMemoryManagementCommand:
         assert result.success is True
         mock_show.assert_called_once()
 
-    def test_run_unknown_command_returns_error(self, memory_command):
+    def test_run_unknown_command_returns_error(memory_command):
         """Test run() with unknown command returns error."""
         args = Namespace(memory_command="unknown_command")
         
@@ -136,12 +136,12 @@ class TestMemoryStatusAndDisplay:
     def mock_memory_manager(self):
         """Create mock memory manager with comprehensive status."""
         manager = Mock(spec=AgentMemoryManager)
-        manager.memories_dir = Path("/test/.claude-mpm/memories")
+        manager.memories_dir = Path("/test/.claude/memories")
         manager.get_memory_status.return_value = {
             "success": True,
             "system_enabled": True,
             "auto_learning": True,
-            "memory_directory": "/test/.claude-mpm/memories",
+            "memory_directory": "/test/.claude/memories",
             "system_health": "healthy",
             "total_agents": 2,
             "total_size_kb": 100,
@@ -168,7 +168,7 @@ class TestMemoryStatusAndDisplay:
         }
         return manager
 
-    def test_show_status_displays_system_health(self, mock_memory_manager):
+    def test_show_status_displays_system_health(mock_memory_manager):
         """Test _show_status displays system health information."""
         with patch('sys.stdout', new_callable=StringIO) as mock_stdout:
             _show_status(mock_memory_manager)
@@ -179,7 +179,7 @@ class TestMemoryStatusAndDisplay:
         assert "System Enabled: Yes" in output
         assert "Auto Learning: Yes" in output
 
-    def test_parse_memory_content_extracts_sections(self):
+    def test_parse_memory_content_extracts_sections():
         """Test _parse_memory_content extracts memory sections correctly."""
         memory_content = """# Agent Memory
 
@@ -212,7 +212,7 @@ class TestMemoryStatusAndDisplay:
 class TestMemoryUtilities:
     """Test memory command utilities."""
 
-    def test_manage_memory_function_calls_command(self):
+    def test_manage_memory_function_calls_command():
         """Test manage_memory function calls MemoryManagementCommand."""
         args = Namespace(memory_command="status", format="text")
         
@@ -228,7 +228,7 @@ class TestMemoryUtilities:
             assert exit_code == 0
             mock_command.execute.assert_called_once_with(args)
 
-    def test_manage_memory_backward_compatibility(self):
+    def test_manage_memory_backward_compatibility():
         """Test manage_memory maintains backward compatibility."""
         args = Namespace(memory_command="status", format="text")
         
@@ -252,7 +252,7 @@ class TestAgentMemoryManagerBasics:
     @pytest.fixture
     def temp_dir(self):
         """Create temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             yield Path(tmpdir)
 
     @pytest.fixture
@@ -268,7 +268,7 @@ class TestAgentMemoryManagerBasics:
         """Create AgentMemoryManager instance."""
         return AgentMemoryManager(mock_config, temp_dir)
 
-    def test_save_memory_file_creates_directory(self, memory_manager, temp_dir):
+    def test_save_memory_file_creates_directory(memory_manager, temp_dir):
         """Test _save_memory_file creates directory if it doesn't exist."""
         test_content = "# Test Memory Content"
         
@@ -285,7 +285,7 @@ class TestAgentMemoryManagerBasics:
         assert memory_file.exists()
         assert memory_file.read_text() == test_content
 
-    def test_memory_file_naming_convention(self, memory_manager, temp_dir):
+    def test_memory_file_naming_convention(memory_manager, temp_dir):
         """Test memory files follow correct naming convention."""
         test_agents = ["engineer", "qa", "research", "PM"]
         
@@ -295,7 +295,7 @@ class TestAgentMemoryManagerBasics:
             expected_file = temp_dir / ".claude-mpm" / "memories" / f"{agent}_memories.md"
             assert expected_file.exists()
 
-    def test_memory_content_encoding(self, memory_manager, temp_dir):
+    def test_memory_content_encoding(memory_manager, temp_dir):
         """Test memory files are saved with proper UTF-8 encoding."""
         # Test with unicode content
         unicode_content = "# Memory with Unicode\n- 测试 content\n- émoji: 🧠"
@@ -308,7 +308,7 @@ class TestAgentMemoryManagerBasics:
         read_content = memory_file.read_text(encoding="utf-8")
         assert read_content == unicode_content
 
-    def test_load_agent_memory_creates_default_when_missing(self, memory_manager):
+    def test_load_agent_memory_creates_default_when_missing(memory_manager):
         """Test load_agent_memory creates default memory when file doesn't exist."""
         # Mock the agent_overrides to avoid the TypeError
         with patch.object(memory_manager, 'agent_overrides', {}):
@@ -319,7 +319,7 @@ class TestAgentMemoryManagerBasics:
             assert "## Coding Patterns Learned" in result
             assert "## Implementation Guidelines" in result
 
-    def test_save_memory_file_handles_errors(self, memory_manager):
+    def test_save_memory_file_handles_errors(memory_manager):
         """Test _save_memory_file handles write errors gracefully."""
         # Mock Path.write_text to raise an exception
         with patch.object(Path, 'write_text', side_effect=PermissionError("Access denied")):
@@ -335,12 +335,12 @@ class TestMemoryCommandIntegration:
     def mock_memory_manager(self):
         """Create mock memory manager for integration tests."""
         manager = Mock(spec=AgentMemoryManager)
-        manager.memories_dir = Path("/test/.claude-mpm/memories")
+        manager.memories_dir = Path("/test/.claude/memories")
         manager.get_memory_status.return_value = {
             "success": True,
             "system_enabled": True,
             "auto_learning": True,
-            "memory_directory": "/test/.claude-mpm/memories",
+            "memory_directory": "/test/.claude/memories",
             "system_health": "healthy",
             "total_agents": 1,
             "total_size_kb": 50,
@@ -358,7 +358,7 @@ class TestMemoryCommandIntegration:
         }
         return manager
 
-    def test_get_status_data_with_existing_directory(self):
+    def test_get_status_data_with_existing_directory():
         """Test _get_status_data with existing memory directory."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -390,7 +390,7 @@ class TestMemoryCommandIntegration:
             assert status_data["total_size_kb"] == 1.0
             assert status_data["total_files"] == 1
 
-    def test_get_memories_data_single_agent(self):
+    def test_get_memories_data_single_agent():
         """Test _get_memories_data for single agent."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -410,7 +410,7 @@ class TestMemoryCommandIntegration:
             assert memories_data["has_memory"] is True
             assert "Engineer Memory" in memories_data["memory_content"]
 
-    def test_show_memories_json_format(self):
+    def test_show_memories_json_format():
         """Test _show_memories with JSON format output."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -431,7 +431,7 @@ class TestMemoryCommandIntegration:
             assert result.data is not None
             assert "agent_id" in result.data
 
-    def test_init_memory_json_format(self):
+    def test_init_memory_json_format():
         """Test _init_memory with JSON format output."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -449,7 +449,7 @@ class TestMemoryCommandIntegration:
             assert result.data is not None
             assert "task" in result.data
 
-    def test_status_command_json_format(self):
+    def test_status_command_json_format():
         """Test status command with JSON format output."""
         with patch('claude_mpm.cli.commands.memory.ConfigLoader') as mock_loader, \
              patch('claude_mpm.cli.commands.memory.AgentMemoryManager') as mock_manager_class:
@@ -481,12 +481,12 @@ class TestMemoryCommandFunctions:
     def mock_memory_manager(self):
         """Create mock memory manager for function tests."""
         manager = Mock(spec=AgentMemoryManager)
-        manager.memories_dir = Path("/test/.claude-mpm/memories")
+        manager.memories_dir = Path("/test/.claude/memories")
         manager.add_learning.return_value = True
         manager.update_agent_memory.return_value = True
         return manager
 
-    def test_init_memory_displays_instructions(self, mock_memory_manager):
+    def test_init_memory_displays_instructions(mock_memory_manager):
         """Test _init_memory displays initialization instructions."""
         from claude_mpm.cli.commands.memory import _init_memory
 
@@ -500,7 +500,7 @@ class TestMemoryCommandFunctions:
         assert "claude-mpm memory add" in output
         assert "Example commands" in output
 
-    def test_clean_memory_shows_cleanup_info(self, mock_memory_manager):
+    def test_clean_memory_shows_cleanup_info(mock_memory_manager):
         """Test _clean_memory shows cleanup information."""
         from claude_mpm.cli.commands.memory import _clean_memory
 
@@ -518,7 +518,7 @@ class TestMemoryCommandFunctions:
         output = mock_stdout.getvalue()
         assert "Memory cleanup" in output
 
-    def test_clean_memory_handles_no_directory(self, mock_memory_manager):
+    def test_clean_memory_handles_no_directory(mock_memory_manager):
         """Test _clean_memory handles missing memory directory."""
         from claude_mpm.cli.commands.memory import _clean_memory
 
@@ -535,7 +535,7 @@ class TestMemoryCommandFunctions:
         output = mock_stdout.getvalue()
         assert "No memory directory" in output or "nothing to clean" in output
 
-    def test_view_memory_displays_content(self, mock_memory_manager):
+    def test_view_memory_displays_content(mock_memory_manager):
         """Test _view_memory displays memory content."""
         from claude_mpm.cli.commands.memory import _view_memory
 
@@ -550,7 +550,7 @@ class TestMemoryCommandFunctions:
         assert "Test Memory" in output
         assert "Test content" in output
 
-    def test_view_memory_handles_missing_agent(self, mock_memory_manager):
+    def test_view_memory_handles_missing_agent(mock_memory_manager):
         """Test _view_memory handles missing agent parameter."""
         from claude_mpm.cli.commands.memory import _view_memory
 
@@ -563,7 +563,7 @@ class TestMemoryCommandFunctions:
         # The function actually processes None as an agent ID, so check for that
         assert "Memory for agent: None" in output
 
-    def test_show_memories_displays_output(self, mock_memory_manager):
+    def test_show_memories_displays_output(mock_memory_manager):
         """Test _show_memories displays memory output."""
         from claude_mpm.cli.commands.memory import _show_memories
 

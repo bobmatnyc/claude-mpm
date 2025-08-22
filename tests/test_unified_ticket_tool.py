@@ -1,3 +1,5 @@
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify that only the unified ticket tool is registered.
@@ -21,6 +23,7 @@ from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
 )
 
 
+@pytest.mark.asyncio
 async def test_unified_tool():
     """Test that only the unified ticket tool is registered."""
     print("Testing Unified Ticket Tool Registration")
@@ -70,6 +73,7 @@ async def test_unified_tool():
         return False
 
 
+@pytest.mark.asyncio
 async def test_mcp_gateway():
     """Test the MCP Gateway with unified ticket tool."""
     print("\n" + "=" * 50)

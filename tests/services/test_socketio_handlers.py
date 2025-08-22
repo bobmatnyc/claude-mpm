@@ -42,7 +42,7 @@ class TestBaseEventHandler:
         """Create BaseEventHandler instance for testing."""
         return BaseEventHandler(mock_server)
 
-    def test_init(self, mock_server):
+    def test_init(mock_server):
         """Test BaseEventHandler initialization."""
         handler = BaseEventHandler(mock_server)
 
@@ -53,7 +53,7 @@ class TestBaseEventHandler:
         assert handler.logger is not None
 
     @pytest.mark.asyncio
-    async def test_emit_to_client(self, base_handler):
+    async def test_emit_to_client(base_handler):
         """Test emitting events to specific client."""
         base_handler.sio.emit = AsyncMock()
 
@@ -64,7 +64,7 @@ class TestBaseEventHandler:
         )
 
     @pytest.mark.asyncio
-    async def test_broadcast_event(self, base_handler):
+    async def test_broadcast_event(base_handler):
         """Test broadcasting events to all clients."""
         base_handler.sio.emit = AsyncMock()
 
@@ -73,7 +73,7 @@ class TestBaseEventHandler:
         base_handler.sio.emit.assert_called_once_with("test_event", {"data": "test"})
 
     @pytest.mark.asyncio
-    async def test_broadcast_event_with_skip_sid(self, base_handler):
+    async def test_broadcast_event_with_skip_sid(base_handler):
         """Test broadcasting events while skipping specific client."""
         base_handler.sio.emit = AsyncMock()
         base_handler.clients = {"sid1", "sid2", "sid3"}
@@ -89,7 +89,7 @@ class TestBaseEventHandler:
         ]
         base_handler.sio.emit.assert_has_calls(expected_calls)
 
-    def test_log_error(self, base_handler):
+    def test_log_error(base_handler):
         """Test error logging functionality."""
         with patch.object(base_handler.logger, "error") as mock_error:
             base_handler.log_error(
@@ -101,7 +101,7 @@ class TestBaseEventHandler:
             assert "test_operation" in logged_message
             assert "Test error" in logged_message
 
-    def test_register_events_not_implemented(self, base_handler):
+    def test_register_events_not_implemented(base_handler):
         """Test that register_events raises NotImplementedError."""
         with pytest.raises(NotImplementedError):
             base_handler.register_events()
@@ -127,7 +127,7 @@ class TestConnectionEventHandler:
         """Create ConnectionEventHandler instance for testing."""
         return ConnectionEventHandler(mock_server)
 
-    def test_init(self, mock_server):
+    def test_init(mock_server):
         """Test ConnectionEventHandler initialization."""
         handler = ConnectionEventHandler(mock_server)
 
@@ -136,7 +136,7 @@ class TestConnectionEventHandler:
         assert handler.clients == mock_server.clients
         assert handler.event_history == mock_server.event_history
 
-    def test_register_events(self, connection_handler):
+    def test_register_events(connection_handler):
         """Test that register_events configures event handlers."""
         connection_handler.register_events()
 
@@ -144,7 +144,7 @@ class TestConnectionEventHandler:
         assert connection_handler.sio.event.call_count >= 5
 
     @pytest.mark.asyncio
-    async def test_connect_event(self, connection_handler):
+    async def test_connect_event(connection_handler):
         """Test client connect event handling."""
         connection_handler.sio.emit = AsyncMock()
 
@@ -178,7 +178,7 @@ class TestConnectionEventHandler:
             mock_send_history.assert_called_once_with("test-sid", limit=50)
 
     @pytest.mark.asyncio
-    async def test_disconnect_event(self, connection_handler):
+    async def test_disconnect_event(connection_handler):
         """Test client disconnect event handling."""
         # Add client first
         connection_handler.clients.add("test-sid")
@@ -201,7 +201,7 @@ class TestConnectionEventHandler:
         assert "test-sid" not in connection_handler.clients
 
     @pytest.mark.asyncio
-    async def test_get_status_event(self, connection_handler):
+    async def test_get_status_event(connection_handler):
         """Test get_status event handling."""
         connection_handler.sio.emit = AsyncMock()
 
@@ -234,7 +234,7 @@ class TestConnectionEventHandler:
             assert args[1]["session_id"] == "test-session"
 
     @pytest.mark.asyncio
-    async def test_send_event_history_empty(self, connection_handler):
+    async def test_send_event_history_empty(connection_handler):
         """Test sending event history when history is empty."""
         connection_handler.sio.emit = AsyncMock()
 
@@ -244,7 +244,7 @@ class TestConnectionEventHandler:
         connection_handler.sio.emit.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_send_event_history_with_events(self, connection_handler):
+    async def test_send_event_history_with_events(connection_handler):
         """Test sending event history with existing events."""
         connection_handler.sio.emit = AsyncMock()
 
@@ -266,7 +266,7 @@ class TestConnectionEventHandler:
         assert args[1]["total_available"] == 3
 
     @pytest.mark.asyncio
-    async def test_send_event_history_filtered(self, connection_handler):
+    async def test_send_event_history_filtered(connection_handler):
         """Test sending filtered event history."""
         connection_handler.sio.emit = AsyncMock()
 
@@ -309,14 +309,14 @@ class TestGitEventHandler:
         """Create GitEventHandler instance for testing."""
         return GitEventHandler(mock_server)
 
-    def test_init(self, mock_server):
+    def test_init(mock_server):
         """Test GitEventHandler initialization."""
         handler = GitEventHandler(mock_server)
 
         assert handler.server == mock_server
         assert handler.sio == mock_server.sio
 
-    def test_register_events(self, git_handler):
+    def test_register_events(git_handler):
         """Test that register_events configures git event handlers."""
         git_handler.register_events()
 
@@ -324,7 +324,7 @@ class TestGitEventHandler:
         assert git_handler.sio.event.call_count >= 4
 
     @pytest.mark.asyncio
-    async def test_get_git_branch_success(self, git_handler):
+    async def test_get_git_branch_success(git_handler):
         """Test successful git branch retrieval."""
         git_handler.sio.emit = AsyncMock()
 
@@ -359,7 +359,7 @@ class TestGitEventHandler:
             assert args[1]["branch"] == "main"
 
     @pytest.mark.asyncio
-    async def test_get_git_branch_failure(self, git_handler):
+    async def test_get_git_branch_failure(git_handler):
         """Test git branch retrieval failure."""
         git_handler.sio.emit = AsyncMock()
 
@@ -394,7 +394,7 @@ class TestGitEventHandler:
             assert "Not a git repository" in args[1]["error"]
 
     @pytest.mark.asyncio
-    async def test_check_file_tracked_success(self, git_handler):
+    async def test_check_file_tracked_success(git_handler):
         """Test successful file tracking check."""
         git_handler.sio.emit = AsyncMock()
 
@@ -428,7 +428,7 @@ class TestGitEventHandler:
             assert args[1]["is_tracked"] is True
 
     @pytest.mark.asyncio
-    async def test_check_file_tracked_missing_path(self, git_handler):
+    async def test_check_file_tracked_missing_path(git_handler):
         """Test file tracking check with missing file path."""
         git_handler.sio.emit = AsyncMock()
 
@@ -453,7 +453,7 @@ class TestGitEventHandler:
         assert args[1]["success"] is False
         assert "file_path is required" in args[1]["error"]
 
-    def test_sanitize_working_dir_invalid_states(self, git_handler):
+    def test_sanitize_working_dir_invalid_states(git_handler):
         """Test working directory sanitization with invalid states."""
         invalid_states = [None, "", "Unknown", "Loading...", "undefined", "null"]
 
@@ -464,13 +464,13 @@ class TestGitEventHandler:
                 )
                 assert result == "/current/dir"
 
-    def test_sanitize_working_dir_valid_path(self, git_handler):
+    def test_sanitize_working_dir_valid_path(git_handler):
         """Test working directory sanitization with valid path."""
         valid_path = "/valid/path"
         result = git_handler._sanitize_working_dir(valid_path, "test_operation")
         assert result == "/valid/path"
 
-    def test_sanitize_working_dir_null_bytes(self, git_handler):
+    def test_sanitize_working_dir_null_bytes(git_handler):
         """Test working directory sanitization with null bytes."""
         with patch("os.getcwd", return_value="/current/dir"):
             invalid_path = "/path/with\x00null"
@@ -478,7 +478,7 @@ class TestGitEventHandler:
             assert result == "/current/dir"
 
     @pytest.mark.asyncio
-    async def test_validate_directory_exists(self, git_handler):
+    async def test_validate_directory_exists(git_handler):
         """Test directory validation when directory exists."""
         with patch("os.path.exists", return_value=True), patch(
             "os.path.isdir", return_value=True
@@ -489,7 +489,7 @@ class TestGitEventHandler:
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_validate_directory_not_exists(self, git_handler):
+    async def test_validate_directory_not_exists(git_handler):
         """Test directory validation when directory doesn't exist."""
         git_handler.sio.emit = AsyncMock()
 
@@ -503,7 +503,7 @@ class TestGitEventHandler:
             git_handler.sio.emit.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_validate_directory_not_directory(self, git_handler):
+    async def test_validate_directory_not_directory(git_handler):
         """Test directory validation when path is not a directory."""
         git_handler.sio.emit = AsyncMock()
 
@@ -518,7 +518,7 @@ class TestGitEventHandler:
             # Should emit error response
             git_handler.sio.emit.assert_called_once()
 
-    def test_is_git_repository_true(self, git_handler):
+    def test_is_git_repository_true(git_handler):
         """Test git repository check for valid repository."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -527,7 +527,7 @@ class TestGitEventHandler:
             result = git_handler._is_git_repository("/git/repo")
             assert result is True
 
-    def test_is_git_repository_false(self, git_handler):
+    def test_is_git_repository_false(git_handler):
         """Test git repository check for non-repository."""
         mock_result = Mock()
         mock_result.returncode = 128
@@ -536,12 +536,12 @@ class TestGitEventHandler:
             result = git_handler._is_git_repository("/not/git/repo")
             assert result is False
 
-    def test_make_path_relative_to_git_relative_path(self, git_handler):
+    def test_make_path_relative_to_git_relative_path(git_handler):
         """Test making relative path with already relative path."""
         result = git_handler._make_path_relative_to_git("src/test.py", "/git/repo")
         assert result == "src/test.py"
 
-    def test_make_path_relative_to_git_absolute_path(self, git_handler):
+    def test_make_path_relative_to_git_absolute_path(git_handler):
         """Test making relative path with absolute path."""
         mock_result = Mock()
         mock_result.returncode = 0
@@ -555,7 +555,7 @@ class TestGitEventHandler:
             )
             assert result == "relative/path.py"
 
-    def test_check_file_git_status(self, git_handler):
+    def test_check_file_git_status(git_handler):
         """Test checking file git status."""
         # Mock git status (has changes)
         status_result = Mock()
@@ -576,7 +576,7 @@ class TestGitEventHandler:
             assert has_changes is True
 
     @pytest.mark.asyncio
-    async def test_generate_git_diff_not_git_repo(self, git_handler):
+    async def test_generate_git_diff_not_git_repo(git_handler):
         """Test git diff generation for non-git repository."""
         # Mock git check failure
         mock_process = Mock()
@@ -593,7 +593,7 @@ class TestGitEventHandler:
             assert "Not a git repository" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_generate_git_diff_with_timestamp(self, git_handler):
+    async def test_generate_git_diff_with_timestamp(git_handler):
         """Test git diff generation with timestamp."""
         # Mock successful git commands
         git_check = Mock()
@@ -653,14 +653,14 @@ class TestFileEventHandler:
         """Create FileEventHandler instance for testing."""
         return FileEventHandler(mock_server)
 
-    def test_init(self, mock_server):
+    def test_init(mock_server):
         """Test FileEventHandler initialization."""
         handler = FileEventHandler(mock_server)
 
         assert handler.server == mock_server
         assert handler.sio == mock_server.sio
 
-    def test_register_events(self, file_handler):
+    def test_register_events(file_handler):
         """Test that register_events configures file event handlers."""
         file_handler.register_events()
 
@@ -668,7 +668,7 @@ class TestFileEventHandler:
         assert file_handler.sio.event.call_count >= 1
 
     @pytest.mark.asyncio
-    async def test_read_file_missing_path(self, file_handler):
+    async def test_read_file_missing_path(file_handler):
         """Test file reading with missing file path."""
         file_handler.sio.emit = AsyncMock()
 
@@ -694,7 +694,7 @@ class TestFileEventHandler:
         assert "file_path is required" in args[1]["error"]
 
     @pytest.mark.asyncio
-    async def test_read_file_safely_success(self, file_handler, tmp_path):
+    async def test_read_file_safely_success(file_handler, tmp_path):
         """Test safe file reading with successful file read."""
         # Create test file
         test_file = tmp_path / "test.txt"
@@ -710,7 +710,7 @@ class TestFileEventHandler:
             assert result["file_path"] == str(test_file)
 
     @pytest.mark.asyncio
-    async def test_read_file_safely_security_violation(self, file_handler, tmp_path):
+    async def test_read_file_safely_security_violation(file_handler, tmp_path):
         """Test safe file reading with security violation."""
         # Try to read file outside allowed paths
         forbidden_file = "/etc/passwd"
@@ -724,7 +724,7 @@ class TestFileEventHandler:
             assert "security violation" in result["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_read_file_safely_file_not_found(self, file_handler, tmp_path):
+    async def test_read_file_safely_file_not_found(file_handler, tmp_path):
         """Test safe file reading with file not found."""
         nonexistent_file = tmp_path / "nonexistent.txt"
 
@@ -739,7 +739,7 @@ class TestFileEventHandler:
             assert "does not exist" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_read_file_safely_permission_error(self, file_handler, tmp_path):
+    async def test_read_file_safely_permission_error(file_handler, tmp_path):
         """Test safe file reading with permission error."""
         # Create test file
         test_file = tmp_path / "restricted.txt"
@@ -754,7 +754,7 @@ class TestFileEventHandler:
             assert "permission denied" in result["error"].lower()
 
     @pytest.mark.asyncio
-    async def test_read_file_safely_file_too_large(self, file_handler, tmp_path):
+    async def test_read_file_safely_file_too_large(file_handler, tmp_path):
         """Test safe file reading with file size limit."""
         # Create test file
         test_file = tmp_path / "large.txt"
@@ -788,7 +788,7 @@ class TestEventHandlerRegistry:
         """Create EventHandlerRegistry instance for testing."""
         return EventHandlerRegistry(mock_server)
 
-    def test_init(self, mock_server):
+    def test_init(mock_server):
         """Test EventHandlerRegistry initialization."""
         registry = EventHandlerRegistry(mock_server)
 
@@ -797,7 +797,7 @@ class TestEventHandlerRegistry:
         assert registry.handlers == []
         assert registry._initialized is False
 
-    def test_initialize_default_handlers(self, registry):
+    def test_initialize_default_handlers(registry):
         """Test initialization with default handlers."""
         registry.initialize()
 
@@ -809,7 +809,7 @@ class TestEventHandlerRegistry:
         for expected_type in registry.DEFAULT_HANDLERS:
             assert expected_type in handler_types
 
-    def test_initialize_custom_handlers(self, registry):
+    def test_initialize_custom_handlers(registry):
         """Test initialization with custom handler list."""
         custom_handlers = [ConnectionEventHandler, GitEventHandler]
 
@@ -822,7 +822,7 @@ class TestEventHandlerRegistry:
         assert ConnectionEventHandler in handler_types
         assert GitEventHandler in handler_types
 
-    def test_initialize_already_initialized(self, registry):
+    def test_initialize_already_initialized(registry):
         """Test that re-initialization is skipped."""
         registry.initialize()
         initial_count = len(registry.handlers)
@@ -831,7 +831,7 @@ class TestEventHandlerRegistry:
 
         assert len(registry.handlers) == initial_count
 
-    def test_initialize_handler_failure(self, registry):
+    def test_initialize_handler_failure(registry):
         """Test initialization with handler that fails to create."""
 
         class FailingHandler(BaseEventHandler):
@@ -845,12 +845,12 @@ class TestEventHandlerRegistry:
         assert len(registry.handlers) == 1
         assert isinstance(registry.handlers[0], ConnectionEventHandler)
 
-    def test_register_all_events_not_initialized(self, registry):
+    def test_register_all_events_not_initialized(registry):
         """Test registering events without initialization."""
         with pytest.raises(RuntimeError, match="Registry not initialized"):
             registry.register_all_events()
 
-    def test_register_all_events_success(self, registry):
+    def test_register_all_events_success(registry):
         """Test successful event registration."""
         registry.initialize(handler_classes=[ConnectionEventHandler, GitEventHandler])
 
@@ -861,12 +861,12 @@ class TestEventHandlerRegistry:
             # We can't easily verify this was called, but no exceptions should occur
             pass
 
-    def test_add_handler_not_initialized(self, registry):
+    def test_add_handler_not_initialized(registry):
         """Test adding handler without initialization."""
         with pytest.raises(RuntimeError, match="Registry not initialized"):
             registry.add_handler(ConnectionEventHandler)
 
-    def test_add_handler_success(self, registry):
+    def test_add_handler_success(registry):
         """Test successful handler addition."""
         registry.initialize(handler_classes=[])  # Start with empty handlers
 
@@ -875,7 +875,7 @@ class TestEventHandlerRegistry:
         assert len(registry.handlers) == 1
         assert isinstance(registry.handlers[0], ConnectionEventHandler)
 
-    def test_add_handler_failure(self, registry):
+    def test_add_handler_failure(registry):
         """Test handler addition failure."""
 
         class FailingHandler(BaseEventHandler):
@@ -887,7 +887,7 @@ class TestEventHandlerRegistry:
         with pytest.raises(Exception, match="Handler creation failed"):
             registry.add_handler(FailingHandler)
 
-    def test_get_handler_found(self, registry):
+    def test_get_handler_found(registry):
         """Test getting existing handler."""
         registry.initialize(handler_classes=[ConnectionEventHandler, GitEventHandler])
 
@@ -896,7 +896,7 @@ class TestEventHandlerRegistry:
         assert handler is not None
         assert isinstance(handler, ConnectionEventHandler)
 
-    def test_get_handler_not_found(self, registry):
+    def test_get_handler_not_found(registry):
         """Test getting non-existent handler."""
         registry.initialize(handler_classes=[ConnectionEventHandler])
 
@@ -920,7 +920,7 @@ class TestIntegration:
         server.claude_pid = 54321
         return server
 
-    def test_registry_with_all_handlers(self, mock_server):
+    def test_registry_with_all_handlers(mock_server):
         """Test registry initialization and registration with all handlers."""
         registry = EventHandlerRegistry(mock_server)
 
@@ -943,7 +943,7 @@ class TestIntegration:
         assert file_handler is not None
 
     @pytest.mark.asyncio
-    async def test_end_to_end_file_operations(self, mock_server, tmp_path):
+    async def test_end_to_end_file_operations(mock_server, tmp_path):
         """Test end-to-end file operations."""
         # Create test file
         test_file = tmp_path / "integration_test.py"

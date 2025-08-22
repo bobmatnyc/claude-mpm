@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class TestMemoryIntegrationFocused(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment with temporary directory."""
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = tmp_path
         self.working_dir = Path(self.temp_dir)
         
         # Mock configuration
@@ -63,7 +63,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         import shutil
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_simple_remember_field_extraction(self):
+    def test_simple_remember_field_extraction():
         """Test extraction from simple remember field in JSON response."""
         response = '''
         Task completed successfully.
@@ -89,7 +89,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         self.assertIn("Python 3.11", content)
         self.assertIn("PostgreSQL", content)
 
-    def test_capital_remember_field_extraction(self):
+    def test_capital_remember_field_extraction():
         """Test extraction from Remember field (capital R) in JSON response."""
         response = '''
         Analysis complete.
@@ -115,7 +115,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         self.assertIn("JWT authentication", content)
         self.assertIn("Rate limit", content)
 
-    def test_null_remember_field_handling(self):
+    def test_null_remember_field_handling():
         """Test handling of null remember field."""
         response = '''
         Task completed.
@@ -136,7 +136,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         memory_file = self.working_dir / ".claude-mpm" / "memories" / "test_agent3.md"
         self.assertFalse(memory_file.exists(), "Memory file should not be created for null remember")
 
-    def test_empty_list_remember_field_handling(self):
+    def test_empty_list_remember_field_handling():
         """Test handling of empty list remember field."""
         response = '''
         Task completed.
@@ -153,7 +153,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         # Should return False for empty list
         self.assertFalse(result, "Empty remember list should return False")
 
-    def test_memory_update_structured_format_NOT_IMPLEMENTED(self):
+    def test_memory_update_structured_format_NOT_IMPLEMENTED():
         """Test extraction from memory-update structured format - EXPECTED TO FAIL."""
         response = '''
         Task completed.
@@ -177,7 +177,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         memory_file = self.working_dir / ".claude-mpm" / "memories" / "engineer.md"
         self.assertFalse(memory_file.exists(), "Memory file should not be created for unimplemented format")
 
-    def test_no_json_response_handling(self):
+    def test_no_json_response_handling():
         """Test handling of response with no JSON."""
         response = '''
         Task completed successfully. 
@@ -190,7 +190,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         # Should return False for no JSON
         self.assertFalse(result, "Response with no JSON should return False")
 
-    def test_invalid_json_handling(self):
+    def test_invalid_json_handling():
         """Test handling of invalid JSON in response."""
         response = '''
         Task completed.
@@ -207,7 +207,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         # Should return False for invalid JSON
         self.assertFalse(result, "Response with invalid JSON should return False")
 
-    def test_multiple_json_blocks_processing(self):
+    def test_multiple_json_blocks_processing():
         """Test processing multiple JSON blocks in one response."""
         response = '''
         First task completed.
@@ -240,7 +240,7 @@ class TestMemoryIntegrationFocused(unittest.TestCase):
         self.assertIn("First learning", content)
         self.assertIn("Second learning", content)
 
-    def test_memory_file_format_consistency(self):
+    def test_memory_file_format_consistency():
         """Test that memory files are created with consistent format."""
         response = '''
         ```json

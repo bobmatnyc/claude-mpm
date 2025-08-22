@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """Test script to verify event flow from hook handler to dashboard."""
 
@@ -9,6 +10,7 @@ import time
 from datetime import datetime
 
 
+@pytest.mark.asyncio
 async def test_event_flow():
     """Test that events flow properly through the system."""
     

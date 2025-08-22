@@ -23,7 +23,7 @@ def test_service_initialization():
     from claude_mpm.services.hook_service import HookService
     from claude_mpm.services.runner_configuration_service import RunnerConfigurationService
     from claude_mpm.services.subprocess_launcher_service import SubprocessLauncherService
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     print("1. Creating RunnerConfigurationService...")
     runner_config = RunnerConfigurationService()

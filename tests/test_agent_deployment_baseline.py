@@ -25,7 +25,7 @@ import pytest
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.exceptions import AgentDeploymentError
 from claude_mpm.services.agents.deployment.agent_deployment import (
     AgentDeploymentService,
@@ -38,7 +38,7 @@ class TestAgentDeploymentServiceBaseline:
     @pytest.fixture
     def temp_dirs(self):
         """Create temporary directories for testing."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             temp_path = Path(temp_dir)
             templates_dir = temp_path / "templates"
             agents_dir = temp_path / "agents"
@@ -105,7 +105,7 @@ Follow these guidelines for all tasks.
             working_directory=temp_dirs["working"],
         )
 
-    def test_initialization(self, deployment_service, temp_dirs):
+    def test_initialization(deployment_service, temp_dirs):
         """Test service initialization."""
         assert deployment_service.templates_dir == temp_dirs["templates"]
         assert deployment_service.working_directory == temp_dirs["working"]
@@ -117,7 +117,7 @@ Follow these guidelines for all tasks.
         assert hasattr(deployment_service, "validator")
         assert hasattr(deployment_service, "filesystem_manager")
 
-    def test_deploy_agents_basic(self, deployment_service, sample_template, temp_dirs):
+    def test_deploy_agents_basic(deployment_service, sample_template, temp_dirs):
         """Test basic agent deployment."""
         result = deployment_service.deploy_agents(
             target_dir=temp_dirs["agents"], force_rebuild=True
@@ -129,7 +129,7 @@ Follow these guidelines for all tasks.
         assert "total" in result
         assert "target_dir" in result
 
-    def test_list_available_agents(self, deployment_service, sample_template):
+    def test_list_available_agents(deployment_service, sample_template):
         """Test listing available agents."""
         agents = deployment_service.list_available_agents()
         assert isinstance(agents, list)
@@ -141,14 +141,14 @@ Follow these guidelines for all tasks.
         assert "description" in agent
         assert "path" in agent  # Actual field name is 'path', not 'template_path'
 
-    def test_deploy_single_agent(self, deployment_service, sample_template, temp_dirs):
+    def test_deploy_single_agent(deployment_service, sample_template, temp_dirs):
         """Test deploying a single agent."""
         result = deployment_service.deploy_agent(
             agent_name="test_agent", target_dir=temp_dirs["agents"], force_rebuild=True
         )
         assert isinstance(result, bool)
 
-    def test_set_claude_environment(self, deployment_service, temp_dirs):
+    def test_set_claude_environment(deployment_service, temp_dirs):
         """Test setting Claude environment variables."""
         env_vars = deployment_service.set_claude_environment(
             config_dir=temp_dirs["working"] / ".claude"
@@ -164,7 +164,7 @@ Follow these guidelines for all tasks.
                 "CLAUDE_TIMEOUT",
             ]
 
-    def test_verify_deployment(self, deployment_service, temp_dirs):
+    def test_verify_deployment(deployment_service, temp_dirs):
         """Test deployment verification."""
         result = deployment_service.verify_deployment(
             config_dir=temp_dirs["working"] / ".claude"
@@ -175,7 +175,7 @@ Follow these guidelines for all tasks.
         assert "agents_found" in result
         assert "config_dir" in result
 
-    def test_get_deployment_metrics(self, deployment_service):
+    def test_get_deployment_metrics(deployment_service):
         """Test getting deployment metrics."""
         metrics = deployment_service.get_deployment_metrics()
 
@@ -184,7 +184,7 @@ Follow these guidelines for all tasks.
         assert "average_deployment_time_ms" in metrics  # Actual field name
         assert "successful_deployments" in metrics  # Actual field name
 
-    def test_reset_metrics(self, deployment_service):
+    def test_reset_metrics(deployment_service):
         """Test resetting deployment metrics."""
         # Get initial metrics
         initial_metrics = deployment_service.get_deployment_metrics()
@@ -196,7 +196,7 @@ Follow these guidelines for all tasks.
         reset_metrics = deployment_service.get_deployment_metrics()
         assert reset_metrics["total_deployments"] == 0
 
-    def test_clean_deployment(self, deployment_service, temp_dirs):
+    def test_clean_deployment(deployment_service, temp_dirs):
         """Test cleaning deployment."""
         result = deployment_service.clean_deployment(
             config_dir=temp_dirs["working"] / ".claude"
@@ -206,21 +206,21 @@ Follow these guidelines for all tasks.
         assert "removed" in result
         # 'preserved' field may not exist if no agents directory found
 
-    def test_validate_agent(self, deployment_service, sample_template):
+    def test_validate_agent(deployment_service, sample_template):
         """Test agent validation."""
         is_valid, errors = deployment_service.validate_agent(sample_template)
 
         assert isinstance(is_valid, bool)
         assert isinstance(errors, list)
 
-    def test_get_deployment_status(self, deployment_service):
+    def test_get_deployment_status(deployment_service):
         """Test getting deployment status."""
         status = deployment_service.get_deployment_status()
 
         assert isinstance(status, dict)
         assert "deployment_metrics" in status  # Actual field name
 
-    def test_error_handling_invalid_template(self, deployment_service, temp_dirs):
+    def test_error_handling_invalid_template(deployment_service, temp_dirs):
         """Test error handling with invalid template."""
         # Create invalid template
         invalid_template = temp_dirs["templates"] / "invalid.json"
@@ -233,7 +233,7 @@ Follow these guidelines for all tasks.
         # Should handle error gracefully
         assert "errors" in result
 
-    def test_version_parsing(self, deployment_service):
+    def test_version_parsing(deployment_service):
         """Test version parsing functionality via version manager."""
         # Test various version formats
         version_tests = [
@@ -247,7 +247,7 @@ Follow these guidelines for all tasks.
             result = deployment_service.version_manager.parse_version(version_str)
             assert result == expected
 
-    def test_format_version_display(self, deployment_service):
+    def test_format_version_display(deployment_service):
         """Test version display formatting via version manager."""
         version_tuple = (1, 2, 3)
         formatted = deployment_service.version_manager.format_version_display(
@@ -255,7 +255,7 @@ Follow these guidelines for all tasks.
         )
         assert formatted == "1.2.3"
 
-    def test_yaml_list_formatting(self, deployment_service):
+    def test_yaml_list_formatting(deployment_service):
         """Test YAML list formatting via template builder."""
         items = ["item1", "item2", "item3"]
         formatted = deployment_service.template_builder.format_yaml_list(items, 2)

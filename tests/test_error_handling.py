@@ -23,7 +23,7 @@ def test_permission_errors():
     """Test handling of permission errors during logging."""
     print("\n=== Testing Permission Error Handling ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Create a read-only directory
         readonly_dir = Path(tmpdir) / "readonly"
         readonly_dir.mkdir()
@@ -91,7 +91,7 @@ def test_disk_space_simulation():
     """Simulate disk full condition using mocks."""
     print("\n=== Testing Disk Full Simulation ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         logger = AsyncSessionLogger(
             base_dir=Path(tmpdir), log_format=LogFormat.JSON, enable_async=True
         )
@@ -162,7 +162,7 @@ def test_invalid_data_handling():
     """Test handling of various invalid data scenarios."""
     print("\n=== Testing Invalid Data Handling ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         logger = AsyncSessionLogger(
             base_dir=Path(tmpdir), log_format=LogFormat.JSON, enable_async=True
         )
@@ -280,7 +280,7 @@ def test_concurrent_error_scenarios():
     """Test error handling under concurrent conditions."""
     print("\n=== Testing Concurrent Error Scenarios ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         logger = AsyncSessionLogger(
             base_dir=Path(tmpdir),
             log_format=LogFormat.JSON,
@@ -399,7 +399,7 @@ def test_recovery_after_errors():
     """Test system recovery after various error conditions."""
     print("\n=== Testing Recovery After Errors ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Phase 1: Introduce errors
         print("  Phase 1: Introducing errors...")
 

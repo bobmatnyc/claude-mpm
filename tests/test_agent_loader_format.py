@@ -13,7 +13,7 @@ from claude_mpm.agents.agent_loader import load_agent_prompt_from_md
 class TestAgentLoaderFormats:
     """Test agent_loader handles different JSON formats correctly."""
 
-    def test_narrative_fields_format(self, tmp_path):
+    def test_narrative_fields_format(tmp_path):
         """Test loading from new narrative_fields.instructions format."""
         # Create a test agent with new format
         test_agent = {
@@ -53,7 +53,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_old_content_format(self, tmp_path):
+    def test_old_content_format(tmp_path):
         """Test loading from old content field format (backward compatibility)."""
         # Create a test agent with old format
         test_agent = {
@@ -91,7 +91,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_instructions_field_format(self, tmp_path):
+    def test_instructions_field_format(tmp_path):
         """Test loading from instructions field at root level."""
         # Create a test agent with instructions at root
         test_agent = {
@@ -131,7 +131,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_missing_content_returns_none(self, tmp_path):
+    def test_missing_content_returns_none(tmp_path):
         """Test that missing content/instructions returns None."""
         # Create a test agent with no content
         test_agent = {
@@ -166,7 +166,7 @@ class TestAgentLoaderFormats:
             loader.AGENT_MAPPINGS = original_mappings
             loader.AGENT_TEMPLATES_DIR = original_dir
 
-    def test_real_agent_templates_load(self):
+    def test_real_agent_templates_load():
         """Test that all real agent templates load successfully."""
         from claude_mpm.agents.agent_loader import (
             AGENT_MAPPINGS,

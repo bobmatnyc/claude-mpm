@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 from io import StringIO
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class TestConfigSingletonLogging(unittest.TestCase):
@@ -25,7 +25,7 @@ class TestConfigSingletonLogging(unittest.TestCase):
         """Clean up after each test."""
         Config.reset_singleton()
 
-    def test_single_success_message_on_multiple_instances(self):
+    def test_single_success_message_on_multiple_instances():
         """Test that success message appears only once across multiple Config instances."""
         # Capture log output
         log_capture = StringIO()
@@ -58,7 +58,7 @@ class TestConfigSingletonLogging(unittest.TestCase):
         finally:
             config_logger.removeHandler(handler)
 
-    def test_no_duplicate_on_explicit_config_file(self):
+    def test_no_duplicate_on_explicit_config_file():
         """Test that passing config_file after initialization doesn't duplicate message."""
         # Capture log output
         log_capture = StringIO()
@@ -93,7 +93,7 @@ class TestConfigSingletonLogging(unittest.TestCase):
         finally:
             config_logger.removeHandler(handler)
 
-    def test_debug_message_for_ignored_config_file(self):
+    def test_debug_message_for_ignored_config_file():
         """Test that debug message is logged when config_file is ignored."""
         # Capture DEBUG log output
         log_capture = StringIO()

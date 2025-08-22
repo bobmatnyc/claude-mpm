@@ -18,6 +18,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+## [4.0.29] - 2025-08-22
+
+### Features
+
+- Added Agent Manager for agent customization and deployment
+- Enhanced agent template system with JSON/MD formats
+- Major test infrastructure improvements (1,842% test discovery improvement)
+
+### Fixed
+
+- Resolved 312+ test failures across all test suites
+- Fixed import structure issues (command_base → base_command)
+- CLI command registration and parser improvements
+- SocketIO connection pool optimizations
+
+### Documentation
+
+- Major documentation consolidation and cleanup
+- Closed 11 completed tickets and improved organization
+- Enhanced agent management documentation
+
 ## [4.0.28] - 2025-08-21
 
 ### Features

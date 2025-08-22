@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test the unified ticket tool through the MCP Gateway.
@@ -22,6 +23,7 @@ from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
 )
 
 
+@pytest.mark.asyncio
 async def test_mcp_gateway_integration():
     """Test the unified ticket tool through the MCP Gateway."""
     print("Testing Unified Ticket Tool with MCP Gateway")

@@ -20,7 +20,7 @@ class TestSchemaStandardization:
     """Test suite for agent schema standardization implementation."""
 
     @pytest.fixture
-    def test_agents_dir(self, tmp_path):
+    def test_agents_dir(tmp_path):
         """Create a temporary agents directory for testing."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
@@ -39,7 +39,7 @@ class TestSchemaStandardization:
         """Create an AgentLoader instance for testing."""
         return AgentLoader(agents_dir=str(test_agents_dir))
 
-    def test_schema_file_exists(self, schema_path):
+    def test_schema_file_exists(schema_path):
         """Test that the schema file exists and is valid JSON."""
         assert schema_path.exists(), f"Schema file not found at {schema_path}"
 
@@ -52,7 +52,7 @@ class TestSchemaStandardization:
         assert "properties" in schema
         assert "required" in schema
 
-    def test_schema_required_fields(self, schema_path):
+    def test_schema_required_fields(schema_path):
         """Test that schema defines all required fields."""
         with open(schema_path) as f:
             schema = json.load(f)
@@ -76,7 +76,7 @@ class TestSchemaStandardization:
         assert "instructions" in props
         assert "content" in props["instructions"]["properties"]
 
-    def test_valid_agent_passes_validation(self, agent_loader):
+    def test_valid_agent_passes_validation(agent_loader):
         """Test that a valid agent passes validation."""
         valid_agent = {
             "id": "test_engineer",
@@ -93,7 +93,7 @@ class TestSchemaStandardization:
         # Should not raise
         agent_loader._validate_agent(valid_agent)
 
-    def test_invalid_agent_fails_validation(self, agent_loader):
+    def test_invalid_agent_fails_validation(agent_loader):
         """Test that invalid agents fail validation."""
         # Missing required field
         invalid_agent = {
@@ -119,7 +119,7 @@ class TestSchemaStandardization:
         with pytest.raises(ValidationError):
             agent_loader._validate_agent(invalid_agent)
 
-    def test_instructions_length_limit(self, agent_loader):
+    def test_instructions_length_limit(agent_loader):
         """Test that instructions are limited to 8000 characters."""
         agent = {
             "id": "test",
@@ -135,7 +135,7 @@ class TestSchemaStandardization:
 
         assert "8000 characters" in str(exc_info.value)
 
-    def test_resource_tier_validation(self, agent_loader):
+    def test_resource_tier_validation(agent_loader):
         """Test resource tier validation."""
         agent = {
             "id": "test",
@@ -151,7 +151,7 @@ class TestSchemaStandardization:
 
         assert "resource_tier" in str(exc_info.value)
 
-    def test_model_resource_tier_compatibility(self, agent_loader):
+    def test_model_resource_tier_compatibility(agent_loader):
         """Test model and resource tier compatibility rules."""
         # Opus model requires premium tier
         agent = {
@@ -169,7 +169,7 @@ class TestSchemaStandardization:
         assert "opus" in str(exc_info.value).lower()
         assert "premium" in str(exc_info.value).lower()
 
-    def test_migrated_agents_format(self):
+    def test_migrated_agents_format():
         """Test that all migrated agents follow the new format."""
         agents_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates"
 
@@ -214,7 +214,7 @@ class TestSchemaStandardization:
             # Verify instructions length
             assert len(agent["instructions"]) <= 8000
 
-    def test_backup_files_created(self):
+    def test_backup_files_created():
         """Test that backup files were created during migration."""
         backup_dir = (
             Path(__file__).parent.parent / "src/claude_mpm/agents/templates/backup"
@@ -229,7 +229,7 @@ class TestSchemaStandardization:
                 assert "_agent_" in backup_file.name
                 assert backup_file.name.endswith(".json")
 
-    def test_agent_loader_with_new_schema(self, test_agents_dir):
+    def test_agent_loader_with_new_schema(test_agents_dir):
         """Test agent loader with new schema format."""
         # Create a test agent
         test_agent = {
@@ -252,7 +252,7 @@ class TestSchemaStandardization:
         assert len(agents) == 1
         assert agents[0]["id"] == "test_agent"
 
-    def test_agent_loader_rejects_old_format(self, test_agents_dir):
+    def test_agent_loader_rejects_old_format(test_agents_dir):
         """Test that agent loader rejects old format."""
         # Create an old format agent
         old_agent = {
@@ -272,7 +272,7 @@ class TestSchemaStandardization:
         with pytest.raises(ValidationError):
             loader.load_agents()
 
-    def test_performance_agent_loading(self, test_agents_dir):
+    def test_performance_agent_loading(test_agents_dir):
         """Test agent loading performance."""
         # Create multiple test agents
         for i in range(10):
@@ -299,7 +299,7 @@ class TestSchemaStandardization:
         # Should load in under 500ms total (50ms per agent)
         assert load_time < 0.5, f"Loading took {load_time:.3f}s, expected < 0.5s"
 
-    def test_agent_registry_integration(self, test_agents_dir):
+    def test_agent_registry_integration(test_agents_dir):
         """Test integration with AgentRegistry."""
         # Create a test agent
         test_agent = {
@@ -326,7 +326,7 @@ class TestSchemaStandardization:
         assert len(agents) == 1
         assert agents[0]["id"] == "registry_test"
 
-    def test_task_tool_compatibility(self):
+    def test_task_tool_compatibility():
         """Test that agents work with Task tool."""
         # This would require actual Task tool integration
         # For now, verify agent format is compatible
@@ -341,7 +341,7 @@ class TestSchemaStandardization:
         assert "instructions" in engineer
         assert isinstance(engineer["instructions"], str)
 
-    def test_hook_system_compatibility(self):
+    def test_hook_system_compatibility():
         """Test compatibility with hook system."""
         # Verify agents can be used in hook context
         agents_dir = Path(__file__).parent.parent / "src/claude_mpm/agents/templates"
@@ -354,7 +354,7 @@ class TestSchemaStandardization:
         assert "name" in qa_agent
         assert "instructions" in qa_agent
 
-    def test_backward_compatibility_removed(self, agent_loader):
+    def test_backward_compatibility_removed(agent_loader):
         """Test that backward compatibility is properly removed."""
         # Old format should not work
         old_agent = {
@@ -366,7 +366,7 @@ class TestSchemaStandardization:
         with pytest.raises(ValidationError):
             agent_loader._validate_agent(old_agent)
 
-    def test_cache_functionality(self, test_agents_dir):
+    def test_cache_functionality(test_agents_dir):
         """Test agent loader caching."""
         # Create test agent
         test_agent = {

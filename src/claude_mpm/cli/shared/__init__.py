@@ -13,7 +13,7 @@ from .argument_patterns import (
     add_memory_arguments,
     add_output_arguments,
 )
-from .command_base import AgentCommand, BaseCommand, CommandResult, MemoryCommand
+from .base_command import AgentCommand, BaseCommand, CommandResult, MemoryCommand
 from .error_handling import CLIErrorHandler, handle_cli_errors
 from .output_formatters import OutputFormatter, format_output
 

@@ -31,7 +31,7 @@ def count_success_messages(log_output):
 def simulate_service_startup():
     """Simulate multiple services starting up and loading config."""
     # Reset for clean test
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     Config.reset_singleton()
     
     print("\n=== Simulating Service Startup Sequence ===\n")

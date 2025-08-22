@@ -71,7 +71,7 @@ class TestAgentLifecycleManagerCore:
             await manager._cleanup()
 
     @pytest.mark.asyncio
-    async def test_initialization(self):
+    async def test_initialization():
         """Test AgentLifecycleManager initialization."""
         config = {"enable_auto_backup": False, "enable_auto_validation": False}
 
@@ -94,7 +94,7 @@ class TestAgentLifecycleManagerCore:
         assert manager.performance_metrics["failed_operations"] == 0
 
     @pytest.mark.asyncio
-    async def test_health_check(self, lifecycle_manager):
+    async def test_health_check(lifecycle_manager):
         """Test health check functionality."""
         # Mock the test methods to return True
         lifecycle_manager._test_create_capability = AsyncMock(return_value=True)
@@ -113,7 +113,7 @@ class TestAgentLifecycleManagerCore:
         assert health_status["checks"]["can_delete_agents"] is True
 
     @pytest.mark.asyncio
-    async def test_health_check_with_failures(self, lifecycle_manager):
+    async def test_health_check_with_failures(lifecycle_manager):
         """Test health check with service failures."""
         # Simulate service failures
         lifecycle_manager.shared_cache = None
@@ -156,7 +156,7 @@ class TestAgentLifecycleOperations:
         yield manager
 
     @pytest.mark.asyncio
-    async def test_create_agent_success(self, lifecycle_manager):
+    async def test_create_agent_success(lifecycle_manager):
         """Test successful agent creation."""
         # Setup mocks
         mock_modification = Mock()
@@ -201,7 +201,7 @@ class TestAgentLifecycleOperations:
         assert "mod_123" in record.modifications
 
     @pytest.mark.asyncio
-    async def test_create_agent_duplicate(self, lifecycle_manager):
+    async def test_create_agent_duplicate(lifecycle_manager):
         """Test creating an agent that already exists."""
         # Add existing agent record
         existing_record = AgentLifecycleRecord(
@@ -228,7 +228,7 @@ class TestAgentLifecycleOperations:
         assert result.operation == LifecycleOperation.CREATE
 
     @pytest.mark.asyncio
-    async def test_update_agent_success(self, lifecycle_manager):
+    async def test_update_agent_success(lifecycle_manager):
         """Test successful agent update."""
         # Add existing agent record
         existing_record = AgentLifecycleRecord(
@@ -277,7 +277,7 @@ class TestAgentLifecycleOperations:
         assert "mod_456" in record.modifications
 
     @pytest.mark.asyncio
-    async def test_update_agent_not_found(self, lifecycle_manager):
+    async def test_update_agent_not_found(lifecycle_manager):
         """Test updating an agent that doesn't exist."""
         result = await lifecycle_manager.update_agent(
             agent_name="nonexistent_agent", agent_content="# Nonexistent Agent"
@@ -289,7 +289,7 @@ class TestAgentLifecycleOperations:
         assert result.operation == LifecycleOperation.UPDATE
 
     @pytest.mark.asyncio
-    async def test_delete_agent_success(self, lifecycle_manager):
+    async def test_delete_agent_success(lifecycle_manager):
         """Test successful agent deletion."""
         # Add existing agent record
         existing_record = AgentLifecycleRecord(
@@ -334,7 +334,7 @@ class TestAgentLifecycleOperations:
         assert "/test/backup.md" in record.backup_paths
 
     @pytest.mark.asyncio
-    async def test_delete_agent_not_found(self, lifecycle_manager):
+    async def test_delete_agent_not_found(lifecycle_manager):
         """Test deleting an agent that doesn't exist."""
         result = await lifecycle_manager.delete_agent(agent_name="nonexistent_agent")
 
@@ -372,7 +372,7 @@ class TestAgentLifecycleErrorHandling:
         yield manager
 
     @pytest.mark.asyncio
-    async def test_create_agent_with_tracker_failure(self, lifecycle_manager):
+    async def test_create_agent_with_tracker_failure(lifecycle_manager):
         """Test agent creation when modification tracker fails."""
         # Make modification tracker fail
         lifecycle_manager.modification_tracker.track_modification.side_effect = (
@@ -394,7 +394,7 @@ class TestAgentLifecycleErrorHandling:
         assert "fail_agent" not in lifecycle_manager.agent_records
 
     @pytest.mark.asyncio
-    async def test_create_agent_with_persistence_failure(self, lifecycle_manager):
+    async def test_create_agent_with_persistence_failure(lifecycle_manager):
         """Test agent creation when persistence service fails."""
         # Setup successful tracker but failing persistence
         mock_modification = Mock()
@@ -422,7 +422,7 @@ class TestAgentLifecycleErrorHandling:
         assert "persistence failed" in result.error_message.lower()
 
     @pytest.mark.asyncio
-    async def test_concurrent_operations_on_same_agent(self, lifecycle_manager):
+    async def test_concurrent_operations_on_same_agent(lifecycle_manager):
         """Test handling of concurrent operations on the same agent."""
         # Setup mocks for successful operations
         mock_modification = Mock()
@@ -507,7 +507,7 @@ class TestAgentLifecyclePerformanceMetrics:
         yield manager
 
     @pytest.mark.asyncio
-    async def test_performance_metrics_tracking(self, lifecycle_manager):
+    async def test_performance_metrics_tracking(lifecycle_manager):
         """Test that performance metrics are properly tracked."""
         # Setup successful operation mocks
         mock_modification = Mock()
@@ -552,7 +552,7 @@ class TestAgentLifecyclePerformanceMetrics:
         assert result.duration_ms > 0
 
     @pytest.mark.asyncio
-    async def test_failed_operation_metrics(self, lifecycle_manager):
+    async def test_failed_operation_metrics(lifecycle_manager):
         """Test that failed operations are tracked in metrics."""
         # Make operation fail
         lifecycle_manager.modification_tracker.track_modification.side_effect = (

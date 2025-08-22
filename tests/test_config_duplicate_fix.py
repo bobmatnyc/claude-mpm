@@ -29,7 +29,7 @@ def patched_info(self, msg, *args, **kwargs):
 logging.Logger.info = patched_info
 
 # Now test the Config singleton
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 def test_single_success_message():
     """Test that the success message only appears once."""

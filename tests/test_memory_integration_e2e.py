@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.base_hook import HookContext, HookType
 from claude_mpm.hooks.memory_integration_hook import (
     MemoryPostDelegationHook,
@@ -21,7 +21,7 @@ from claude_mpm.services.agents.memory import AgentMemoryManager
 
 def test_memory_hooks_integration():
     """Test that memory hooks work together in a full workflow."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Setup config with temp directory
         config = Config(config={"memory": {"enabled": True, "auto_learning": True}})
 
@@ -151,7 +151,7 @@ The implementation follows our REST API standards.
 
 def test_memory_hooks_with_disabled_learning():
     """Test that hooks respect disabled auto-learning."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Setup config with auto-learning disabled
         config = Config(config={"memory": {"enabled": True, "auto_learning": False}})
 

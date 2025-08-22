@@ -66,7 +66,7 @@ class ResumeTestRunner:
         self.project_root = Path(__file__).parent.parent
         self.results = ResumeTestResults()
         
-    def run_command(self, cmd: List[str], timeout: int = 30) -> Tuple[int, str, str]:
+    def run_subcommand(self, cmd: List[str], timeout: int = 30) -> Tuple[int, str, str]:
         """Run a command and capture output"""
         try:
             print(f"Running: {' '.join(cmd)}")
@@ -83,7 +83,7 @@ class ResumeTestRunner:
         except Exception as e:
             return -2, "", f"Error running command: {str(e)}"
 
-    def test_wrapper_flag_detection(self):
+    def test_wrapper_flag_detection():
         """Test 1: Verify --resume is NOT in MPM_FLAGS in wrapper script"""
         print("\n" + "="*60)
         print("TEST 1: Wrapper Flag Detection")
@@ -155,7 +155,7 @@ class ResumeTestRunner:
             )
             print(f"❌ ERROR: {e}")
 
-    def test_resume_passthrough(self):
+    def test_resume_passthrough():
         """Test 2: Test that --resume passes through to Claude CLI"""
         print("\n" + "="*60)
         print("TEST 2: Resume Flag Passthrough")
@@ -164,7 +164,7 @@ class ResumeTestRunner:
         # Test 1: Check if --resume alone tries to go to Claude CLI (should timeout/error)
         print("   Testing --resume alone (should timeout indicating Claude CLI)")
         cmd = [str(self.project_root / "scripts" / "claude-mpm"), "--resume"]
-        returncode, stdout, stderr = self.run_command(cmd, timeout=3)
+        returncode, stdout, stderr = self.run_subcommand(cmd, timeout=3)
         
         # If it times out, shows claude CLI errors, or fails with Claude-specific errors, it's passing through correctly
         passed_through_1 = (
@@ -180,7 +180,7 @@ class ResumeTestRunner:
         # Test 2: Check the wrapper logic by examining what would happen with unknown command
         print("   Testing unknown command to verify passthrough logic")
         cmd2 = [str(self.project_root / "scripts" / "claude-mpm"), "some-unknown-cmd"]
-        returncode2, stdout2, stderr2 = self.run_command(cmd2, timeout=3)
+        returncode2, stdout2, stderr2 = self.run_subcommand(cmd2, timeout=3)
         
         passed_through_2 = (
             returncode2 == -1 or  # timeout
@@ -218,7 +218,7 @@ class ResumeTestRunner:
             
         print(f"   Resume result: {returncode}, Unknown cmd result: {returncode2}")
 
-    def test_mpm_run_resume(self):
+    def test_mpm_run_resume():
         """Test 3: Test that 'claude-mpm run --resume' works through Python module"""
         print("\n" + "="*60)
         print("TEST 3: MPM Run Resume")
@@ -226,7 +226,7 @@ class ResumeTestRunner:
         
         # Test run command with --resume
         cmd = [str(self.project_root / "scripts" / "claude-mpm"), "run", "--resume", "--help"]
-        returncode, stdout, stderr = self.run_command(cmd, timeout=10)
+        returncode, stdout, stderr = self.run_subcommand(cmd, timeout=10)
         
         # This should go through the Python module
         went_through_python = (
@@ -254,7 +254,7 @@ class ResumeTestRunner:
             
         print(f"   Return code: {returncode}")
 
-    def test_mpm_resume_flag(self):
+    def test_mpm_resume_flag():
         """Test 4: Test that --mpm-resume triggers MPM command routing"""
         print("\n" + "="*60)
         print("TEST 4: MMP Resume Flag")
@@ -262,7 +262,7 @@ class ResumeTestRunner:
         
         # Test with --mmp-resume flag
         cmd = [str(self.project_root / "scripts" / "claude-mpm"), "--mmp-resume", "--help"]
-        returncode, stdout, stderr = self.run_command(cmd, timeout=10)
+        returncode, stdout, stderr = self.run_subcommand(cmd, timeout=10)
         
         # This should go through MPM
         went_through_mpm = (
@@ -291,7 +291,7 @@ class ResumeTestRunner:
             
         print(f"   Return code: {returncode}")
 
-    def test_command_routing_logic(self):
+    def test_command_routing_logic():
         """Test 5: Verify the command routing logic in wrapper"""
         print("\n" + "="*60)
         print("TEST 5: Command Routing Logic")
@@ -316,7 +316,7 @@ class ResumeTestRunner:
             
             if test_method == "timeout":
                 # For commands that should pass through, test without --help to avoid interference
-                returncode, stdout, stderr = self.run_command(cmd, timeout=2)
+                returncode, stdout, stderr = self.run_subcommand(cmd, timeout=2)
                 
                 if expected == "claude":
                     # Should timeout or error trying to reach Claude CLI
@@ -331,7 +331,7 @@ class ResumeTestRunner:
                     routed_correctly = False  # Shouldn't happen with current test cases
             else:
                 # For MPM commands, add --help for cleaner output
-                returncode, stdout, stderr = self.run_command(cmd + ["--help"], timeout=5)
+                returncode, stdout, stderr = self.run_subcommand(cmd + ["--help"], timeout=5)
                 
                 if expected == "mpm":
                     routed_correctly = (
@@ -370,7 +370,7 @@ class ResumeTestRunner:
         else:
             print(f"\n❌ FAIL: {routing_tests_passed}/{routing_tests_total} routing tests passed")
 
-    def test_script_consistency(self):
+    def test_script_consistency():
         """Test 6: Check consistency across all scripts/binaries"""
         print("\n" + "="*60)
         print("TEST 6: Script Consistency") 

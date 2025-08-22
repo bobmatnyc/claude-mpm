@@ -12,7 +12,7 @@ def test_glob_patterns():
     """Test that different glob patterns filter files correctly."""
     
     # Create a temporary test directory
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         tmpdir = Path(tmpdir)
         
         # Create test files

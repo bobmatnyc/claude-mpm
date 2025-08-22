@@ -1,3 +1,8 @@
+import pytest
+import pytest
+import pytest
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Test script for AgentManager integration with AgentLifecycleManager.
@@ -17,10 +22,8 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.agents.deployment import (
-    AgentLifecycleManager,
-    ModificationTier,
-)
+from claude_mpm.services.agents.deployment import AgentLifecycleManager
+from claude_mpm.services.agents.registry.modification_tracker import ModificationTier
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +32,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@pytest.mark.asyncio
 async def test_create_agent():
     """Test creating an agent through the lifecycle manager."""
     logger.info("Testing agent creation...")
@@ -97,6 +101,7 @@ This is a test agent for verifying the integration.
         await lifecycle_mgr.stop()
 
 
+@pytest.mark.asyncio
 async def test_update_agent():
     """Test updating an agent through the lifecycle manager."""
     logger.info("Testing agent update...")
@@ -167,6 +172,7 @@ This is an updated test agent for verifying the integration.
         await lifecycle_mgr.stop()
 
 
+@pytest.mark.asyncio
 async def test_read_agent():
     """Test reading an agent through the lifecycle manager."""
     logger.info("Testing agent read...")
@@ -193,6 +199,7 @@ async def test_read_agent():
         await lifecycle_mgr.stop()
 
 
+@pytest.mark.asyncio
 async def test_delete_agent():
     """Test deleting an agent through the lifecycle manager."""
     logger.info("Testing agent deletion...")
@@ -221,6 +228,7 @@ async def test_delete_agent():
         await lifecycle_mgr.stop()
 
 
+@pytest.mark.asyncio
 async def test_lifecycle_stats():
     """Test getting lifecycle statistics."""
     logger.info("Testing lifecycle statistics...")

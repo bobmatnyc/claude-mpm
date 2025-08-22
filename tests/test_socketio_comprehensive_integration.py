@@ -26,7 +26,7 @@ try:
     from claude_mpm.services.exceptions import DaemonConflictError, StaleProcessError
     from claude_mpm.services.infrastructure.monitoring import HealthStatus
     from claude_mpm.services.recovery_manager import RecoveryAction
-    from claude_mpm.services.standalone_socketio_server import StandaloneSocketIOServer
+    from claude_mpm.services.socketio_server import SocketIOServer
 
     IMPORTS_AVAILABLE = True
 except ImportError as e:
@@ -44,7 +44,7 @@ class IntegrationTestSuite:
 
     def setup(self):
         """Set up test environment."""
-        self.temp_dir = Path(tempfile.mkdtemp())
+        self.temp_dir = Path(tmp_path)
         print(f"Test environment: {self.temp_dir}")
 
     def teardown(self):
@@ -69,14 +69,14 @@ class IntegrationTestSuite:
 
     def create_test_server(self, port=18000, server_id=None):
         """Create a test server instance."""
-        server = StandaloneSocketIOServer(
+        server = SocketIOServer(
             host="localhost", port=port, server_id=server_id or f"test-server-{port}"
         )
         server.pidfile_path = self.temp_dir / f"socketio_{port}.pid"
         self.servers.append(server)
         return server
 
-    def test_pid_validation_integration(self):
+    def test_pid_validation_integration():
         """Test 1: PID validation with stale process detection."""
         print("\\n🔍 Testing PID validation integration...")
 
@@ -133,7 +133,7 @@ class IntegrationTestSuite:
             print(f"   ✗ PID validation integration failed: {e}")
             return False
 
-    def test_enhanced_error_handling(self):
+    def test_enhanced_error_handling():
         """Test 2: Enhanced error handling with troubleshooting guidance."""
         print("\\n🚨 Testing enhanced error handling...")
 
@@ -184,7 +184,7 @@ class IntegrationTestSuite:
             print(f"   ✗ Enhanced error handling failed: {e}")
             return False
 
-    def test_health_monitoring_integration(self):
+    def test_health_monitoring_integration():
         """Test 3: Health monitoring integration."""
         print("\\n💊 Testing health monitoring integration...")
 
@@ -233,7 +233,7 @@ class IntegrationTestSuite:
             print(f"   ✗ Health monitoring integration failed: {e}")
             return False
 
-    def test_file_locking_mechanism(self):
+    def test_file_locking_mechanism():
         """Test 4: File locking mechanism to prevent race conditions."""
         print("\\n🔒 Testing file locking mechanism...")
 
@@ -272,7 +272,7 @@ class IntegrationTestSuite:
             print(f"   ✗ File locking mechanism failed: {e}")
             return False
 
-    def test_cross_platform_compatibility(self):
+    def test_cross_platform_compatibility():
         """Test 5: Cross-platform compatibility."""
         print("\\n🌍 Testing cross-platform compatibility...")
 
@@ -313,7 +313,7 @@ class IntegrationTestSuite:
             print(f"   ✗ Cross-platform compatibility failed: {e}")
             return False
 
-    def test_backward_compatibility(self):
+    def test_backward_compatibility():
         """Test 6: Backward compatibility with existing PID files."""
         print("\\n🔄 Testing backward compatibility...")
 

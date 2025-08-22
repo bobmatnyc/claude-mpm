@@ -39,7 +39,7 @@ class TestTicketCreateTool:
     """Test the ticket creation tool."""
 
     @pytest.mark.asyncio
-    async def test_create_task_success(self, mock_subprocess):
+    async def test_create_task_success(mock_subprocess):
         """Test successful task creation."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -83,7 +83,7 @@ class TestTicketCreateTool:
         assert "--priority" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_create_with_tags(self, mock_subprocess):
+    async def test_create_with_tags(mock_subprocess):
         """Test creating a ticket with tags."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -116,7 +116,7 @@ class TestTicketCreateTool:
         assert cmd_args[tags_idx + 1] == "bug,ui,critical"
 
     @pytest.mark.asyncio
-    async def test_create_failure(self, mock_subprocess):
+    async def test_create_failure(mock_subprocess):
         """Test handling of creation failure."""
         # Setup mock process with error
         mock_process = AsyncMock()
@@ -143,7 +143,7 @@ class TestTicketListTool:
     """Test the ticket listing tool."""
 
     @pytest.mark.asyncio
-    async def test_list_json_output(self, mock_subprocess):
+    async def test_list_json_output(mock_subprocess):
         """Test listing tickets with JSON output."""
         # Setup mock process
         mock_tickets = [
@@ -180,7 +180,7 @@ class TestTicketListTool:
         assert "task" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_list_text_fallback(self, mock_subprocess):
+    async def test_list_text_fallback(mock_subprocess):
         """Test fallback to text parsing when JSON fails."""
         # Setup mock process with non-JSON output
         mock_process = AsyncMock()
@@ -208,7 +208,7 @@ class TestTicketUpdateTool:
     """Test the ticket update tool."""
 
     @pytest.mark.asyncio
-    async def test_update_status(self, mock_subprocess):
+    async def test_update_status(mock_subprocess):
         """Test updating ticket status."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -247,7 +247,7 @@ class TestTicketUpdateTool:
         assert "--comment" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_update_priority(self, mock_subprocess):
+    async def test_update_priority(mock_subprocess):
         """Test updating ticket priority."""
         # Setup mock process
         mock_process = AsyncMock()
@@ -281,7 +281,7 @@ class TestTicketUpdateTool:
         assert "high" in cmd_args
 
     @pytest.mark.asyncio
-    async def test_update_no_fields(self, mock_subprocess):
+    async def test_update_no_fields(mock_subprocess):
         """Test error when no update fields provided."""
         # Create tool and invocation
         tool = TicketUpdateTool()
@@ -301,7 +301,7 @@ class TestTicketViewTool:
     """Test the ticket view tool."""
 
     @pytest.mark.asyncio
-    async def test_view_json_format(self, mock_subprocess):
+    async def test_view_json_format(mock_subprocess):
         """Test viewing ticket with JSON format."""
         # Setup mock process
         mock_ticket = {
@@ -344,7 +344,7 @@ class TestTicketSearchTool:
     """Test the ticket search tool."""
 
     @pytest.mark.asyncio
-    async def test_search_with_filters(self, mock_subprocess):
+    async def test_search_with_filters(mock_subprocess):
         """Test searching tickets with filters."""
         # Setup mock process
         mock_results = [

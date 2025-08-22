@@ -18,7 +18,7 @@ from typing import Dict, List, Tuple
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 
-def run_command(cmd: List[str], cwd: str = None) -> Tuple[int, str, str]:
+def run_subcommand(cmd: List[str], cwd: str = None) -> Tuple[int, str, str]:
     """Run a command and return (exit_code, stdout, stderr)."""
     try:
         result = subprocess.run(
@@ -58,7 +58,7 @@ def test_basic_exclusion() -> Dict[str, any]:
 
     results = {"name": "Basic Exclusion", "passed": True, "details": [], "errors": []}
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
         config_dir = temp_path / ".claude-mpm"
         config_dir.mkdir()
@@ -67,7 +67,7 @@ def test_basic_exclusion() -> Dict[str, any]:
         # Test without exclusions
         create_test_config(config_dir / "configuration.yaml", [])
 
-        from claude_mpm.core.config import Config
+        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.services.agents.deployment.agent_deployment import (
             AgentDeploymentService,
         )
@@ -129,13 +129,13 @@ def test_case_sensitivity() -> Dict[str, any]:
 
     results = {"name": "Case Sensitivity", "passed": True, "details": [], "errors": []}
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
         config_dir = temp_path / ".claude-mpm"
         config_dir.mkdir()
         target_dir = temp_path / ".claude" / "agents"
 
-        from claude_mpm.core.config import Config
+        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.services.agents.deployment.agent_deployment import (
             AgentDeploymentService,
         )
@@ -222,7 +222,7 @@ agent_deployment:
 
         # Run deployment command
         cmd = [str(project_root / "claude-mpm"), "agents", "deploy"]
-        exit_code, stdout, stderr = run_command(cmd, cwd=str(project_root))
+        exit_code, stdout, stderr = run_subcommand(cmd, cwd=str(project_root))
 
         if "Excluding agents from deployment" in stdout:
             results["details"].append("✅ CLI exclusion warnings appear")
@@ -231,7 +231,7 @@ agent_deployment:
 
         # Test --include-all override
         cmd = [str(project_root / "claude-mpm"), "agents", "deploy", "--include-all"]
-        exit_code, stdout, stderr = run_command(cmd, cwd=str(project_root))
+        exit_code, stdout, stderr = run_subcommand(cmd, cwd=str(project_root))
 
         if (
             "Including all agents" in stdout

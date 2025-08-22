@@ -20,7 +20,7 @@ def test_thread_safety():
     
     sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
     
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     # Reset for clean test
     Config.reset_singleton()
@@ -81,7 +81,7 @@ logging.getLogger("claude_mpm.core.config").addHandler(handler)
 
 # Import in different orders
 from claude_mpm.services.hook_service import HookService
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.event_aggregator import EventAggregator
 
 # Create instances

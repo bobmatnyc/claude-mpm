@@ -14,7 +14,7 @@ from pathlib import Path
 # Add src to Python path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.agents.deployment.agent_deployment import (
     AgentDeploymentService,
@@ -30,7 +30,7 @@ def test_agent_exclusion():
     print("=" * 80)
 
     # Create a temporary deployment directory
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
         target_dir = temp_path / ".claude" / "agents"
 
@@ -150,7 +150,7 @@ def test_configuration_file():
     print("=" * 80)
 
     # Create a temporary configuration file
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
         config_dir = temp_path / ".claude-mpm"
         config_dir.mkdir()

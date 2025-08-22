@@ -39,7 +39,7 @@ class TestAgentDeployment:
 
         return AgentDeploymentService(templates_dir, base_agent_path)
 
-    def test_version_field_generation_semantic(self, deployment_service, tmp_path):
+    def test_version_field_generation_semantic(deployment_service, tmp_path):
         """Test that semantic version format is generated correctly."""
         # Create test agent template
         templates_dir = tmp_path / "templates"
@@ -65,7 +65,7 @@ class TestAgentDeployment:
         assert "version: 2.1.0" in content
         assert "base_version: 1.0.0" in content
 
-    def test_base_version_field_inclusion(self, deployment_service, tmp_path):
+    def test_base_version_field_inclusion(deployment_service, tmp_path):
         """Test that base_version field is always included."""
         templates_dir = tmp_path / "templates"
 
@@ -91,7 +91,7 @@ class TestAgentDeployment:
             content = deployed_file.read_text()
             assert "base_version: 1.0.0" in content
 
-    def test_agent_count_exactly_ten(self, deployment_service, tmp_path):
+    def test_agent_count_exactly_ten(deployment_service, tmp_path):
         """Test that exactly 10 agents are deployed (excluding filtered files)."""
         templates_dir = tmp_path / "templates"
 
@@ -140,7 +140,7 @@ class TestAgentDeployment:
         assert not (target_dir / "MEMORIES.md").exists()
         assert not (target_dir / "TODOWRITE.md").exists()
 
-    def test_filtering_non_agent_files(self, deployment_service, tmp_path):
+    def test_filtering_non_agent_files(deployment_service, tmp_path):
         """Test that non-agent files are properly filtered."""
         templates_dir = tmp_path / "templates"
 
@@ -180,7 +180,7 @@ class TestAgentDeployment:
             md_name = filename.replace(".json", ".md")
             assert not (target_dir / md_name).exists()
 
-    def test_version_migration_detection(self, deployment_service, tmp_path):
+    def test_version_migration_detection(deployment_service, tmp_path):
         """Test detection and migration from old version formats."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / "deployed"
@@ -223,7 +223,7 @@ Old agent content
         assert "version: 2.5.0" in updated_content
         assert "0002-0005" not in updated_content
 
-    def test_force_rebuild_option(self, deployment_service, tmp_path):
+    def test_force_rebuild_option(deployment_service, tmp_path):
         """Test that force_rebuild bypasses version checking."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / "deployed"
@@ -251,7 +251,7 @@ Old agent content
         assert len(results3["updated"]) == 1
         assert len(results3["skipped"]) == 0
 
-    def test_metadata_field_extraction(self, deployment_service, tmp_path):
+    def test_metadata_field_extraction(deployment_service, tmp_path):
         """Test extraction of metadata fields from templates."""
         templates_dir = tmp_path / "templates"
 
@@ -290,7 +290,7 @@ Old agent content
         assert "tools: Read, Grep, WebSearch" in content
         assert "model: opus" in content
 
-    def test_deployment_metrics_collection(self, deployment_service, tmp_path):
+    def test_deployment_metrics_collection(deployment_service, tmp_path):
         """Test that deployment metrics are properly collected."""
         templates_dir = tmp_path / "templates"
 
@@ -325,7 +325,7 @@ Old agent content
         assert service_metrics["total_deployments"] == 1
         assert service_metrics["successful_deployments"] == 1
 
-    def test_yaml_to_md_conversion(self, deployment_service, tmp_path):
+    def test_yaml_to_md_conversion(deployment_service, tmp_path):
         """Test conversion of existing YAML files to MD format."""
         target_dir = tmp_path / "deployed"
         target_dir.mkdir()
@@ -365,7 +365,7 @@ Agent instructions in YAML format.
         assert (target_dir / "old_agent.yaml.backup").exists()
         assert not yaml_file.exists()  # Original should be removed
 
-    def test_error_handling_invalid_template(self, deployment_service, tmp_path):
+    def test_error_handling_invalid_template(deployment_service, tmp_path):
         """Test error handling for invalid agent templates."""
         templates_dir = tmp_path / "templates"
 
@@ -401,7 +401,7 @@ Agent instructions in YAML format.
         assert len(results["errors"]) == 1
         assert "invalid_agent" in results["errors"][0]
 
-    def test_environment_variable_setup(self, deployment_service):
+    def test_environment_variable_setup(deployment_service):
         """Test setting of Claude environment variables."""
         with patch.dict(os.environ, {}, clear=True):
             env_vars = deployment_service.set_claude_environment()
@@ -416,7 +416,7 @@ Agent instructions in YAML format.
             assert os.environ.get("CLAUDE_MAX_PARALLEL_SUBAGENTS") == "10"
             assert os.environ.get("CLAUDE_TIMEOUT") == "600000"
 
-    def test_deployment_verification(self, deployment_service, tmp_path):
+    def test_deployment_verification(deployment_service, tmp_path):
         """Test post-deployment verification."""
         templates_dir = tmp_path / "templates"
         target_dir = tmp_path / ".claude"

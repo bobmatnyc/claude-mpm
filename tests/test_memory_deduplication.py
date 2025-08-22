@@ -20,7 +20,7 @@ from claude_mpm.services.agents.memory.content_manager import MemoryContentManag
 
 def test_exact_duplicate_prevention():
     """Test that exact duplicates are prevented."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         manager = AgentMemoryManager(working_directory=Path(tmpdir))
         
         # Add initial item
@@ -49,7 +49,7 @@ def test_exact_duplicate_prevention():
 
 def test_similar_item_replacement():
     """Test that similar items (>80% similarity) replace old ones."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         manager = AgentMemoryManager(working_directory=Path(tmpdir))
         
         # First, create a simple memory file to avoid template defaults
@@ -104,7 +104,7 @@ def test_similar_item_replacement():
 
 def test_different_items_preserved():
     """Test that different items below similarity threshold are both kept."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         manager = AgentMemoryManager(working_directory=Path(tmpdir))
         
         # Add first item
@@ -133,7 +133,7 @@ def test_different_items_preserved():
 
 def test_substring_similarity_detection():
     """Test that substring matches are detected as similar."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         manager = AgentMemoryManager(working_directory=Path(tmpdir))
         
         # Add longer item first
@@ -169,7 +169,7 @@ def test_substring_similarity_detection():
 
 def test_case_insensitive_matching():
     """Test that similarity matching is case-insensitive."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         manager = AgentMemoryManager(working_directory=Path(tmpdir))
         
         # Add item with mixed case

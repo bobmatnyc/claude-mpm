@@ -15,7 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 try:
     import psutil
 
-    from claude_mpm.services.standalone_socketio_server import StandaloneSocketIOServer
+    from claude_mpm.services.socketio_server import SocketIOServer
 except ImportError as e:
     print(f"Import error: {e}")
     sys.exit(1)
@@ -29,8 +29,8 @@ def test_comprehensive_validation_scenarios():
 
     # Scenario 1: Valid process but not our server
     print("\\n1. Testing valid process that's not our server...")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server = StandaloneSocketIOServer(host="localhost", port=19001)
+    with tmp_path as temp_dir:
+        server = SocketIOServer(host="localhost", port=19001)
         server.pidfile_path = Path(temp_dir) / "test1.pid"
 
         # Create PID file with current process
@@ -56,8 +56,8 @@ def test_comprehensive_validation_scenarios():
 
     # Scenario 2: Stale PID file with dead process
     print("\\n2. Testing stale PID file with dead process...")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server = StandaloneSocketIOServer(host="localhost", port=19002)
+    with tmp_path as temp_dir:
+        server = SocketIOServer(host="localhost", port=19002)
         server.pidfile_path = Path(temp_dir) / "test2.pid"
 
         # Create PID file with non-existent process
@@ -75,8 +75,8 @@ def test_comprehensive_validation_scenarios():
 
     # Scenario 3: Corrupted PID file
     print("\\n3. Testing corrupted PID file...")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server = StandaloneSocketIOServer(host="localhost", port=19003)
+    with tmp_path as temp_dir:
+        server = SocketIOServer(host="localhost", port=19003)
         server.pidfile_path = Path(temp_dir) / "test3.pid"
 
         # Create corrupted PID file
@@ -93,8 +93,8 @@ def test_comprehensive_validation_scenarios():
 
     # Scenario 4: Empty PID file
     print("\\n4. Testing empty PID file...")
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server = StandaloneSocketIOServer(host="localhost", port=19004)
+    with tmp_path as temp_dir:
+        server = SocketIOServer(host="localhost", port=19004)
         server.pidfile_path = Path(temp_dir) / "test4.pid"
 
         # Create empty PID file
@@ -110,7 +110,7 @@ def test_comprehensive_validation_scenarios():
 
     # Scenario 5: Process validation edge cases
     print("\\n5. Testing process validation edge cases...")
-    server = StandaloneSocketIOServer(host="localhost", port=19005)
+    server = SocketIOServer(host="localhost", port=19005)
 
     # Test with PID 1 (init process - should exist but not be our server)
     validation = server._validate_process_identity(1)
@@ -134,9 +134,9 @@ def test_file_locking_scenarios():
     results = []
 
     # Test concurrent access prevention
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server1 = StandaloneSocketIOServer(host="localhost", port=19010)
-        server2 = StandaloneSocketIOServer(host="localhost", port=19010)
+    with tmp_path as temp_dir:
+        server1 = SocketIOServer(host="localhost", port=19010)
+        server2 = SocketIOServer(host="localhost", port=19010)
 
         pidfile_path = Path(temp_dir) / "concurrent_test.pid"
         server1.pidfile_path = pidfile_path

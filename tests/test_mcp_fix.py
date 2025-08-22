@@ -1,3 +1,5 @@
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify MCP gateway reconnection fix.
@@ -48,6 +50,7 @@ def test_mock_removed():
         return True
 
 
+@pytest.mark.asyncio
 async def test_gateway_creation():
     """Test that MCPGateway can be created with real MCP SDK."""
     print("\nTesting MCPGateway creation...")
@@ -70,6 +73,7 @@ async def test_gateway_creation():
         return False
 
 
+@pytest.mark.asyncio
 async def test_stdio_server():
     """Test that stdio server module can be imported."""
     print("\nTesting stdio server import...")

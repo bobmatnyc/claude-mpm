@@ -29,18 +29,18 @@ from claude_mpm.services.response_tracker import ResponseTracker
 class TestResponseTrackerBasics:
     """Test basic response tracking functionality."""
 
-    def test_init_creates_directory(self):
+    def test_init_creates_directory():
         """Test that initialization creates the responses directory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             base_dir = Path(tmpdir) / "test_responses"
             tracker = ResponseTracker(base_dir)
 
             assert base_dir.exists()
             assert base_dir.is_dir()
 
-    def test_track_response_basic(self):
+    def test_track_response_basic():
         """Test basic response tracking."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             file_path = tracker.track_response(
@@ -64,9 +64,9 @@ class TestResponseTrackerBasics:
             assert data["session_id"] == "test_session"
             assert "timestamp" in data
 
-    def test_track_response_default_session(self):
+    def test_track_response_default_session():
         """Test response tracking with default session."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             file_path = tracker.track_response(
@@ -77,9 +77,9 @@ class TestResponseTrackerBasics:
 
             assert file_path.parent.name == "default"
 
-    def test_track_response_with_metadata(self):
+    def test_track_response_with_metadata():
         """Test response tracking with metadata."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             metadata = {"model": "claude-3", "tokens": 1000, "duration": 2.5}
@@ -100,17 +100,17 @@ class TestResponseTrackerBasics:
 class TestSessionManagement:
     """Test session management functionality."""
 
-    def test_get_session_responses_empty(self):
+    def test_get_session_responses_empty():
         """Test getting responses for non-existent session."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
             responses = tracker.get_session_responses("nonexistent")
 
             assert responses == []
 
-    def test_get_session_responses_multiple(self):
+    def test_get_session_responses_multiple():
         """Test getting multiple responses for a session."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Track multiple responses
@@ -130,9 +130,9 @@ class TestSessionManagement:
             for i in range(3):
                 assert responses[i]["agent"] == f"agent_{i}"
 
-    def test_list_sessions(self):
+    def test_list_sessions():
         """Test listing all sessions."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create multiple sessions
@@ -149,9 +149,9 @@ class TestSessionManagement:
 
             assert sorted(listed_sessions) == sorted(sessions)
 
-    def test_get_session_stats(self):
+    def test_get_session_stats():
         """Test getting session statistics."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Track responses from different agents
@@ -172,9 +172,9 @@ class TestSessionManagement:
             assert stats["agents"]["agent_b"] == 2
             assert stats["duration"] > 0
 
-    def test_get_session_stats_empty(self):
+    def test_get_session_stats_empty():
         """Test getting stats for non-existent session."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
             stats = tracker.get_session_stats("nonexistent")
 
@@ -187,9 +187,9 @@ class TestSessionManagement:
 class TestDataRetrieval:
     """Test data retrieval functionality."""
 
-    def test_get_all_stats(self):
+    def test_get_all_stats():
         """Test getting statistics for all sessions."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create multiple sessions with responses
@@ -218,9 +218,9 @@ class TestDataRetrieval:
             assert all_stats["agents"]["agent_c"] == 1
             assert len(all_stats["sessions"]) == 3
 
-    def test_get_latest_responses(self):
+    def test_get_latest_responses():
         """Test getting latest responses across all sessions."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create responses with delays
@@ -241,9 +241,9 @@ class TestDataRetrieval:
             for i in range(len(latest) - 1):
                 assert latest[i]["timestamp"] >= latest[i + 1]["timestamp"]
 
-    def test_get_latest_responses_by_agent(self):
+    def test_get_latest_responses_by_agent():
         """Test filtering latest responses by agent."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create responses from different agents with slight delays
@@ -268,9 +268,9 @@ class TestDataRetrieval:
 class TestErrorHandling:
     """Test error handling and edge cases."""
 
-    def test_malformed_json_handling(self):
+    def test_malformed_json_handling():
         """Test handling of corrupted JSON files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create a valid response
@@ -294,9 +294,9 @@ class TestErrorHandling:
             assert len(responses) == 1
             assert responses[0]["agent"] == "good_agent"
 
-    def test_file_permission_error(self):
+    def test_file_permission_error():
         """Test handling of file permission errors."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Mock permission error
@@ -309,9 +309,9 @@ class TestErrorHandling:
                         agent_name="test_agent", request="test", response="test"
                     )
 
-    def test_disk_full_simulation(self):
+    def test_disk_full_simulation():
         """Test handling when disk is full."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Mock OSError for disk full
@@ -324,9 +324,9 @@ class TestErrorHandling:
                         agent_name="test_agent", request="test", response="test"
                     )
 
-    def test_unicode_handling(self):
+    def test_unicode_handling():
         """Test handling of Unicode characters in responses."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             unicode_content = "Hello 世界 🌍 مرحبا мир"
@@ -348,9 +348,9 @@ class TestErrorHandling:
 class TestConcurrency:
     """Test concurrent access safety."""
 
-    def test_concurrent_writes(self):
+    def test_concurrent_writes():
         """Test multiple threads writing responses simultaneously."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
             errors = []
 
@@ -385,9 +385,9 @@ class TestConcurrency:
             responses = tracker.get_session_responses("concurrent_session")
             assert len(responses) == 50  # 5 threads * 10 responses each
 
-    def test_concurrent_reads(self):
+    def test_concurrent_reads():
         """Test multiple threads reading responses simultaneously."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create some responses
@@ -428,9 +428,9 @@ class TestConcurrency:
 class TestDataPersistence:
     """Test data persistence across restarts."""
 
-    def test_persistence_across_instances(self):
+    def test_persistence_across_instances():
         """Test that data persists when creating new tracker instances."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             base_dir = Path(tmpdir)
 
             # First instance - write data
@@ -449,9 +449,9 @@ class TestDataPersistence:
             assert len(responses) == 1
             assert responses[0]["agent"] == "persistent_agent"
 
-    def test_data_integrity_after_crash(self):
+    def test_data_integrity_after_crash():
         """Test data integrity when process is interrupted."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             base_dir = Path(tmpdir)
 
             # Simulate partial write
@@ -484,9 +484,9 @@ class TestDataPersistence:
 class TestLargeResponses:
     """Test handling of large responses."""
 
-    def test_large_response_storage(self):
+    def test_large_response_storage():
         """Test storing very large responses."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create a large response (1MB)
@@ -505,9 +505,9 @@ class TestLargeResponses:
 
             assert len(data["response"]) == len(large_response)
 
-    def test_many_responses_in_session(self):
+    def test_many_responses_in_session():
         """Test handling sessions with many responses."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create 100 responses in one session (reduced from 1000 for test speed)
@@ -533,9 +533,9 @@ class TestLargeResponses:
 class TestCleanup:
     """Test cleanup functionality."""
 
-    def test_clear_session(self):
+    def test_clear_session():
         """Test clearing a specific session."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create responses in multiple sessions
@@ -562,17 +562,17 @@ class TestCleanup:
             # Other session should remain
             assert len(tracker.get_session_responses("session_to_keep")) == 1
 
-    def test_clear_nonexistent_session(self):
+    def test_clear_nonexistent_session():
         """Test clearing a session that doesn't exist."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             success = tracker.clear_session("nonexistent")
             assert not success
 
-    def test_clear_old_sessions(self):
+    def test_clear_old_sessions():
         """Test clearing old sessions based on age."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Create sessions with different timestamps
@@ -619,9 +619,9 @@ class TestCleanup:
 class TestPrivacyAndSecurity:
     """Test privacy and data sanitization features."""
 
-    def test_no_sensitive_data_in_filenames(self):
+    def test_no_sensitive_data_in_filenames():
         """Test that filenames don't contain sensitive information."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             sensitive_request = "password=secret123"
@@ -636,9 +636,9 @@ class TestPrivacyAndSecurity:
             assert "secret123" not in file_path.name
             assert "password" not in file_path.name
 
-    def test_session_id_sanitization(self):
+    def test_session_id_sanitization():
         """Test that problematic session IDs are handled."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Try various problematic session IDs that should work or fail gracefully
@@ -665,9 +665,9 @@ class TestPrivacyAndSecurity:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_empty_response(self):
+    def test_empty_response():
         """Test tracking empty responses."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             file_path = tracker.track_response(
@@ -683,9 +683,9 @@ class TestEdgeCases:
             assert data["request"] == ""
             assert data["response"] == ""
 
-    def test_very_long_agent_name(self):
+    def test_very_long_agent_name():
         """Test handling very long agent names."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Use a long but not too long name (filesystem dependent)
@@ -701,9 +701,9 @@ class TestEdgeCases:
                 # Expected on filesystems with name limits
                 pass
 
-    def test_timestamp_precision(self):
+    def test_timestamp_precision():
         """Test that timestamps have millisecond precision."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             # Track multiple responses with small delays
@@ -722,9 +722,9 @@ class TestEdgeCases:
             filenames = [fp.name for fp in file_paths]
             assert len(set(filenames)) == 3
 
-    def test_special_characters_in_content(self):
+    def test_special_characters_in_content():
         """Test handling special characters in content."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tracker = ResponseTracker(Path(tmpdir))
 
             special_content = '{"test": "value"}\n\t\r\\n'

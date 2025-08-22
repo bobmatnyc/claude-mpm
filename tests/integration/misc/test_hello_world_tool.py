@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Integration Test Script for Hello World MCP Tool
@@ -27,6 +28,7 @@ from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 from claude_mpm.services.mcp_gateway.tools.hello_world import HelloWorldTool
 
 
+@pytest.mark.asyncio
 async def test_hello_world_tool(verbose: bool = False):
     """
     Test the Hello World tool with the MCP Gateway.

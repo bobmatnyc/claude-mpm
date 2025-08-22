@@ -29,7 +29,7 @@ def test_deployment_with_user_directory():
     print("\n=== Testing Agent Deployment with User Directory ===\n")
 
     # Create a temporary directory to simulate user's project
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         user_dir = Path(temp_dir)
         print(f"✓ Created test user directory: {user_dir}")
 
@@ -112,7 +112,7 @@ def test_deployment_with_explicit_working_dir():
 
     print("\n=== Testing Agent Deployment with Explicit Directory ===\n")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         explicit_dir = Path(temp_dir)
 
         # Set env var to something different

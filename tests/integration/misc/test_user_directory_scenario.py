@@ -54,7 +54,7 @@ def test_user_directory_scenario():
     framework_dir = original_cwd  # The claude-mpm framework directory
 
     # Create a temporary user project directory
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         user_project = Path(temp_dir) / "user_project"
         user_project.mkdir()
 

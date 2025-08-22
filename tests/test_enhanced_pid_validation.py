@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test suite for enhanced PID file validation in StandaloneSocketIOServer.
+"""Test suite for enhanced PID file validation in SocketIOServer.
 
 This test suite validates the enhanced process validation, file locking,
 and stale process detection features.
@@ -20,10 +20,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 try:
     import psutil
 
-    from claude_mpm.services.standalone_socketio_server import (
-        PSUTIL_AVAILABLE,
-        StandaloneSocketIOServer,
-    )
+    from claude_mpm.services.socketio_server import SocketIOServer
+    PSUTIL_AVAILABLE = True  # Assume psutil is available for tests
 except ImportError as e:
     print(f"Import error: {e}")
     sys.exit(1)
@@ -33,9 +31,9 @@ def test_pidfile_creation_and_validation():
     """Test PID file creation with enhanced metadata."""
     print("Testing PID file creation and validation...")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         # Create server instance
-        server = StandaloneSocketIOServer(host="localhost", port=9999)
+        server = SocketIOServer(host="localhost", port=9999)
         server.pidfile_path = Path(temp_dir) / "test.pid"
 
         # Test PID file creation
@@ -84,7 +82,7 @@ def test_process_validation():
         print("⚠ psutil not available, skipping enhanced validation tests")
         return True
 
-    server = StandaloneSocketIOServer(host="localhost", port=9998)
+    server = SocketIOServer(host="localhost", port=9998)
 
     # Test with current process (should be valid but not our server)
     current_pid = os.getpid()
@@ -108,8 +106,8 @@ def test_stale_process_detection():
     """Test stale process detection and cleanup."""
     print("Testing stale process detection...")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server = StandaloneSocketIOServer(host="localhost", port=9997)
+    with tmp_path as temp_dir:
+        server = SocketIOServer(host="localhost", port=9997)
         server.pidfile_path = Path(temp_dir) / "stale_test.pid"
 
         # Create a fake stale PID file with non-existent process
@@ -141,7 +139,7 @@ def test_port_availability_check():
 
     # Use a high port number that's unlikely to be in use
     test_port = 19999
-    server = StandaloneSocketIOServer(host="localhost", port=test_port)
+    server = SocketIOServer(host="localhost", port=test_port)
 
     # Should not detect any server running on unused port
     is_running = server.is_already_running()
@@ -155,11 +153,11 @@ def test_file_locking():
     """Test file locking mechanism."""
     print("Testing file locking mechanism...")
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        server1 = StandaloneSocketIOServer(host="localhost", port=9996)
+    with tmp_path as temp_dir:
+        server1 = SocketIOServer(host="localhost", port=9996)
         server1.pidfile_path = Path(temp_dir) / "lock_test.pid"
 
-        server2 = StandaloneSocketIOServer(host="localhost", port=9996)
+        server2 = SocketIOServer(host="localhost", port=9996)
         server2.pidfile_path = Path(temp_dir) / "lock_test.pid"
 
         try:

@@ -29,7 +29,7 @@ class TestE2E:
             CLAUDE_MPM_SCRIPT, os.X_OK
         ), f"claude-mpm script is not executable"
 
-    def test_version_command(self):
+    def test_version_command():
         """Test that --version returns expected format."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "--version"],
@@ -47,7 +47,7 @@ class TestE2E:
             char.isdigit() for char in result.stdout
         ), f"Version output missing version number: {result.stdout}"
 
-    def test_help_command(self):
+    def test_help_command():
         """Test that --help shows expected commands."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "--help"],
@@ -68,7 +68,7 @@ class TestE2E:
         for opt in expected_options:
             assert opt in result.stdout, f"Help output missing option '{opt}'"
 
-    def test_non_interactive_simple_prompt(self):
+    def test_non_interactive_simple_prompt():
         """Test non-interactive mode with a simple mathematical prompt."""
         result = subprocess.run(
             [
@@ -88,7 +88,7 @@ class TestE2E:
         ), f"Non-interactive command failed: {result.stderr}"
         assert "10" in result.stdout, f"Expected '10' in output, got: {result.stdout}"
 
-    def test_non_interactive_stdin(self):
+    def test_non_interactive_stdin():
         """Test non-interactive mode reading from stdin."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "run", "--non-interactive"],
@@ -101,7 +101,7 @@ class TestE2E:
         assert result.returncode == 0, f"Non-interactive stdin failed: {result.stderr}"
         assert "49" in result.stdout, f"Expected '49' in output, got: {result.stdout}"
 
-    def test_interactive_mode_startup_and_exit(self):
+    def test_interactive_mode_startup_and_exit():
         """Test that interactive mode starts and can exit cleanly."""
         # Start interactive mode with a simple prompt
         result = subprocess.run(
@@ -121,7 +121,7 @@ class TestE2E:
         assert result.returncode == 0
         assert "hello" in result.stdout.lower()
 
-    def test_info_command(self):
+    def test_info_subcommand():
         """Test the info command."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "info"], capture_output=True, text=True, timeout=30
@@ -142,7 +142,7 @@ class TestE2E:
             ("What is 10 * 10?", "100"),
         ],
     )
-    def test_non_interactive_various_prompts(self, prompt, expected):
+    def test_non_interactive_various_prompts(prompt, expected):
         """Test non-interactive mode with various prompts."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "run", "-i", prompt, "--non-interactive"],
@@ -158,7 +158,7 @@ class TestE2E:
             expected in result.stdout
         ), f"Expected '{expected}' in output for prompt '{prompt}', got: {result.stdout}"
 
-    def test_hook_service_startup(self):
+    def test_hook_service_startup():
         """Test that hook service starts when using claude-mpm."""
         try:
             result = subprocess.run(
@@ -182,7 +182,7 @@ class TestE2E:
             # If it times out, consider it a pass - the service might be slow to start
             pass
 
-    def test_invalid_command(self):
+    def test_invalid_command():
         """Test handling of invalid commands."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "invalid-command", "--non-interactive"],

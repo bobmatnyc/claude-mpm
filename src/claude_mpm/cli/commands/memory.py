@@ -23,7 +23,7 @@ from ...core.config import Config
 from ...core.logger import get_logger
 from ...core.shared.config_loader import ConfigLoader
 from ...services.agents.memory import AgentMemoryManager
-from ..shared.command_base import MemoryCommand, CommandResult
+from ..shared.base_command import MemoryCommand, CommandResult
 from ..shared.argument_patterns import add_memory_arguments, add_output_arguments
 
 

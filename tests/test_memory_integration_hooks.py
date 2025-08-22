@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.base_hook import HookContext, HookType
 from claude_mpm.hooks.memory_integration_hook import (
     MemoryPostDelegationHook,
@@ -21,7 +21,7 @@ class TestMemoryPreDelegationHook:
     """Test memory injection before delegation."""
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_injects_memory_into_context(self, mock_manager_class):
+    def test_injects_memory_into_context(mock_manager_class):
         """Test that agent memory is properly injected into context."""
         # Setup
         mock_manager = Mock()
@@ -58,7 +58,7 @@ class TestMemoryPreDelegationHook:
         mock_manager.load_agent_memory.assert_called_once_with("engineer")
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_string_context(self, mock_manager_class):
+    def test_handles_string_context(mock_manager_class):
         """Test that hook handles string context properly."""
         # Setup
         mock_manager = Mock()
@@ -84,7 +84,7 @@ class TestMemoryPreDelegationHook:
         assert "agent_memory" in result.data["context"]
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_normalizes_agent_names(self, mock_manager_class):
+    def test_normalizes_agent_names(mock_manager_class):
         """Test various agent name formats are normalized correctly."""
         # Setup
         mock_manager = Mock()
@@ -116,7 +116,7 @@ class TestMemoryPreDelegationHook:
             mock_manager.reset_mock()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_no_agent(self, mock_manager_class):
+    def test_handles_no_agent(mock_manager_class):
         """Test hook handles missing agent gracefully."""
         hook = MemoryPreDelegationHook()
         context = HookContext(
@@ -132,7 +132,7 @@ class TestMemoryPreDelegationHook:
         assert not result.modified
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_memory_load_failure(self, mock_manager_class):
+    def test_handles_memory_load_failure(mock_manager_class):
         """Test hook handles memory loading errors gracefully."""
         # Setup
         mock_manager = Mock()
@@ -160,7 +160,7 @@ class TestMemoryPostDelegationHook:
     """Test learning extraction after delegation."""
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_patterns(self, mock_manager_class):
+    def test_extracts_patterns(mock_manager_class):
         """Test pattern extraction from results."""
         # Setup
         mock_manager = Mock()
@@ -220,7 +220,7 @@ class TestMemoryPostDelegationHook:
         assert ("pattern", "Use dependency injection for better testing") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_mistakes(self, mock_manager_class):
+    def test_extracts_mistakes(mock_manager_class):
         """Test mistake extraction from results."""
         # Setup
         mock_manager = Mock()
@@ -281,7 +281,7 @@ class TestMemoryPostDelegationHook:
         assert ("mistake", "Avoid hardcoded test data") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_extracts_guidelines(self, mock_manager_class):
+    def test_extracts_guidelines(mock_manager_class):
         """Test guideline extraction from results."""
         # Setup
         mock_manager = Mock()
@@ -332,7 +332,7 @@ class TestMemoryPostDelegationHook:
         assert ("guideline", "Always use type hints in Python code") in learnings
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_respects_auto_learning_config(self, mock_manager_class):
+    def test_respects_auto_learning_config(mock_manager_class):
         """Test that hook respects auto_learning configuration."""
         # Setup
         mock_manager = Mock()
@@ -361,7 +361,7 @@ class TestMemoryPostDelegationHook:
         mock_manager.add_learning.assert_not_called()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_respects_agent_specific_config(self, mock_manager_class):
+    def test_respects_agent_specific_config(mock_manager_class):
         """Test that hook respects agent-specific auto_learning overrides."""
         # Setup
         mock_manager = Mock()
@@ -397,7 +397,7 @@ class TestMemoryPostDelegationHook:
         mock_manager.add_learning.assert_not_called()
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_length_limit(self, mock_manager_class):
+    def test_length_limit(mock_manager_class):
         """Test that learnings over 100 characters are skipped."""
         # Setup
         mock_manager = Mock()
@@ -436,7 +436,7 @@ class TestMemoryPostDelegationHook:
         assert mock_manager.add_learning.call_args[0][2] == "Short learning"
 
     @patch("claude_mpm.hooks.memory_integration_hook.AgentMemoryManager")
-    def test_handles_extraction_errors(self, mock_manager_class):
+    def test_handles_extraction_errors(mock_manager_class):
         """Test hook handles extraction errors gracefully."""
         # Setup
         mock_manager = Mock()

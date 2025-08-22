@@ -52,7 +52,7 @@ def test_argument_parsing():
     """Test that argument parsing handles --resume correctly."""
     print("Testing argument parsing...")
     
-    from claude_mpm.cli.parser import create_parser, preprocess_args
+    from claude_mpm.cli.commands.parser import create_parser, preprocess_args
     
     parser = create_parser()
     

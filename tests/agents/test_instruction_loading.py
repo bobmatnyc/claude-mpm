@@ -31,7 +31,7 @@ from claude_mpm.agents.agent_loader import (
     get_agent_prompt,
     load_agent_prompt_from_md,
 )
-from claude_mpm.agents.base_agent_loader import (
+from claude_mpm.services.agents.base_agent_loader import (
     PromptTemplate,
     _remove_test_mode_instructions,
     clear_base_agent_cache,
@@ -59,7 +59,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
         clear_agent_cache()
         clear_base_agent_cache()
 
-    def test_basic_agent_prompt_loading(self):
+    def test_basic_agent_prompt_loading():
         """Test basic loading of agent prompts."""
         mock_agent = {
             "agent_id": "test_agent",
@@ -79,7 +79,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                 self.assertIn("[BASE]", result)
                 self.assertIn("Test agent instructions", result)
 
-    def test_missing_agent_error(self):
+    def test_missing_agent_error():
         """Test error handling for missing agents."""
         with patch.object(AgentLoader, "get_agent", return_value=None):
             with self.assertRaises(ValueError) as ctx:
@@ -87,7 +87,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
 
             self.assertIn("No agent found", str(ctx.exception))
 
-    def test_instruction_caching_behavior(self):
+    def test_instruction_caching_behavior():
         """Test that instructions are cached properly."""
         mock_agent = {
             "agent_id": "cache_test",
@@ -129,7 +129,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
         finally:
             cache.set = original_set
 
-    def test_force_reload_functionality(self):
+    def test_force_reload_functionality():
         """Test that force_reload bypasses cache."""
         mock_agent = {
             "agent_id": "reload_test",
@@ -155,7 +155,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
             prompt3 = loader.get_agent_prompt("reload_test", force_reload=True)
             self.assertIn("Updated", prompt3)
 
-    def test_special_characters_handling(self):
+    def test_special_characters_handling():
         """Test handling of Unicode and special characters."""
         test_cases = [
             "Unicode: 你好 🌍 Привет",
@@ -180,7 +180,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                     prompt = get_agent_prompt(f"special_{idx}")
                     self.assertEqual(instructions, prompt)
 
-    def test_empty_instructions_handling(self):
+    def test_empty_instructions_handling():
         """Test handling of empty or missing instructions."""
         test_cases = [
             ({}, None),  # Missing instructions
@@ -202,7 +202,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                 result = loader.get_agent_prompt("empty_test")
                 self.assertEqual(result, expected)
 
-    def test_model_selection_basic(self):
+    def test_model_selection_basic():
         """Test basic model selection functionality."""
         mock_agent = {
             "agent_id": "model_test",
@@ -217,7 +217,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
             self.assertEqual(model, "claude-opus-4-20250514")
             self.assertEqual(config["selection_method"], "agent_default")
 
-    def test_model_selection_with_complexity(self):
+    def test_model_selection_with_complexity():
         """Test dynamic model selection based on complexity."""
         mock_agent = {
             "agent_id": "complex_test",
@@ -238,7 +238,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
             self.assertEqual(config["selection_method"], "dynamic_complexity_based")
             self.assertEqual(config["complexity_score"], 85)
 
-    def test_environment_variable_overrides(self):
+    def test_environment_variable_overrides():
         """Test environment variable model selection overrides."""
         mock_agent = {
             "agent_id": "env_test",
@@ -267,7 +267,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
             self.assertEqual(model, "claude-sonnet-4-20250514")
             self.assertEqual(config["selection_method"], "agent_default")
 
-    def test_template_selection_by_complexity(self):
+    def test_template_selection_by_complexity():
         """Test automatic template selection based on complexity."""
         test_cases = [
             (10, PromptTemplate.MINIMAL),
@@ -294,7 +294,7 @@ class TestInstructionLoadingCore(unittest.TestCase):
                     args = mock_build.call_args[0]
                     self.assertEqual(args[1], expected_template)
 
-    def test_test_mode_instruction_removal(self):
+    def test_test_mode_instruction_removal():
         """Test removal of test-specific instructions."""
         content = """# Instructions
 
@@ -321,12 +321,17 @@ Keep this."""
         self.assertIn("Core Content", result)
         self.assertIn("Regular Content", result)
 
-    def test_legacy_function_compatibility(self):
+    def test_legacy_function_compatibility():
         """Test backward compatibility functions."""
-        from claude_mpm.agents.agent_loader import (
-            get_documentation_agent_prompt,
-            get_qa_agent_prompt,
-        )
+        # NOTE: Legacy functions were removed, using get_agent_prompt instead
+        from claude_mpm.agents.agent_loader import get_agent_prompt
+        
+        # Mock the missing legacy functions
+        def get_documentation_agent_prompt(*args, **kwargs):
+            return get_agent_prompt("documentation", *args, **kwargs)
+        
+        def get_qa_agent_prompt(*args, **kwargs):
+            return get_agent_prompt("qa", *args, **kwargs)
 
         agents = {
             "documentation_agent": "Doc instructions",
@@ -346,14 +351,14 @@ Keep this."""
                     side_effect=lambda p, **kw: f"[BASE] {p}",
                 ):
                     if agent_id == "documentation_agent":
-                        result = get_documentation_agent_prompt()
+                        result = get_agent_prompt("documentation")
                     else:
-                        result = get_qa_agent_prompt()
+                        result = get_agent_prompt("qa")
 
                     self.assertIn(instructions, result)
                     self.assertIn("[BASE]", result)
 
-    def test_cache_invalidation(self):
+    def test_cache_invalidation():
         """Test cache clearing functionality."""
         mock_agent = {
             "agent_id": "clear_test",
@@ -379,9 +384,9 @@ Keep this."""
             self.assertNotEqual(prompt1, prompt2)
             self.assertIn("Updated", prompt2)
 
-    def test_agent_file_validation(self):
+    def test_agent_file_validation():
         """Test handling of invalid agent files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             tmp_path = Path(tmpdir)
 
             # Create invalid JSON
@@ -398,7 +403,7 @@ Keep this."""
                 # Bad agent should not be loaded
                 self.assertIsNone(loader.get_agent("test"))
 
-    def test_return_model_info_format(self):
+    def test_return_model_info_format():
         """Test the return_model_info parameter."""
         mock_agent = {
             "agent_id": "format_test",

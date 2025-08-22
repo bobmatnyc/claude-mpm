@@ -137,7 +137,7 @@ cat .claude-mpm/memory/engineer_memory.json | jq .
 netstat -an | grep 8765
 
 # Use different port
-claude-mpm run --monitor --websocket-port 8080
+claude-mpm run --monitor --websocket-port 8766
 
 # Check firewall settings
 sudo ufw status
@@ -355,7 +355,7 @@ lsof -i :8765
 kill -9 <PID>
 
 # Use different port
-claude-mpm run --monitor --websocket-port 8080
+claude-mpm run --monitor --websocket-port 8766
 ```
 
 ### "API quota exceeded"

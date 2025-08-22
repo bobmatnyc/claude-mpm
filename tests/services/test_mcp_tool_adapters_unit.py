@@ -28,7 +28,7 @@ class TestEchoToolAdapter:
     """Test echo tool adapter."""
 
     @pytest.mark.asyncio
-    async def test_echo_initialization(self):
+    async def test_echo_initialization():
         """Test echo tool initialization."""
         tool = EchoToolAdapter()
         result = await tool.initialize()
@@ -41,7 +41,7 @@ class TestEchoToolAdapter:
         assert "echo" in definition.description.lower()
 
     @pytest.mark.asyncio
-    async def test_echo_simple_message(self):
+    async def test_echo_simple_message():
         """Test echo with simple message."""
         tool = EchoToolAdapter()
         await tool.initialize()
@@ -57,7 +57,7 @@ class TestEchoToolAdapter:
         assert result.execution_time > 0
 
     @pytest.mark.asyncio
-    async def test_echo_uppercase(self):
+    async def test_echo_uppercase():
         """Test echo with uppercase option."""
         tool = EchoToolAdapter()
         await tool.initialize()
@@ -72,7 +72,7 @@ class TestEchoToolAdapter:
         assert result.data == "HELLO"
 
     @pytest.mark.asyncio
-    async def test_echo_empty_message(self):
+    async def test_echo_empty_message():
         """Test echo with empty message."""
         tool = EchoToolAdapter()
         await tool.initialize()
@@ -85,7 +85,7 @@ class TestEchoToolAdapter:
         assert result.data == ""
 
     @pytest.mark.asyncio
-    async def test_echo_missing_message(self):
+    async def test_echo_missing_message():
         """Test echo with missing message parameter."""
         tool = EchoToolAdapter()
         await tool.initialize()
@@ -102,7 +102,7 @@ class TestCalculatorToolAdapter:
     """Test calculator tool adapter."""
 
     @pytest.mark.asyncio
-    async def test_calculator_initialization(self):
+    async def test_calculator_initialization():
         """Test calculator tool initialization."""
         tool = CalculatorToolAdapter()
         result = await tool.initialize()
@@ -115,7 +115,7 @@ class TestCalculatorToolAdapter:
         assert "mathematical" in definition.description.lower()
 
     @pytest.mark.asyncio
-    async def test_calculator_addition(self):
+    async def test_calculator_addition():
         """Test calculator addition."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -131,7 +131,7 @@ class TestCalculatorToolAdapter:
         assert "5 + 3 = 8" in result.data["expression"]
 
     @pytest.mark.asyncio
-    async def test_calculator_subtraction(self):
+    async def test_calculator_subtraction():
         """Test calculator subtraction."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -148,7 +148,7 @@ class TestCalculatorToolAdapter:
         assert "10 - 4 = 6" in result.data["expression"]
 
     @pytest.mark.asyncio
-    async def test_calculator_multiplication(self):
+    async def test_calculator_multiplication():
         """Test calculator multiplication."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -164,7 +164,7 @@ class TestCalculatorToolAdapter:
         assert "7 * 6 = 42" in result.data["expression"]
 
     @pytest.mark.asyncio
-    async def test_calculator_division(self):
+    async def test_calculator_division():
         """Test calculator division."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -180,7 +180,7 @@ class TestCalculatorToolAdapter:
         assert "15 / 3 = 5" in result.data["expression"]
 
     @pytest.mark.asyncio
-    async def test_calculator_division_by_zero(self):
+    async def test_calculator_division_by_zero():
         """Test calculator division by zero."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -195,7 +195,7 @@ class TestCalculatorToolAdapter:
         assert "division by zero" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_calculator_unknown_operation(self):
+    async def test_calculator_unknown_operation():
         """Test calculator with unknown operation."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -210,7 +210,7 @@ class TestCalculatorToolAdapter:
         assert "unknown operation" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_calculator_missing_parameters(self):
+    async def test_calculator_missing_parameters():
         """Test calculator with missing parameters."""
         tool = CalculatorToolAdapter()
         await tool.initialize()
@@ -230,7 +230,7 @@ class TestSystemInfoToolAdapter:
     """Test system info tool adapter."""
 
     @pytest.mark.asyncio
-    async def test_system_info_initialization(self):
+    async def test_system_info_initialization():
         """Test system info tool initialization."""
         tool = SystemInfoToolAdapter()
         result = await tool.initialize()
@@ -243,7 +243,7 @@ class TestSystemInfoToolAdapter:
         assert "system" in definition.description.lower()
 
     @pytest.mark.asyncio
-    async def test_system_info_platform(self):
+    async def test_system_info_platform():
         """Test system info platform information."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -260,7 +260,7 @@ class TestSystemInfoToolAdapter:
         assert result.execution_time > 0
 
     @pytest.mark.asyncio
-    async def test_system_info_memory(self):
+    async def test_system_info_memory():
         """Test system info memory information."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -277,7 +277,7 @@ class TestSystemInfoToolAdapter:
         assert "percent" in result.data
 
     @pytest.mark.asyncio
-    async def test_system_info_cpu(self):
+    async def test_system_info_cpu():
         """Test system info CPU information."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -293,7 +293,7 @@ class TestSystemInfoToolAdapter:
         assert "percent" in result.data
 
     @pytest.mark.asyncio
-    async def test_system_info_time(self):
+    async def test_system_info_time():
         """Test system info time information."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -310,7 +310,7 @@ class TestSystemInfoToolAdapter:
         assert "timezone" in result.data
 
     @pytest.mark.asyncio
-    async def test_system_info_unknown_type(self):
+    async def test_system_info_unknown_type():
         """Test system info with unknown info type."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -325,7 +325,7 @@ class TestSystemInfoToolAdapter:
         assert "unknown info type" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_system_info_missing_type(self):
+    async def test_system_info_missing_type():
         """Test system info with missing info_type parameter."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()
@@ -340,7 +340,7 @@ class TestSystemInfoToolAdapter:
         )  # Should mention missing parameter 'info_type'
 
     @pytest.mark.asyncio
-    async def test_system_info_psutil_missing(self):
+    async def test_system_info_psutil_missing():
         """Test system info when psutil is not available."""
         tool = SystemInfoToolAdapter()
         await tool.initialize()

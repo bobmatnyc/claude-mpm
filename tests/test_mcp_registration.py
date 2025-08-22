@@ -1,3 +1,5 @@
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify MCP server tool registration.
@@ -31,6 +33,7 @@ from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
 )
 
 
+@pytest.mark.asyncio
 async def test_bin_claude_mpm_mcp():
     """Test what bin/claude-mpm-mcp registers."""
     print("Testing bin/claude-mpm-mcp tool registration")
@@ -83,6 +86,7 @@ async def test_bin_claude_mpm_mcp():
         return False
 
 
+@pytest.mark.asyncio
 async def test_main_py():
     """Test what main.py registers."""
     print("\n" + "=" * 50)

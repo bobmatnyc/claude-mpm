@@ -26,7 +26,7 @@ class TestSchemaIntegration:
         """Create an agent loader instance."""
         return AgentLoader()
 
-    def test_all_agents_load_successfully(self, agents_dir):
+    def test_all_agents_load_successfully(agents_dir):
         """Test that all agents load with the new schema."""
         loader = AgentLoader()
         agents = loader.list_agents()
@@ -50,7 +50,7 @@ class TestSchemaIntegration:
         for expected_id in expected_agents:
             assert expected_id in loaded_ids, f"Agent {expected_id} not found"
 
-    def test_agent_deployment_with_new_format(self, agent_loader):
+    def test_agent_deployment_with_new_format(agent_loader):
         """Test deploying agents with new format."""
         # Get engineer agent
         agent = agent_loader.get_agent("engineer")
@@ -67,7 +67,7 @@ class TestSchemaIntegration:
         assert "goal" not in agent
         assert "backstory" not in agent
 
-    def test_task_tool_with_standardized_agents(self, agents_dir):
+    def test_task_tool_with_standardized_agents(agents_dir):
         """Test Task tool integration with standardized agents."""
         # Load QA agent
         with open(agents_dir / "qa.json") as f:
@@ -89,7 +89,7 @@ class TestSchemaIntegration:
         ]
         assert len(task_context["instructions"]) <= 8000
 
-    def test_hook_service_with_standardized_agents(self):
+    def test_hook_service_with_standardized_agents():
         """Test hook service integration."""
         # This tests that agents work with hook system
         hook_service = HookService()
@@ -107,7 +107,7 @@ class TestSchemaIntegration:
         # (Would need actual hook service methods here)
         assert agent_data["id"] == "test_hook_agent"
 
-    def test_cli_with_standardized_agents(self, tmp_path):
+    def test_cli_with_standardized_agents(tmp_path):
         """Test CLI integration with standardized agents."""
         # Create a test script to verify CLI works
         test_script = tmp_path / "test_cli.py"
@@ -115,7 +115,7 @@ class TestSchemaIntegration:
             """
 import sys
 sys.path.insert(0, 'src')
-from claude_mpm.agents.agent_registry import AgentRegistry
+from claude_mpm.services.agents.agent_registry import AgentRegistry
 
 registry = get_agent_registry()
 agents = registry.list_agents()
@@ -138,7 +138,7 @@ for agent in agents:
         assert "engineer" in result.stdout
         assert "qa" in result.stdout
 
-    def test_model_compatibility_enforcement(self, agents_dir):
+    def test_model_compatibility_enforcement(agents_dir):
         """Test that model compatibility rules are enforced."""
         # Check Opus agents have premium tier
         opus_agents = []
@@ -156,7 +156,7 @@ for agent in agents:
                     agent["resource_tier"] == "premium"
                 ), f"Agent {agent['id']} uses Opus but not premium tier"
 
-    def test_resource_tier_distribution(self, agents_dir):
+    def test_resource_tier_distribution(agents_dir):
         """Test resource tier distribution across agents."""
         tier_counts = {"basic": 0, "standard": 0, "premium": 0}
 
@@ -178,7 +178,7 @@ for agent in agents:
 
         print(f"Resource tier distribution: {tier_counts}")
 
-    def test_agent_instructions_quality(self, agents_dir):
+    def test_agent_instructions_quality(agents_dir):
         """Test that agent instructions meet quality standards."""
         for agent_file in agents_dir.glob("*.json"):
             if agent_file.name == "agent_schema.json":
@@ -204,7 +204,7 @@ for agent in agents:
             assert "goal:" not in instructions.lower()
             assert "backstory:" not in instructions.lower()
 
-    def test_concurrent_agent_loading(self, agents_dir):
+    def test_concurrent_agent_loading(agents_dir):
         """Test concurrent agent loading with new schema."""
         import concurrent.futures
 
@@ -221,7 +221,7 @@ for agent in agents:
         assert all(len(r) >= 8 for r in results)
         assert all(r[0]["id"] == results[0][0]["id"] for r in results)
 
-    def test_error_handling_invalid_agents(self, tmp_path):
+    def test_error_handling_invalid_agents(tmp_path):
         """Test error handling for invalid agents."""
         # Create an invalid agent
         invalid_agent = {

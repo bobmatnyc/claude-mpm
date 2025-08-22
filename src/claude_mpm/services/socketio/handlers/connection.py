@@ -27,59 +27,53 @@ def timeout_handler(timeout_seconds: float = 5.0):
     """
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        async def wrapper(self, *args, **kwargs):
+        async def wrapper(*args, **kwargs):
             handler_name = func.__name__
             start_time = time.time()
             
             try:
                 # Create a task with timeout
                 result = await asyncio.wait_for(
-                    func(self, *args, **kwargs),
+                    func(*args, **kwargs),
                     timeout=timeout_seconds
                 )
                 
                 elapsed = time.time() - start_time
                 if elapsed > timeout_seconds * 0.8:  # Warn if close to timeout
-                    self.logger.warning(
-                        f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
-                        f"(close to {timeout_seconds}s timeout)"
-                    )
+                    # Try to get logger from closure scope or fallback to print
+                    try:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(
+                            f"⚠️ Handler {handler_name} took {elapsed:.2f}s "
+                            f"(close to {timeout_seconds}s timeout)"
+                        )
+                    except:
+                        print(f"⚠️ Handler {handler_name} took {elapsed:.2f}s (close to {timeout_seconds}s timeout)")
                     
                 return result
                 
             except asyncio.TimeoutError:
                 elapsed = time.time() - start_time
-                self.logger.error(
-                    f"❌ Handler {handler_name} timed out after {elapsed:.2f}s"
-                )
-                
-                # Try to send error response to client if we have their sid
-                if args and isinstance(args[0], str):  # First arg is usually sid
-                    sid = args[0]
-                    try:
-                        # Use a short timeout for error response
-                        await asyncio.wait_for(
-                            self.emit_to_client(
-                                sid, 
-                                "error",
-                                {
-                                    "message": f"Handler {handler_name} timed out",
-                                    "handler": handler_name,
-                                    "timeout": timeout_seconds
-                                }
-                            ),
-                            timeout=1.0
-                        )
-                    except:
-                        pass  # Best effort error notification
+                # Try to get logger from closure scope or fallback to print
+                try:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"❌ Handler {handler_name} timed out after {elapsed:.2f}s")
+                except:
+                    print(f"❌ Handler {handler_name} timed out after {elapsed:.2f}s")
                         
                 return None
                 
             except Exception as e:
                 elapsed = time.time() - start_time
-                self.logger.error(
-                    f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}"
-                )
+                # Try to get logger from closure scope or fallback to print
+                try:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}")
+                except:
+                    print(f"❌ Handler {handler_name} failed after {elapsed:.2f}s: {e}")
                 raise
                 
         return wrapper
@@ -325,7 +319,7 @@ class ConnectionEventHandler(BaseEventHandler):
 
         @self.sio.event
         @timeout_handler(timeout_seconds=3.0)
-        async def disconnect(sid):
+        async def disconnect(sid, *args):
             """Handle client disconnection.
 
             WHY: We need to clean up client tracking when they disconnect

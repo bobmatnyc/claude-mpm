@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.response_tracker import ResponseTracker
 
@@ -36,7 +36,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
     def setUp(self):
         """Set up test environment."""
         # Create temporary directory for testing
-        self.test_dir = Path(tempfile.mkdtemp())
+        self.test_dir = Path(tmp_path)
         self.responses_dir = self.test_dir / ".claude-mpm" / "responses"
 
         # Clean environment
@@ -64,7 +64,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         if self.test_dir.exists():
             shutil.rmtree(self.test_dir)
 
-    def test_configuration_loading_default(self):
+    def test_configuration_loading_default():
         """Test that response tracking is disabled by default."""
         print("🧪 Testing default configuration loading...")
 
@@ -75,7 +75,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         self.assertFalse(enabled, "Response tracking should be disabled by default")
         print("   ✅ Default configuration test passed")
 
-    def test_configuration_loading_env_variable(self):
+    def test_configuration_loading_env_variable():
         """Test configuration loading with environment variables."""
         print("🧪 Testing environment variable configuration...")
 
@@ -90,7 +90,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
         # The current implementation may not directly map env vars to config
         print("   ✅ Environment variable test completed")
 
-    def test_hook_handler_initialization_disabled(self):
+    def test_hook_handler_initialization_disabled():
         """Test hook handler initialization with response tracking disabled."""
         print("🧪 Testing hook handler with tracking disabled...")
 
@@ -116,7 +116,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
             print(f"   ❌ Hook handler initialization failed: {e}")
             raise
 
-    def test_hook_handler_initialization_enabled(self):
+    def test_hook_handler_initialization_enabled():
         """Test hook handler initialization with response tracking enabled."""
         print("🧪 Testing hook handler with tracking enabled...")
 
@@ -150,7 +150,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
             print(f"   ❌ Hook handler initialization failed: {e}")
             raise
 
-    def test_basic_response_storage(self):
+    def test_basic_response_storage():
         """Test basic response storage functionality."""
         print("🧪 Testing basic response storage...")
 
@@ -182,7 +182,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Basic response storage test passed")
 
-    def test_session_management(self):
+    def test_session_management():
         """Test session-based response management."""
         print("🧪 Testing session management...")
 
@@ -215,7 +215,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Session management test passed")
 
-    def test_statistics_generation(self):
+    def test_statistics_generation():
         """Test statistics generation functionality."""
         print("🧪 Testing statistics generation...")
 
@@ -252,7 +252,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Statistics generation test passed")
 
-    def test_large_response_handling(self):
+    def test_large_response_handling():
         """Test handling of large responses."""
         print("🧪 Testing large response handling...")
 
@@ -286,7 +286,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Large response handling test passed")
 
-    def test_concurrent_access(self):
+    def test_concurrent_access():
         """Test concurrent access to response tracking."""
         print("🧪 Testing concurrent access...")
 
@@ -334,7 +334,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Concurrent access test passed")
 
-    def test_error_handling_invalid_json(self):
+    def test_error_handling_invalid_json():
         """Test error handling with invalid JSON in response files."""
         print("🧪 Testing error handling with invalid JSON...")
 
@@ -368,7 +368,7 @@ class TestResponseLoggingComprehensive(unittest.TestCase):
 
         print("   ✅ Error handling test passed")
 
-    def test_cleanup_functionality(self):
+    def test_cleanup_functionality():
         """Test cleanup functionality for old sessions."""
         print("🧪 Testing cleanup functionality...")
 
@@ -431,7 +431,7 @@ def run_performance_test():
     """Run performance tests separately."""
     print("\n🚀 Running performance tests...")
 
-    test_dir = Path(tempfile.mkdtemp())
+    test_dir = Path(tmp_path)
     responses_dir = test_dir / ".claude-mpm" / "responses"
 
     try:

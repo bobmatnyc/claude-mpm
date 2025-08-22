@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 # Enable debug mode
 os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.services.response_tracker import ResponseTracker
 
 

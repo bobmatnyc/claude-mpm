@@ -51,7 +51,7 @@ def find_all_services():
 
 def test_config_singleton():
     """Test that Config is truly a singleton across all services."""
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     print("=== Testing Config Singleton Pattern ===\n")
     
@@ -133,7 +133,7 @@ def check_log_messages():
     """Check that singleton log messages are correct."""
     import io
     import contextlib
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     print("\n=== Checking Log Messages ===\n")
     
