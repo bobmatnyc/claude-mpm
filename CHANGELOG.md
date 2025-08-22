@@ -15,6 +15,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Removed
+
+## [4.0.34] - 2025-08-22
+
+### Fixed
+- Documentation agent MCP tool fix
+- Enhanced Documentation agent memory protection
+
+## [4.1.0] - 2025-08-22
+
+### Added
+
+- **Script Organization**: Comprehensive scripts directory restructuring into logical subdirectories
+  - `scripts/development/` - Development and debugging tools
+  - `scripts/monitoring/` - Runtime monitoring utilities  
+  - `scripts/utilities/` - MCP and configuration tools
+  - `scripts/verification/` - System verification and testing scripts
+- **Consolidated MCP Documentation**: Single comprehensive MCP setup guide covering all installation methods
+  - Integrated pipx, pip, and source installation instructions
+  - Enhanced troubleshooting section with installation-specific guidance
+  - Removed redundant MCP documentation files for cleaner structure
+- **Enhanced Documentation Navigation**: Updated docs/README.md with improved structure and valid links
+- **Socket.IO Stability Improvements**: Major reliability enhancements for real-time communication
+  - Improved error handling and connection management
+  - Enhanced event routing and processing
+  - Better dashboard integration and stability
+
+### Changed
+
+- **Documentation Structure**: Streamlined documentation with consolidated guides and improved organization
+- **Project Organization**: Better file organization with clear purpose-based script categorization
+- **MCP Setup Process**: Unified setup guide replacing multiple scattered documentation files
+
+### Fixed
+
+- **Socket.IO Connection Issues**: Resolved WebSocket connection problems in dashboard
+- **Event Processing**: Fixed event parsing showing events as "unknown" due to field overwriting
+- **Dashboard JavaScript Errors**: Corrected JavaScript errors in file-tool-tracker.js and event-viewer.js
+- **Hook Event Routing**: Improved hook.* prefixed event handling
+- **Documentation Links**: Fixed broken links and outdated references throughout documentation
+
+### Removed
+
+- **Redundant MCP Documentation**: Consolidated multiple MCP setup files into single comprehensive guide
+- **Deprecated Scripts**: Cleaned up obsolete scripts and moved active ones to organized subdirectories
 ## [4.0.33] - 2025-08-22
 
 ### Added

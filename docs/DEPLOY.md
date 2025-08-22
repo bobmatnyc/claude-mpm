@@ -941,7 +941,9 @@ Version is automatically shown with build numbers (v3.9.5+):
 
 ### Agent Version Management
 
-Claude MPM agents use semantic versioning (major.minor.patch) for consistent version tracking:
+Claude MPM agents use semantic versioning (major.minor.patch) for consistent version tracking.
+
+**⭐ New in v4.0.32+**: All agents now deploy to project-level `.claude/agents/` directory regardless of their source tier (PROJECT, USER, or SYSTEM). This provides consistency and project isolation.
 
 ```bash
 # Deploy agents (includes automatic version migration)

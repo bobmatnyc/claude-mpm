@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any, Deque, Dict, List, Optional, Set
 
 from ....core.logging_config import get_logger
+from ..event_normalizer import EventNormalizer
 
 
 @dataclass
@@ -178,6 +179,9 @@ class SocketIOEventBroadcaster:
         self.retry_queue = RetryQueue(max_size=1000)
         self.retry_task = None
         self.retry_interval = 2.0  # Process retry queue every 2 seconds
+        
+        # Initialize event normalizer for consistent schema
+        self.normalizer = EventNormalizer()
     
     def start_retry_processor(self):
         """Start the background retry processor.
@@ -274,20 +278,24 @@ class SocketIOEventBroadcaster:
         """Retry broadcasting a failed event.
         
         WHY: Isolated retry logic allows for special handling
-        and metrics tracking of retry attempts.
+        and metrics tracking of retry attempts. Uses normalizer
+        to ensure consistent schema.
         """
         try:
             self.logger.debug(
                 f"🔄 Retrying {event.event_type} (attempt {event.attempt_count + 1}/{event.max_retries})"
             )
             
-            # Reconstruct the full event
-            full_event = {
+            # Reconstruct the raw event
+            raw_event = {
                 "type": event.event_type,
                 "timestamp": datetime.now().isoformat(),
-                "data": event.data,
-                "retry_attempt": event.attempt_count + 1
+                "data": {**event.data, "retry_attempt": event.attempt_count + 1},
             }
+            
+            # Normalize the event
+            normalized = self.normalizer.normalize(raw_event)
+            full_event = normalized.to_dict()
             
             # Attempt broadcast
             if event.skip_sid:
@@ -309,16 +317,22 @@ class SocketIOEventBroadcaster:
         """Broadcast an event to all connected clients with retry support.
         
         WHY: Enhanced with retry queue to ensure reliable delivery
-        even during transient network issues.
+        even during transient network issues. Now uses EventNormalizer
+        to ensure consistent event schema.
         """
         if not self.sio:
             return
 
-        event = {
+        # Create raw event for normalization
+        raw_event = {
             "type": event_type,
             "timestamp": datetime.now().isoformat(),
             "data": data,
         }
+        
+        # Normalize the event to consistent schema
+        normalized = self.normalizer.normalize(raw_event)
+        event = normalized.to_dict()
 
         # Buffer the event for reliability AND add to event history for new clients
         with self.buffer_lock:
@@ -329,7 +343,7 @@ class SocketIOEventBroadcaster:
             # Access through server reference to maintain single history source
             if hasattr(self, 'server') and hasattr(self.server, 'event_history'):
                 self.server.event_history.append(event)
-                self.logger.debug(f"Added {event_type} to history (total: {len(self.server.event_history)})")
+                self.logger.debug(f"Added {event['type']}/{event['subtype']} to history (total: {len(self.server.event_history)})")
 
         # Broadcast to all connected clients
         broadcast_success = False
@@ -521,29 +535,8 @@ class SocketIOEventBroadcaster:
         
         WHY: System events are separate from hook events to provide
         server health monitoring independent of Claude activity.
+        Now uses broadcast_event for consistency with buffering and normalization.
         """
-        if not self.sio:
-            return
-            
-        # Create system event with consistent format
-        event = {
-            "type": "system",
-            "event": "heartbeat",
-            "timestamp": datetime.now().isoformat(),
-            "data": heartbeat_data,
-        }
-        
-        # Broadcast to all connected clients
-        try:
-            if self.loop and not self.loop.is_closed():
-                future = asyncio.run_coroutine_threadsafe(
-                    self.sio.emit("system_event", event), self.loop
-                )
-                self.logger.debug(
-                    f"Broadcasted system heartbeat - clients: {len(self.connected_clients)}, "
-                    f"uptime: {heartbeat_data.get('uptime_seconds', 0)}s"
-                )
-            else:
-                self.logger.warning("Cannot broadcast heartbeat: server loop not available")
-        except Exception as e:
-            self.logger.error(f"Failed to broadcast system heartbeat: {e}")
+        # Use the standard broadcast_event method which handles normalization,
+        # buffering, and retry logic
+        self.broadcast_event("heartbeat", heartbeat_data)

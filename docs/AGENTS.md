@@ -71,7 +71,7 @@ Claude MPM includes 15 specialized agents:
 - **Refactoring Engineer** - Code refactoring and optimization
 - **Code Analyzer** - Static code analysis with AST and tree-sitter
 
-**Important**: Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
+**Important**: All agents now deploy to project-level `.claude/agents/` directory (changed in v4.0.32+). Project agents in `.claude-mpm/agents/` support **multiple formats** (.json, .yaml, .yml, .md) for flexibility. During deployment, agents are automatically converted to Markdown format with YAML frontmatter and placed in `.claude/agents/` for Claude Code compatibility.
 
 ### Key Features
 
@@ -88,7 +88,8 @@ Claude MPM includes 15 specialized agents:
 The agent system implements a hierarchical precedence model with three distinct tiers:
 
 ### 1. PROJECT Tier (Highest Precedence)
-- **Location**: `.claude-mpm/agents/` in current project directory
+- **Source Location**: `.claude-mpm/agents/` in current project directory
+- **Deploy Location**: `.claude/agents/` in current project directory ⭐ **NEW in v4.0.32+**
 - **Scope**: Project-specific agents and overrides
 - **Use Cases**:
   - Override system agents with project-specific knowledge
@@ -97,7 +98,8 @@ The agent system implements a hierarchical precedence model with three distinct 
   - Maintain project-specific agent versions for consistency
 
 ### 2. USER Tier (Medium Precedence)
-- **Location**: `~/.claude-mpm/agents/` in user home directory
+- **Source Location**: `~/.claude-mpm/agents/` in user home directory
+- **Deploy Location**: `.claude/agents/` in current project directory ⭐ **NEW in v4.0.32+**
 - **Scope**: User-level customizations across all projects
 - **Use Cases**:
   - Personal preferences and workflow customizations
@@ -105,7 +107,8 @@ The agent system implements a hierarchical precedence model with three distinct 
   - Cross-project agent templates
 
 ### 3. SYSTEM Tier (Lowest Precedence)
-- **Location**: `src/claude_mpm/agents/templates/` in framework installation (system agents)
+- **Source Location**: `src/claude_mpm/agents/templates/` in framework installation (system agents)
+- **Deploy Location**: `.claude/agents/` in current project directory ⭐ **NEW in v4.0.32+**
 - **Scope**: Framework built-in agents maintained by developers
 - **Use Cases**:
   - Default agent behaviors
@@ -121,6 +124,80 @@ PROJECT/engineer.md → Overrides USER/engineer.json → Overrides SYSTEM/engine
 ```
 
 This allows projects to incrementally customize agents while maintaining fallbacks.
+
+### ⭐ New Deployment Behavior (v4.0.32+)
+
+**All agents now deploy to project-level directory regardless of their source tier:**
+
+- **Before v4.0.32**: 
+  - System agents → `~/.claude/agents/`
+  - User agents → `~/.claude/agents/`
+  - Project agents → `<project>/.claude/agents/`
+
+- **After v4.0.32**: 
+  - System agents → `<project>/.claude/agents/`
+  - User agents → `<project>/.claude/agents/`
+  - Project agents → `<project>/.claude/agents/`
+
+**Benefits of this change:**
+- **Consistency**: All agents in one location per project
+- **Isolation**: Projects don't affect user's home directory
+- **Simplicity**: No confusion about deployment locations
+- **Portability**: Project-specific agents stay with the project
+
+**Backward Compatibility:**
+- The `--tier` parameter is maintained for backward compatibility
+- Both `--tier user` and `--tier project` work but deploy to the same location
+- Existing code that depends on tier specification continues to work
+
+**Discovery unchanged**: Agents are still discovered from all three source tiers (PROJECT, USER, SYSTEM), but they all deploy to the project directory.
+
+### ⭐ Automatic User Agent Cleanup (v4.0.32+)
+
+**Claude MPM now automatically removes outdated user agents during deployment:**
+
+During the deployment process, claude-mpm automatically cleans up user agents that have been superseded by newer versions from project or system sources.
+
+**How It Works:**
+1. **Version Comparison**: During deployment, the system compares agent versions across all tiers (PROJECT, USER, SYSTEM)
+2. **Automatic Removal**: If a project or system agent has a higher version than a user agent with the same name, the outdated user agent is automatically removed
+3. **Preservation**: User agents with the same or higher versions are preserved
+4. **Logging**: All cleanup actions are logged with detailed information about what was removed and why
+
+**Example Cleanup Process:**
+```
+INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v2.5.0)
+INFO: Removing outdated user agent: qa v1.2.0 (superseded by system v1.3.0)  
+INFO: Cleanup complete: removed 2 outdated user agents
+```
+
+**Configuration Options:**
+```bash
+# Disable automatic cleanup (enabled by default)
+export CLAUDE_MPM_CLEANUP_USER_AGENTS=false
+
+# Or via configuration file
+echo "agent_deployment:
+  cleanup_outdated_user_agents: false" >> .claude-mpm/config.yaml
+```
+
+**Safety Features:**
+- **Selective Removal**: Only removes agents from user directory (`~/.claude-mpm/agents/`)
+- **Version-Based**: Only removes agents with lower versions than project/system alternatives
+- **Never Touches Project/System**: Project and system agents are never affected
+- **Comprehensive Logging**: Detailed logs of all cleanup actions
+- **Error Handling**: Robust error handling prevents partial cleanup states
+
+**Benefits:**
+- **Automatic Maintenance**: No manual cleanup of outdated user customizations
+- **Consistency**: Ensures users always get the latest agent versions
+- **Prevents Conflicts**: Eliminates version confusion and unexpected behavior
+- **Clean Environment**: Maintains tidy user agent directories
+
+**Use Cases:**
+- **Framework Updates**: When updating claude-mpm, outdated user agents are automatically cleaned
+- **Project Onboarding**: Team members get consistent agent versions when joining projects
+- **Version Management**: Simplifies agent version management across development environments
 
 ## Creating Local Agents
 
@@ -799,7 +876,9 @@ Shows agents that have been deployed to Claude Code.
 claude-mpm agents deploy [--target path]
 claude-mpm agents force-deploy [--target path]
 ```
-Deploy system agents for Claude Code native agent support.
+Deploy agents from all tiers to project-level `.claude/agents/` directory for Claude Code native agent support.
+
+**Note**: As of v4.0.32+, all agents deploy to the project directory regardless of their source tier. The `--tier` parameter is maintained for backward compatibility but has no effect on deployment location.
 
 #### Clean Deployed Agents
 ```bash
@@ -1107,6 +1186,39 @@ python -c "
 from claude_mpm.agents.agent_loader import get_agent_tier
 print(f'Engineer tier: {get_agent_tier(\"engineer\")}')"
 ```
+
+### Deployment Location Migration (v4.0.32+)
+
+**Important**: If you have existing agents deployed to `~/.claude/agents/`, they will not be automatically moved to project directories. The new deployment behavior only affects new deployments.
+
+**For existing installations:**
+
+```bash
+# Check if you have agents in the old location
+ls -la ~/.claude/agents/
+
+# If you want to move them to a specific project:
+# 1. Navigate to your project directory
+cd /path/to/your/project
+
+# 2. Create the target directory
+mkdir -p .claude/agents
+
+# 3. Copy agents you want to use in this project
+cp ~/.claude/agents/engineer.md .claude/agents/
+cp ~/.claude/agents/qa.md .claude/agents/
+
+# 4. Verify they're available
+./claude-mpm agents list --deployed
+```
+
+**Migration Notes:**
+- Existing agents in `~/.claude/agents/` remain functional until overridden by new deployments
+- New deployments will create agents in `<project>/.claude/agents/` only
+- Users can manually clean up old deployments: `rm -rf ~/.claude/agents/` (optional)
+- Each project now maintains its own isolated agent environment
+
+**Recommendation**: Use `claude-mpm agents deploy` to ensure all agents are properly deployed to the project directory with the new behavior.
 
 ### Legacy Agent Format Migration
 

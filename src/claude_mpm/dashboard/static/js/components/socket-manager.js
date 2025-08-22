@@ -338,8 +338,10 @@ class SocketManager {
         }
 
         // Auto-connect by default unless explicitly disabled
+        // Changed: Always auto-connect by default even without URL params
         const shouldAutoConnect = params.get('connect') !== 'false';
         if (shouldAutoConnect && !this.isConnected() && !this.isConnecting()) {
+            console.log(`SocketManager: Auto-connecting to port ${connectPort}`);
             this.connect(connectPort);
         }
     }

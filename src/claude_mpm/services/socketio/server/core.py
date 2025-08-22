@@ -414,11 +414,12 @@ class SocketIOServerCore:
                     except Exception as e:
                         self.logger.debug(f"Could not get active sessions: {e}")
                 
-                # Prepare heartbeat data
+                # Prepare heartbeat data (using new schema)
                 heartbeat_data = {
                     "type": "system",
-                    "event": "heartbeat",
+                    "subtype": "heartbeat",
                     "timestamp": datetime.now().isoformat(),
+                    "source": "server",
                     "data": {
                         "uptime_seconds": uptime_seconds,
                         "connected_clients": len(self.connected_clients),
@@ -435,7 +436,7 @@ class SocketIOServerCore:
                 if self.main_server and hasattr(self.main_server, 'event_history'):
                     self.main_server.event_history.append(heartbeat_data)
                 
-                # Emit heartbeat to all connected clients
+                # Emit heartbeat to all connected clients (already using new schema)
                 await self.sio.emit("system_event", heartbeat_data)
                 
                 self.logger.info(

@@ -244,24 +244,24 @@ def _verify_mcp_gateway_startup():
                     results = loop.run_until_complete(verify_mcp_gateway_on_startup())
                     loop.close()
 
-                # Log results but don't block
-                from ..core.logger import get_logger
-                logger = get_logger("cli")
+                    # Log results but don't block
+                    from ..core.logger import get_logger
+                    logger = get_logger("cli")
 
-                if results.get("gateway_configured"):
-                    logger.debug("MCP Gateway verification completed successfully")
-                else:
-                    logger.debug("MCP Gateway verification completed with warnings")
+                    if results.get("gateway_configured"):
+                        logger.debug("MCP Gateway verification completed successfully")
+                    else:
+                        logger.debug("MCP Gateway verification completed with warnings")
 
-            except Exception as e:
-                from ..core.logger import get_logger
-                logger = get_logger("cli")
-                logger.debug(f"MCP Gateway verification failed: {e}")
+                except Exception as e:
+                    from ..core.logger import get_logger
+                    logger = get_logger("cli")
+                    logger.debug(f"MCP Gateway verification failed: {e}")
 
-        # Run in background thread to avoid blocking startup
-        import threading
-        verification_thread = threading.Thread(target=run_verification, daemon=True)
-        verification_thread.start()
+            # Run in background thread to avoid blocking startup
+            import threading
+            verification_thread = threading.Thread(target=run_verification, daemon=True)
+            verification_thread.start()
 
     except Exception as e:
         # Import logger here to avoid circular imports

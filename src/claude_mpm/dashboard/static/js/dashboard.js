@@ -54,25 +54,75 @@ class Dashboard {
     init() {
         console.log('Initializing refactored Claude MPM Dashboard...');
 
-        // Initialize modules in dependency order
-        this.initializeSocketManager();
-        this.initializeCoreComponents();
-        this.initializeBuildTracker();
-        this.initializeAgentInference();
-        this.initializeAgentHierarchy();
-        this.initializeUIStateManager();
-        this.initializeWorkingDirectoryManager();
-        this.initializeFileToolTracker();
-        this.initializeEventProcessor();
-        this.initializeExportManager();
+        try {
+            // Initialize modules in dependency order
+            this.initializeSocketManager();
+            this.initializeCoreComponents();
+            this.initializeBuildTracker();
+            this.initializeAgentInference();
+            this.initializeAgentHierarchy();
+            this.initializeUIStateManager();
+            this.initializeWorkingDirectoryManager();
+            this.initializeFileToolTracker();
+            this.initializeEventProcessor();
+            this.initializeExportManager();
 
-        // Set up inter-module communication
-        this.setupModuleInteractions();
+            // Set up inter-module communication
+            this.setupModuleInteractions();
 
-        // Initialize from URL parameters
-        this.initializeFromURL();
+            // Initialize from URL parameters
+            this.initializeFromURL();
 
-        console.log('Claude MPM Dashboard initialized successfully');
+            console.log('Claude MPM Dashboard initialized successfully');
+        } catch (error) {
+            console.error('Error during dashboard initialization:', error);
+            // Re-throw to be caught by DOMContentLoaded handler
+            throw error;
+        }
+    }
+    
+    /**
+     * Validate that all critical components are initialized
+     * WHY: Ensures dashboard is in a valid state after initialization
+     */
+    validateInitialization() {
+        const criticalComponents = [
+            { name: 'socketManager', component: this.socketManager },
+            { name: 'eventViewer', component: this.eventViewer },
+            { name: 'agentHierarchy', component: this.agentHierarchy }
+        ];
+        
+        const missing = criticalComponents.filter(c => !c.component);
+        if (missing.length > 0) {
+            console.warn('Missing critical components:', missing.map(c => c.name));
+        } else {
+            console.log('All critical components initialized');
+        }
+    }
+
+    /**
+     * Post-initialization setup that requires window.dashboard to be set
+     * WHY: Some components need to reference window.dashboard but it's not available
+     * during constructor execution. This method is called after the Dashboard instance
+     * is assigned to window.dashboard, ensuring proper initialization order.
+     * 
+     * DESIGN DECISION: Separate post-init phase prevents "cannot read property of undefined"
+     * errors when components try to access window.dashboard during construction.
+     */
+    postInit() {
+        try {
+            // Set global reference for agent hierarchy after dashboard is available
+            if (this.agentHierarchy) {
+                window.dashboard.agentHierarchy = this.agentHierarchy;
+                console.log('Agent hierarchy global reference set');
+            }
+            
+            // Initialize any other components that need window.dashboard
+            this.validateInitialization();
+        } catch (error) {
+            console.error('Error in dashboard postInit:', error);
+            // Continue execution - non-critical error
+        }
     }
 
     /**
@@ -136,11 +186,24 @@ class Dashboard {
     
     /**
      * Initialize agent hierarchy component
+     * WHY: Creates the agent hierarchy visualization component but defers global
+     * reference setting to postInit() to avoid initialization order issues.
      */
     initializeAgentHierarchy() {
-        this.agentHierarchy = new AgentHierarchy(this.agentInference, this.eventViewer);
-        // Make available globally for debugging and onclick handlers
-        window.dashboard.agentHierarchy = this.agentHierarchy;
+        try {
+            this.agentHierarchy = new AgentHierarchy(this.agentInference, this.eventViewer);
+            // Global reference will be set in postInit() after window.dashboard exists
+            console.log('Agent hierarchy component created');
+        } catch (error) {
+            console.error('Failed to initialize agent hierarchy:', error);
+            // Create a stub to prevent further errors
+            this.agentHierarchy = {
+                render: () => '<div class="error">Agent hierarchy unavailable</div>',
+                expandAllNodes: () => {},
+                collapseAllNodes: () => {},
+                updateWithNewEvents: () => {}
+            };
+        }
     }
 
     /**
@@ -373,15 +436,29 @@ class Dashboard {
         controls.id = 'hierarchy-controls';
         controls.className = 'hierarchy-controls';
         controls.innerHTML = `
-            <button onclick="dashboard.agentHierarchy.expandAllNodes(); dashboard.renderAgents();" 
+            <button data-action="expand-all" 
                     class="hierarchy-btn hierarchy-expand-all">
                 Expand All
             </button>
-            <button onclick="dashboard.agentHierarchy.collapseAllNodes(); dashboard.renderAgents();" 
+            <button data-action="collapse-all" 
                     class="hierarchy-btn hierarchy-collapse-all">
                 Collapse All
             </button>
         `;
+        
+        // Add safe event listeners
+        controls.addEventListener('click', (event) => {
+            const action = event.target.dataset.action;
+            if (action && window.dashboard && window.dashboard.agentHierarchy) {
+                if (action === 'expand-all') {
+                    window.dashboard.agentHierarchy.expandAllNodes();
+                    window.dashboard.renderAgents();
+                } else if (action === 'collapse-all') {
+                    window.dashboard.agentHierarchy.collapseAllNodes();
+                    window.dashboard.renderAgents();
+                }
+            }
+        });
         
         tabFilters.appendChild(controls);
     }
@@ -1884,8 +1961,33 @@ window.showAgentInstanceDetails = function(instanceId) {
 
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    window.dashboard = new Dashboard();
-    console.log('Dashboard loaded and initialized');
+    try {
+        // Create dashboard instance
+        window.dashboard = new Dashboard();
+        
+        // Call post-initialization setup that requires window.dashboard
+        // This must happen after window.dashboard is set
+        if (window.dashboard && typeof window.dashboard.postInit === 'function') {
+            window.dashboard.postInit();
+        }
+        
+        console.log('Dashboard loaded and initialized successfully');
+        
+        // Dispatch custom event to signal dashboard ready
+        document.dispatchEvent(new CustomEvent('dashboardReady', {
+            detail: { dashboard: window.dashboard }
+        }));
+    } catch (error) {
+        console.error('Failed to initialize dashboard:', error);
+        // Show user-friendly error message
+        document.body.innerHTML = `
+            <div style="padding: 20px; font-family: sans-serif;">
+                <h1>Dashboard Initialization Error</h1>
+                <p>The dashboard failed to load properly. Please refresh the page or check the console for details.</p>
+                <pre style="background: #f5f5f5; padding: 10px; border-radius: 4px;">${error.message}</pre>
+            </div>
+        `;
+    }
 });
 
 // ES6 Module export

@@ -161,8 +161,13 @@ class ConnectionEventHandler(BaseEventHandler):
                 
                 for sid in list(self.clients):
                     try:
-                        # Send ping and record time
-                        await self.sio.emit('ping', {'timestamp': current_time}, room=sid)
+                        # Send ping and record time (using new schema)
+                        await self.sio.emit('ping', {
+                            'type': 'system',
+                            'subtype': 'ping',
+                            'timestamp': current_time,
+                            'source': 'server'
+                        }, room=sid)
                         self.last_ping_times[sid] = current_time
                         
                         # Update connection metrics
@@ -297,17 +302,22 @@ class ConnectionEventHandler(BaseEventHandler):
                     "mpm": {"version": "unknown", "build": "unknown"}
                 }
 
-            # Send initial status immediately with enhanced data
+            # Send initial status immediately with enhanced data (using new schema)
             status_data = {
-                "server": "claude-mpm-python-socketio",
+                "type": "connection",
+                "subtype": "status",
                 "timestamp": datetime.utcnow().isoformat() + "Z",
-                "clients_connected": len(self.clients),
+                "source": "server",
                 "session_id": self.server.session_id,
-                "claude_status": self.server.claude_status,
-                "claude_pid": self.server.claude_pid,
-                "server_version": "2.0.0",
-                "client_id": sid,
-                "build_info": monitor_build_info,
+                "data": {
+                    "server": "claude-mpm-python-socketio",
+                    "clients_connected": len(self.clients),
+                    "claude_status": self.server.claude_status,
+                    "claude_pid": self.server.claude_pid,
+                    "server_version": "2.0.0",
+                    "client_id": sid,
+                    "build_info": monitor_build_info,
+                }
             }
 
             try:
@@ -316,10 +326,17 @@ class ConnectionEventHandler(BaseEventHandler):
                     sid,
                     "welcome",
                     {
-                        "message": "Connected to Claude MPM Socket.IO server",
-                        "client_id": sid,
-                        "server_time": datetime.utcnow().isoformat() + "Z",
-                        "build_info": monitor_build_info,
+                        "type": "connection",
+                        "subtype": "welcome",
+                        "timestamp": datetime.utcnow().isoformat() + "Z",
+                        "source": "server",
+                        "session_id": self.server.session_id,
+                        "data": {
+                            "message": "Connected to Claude MPM Socket.IO server",
+                            "client_id": sid,
+                            "server_time": datetime.utcnow().isoformat() + "Z",
+                            "build_info": monitor_build_info,
+                        }
                     },
                 )
 
@@ -364,12 +381,17 @@ class ConnectionEventHandler(BaseEventHandler):
             to update their UI or verify connection health.
             """
             status_data = {
-                "server": "claude-mpm-python-socketio",
+                "type": "connection",
+                "subtype": "status",
                 "timestamp": datetime.utcnow().isoformat() + "Z",
-                "clients_connected": len(self.clients),
+                "source": "server",
                 "session_id": self.server.session_id,
-                "claude_status": self.server.claude_status,
-                "claude_pid": self.server.claude_pid,
+                "data": {
+                    "server": "claude-mpm-python-socketio",
+                    "clients_connected": len(self.clients),
+                    "claude_status": self.server.claude_status,
+                    "claude_pid": self.server.claude_pid,
+                }
             }
             await self.emit_to_client(sid, "status", status_data)
 
@@ -410,7 +432,13 @@ class ConnectionEventHandler(BaseEventHandler):
             for filtered event streaming.
             """
             channels = data.get("channels", ["*"]) if data else ["*"]
-            await self.emit_to_client(sid, "subscribed", {"channels": channels})
+            await self.emit_to_client(sid, "subscribed", {
+                "type": "connection",
+                "subtype": "subscribed",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "source": "server",
+                "data": {"channels": channels}
+            })
 
         @self.sio.event
         @timeout_handler(timeout_seconds=5.0)
@@ -424,10 +452,24 @@ class ConnectionEventHandler(BaseEventHandler):
             self.logger.info(f"🔵 Received claude_event from {sid}: {data}")
             
             # Check if this is a hook event and route to HookEventHandler
-            # Hook events have types like "hook.user_prompt", "hook.pre_tool", etc.
+            # Hook events can have either:
+            # 1. Normalized format: type="hook", subtype="pre_tool"
+            # 2. Legacy format: type="hook.pre_tool"
             if isinstance(data, dict):
                 event_type = data.get("type", "")
-                if isinstance(event_type, str) and event_type.startswith("hook."):
+                event_subtype = data.get("subtype", "")
+                
+                # Check for both normalized and legacy formats
+                is_hook_event = False
+                if isinstance(event_type, str):
+                    # Legacy format: type="hook.something"
+                    if event_type.startswith("hook."):
+                        is_hook_event = True
+                    # Normalized format: type="hook" with any subtype
+                    elif event_type == "hook":
+                        is_hook_event = True
+                
+                if is_hook_event:
                     # Get the hook handler if available
                     hook_handler = None
                     # Check if event_registry exists and has handlers
@@ -517,7 +559,8 @@ class ConnectionEventHandler(BaseEventHandler):
             elif event_name == 'ToolCall':
                 normalized['type'] = 'tool'
             elif event_name == 'UserPrompt':
-                normalized['type'] = 'hook.user_prompt'
+                normalized['type'] = 'hook'
+                normalized['subtype'] = 'user_prompt'
             else:
                 # Default to system type for unknown events
                 normalized['type'] = 'system'

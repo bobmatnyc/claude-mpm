@@ -361,10 +361,27 @@ class FileToolTracker {
      * @returns {string|null} - File path or null
      */
     extractFilePath(event) {
+        // Debug logging for file path extraction
+        const fileTools = ['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
+        const toolName = event.tool_name || (event.data && event.data.tool_name);
+        
+        if (fileTools.includes(toolName)) {
+            console.log('Extracting file path from event:', {
+                tool_name: toolName,
+                has_tool_parameters_top: !!event.tool_parameters,
+                has_tool_parameters_data: !!(event.data && event.data.tool_parameters),
+                tool_parameters: event.tool_parameters,
+                data_tool_parameters: event.data?.tool_parameters
+            });
+        }
+        
         // Try various locations where file path might be stored
+        // Check top-level tool_parameters first (after transformation)
         if (event.tool_parameters?.file_path) return event.tool_parameters.file_path;
         if (event.tool_parameters?.path) return event.tool_parameters.path;
         if (event.tool_parameters?.notebook_path) return event.tool_parameters.notebook_path;
+        
+        // Check in data object as fallback
         if (event.data?.tool_parameters?.file_path) return event.data.tool_parameters.file_path;
         if (event.data?.tool_parameters?.path) return event.data.tool_parameters.path;
         if (event.data?.tool_parameters?.notebook_path) return event.data.tool_parameters.notebook_path;

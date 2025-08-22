@@ -41,6 +41,14 @@ repos:
         args: ['--profile=black', '--line-length=88']
         exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/)
 
+  # Ruff - Fast Python linter with duplicate import detection
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.9
+    hooks:
+      - id: ruff
+        args: ['--fix']
+        exclude: ^(venv/|\.venv/|env/|\.env/|build/|dist/|\.git/|tests/)
+
   # Python linting with flake8
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
