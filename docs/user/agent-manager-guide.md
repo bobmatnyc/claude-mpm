@@ -129,7 +129,7 @@ Edit your global PM instructions:
 claude-mpm agent-manager customize-pm --level user
 ```
 
-This creates/edits `~/.claude/CLAUDE.md`
+This creates/edits `~/.claude-mpm/INSTRUCTIONS.md`
 
 ### Project-Level PM Customization
 
@@ -139,7 +139,7 @@ Edit project-specific PM instructions:
 claude-mpm agent-manager customize-pm --level project
 ```
 
-This creates/edits `<project>/CLAUDE.md`
+This creates/edits `./.claude-mpm/INSTRUCTIONS.md`
 
 ### Custom Delegation Patterns
 
@@ -232,7 +232,12 @@ Agents are defined using JSON configuration files:
 - Keep instructions focused and clear
 - Document custom workflows
 - Test delegation patterns
-- Version control CLAUDE.md files
+- Version control .claude-mpm/INSTRUCTIONS.md files
+
+**Important File Distinctions**:
+- `CLAUDE.md` - Development guidelines (read automatically by Claude Code)
+- `.claude-mpm/INSTRUCTIONS.md` - PM customization and delegation rules
+- These serve different purposes and should not be confused
 
 ### Deployment Strategy
 - Start with user level for testing
@@ -352,13 +357,13 @@ cp -r ~/.claude/agents ~/.claude/agents.backup
 cp -r .claude/agents .claude/agents.backup
 ```
 
-## Integration with Claude Desktop
+## Integration with Claude Code
 
-The Agent Manager integrates seamlessly with Claude Desktop. Deployed agents are automatically available for delegation by the PM agent.
+The Agent Manager integrates seamlessly with Claude Code. Deployed agents are automatically available for delegation by the PM agent.
 
 To use your custom agents:
 1. Create and deploy your agent
-2. Start Claude Desktop with `claude-mpm run`
+2. Start Claude Code with `claude-mpm run`
 3. The PM will automatically discover and use your agents
 
 ## Command Reference
