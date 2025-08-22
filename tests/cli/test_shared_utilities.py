@@ -21,41 +21,41 @@ from claude_mpm.cli.shared.argument_patterns import (
     add_memory_arguments,
 )
 from claude_mpm.cli.shared.output_formatters import OutputFormatter, format_output
-from claude_mpm.cli.shared.command_base import CommandResult
+from claude_mpm.cli.shared.base_command import CommandResult
 from claude_mpm.cli.shared.error_handling import CLIErrorHandler, handle_cli_errors
 
 
 class TestCommonArguments:
     """Test CommonArguments registry."""
 
-    def test_verbose_argument(self):
+    def test_verbose_argument():
         """Test verbose argument definition."""
         verbose = CommonArguments.VERBOSE
         assert verbose["flags"] == ["-v", "--verbose"]
         assert verbose["action"] == "store_true"
         assert "verbose" in verbose["help"].lower()
 
-    def test_quiet_argument(self):
+    def test_quiet_argument():
         """Test quiet argument definition."""
         quiet = CommonArguments.QUIET
         assert quiet["flags"] == ["-q", "--quiet"]
         assert quiet["action"] == "store_true"
         assert "quiet" in quiet["help"].lower()
 
-    def test_debug_argument(self):
+    def test_debug_argument():
         """Test debug argument definition."""
         debug = CommonArguments.DEBUG
         assert debug["flags"] == ["--debug"]
         assert debug["action"] == "store_true"
         assert "debug" in debug["help"].lower()
 
-    def test_config_file_argument(self):
+    def test_config_file_argument():
         """Test config file argument definition."""
         config_file = CommonArguments.CONFIG_FILE
         assert config_file["flags"] == ["-c", "--config"]
         assert "config" in config_file["help"].lower()
 
-    def test_output_format_argument(self):
+    def test_output_format_argument():
         """Test output format argument definition."""
         output_format = CommonArguments.OUTPUT_FORMAT
         assert output_format["flags"] == ["-f", "--format"]
@@ -70,7 +70,7 @@ class TestArgumentPatterns:
         """Set up test fixtures."""
         self.parser = ArgumentParser()
 
-    def test_add_common_arguments(self):
+    def test_add_common_arguments():
         """Test adding common arguments to parser."""
         add_common_arguments(self.parser)
         
@@ -79,7 +79,7 @@ class TestArgumentPatterns:
         assert args.verbose is True
         assert args.debug is True
 
-    def test_add_logging_arguments(self):
+    def test_add_logging_arguments():
         """Test adding logging arguments to parser."""
         add_logging_arguments(self.parser)
         
@@ -87,7 +87,7 @@ class TestArgumentPatterns:
         args = self.parser.parse_args(["-q"])
         assert args.quiet is True
 
-    def test_add_config_arguments(self):
+    def test_add_config_arguments():
         """Test adding config arguments to parser."""
         add_config_arguments(self.parser)
         
@@ -95,7 +95,7 @@ class TestArgumentPatterns:
         args = self.parser.parse_args(["-c", "test.yaml"])
         assert args.config == "test.yaml"
 
-    def test_add_output_arguments(self):
+    def test_add_output_arguments():
         """Test adding output arguments to parser."""
         add_output_arguments(self.parser)
         
@@ -104,7 +104,7 @@ class TestArgumentPatterns:
         assert args.format == "json"
         assert args.output == "output.json"
 
-    def test_add_agent_arguments(self):
+    def test_add_agent_arguments():
         """Test adding agent arguments to parser."""
         add_agent_arguments(self.parser)
         
@@ -113,7 +113,7 @@ class TestArgumentPatterns:
         assert args.agent_dir == "/test/agents"
         assert args.agent == "test-agent"
 
-    def test_add_memory_arguments(self):
+    def test_add_memory_arguments():
         """Test adding memory arguments to parser."""
         add_memory_arguments(self.parser)
         
@@ -131,19 +131,19 @@ class TestOutputFormatter:
         self.success_result = CommandResult.success_result("Test success", {"key": "value"})
         self.error_result = CommandResult.error_result("Test error", data={"error": "details"})
 
-    def test_format_text_success(self):
+    def test_format_text_success():
         """Test formatting success result as text."""
         output = self.formatter.format_text(self.success_result)
         assert "Test success" in output
         assert "✅" in output or "SUCCESS" in output
 
-    def test_format_text_error(self):
+    def test_format_text_error():
         """Test formatting error result as text."""
         output = self.formatter.format_text(self.error_result)
         assert "Test error" in output
         assert "❌" in output or "ERROR" in output
 
-    def test_format_json_success(self):
+    def test_format_json_success():
         """Test formatting success result as JSON."""
         output = self.formatter.format_json(self.success_result)
         data = json.loads(output)
@@ -152,7 +152,7 @@ class TestOutputFormatter:
         assert data["message"] == "Test success"
         assert data["data"]["key"] == "value"
 
-    def test_format_json_error(self):
+    def test_format_json_error():
         """Test formatting error result as JSON."""
         output = self.formatter.format_json(self.error_result)
         data = json.loads(output)
@@ -161,7 +161,7 @@ class TestOutputFormatter:
         assert data["message"] == "Test error"
         assert data["data"]["error"] == "details"
 
-    def test_format_yaml_success(self):
+    def test_format_yaml_success():
         """Test formatting success result as YAML."""
         output = self.formatter.format_yaml(self.success_result)
         data = yaml.safe_load(output)
@@ -170,7 +170,7 @@ class TestOutputFormatter:
         assert data["message"] == "Test success"
         assert data["data"]["key"] == "value"
 
-    def test_format_yaml_error(self):
+    def test_format_yaml_error():
         """Test formatting error result as YAML."""
         output = self.formatter.format_yaml(self.error_result)
         data = yaml.safe_load(output)
@@ -179,21 +179,21 @@ class TestOutputFormatter:
         assert data["message"] == "Test error"
         assert data["data"]["error"] == "details"
 
-    def test_format_table_success(self):
+    def test_format_table_success():
         """Test formatting success result as table."""
         output = self.formatter.format_table(self.success_result)
         assert "Test success" in output
         assert "key" in output
         assert "value" in output
 
-    def test_format_table_error(self):
+    def test_format_table_error():
         """Test formatting error result as table."""
         output = self.formatter.format_table(self.error_result)
         assert "Test error" in output
         assert "error" in output
         assert "details" in output
 
-    def test_format_unknown_format(self):
+    def test_format_unknown_format():
         """Test formatting with unknown format defaults to text."""
         output = self.formatter.format(self.success_result, "unknown")
         # Should default to text format
@@ -203,13 +203,13 @@ class TestOutputFormatter:
 class TestFormatOutputFunction:
     """Test format_output convenience function."""
 
-    def test_format_output_text(self):
+    def test_format_output_text():
         """Test format_output with text format."""
         result = CommandResult.success_result("Test success")
         output = format_output(result, "text")
         assert "Test success" in output
 
-    def test_format_output_json(self):
+    def test_format_output_json():
         """Test format_output with JSON format."""
         result = CommandResult.success_result("Test success")
         output = format_output(result, "json")
@@ -217,7 +217,7 @@ class TestFormatOutputFunction:
         assert data["success"] is True
         assert data["message"] == "Test success"
 
-    def test_format_output_yaml(self):
+    def test_format_output_yaml():
         """Test format_output with YAML format."""
         result = CommandResult.success_result("Test success")
         output = format_output(result, "yaml")
@@ -225,7 +225,7 @@ class TestFormatOutputFunction:
         assert data["success"] is True
         assert data["message"] == "Test success"
 
-    def test_format_output_table(self):
+    def test_format_output_table():
         """Test format_output with table format."""
         result = CommandResult.success_result("Test success", {"key": "value"})
         output = format_output(result, "table")
@@ -240,36 +240,36 @@ class TestCLIErrorHandler:
         """Set up test fixtures."""
         self.handler = CLIErrorHandler("test-command")
 
-    def test_initialization(self):
+    def test_initialization():
         """Test CLIErrorHandler initialization."""
         assert self.handler.command_name == "test-command"
         assert self.handler.logger is not None
 
-    def test_handle_keyboard_interrupt(self):
+    def test_handle_keyboard_interrupt():
         """Test handling KeyboardInterrupt."""
         error = KeyboardInterrupt()
         exit_code = self.handler.handle_error(error)
         assert exit_code == 130
 
-    def test_handle_file_not_found_error(self):
+    def test_handle_file_not_found_error():
         """Test handling FileNotFoundError."""
         error = FileNotFoundError("test.txt")
         exit_code = self.handler.handle_error(error)
         assert exit_code == 2
 
-    def test_handle_permission_error(self):
+    def test_handle_permission_error():
         """Test handling PermissionError."""
         error = PermissionError("Access denied")
         exit_code = self.handler.handle_error(error)
         assert exit_code == 13
 
-    def test_handle_generic_exception(self):
+    def test_handle_generic_exception():
         """Test handling generic exception."""
         error = Exception("Generic error")
         exit_code = self.handler.handle_error(error)
         assert exit_code == 1
 
-    def test_format_error_message(self):
+    def test_format_error_message():
         """Test error message formatting."""
         error = ValueError("Invalid value")
         message = self.handler.format_error_message(error)
@@ -280,7 +280,7 @@ class TestCLIErrorHandler:
 class TestHandleCLIErrorsDecorator:
     """Test handle_cli_errors decorator."""
 
-    def test_decorator_success(self):
+    def test_decorator_success():
         """Test decorator with successful function."""
         @handle_cli_errors("test-command")
         def test_function():
@@ -289,7 +289,7 @@ class TestHandleCLIErrorsDecorator:
         result = test_function()
         assert result == 0
 
-    def test_decorator_with_exception(self):
+    def test_decorator_with_exception():
         """Test decorator with function that raises exception."""
         @handle_cli_errors("test-command")
         def test_function():
@@ -298,7 +298,7 @@ class TestHandleCLIErrorsDecorator:
         result = test_function()
         assert result == 1  # Error exit code
 
-    def test_decorator_with_keyboard_interrupt(self):
+    def test_decorator_with_keyboard_interrupt():
         """Test decorator with KeyboardInterrupt."""
         @handle_cli_errors("test-command")
         def test_function():
@@ -307,7 +307,7 @@ class TestHandleCLIErrorsDecorator:
         result = test_function()
         assert result == 130  # Keyboard interrupt exit code
 
-    def test_decorator_with_command_result(self):
+    def test_decorator_with_command_result():
         """Test decorator with function returning CommandResult."""
         @handle_cli_errors("test-command")
         def test_function():
@@ -316,7 +316,7 @@ class TestHandleCLIErrorsDecorator:
         result = test_function()
         assert result == 0
 
-    def test_decorator_with_command_result_error(self):
+    def test_decorator_with_command_result_error():
         """Test decorator with function returning error CommandResult."""
         @handle_cli_errors("test-command")
         def test_function():

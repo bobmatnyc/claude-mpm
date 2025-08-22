@@ -30,7 +30,7 @@ class TestCommandSeparation(unittest.TestCase):
             self.src_dir / "claude_mpm" / "cli" / "commands" / "run_guarded.py"
         )
 
-    def test_run_has_no_memory_guardian_imports(self):
+    def test_run_has_no_memory_guardian_imports():
         """Test that run.py doesn't import any memory guardian code.
 
         WHY: The main run command should have zero dependencies on experimental
@@ -68,7 +68,7 @@ class TestCommandSeparation(unittest.TestCase):
             f"run.py should not import memory guardian code, but found: {memory_guardian_imports}",
         )
 
-    def test_run_has_no_memory_guardian_references(self):
+    def test_run_has_no_memory_guardian_references():
         """Test that run.py doesn't reference memory guardian classes or functions.
 
         WHY: Even without direct imports, we want to ensure no references to
@@ -91,7 +91,7 @@ class TestCommandSeparation(unittest.TestCase):
         for term in forbidden_terms:
             self.assertNotIn(term, source, f"run.py should not reference '{term}'")
 
-    def test_run_guarded_extends_claude_runner(self):
+    def test_run_guarded_extends_claude_runner():
         """Test that run-guarded properly extends ClaudeRunner.
 
         WHY: The experimental command should extend the base functionality
@@ -120,7 +120,7 @@ class TestCommandSeparation(unittest.TestCase):
             "run_guarded.py should not directly import ClaudeRunner (uses MemoryAwareClaudeRunner instead)",
         )
 
-    def test_experimental_warning_shown(self):
+    def test_experimental_warning_shown():
         """Test that experimental warning is shown for run-guarded.
 
         WHY: Users must be warned when using experimental features to set
@@ -142,7 +142,7 @@ class TestCommandSeparation(unittest.TestCase):
             "run_guarded.py should use experimental features configuration",
         )
 
-    def test_parser_marks_run_guarded_as_experimental(self):
+    def test_parser_marks_run_guarded_as_experimental():
         """Test that the parser marks run-guarded as experimental.
 
         WHY: The command help should clearly indicate experimental status
@@ -157,7 +157,7 @@ class TestCommandSeparation(unittest.TestCase):
             "EXPERIMENTAL", source, "parser.py should mark run-guarded as EXPERIMENTAL"
         )
 
-    def test_experimental_features_config_exists(self):
+    def test_experimental_features_config_exists():
         """Test that experimental features configuration exists.
 
         WHY: We need a centralized way to manage experimental features
@@ -189,7 +189,7 @@ class TestCommandSeparation(unittest.TestCase):
                 f"experimental_features.py should have {method} method",
             )
 
-    def test_can_import_run_without_memory_guardian(self):
+    def test_can_import_run_without_memory_guardian():
         """Test that run module can be imported without memory guardian dependencies.
 
         WHY: The main run command must work even if memory guardian dependencies
@@ -215,7 +215,7 @@ class TestCommandSeparation(unittest.TestCase):
             except ImportError as e:
                 self.fail(f"run.py should not depend on memory guardian modules: {e}")
 
-    def test_experimental_flag_controls_feature(self):
+    def test_experimental_flag_controls_feature():
         """Test that experimental flag properly controls feature availability.
 
         WHY: Experimental features should be disabled by default and only
@@ -257,7 +257,7 @@ class TestCommandSeparation(unittest.TestCase):
         finally:
             config_file.unlink()
 
-    def test_documentation_has_experimental_warnings(self):
+    def test_documentation_has_experimental_warnings():
         """Test that documentation files have experimental warnings.
 
         WHY: Documentation must clearly indicate experimental status to set

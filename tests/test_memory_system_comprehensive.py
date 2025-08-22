@@ -7,8 +7,8 @@ Comprehensive Memory System Verification Test
 Test that all memories are saved to project directory only.
 
 Objectives:
-1. Verify ALL agents save to ./.claude-mpm/memories/
-2. Confirm NO new files are created in ~/.claude-mpm/memories/
+1. Verify ALL agents save to ./.claude/memories/
+2. Confirm NO new files are created in ~/.claude/memories/
 3. Test that PM is treated exactly like other agents
 4. Test memory extraction from responses
 5. Test file migration
@@ -30,7 +30,7 @@ src_dir = project_root / "src"
 sys.path.insert(0, str(src_dir))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class MemorySystemTester:
@@ -79,7 +79,7 @@ class MemorySystemTester:
         shutil.rmtree(self.temp_project_dir, ignore_errors=True)
         shutil.rmtree(self.temp_user_dir, ignore_errors=True)
         
-    def test_pm_memory_project_only(self):
+    def test_pm_memory_project_only():
         """Test 1: PM Memory Test - Save PM memory to project directory only."""
         print("\n=== Test 1: PM Memory Project-Only Storage ===")
         
@@ -113,7 +113,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("PM memory test exception", False, str(e))
     
-    def test_other_agent_memory_project_only(self):
+    def test_other_agent_memory_project_only():
         """Test 2: Other Agent Test - Save engineer/qa memory to project directory."""
         print("\n=== Test 2: Other Agent Memory Project-Only Storage ===")
         
@@ -154,7 +154,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("Other agent memory test exception", False, str(e))
     
-    def test_memory_extraction_project_only(self):
+    def test_memory_extraction_project_only():
         """Test 3: Memory Extraction Test - Verify extraction saves to project directory."""
         print("\n=== Test 3: Memory Extraction from Agent Responses ===")
         
@@ -203,7 +203,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("Memory extraction test exception", False, str(e))
     
-    def test_file_migration_project_only(self):
+    def test_file_migration_project_only():
         """Test 4: Migration Test - Verify migration happens in project directory."""
         print("\n=== Test 4: File Migration in Project Directory ===")
         
@@ -238,7 +238,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("File migration test exception", False, str(e))
     
-    def test_backward_compatibility_reading(self):
+    def test_backward_compatibility_reading():
         """Test 5: Backward Compatibility Test - Can still read existing user files."""
         print("\n=== Test 5: Backward Compatibility for Reading ===")
         
@@ -272,7 +272,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("Backward compatibility test exception", False, str(e))
     
-    def test_edge_cases(self):
+    def test_edge_cases():
         """Test 6: Edge Cases - No directories, memory updates, size limits."""
         print("\n=== Test 6: Edge Cases Testing ===")
         
@@ -312,7 +312,7 @@ class MemorySystemTester:
         except Exception as e:
             self.log_test("Edge cases test exception", False, str(e))
     
-    def test_pm_treated_same_as_others(self):
+    def test_pm_treated_same_as_others():
         """Test 7: PM Treatment Test - Verify PM is treated exactly like other agents."""
         print("\n=== Test 7: PM Treated Same as Other Agents ===")
         

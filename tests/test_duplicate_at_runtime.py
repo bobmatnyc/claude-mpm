@@ -41,7 +41,7 @@ response_logging:
     
     # Import Config directly
     print("1. Importing Config directly...")
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     config1 = Config()
     print(f"   Config instance ID: {id(config1)}")
     

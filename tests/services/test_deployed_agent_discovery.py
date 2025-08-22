@@ -53,21 +53,23 @@ class TestDeployedAgentDiscovery:
     def mock_path_resolver(self):
         """Create a mock path resolver."""
         with patch(
-            "claude_mpm.services.deployed_agent_discovery.get_path_manager()"
-        ) as mock:
-            mock.get_project_root.return_value = Path("/test/project")
-            yield mock
+            "claude_mpm.services.agents.registry.deployed_agent_discovery.get_path_manager"
+        ) as mock_func:
+            mock_manager = Mock()
+            mock_manager.project_root = Path("/test/project")
+            mock_func.return_value = mock_manager
+            yield mock_func
 
     @pytest.fixture
     def discovery_service(self, mock_agent_registry, mock_path_resolver):
         """Create a DeployedAgentDiscovery instance with mocks."""
         return DeployedAgentDiscovery()
 
-    def test_init_with_default_project_root(self, mock_path_resolver):
+    def test_init_with_default_project_root(mock_path_resolver):
         """Test initialization with default project root."""
         service = DeployedAgentDiscovery()
         assert service.project_root == Path("/test/project")
-        mock_path_resolver.get_project_root.assert_called_once()
+        mock_path_resolver.assert_called_once()
 
     def test_init_with_custom_project_root(
         self, mock_agent_registry, mock_path_resolver
@@ -76,9 +78,9 @@ class TestDeployedAgentDiscovery:
         custom_root = Path("/custom/root")
         service = DeployedAgentDiscovery(project_root=custom_root)
         assert service.project_root == custom_root
-        mock_path_resolver.get_project_root.assert_not_called()
+        mock_path_resolver.assert_not_called()
 
-    def test_discover_deployed_agents_success(self, discovery_service):
+    def test_discover_deployed_agents_success(discovery_service):
         """Test successful agent discovery.
 
         This test validates that the discovery service can:
@@ -137,7 +139,7 @@ class TestDeployedAgentDiscovery:
         assert agents[1]["specializations"] == ["coding", "refactoring"]
         assert agents[1]["tools"] == ["edit", "write"]
 
-    def test_discover_deployed_agents_empty_list(self, discovery_service):
+    def test_discover_deployed_agents_empty_list(discovery_service):
         """Test discovery with no agents."""
         discovery_service.agent_registry.list_agents.return_value = []
 
@@ -145,7 +147,7 @@ class TestDeployedAgentDiscovery:
 
         assert agents == []
 
-    def test_discover_deployed_agents_with_error(self, discovery_service):
+    def test_discover_deployed_agents_with_error(discovery_service):
         """Test discovery handles registry errors gracefully."""
         discovery_service.agent_registry.list_agents.side_effect = Exception(
             "Registry error"
@@ -156,7 +158,7 @@ class TestDeployedAgentDiscovery:
         # Should return empty list on failure
         assert agents == []
 
-    def test_extract_agent_info_with_error(self, discovery_service):
+    def test_extract_agent_info_with_error(discovery_service):
         """Test extraction handles errors gracefully."""
         # Create an agent that will cause extraction to fail
         mock_agent = Mock()
@@ -169,7 +171,7 @@ class TestDeployedAgentDiscovery:
 
         assert result is None
 
-    def test_determine_source_tier_with_explicit_tier(self, discovery_service):
+    def test_determine_source_tier_with_explicit_tier(discovery_service):
         """Test source tier determination with explicit attribute.
 
         Validates that when an agent has an explicit source_tier attribute,
@@ -182,7 +184,7 @@ class TestDeployedAgentDiscovery:
 
         assert tier == "project"
 
-    def test_determine_source_tier_from_path(self, discovery_service):
+    def test_determine_source_tier_from_path(discovery_service):
         """Test source tier determination from file path.
 
         This test validates the path-based tier inference logic:
@@ -204,7 +206,7 @@ class TestDeployedAgentDiscovery:
         mock_agent.source_path = f"{Path.home()}/agents/custom.json"
         assert discovery_service._determine_source_tier(mock_agent) == "user"
 
-    def test_determine_source_tier_default(self, discovery_service):
+    def test_determine_source_tier_default(discovery_service):
         """Test source tier defaults to system."""
         mock_agent = Mock()
         del mock_agent.source_tier  # No explicit tier
@@ -214,7 +216,7 @@ class TestDeployedAgentDiscovery:
 
         assert tier == "system"
 
-    def test_extract_agent_info_handles_missing_attributes(self, discovery_service):
+    def test_extract_agent_info_handles_missing_attributes(discovery_service):
         """Test extraction handles missing attributes gracefully."""
         # Minimal legacy agent with only type attribute
         mock_agent = Mock(spec=["type"])
@@ -228,7 +230,7 @@ class TestDeployedAgentDiscovery:
         assert info["specializations"] == []
         assert info["tools"] == []
 
-    def test_logging_on_extraction_error(self, discovery_service, caplog):
+    def test_logging_on_extraction_error(discovery_service, caplog):
         """Test that extraction errors are logged properly."""
         # Create agent that will cause extraction to fail
         mock_agent = Mock()

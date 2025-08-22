@@ -184,7 +184,7 @@ def test_service_implements_interface():
 
 ### Traditional Issues
 1. **Import Errors**: Ensure virtual environment is activated and PYTHONPATH includes `src/`
-2. **Hook Service Errors**: Check port availability (8080-8099)
+2. **Hook Service Errors**: Check port availability (8765-8785)
 3. **Version Errors**: Run `pip install -e .` to ensure proper installation
 4. **Agent Loading**: Check `.claude/agents/` for deployed agents
 

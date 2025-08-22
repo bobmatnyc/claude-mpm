@@ -31,7 +31,7 @@ sys.path.insert(0, '/Users/masa/Projects/claude-mpm/src')
 
 try:
     # Try to import claude-mpm modules
-    from claude_mpm.agents.templates import load_agent_template
+    from claude_mpm.services.agents.templates import load_agent_template
     from claude_mpm.services.agents.registry import AgentRegistry
 
     print("✅ Claude MPM modules imported successfully")

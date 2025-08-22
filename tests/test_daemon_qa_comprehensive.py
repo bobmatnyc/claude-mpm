@@ -53,7 +53,7 @@ def log_test(name: str, passed: bool, details: str = "", category: str = ""):
         "category": category
     })
 
-def run_command(cmd: List[str], timeout: float = TEST_TIMEOUT) -> subprocess.CompletedProcess:
+def run_subcommand(cmd: List[str], timeout: float = TEST_TIMEOUT) -> subprocess.CompletedProcess:
     """Run a command with timeout."""
     try:
         return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -129,7 +129,7 @@ def cleanup_daemon():
     print("Cleaning up daemon...")
     
     # Stop daemon gracefully first
-    run_command([sys.executable, str(DAEMON_SCRIPT), "stop"], timeout=10)
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "stop"], timeout=10)
     time.sleep(2)
     
     # Kill any remaining processes
@@ -176,7 +176,7 @@ def test_basic_operations():
     print("="*60)
     
     # Test 1: Basic startup
-    result = run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     pid = get_daemon_pid()
@@ -196,7 +196,7 @@ def test_basic_operations():
         return
     
     # Test 2: Status command
-    result = run_command([sys.executable, str(DAEMON_SCRIPT), "status"])
+    result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "status"])
     if result.returncode == 0 and "RUNNING" in result.stdout:
         log_test("Status command", True, "Status shows running state", "Basic")
     else:
@@ -210,7 +210,7 @@ def test_basic_operations():
         log_test("Metrics generation", False, "No metrics generated", "Basic")
     
     # Test 4: Clean shutdown
-    result = run_command([sys.executable, str(DAEMON_SCRIPT), "stop"])
+    result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "stop"])
     time.sleep(2)
     
     if get_daemon_pid() == 0 and get_supervisor_pid() == 0:
@@ -225,7 +225,7 @@ def test_crash_recovery():
     print("="*60)
     
     # Start daemon
-    run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     initial_pid = get_daemon_pid()
@@ -298,7 +298,7 @@ def test_health_monitoring():
     
     try:
         # Start daemon
-        run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+        run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         time.sleep(3)
         
         if get_daemon_pid() == 0:
@@ -357,7 +357,7 @@ def test_configuration_management():
     
     try:
         # Start daemon with custom config
-        run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+        run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         time.sleep(3)
         
         port = get_daemon_port()
@@ -369,7 +369,7 @@ def test_configuration_management():
             log_test("Custom port range", False, f"Port {port} not in custom range", "Config")
         
         # Test configuration reflection in status
-        result = run_command([sys.executable, str(DAEMON_SCRIPT), "status"])
+        result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "status"])
         if "Max Retries: 15" in result.stdout:
             log_test("Config in status output", True, "Custom config shown in status", "Config")
         else:
@@ -379,7 +379,7 @@ def test_configuration_management():
         cleanup_daemon()
         os.environ['SOCKETIO_MAX_RETRIES'] = 'invalid'
         
-        result = run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+        result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         time.sleep(2)
         
         # Should still start with default values
@@ -404,7 +404,7 @@ def test_process_management():
     print("="*60)
     
     # Test 1: PID file creation and cleanup
-    run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     deployment_root = get_project_root()
@@ -437,13 +437,13 @@ def test_process_management():
         log_test("PID file cleanup", False, "PID files not cleaned up", "Process")
     
     # Test 4: Concurrent instance protection
-    run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     first_pid = get_daemon_pid()
     
     # Try to start second instance
-    result = run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     second_pid = get_daemon_pid()
     
     if first_pid > 0 and second_pid == first_pid:
@@ -472,7 +472,7 @@ def test_error_handling():
         os.environ['SOCKETIO_PORT_START'] = '8765'
         os.environ['SOCKETIO_PORT_END'] = '8767'
         
-        run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+        run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         time.sleep(3)
         
         port = get_daemon_port()
@@ -498,7 +498,7 @@ def test_error_handling():
         os.chmod(read_only_dir, 0o444)  # Read-only
         
         # This should fail gracefully
-        result = run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+        result = run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
         # Even if it fails, it should not crash the whole system
         log_test("Permission error handling", True, "Handled permission errors gracefully", "Error")
         
@@ -519,7 +519,7 @@ def test_performance_load():
     print("="*60)
     
     # Start daemon
-    run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     port = get_daemon_port()
@@ -595,13 +595,13 @@ def test_integration():
         # Test wrapper with hardened daemon
         os.environ['SOCKETIO_USE_HARDENED'] = 'true'
         
-        result = run_command([sys.executable, str(wrapper_script), "start"])
+        result = run_subcommand([sys.executable, str(wrapper_script), "start"])
         time.sleep(3)
         
         if get_daemon_pid() > 0:
             log_test("Wrapper script integration", True, "Wrapper successfully started hardened daemon", "Integration")
             
-            result = run_command([sys.executable, str(wrapper_script), "stop"])
+            result = run_subcommand([sys.executable, str(wrapper_script), "stop"])
             time.sleep(2)
             
             if get_daemon_pid() == 0:
@@ -617,14 +617,14 @@ def test_integration():
         log_test("Wrapper script integration", False, "Wrapper script not found", "Integration")
     
     # Test 2: Metrics persistence across restarts
-    run_command([sys.executable, str(DAEMON_SCRIPT), "start"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "start"])
     time.sleep(3)
     
     # Get initial metrics
     initial_metrics = get_metrics()
     
     # Restart daemon
-    run_command([sys.executable, str(DAEMON_SCRIPT), "restart"])
+    run_subcommand([sys.executable, str(DAEMON_SCRIPT), "restart"])
     time.sleep(5)
     
     # Check if metrics persisted/updated correctly

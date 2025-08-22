@@ -1,3 +1,7 @@
+import pytest
+import pytest
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Comprehensive Socket.IO connection test with detailed diagnostics.
@@ -69,7 +73,8 @@ class SocketIOConnectionTester:
             )
             print(f"📨 Event received: {event} - {args}")
 
-    async def test_connection(self):
+    @pytest.mark.asyncio
+    async def test_connection():
         """Test basic connection."""
         print(f"\n🔍 Testing connection to {self.server_url}")
         self.connection_start = time.time()
@@ -89,7 +94,8 @@ class SocketIOConnectionTester:
             print(f"❌ Connection test FAILED with error: {e}")
             return False
 
-    async def test_emit_event(self):
+    @pytest.mark.asyncio
+    async def test_emit_event():
         """Test emitting an event."""
         if not self.connected:
             print("⚠️  Cannot test emit - not connected")
@@ -110,7 +116,8 @@ class SocketIOConnectionTester:
             print(f"❌ Failed to emit event: {e}")
             return False
 
-    async def test_request_response(self):
+    @pytest.mark.asyncio
+    async def test_request_response():
         """Test request/response pattern."""
         if not self.connected:
             print("⚠️  Cannot test request/response - not connected")
@@ -130,7 +137,8 @@ class SocketIOConnectionTester:
             print(f"❌ Request/response test failed: {e}")
             return False
 
-    async def test_namespace_connection(self):
+    @pytest.mark.asyncio
+    async def test_namespace_connection():
         """Test connecting to different namespaces."""
         print("\n🔍 Testing namespace connections")
         namespaces = ["/hooks", "/dashboard", "/api"]

@@ -47,7 +47,7 @@ class TestAgentValidator:
             # Missing required fields: role, prompt_template
         }
 
-    def test_validate_valid_agent(self, validator, valid_agent_config):
+    def test_validate_valid_agent(validator, valid_agent_config):
         """Test validation of a valid agent configuration."""
         result = validator.validate_agent_config(valid_agent_config, "test_agent")
 
@@ -55,7 +55,7 @@ class TestAgentValidator:
         assert len(result.errors) == 0
         assert len(result.warnings) == 0
 
-    def test_validate_invalid_agent(self, validator, invalid_agent_config):
+    def test_validate_invalid_agent(validator, invalid_agent_config):
         """Test validation of an invalid agent configuration."""
         result = validator.validate_agent_config(invalid_agent_config, "invalid_agent")
 
@@ -63,7 +63,7 @@ class TestAgentValidator:
         assert "Missing required field: role" in result.errors
         assert "Missing required field: prompt_template" in result.errors
 
-    def test_validate_prompt_template(self, validator):
+    def test_validate_prompt_template(validator):
         """Test prompt template validation."""
         # Valid template
         valid, errors = validator._validate_prompt_template(
@@ -82,7 +82,7 @@ class TestAgentValidator:
         assert not valid
         assert any("non-empty string" in error for error in errors)
 
-    def test_validate_tools(self, validator):
+    def test_validate_tools(validator):
         """Test tools validation."""
         # Valid tools
         valid, errors = validator._validate_tools(["file_operations", "code_analysis"])
@@ -99,7 +99,7 @@ class TestAgentValidator:
         assert not valid
         assert any("must be a list" in error for error in errors)
 
-    def test_overrides(self, validator):
+    def test_overrides(validator):
         """Test override functionality."""
         # Create validator with overrides
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
@@ -136,7 +136,7 @@ class TestAgentValidator:
         finally:
             override_file.unlink()
 
-    def test_validate_profile(self, validator):
+    def test_validate_profile(validator):
         """Test full profile validation."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             profile_data = {
@@ -176,7 +176,7 @@ class TestValidationHooks:
         return ValidationHooks()
 
     @pytest.mark.asyncio
-    async def test_pre_load_validation(self, hooks):
+    async def test_pre_load_validation(hooks):
         """Test pre-load validation."""
         # Test with non-existent file
         result = await hooks.run_pre_load_validation(Path("/nonexistent/file.md"))
@@ -184,7 +184,7 @@ class TestValidationHooks:
         assert any("not found" in error for error in result.errors)
 
     @pytest.mark.asyncio
-    async def test_pre_execute_validation(self, hooks):
+    async def test_pre_execute_validation(hooks):
         """Test pre-execute validation."""
         # Valid task
         result = await hooks.run_pre_execute_validation(
@@ -204,7 +204,7 @@ class TestValidationHooks:
         assert any("very long" in warning for warning in result.warnings)
 
     @pytest.mark.asyncio
-    async def test_security_validation(self):
+    async def test_security_validation():
         """Test security constraint validation."""
         # Safe task
         result = await validate_security_constraints("agent", "Analyze this file")
@@ -225,7 +225,7 @@ class TestValidationHooks:
         assert len(result.errors) >= 2  # Should detect both eval and __import__
 
     @pytest.mark.asyncio
-    async def test_dependency_validation(self):
+    async def test_dependency_validation():
         """Test agent dependency validation."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".yaml", delete=False) as f:
             profile_data = {
@@ -247,7 +247,7 @@ class TestValidationHooks:
         finally:
             profile_path.unlink()
 
-    def test_custom_hooks(self, hooks):
+    def test_custom_hooks(hooks):
         """Test custom hook registration."""
         call_count = {"pre_load": 0, "post_load": 0, "pre_execute": 0}
 
@@ -276,7 +276,7 @@ class TestValidationHooks:
 class TestValidationError:
     """Test ValidationError functionality."""
 
-    def test_validation_error_with_result(self):
+    def test_validation_error_with_result():
         """Test ValidationError with validation result."""
         result = ValidationResult(
             is_valid=False, errors=["Error 1", "Error 2"], warnings=["Warning 1"]
@@ -290,7 +290,7 @@ class TestValidationError:
         assert "Error 2" in detailed
         assert "Warning 1" in detailed
 
-    def test_validation_error_without_result(self):
+    def test_validation_error_without_result():
         """Test ValidationError without validation result."""
         error = ValidationError("Simple error")
         detailed = error.get_detailed_message()

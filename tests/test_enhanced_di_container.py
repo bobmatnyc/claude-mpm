@@ -149,7 +149,7 @@ class ServiceB:
 class TestDIContainer:
     """Test suite for enhanced DI container."""
 
-    def test_singleton_registration(self):
+    def test_singleton_registration():
         """Test singleton service registration and resolution."""
         container = DIContainer()
 
@@ -164,7 +164,7 @@ class TestDIContainer:
         assert logger1 is logger2
         assert isinstance(logger1, ConsoleLogger)
 
-    def test_factory_registration(self):
+    def test_factory_registration():
         """Test factory function registration."""
         container = DIContainer()
 
@@ -187,7 +187,7 @@ class TestDIContainer:
         assert logger1 is not logger2
         assert created_count == 2
 
-    def test_scoped_registration(self):
+    def test_scoped_registration():
         """Test scoped service lifetime."""
         container = DIContainer()
 
@@ -213,7 +213,7 @@ class TestDIContainer:
             # Different instance from first scope
             assert service3.get_id() != first_id
 
-    def test_automatic_constructor_injection(self):
+    def test_automatic_constructor_injection():
         """Test automatic dependency resolution in constructors."""
         container = DIContainer()
 
@@ -240,7 +240,7 @@ class TestDIContainer:
         assert "Database connected" in logger.messages
         assert "Saving data: {'data': 'test data'}" in logger.messages
 
-    def test_circular_dependency_detection(self):
+    def test_circular_dependency_detection():
         """Test that circular dependencies are detected."""
         container = DIContainer()
 
@@ -254,7 +254,7 @@ class TestDIContainer:
 
         assert "Circular dependency detected" in str(exc_info.value)
 
-    def test_service_not_found_with_suggestions(self):
+    def test_service_not_found_with_suggestions():
         """Test service not found error with suggestions."""
         container = DIContainer()
 
@@ -269,7 +269,7 @@ class TestDIContainer:
         error_msg = str(exc_info.value)
         assert "IRepository is not registered" in error_msg
 
-    def test_named_registrations(self):
+    def test_named_registrations():
         """Test named service registrations."""
         container = DIContainer()
 
@@ -290,7 +290,7 @@ class TestDIContainer:
         assert logger2 is secondary_logger
         assert logger1 is not logger2
 
-    def test_disposal_lifecycle(self):
+    def test_disposal_lifecycle():
         """Test service disposal lifecycle."""
         container = DIContainer()
 
@@ -310,7 +310,7 @@ class TestDIContainer:
         assert database.disposed
         assert not database.connected
 
-    def test_disposal_handler(self):
+    def test_disposal_handler():
         """Test custom disposal handlers."""
         container = DIContainer()
 
@@ -345,7 +345,7 @@ class TestDIContainer:
         assert "database" in disposed_services
         assert not database.connected
 
-    def test_initialization_hooks(self):
+    def test_initialization_hooks():
         """Test service initialization hooks."""
 
         class ServiceWithInit:
@@ -364,7 +364,7 @@ class TestDIContainer:
         # Should be initialized
         assert service.initialized
 
-    def test_optional_dependencies(self):
+    def test_optional_dependencies():
         """Test optional dependency resolution."""
         container = DIContainer()
 
@@ -378,7 +378,7 @@ class TestDIContainer:
         assert isinstance(logger, ConsoleLogger)
         assert database is None
 
-    def test_thread_safety(self):
+    def test_thread_safety():
         """Test thread-safe service resolution."""
         container = DIContainer()
         container.register_singleton(ILogger, ConsoleLogger)
@@ -409,7 +409,7 @@ class TestDIContainer:
         # All results should be same singleton instance
         assert all(r is results[0] for r in results)
 
-    def test_scoped_disposal(self):
+    def test_scoped_disposal():
         """Test that scoped services are disposed properly."""
 
         class DisposableScoped:
@@ -430,7 +430,7 @@ class TestDIContainer:
         # After scope exit, service should be disposed
         assert service.disposed
 
-    def test_child_container(self):
+    def test_child_container():
         """Test child container functionality."""
         parent = DIContainer()
         parent.register_singleton(ILogger, ConsoleLogger)

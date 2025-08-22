@@ -19,7 +19,7 @@ def test_with_real_cli():
     print("=" * 70)
     
     # Create a temporary configuration file to ensure we get a success message
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         config_dir = Path(tmpdir) / ".claude-mpm"
         config_dir.mkdir()
         config_file = config_dir / "configuration.yaml"
@@ -112,7 +112,7 @@ import logging
 logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
 # Import Config from different places
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 config1 = Config()
 
 # Import via a service that uses Config

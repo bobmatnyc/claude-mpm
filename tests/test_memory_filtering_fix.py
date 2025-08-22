@@ -18,14 +18,14 @@ import shutil
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.core.framework_loader import FrameworkLoader
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_memory_filtering():
     """Test that memory filtering works correctly."""
     
     # Create a temporary test directory
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         tmpdir = Path(tmpdir)
         
         # Create test directories

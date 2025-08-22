@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Integration test for MCP ticket tools with aitrackdown.
@@ -26,6 +27,7 @@ from claude_mpm.services.mcp_gateway.tools.ticket_tools import (
 )
 
 
+@pytest.mark.asyncio
 async def test_ticket_workflow():
     """Test a complete ticket workflow."""
     print("Testing MCP Ticket Tools Integration with aitrackdown")

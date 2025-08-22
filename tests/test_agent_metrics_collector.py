@@ -28,7 +28,7 @@ class TestAgentMetricsCollector:
         """Create AgentMetricsCollector instance."""
         return AgentMetricsCollector()
 
-    def test_initialization(self, metrics_collector):
+    def test_initialization(metrics_collector):
         """Test AgentMetricsCollector initialization."""
         assert hasattr(metrics_collector, "logger")
         assert hasattr(metrics_collector, "_deployment_metrics")
@@ -39,7 +39,7 @@ class TestAgentMetricsCollector:
         assert metrics["successful_deployments"] == 0
         assert metrics["success_rate_percent"] == 0.0
 
-    def test_update_deployment_metrics_success(self, metrics_collector):
+    def test_update_deployment_metrics_success(metrics_collector):
         """Test updating metrics with successful deployment."""
         results = {"deployed": ["test-agent", "qa-agent"], "errors": [], "migrated": []}
 
@@ -56,7 +56,7 @@ class TestAgentMetricsCollector:
         assert "qa" in metrics["agent_type_distribution"]
         assert metrics["agent_type_distribution"]["qa"] == 2  # Both agents counted
 
-    def test_update_deployment_metrics_failure(self, metrics_collector):
+    def test_update_deployment_metrics_failure(metrics_collector):
         """Test updating metrics with failed deployment."""
         results = {
             "deployed": [],
@@ -75,7 +75,7 @@ class TestAgentMetricsCollector:
         # Check error tracking
         assert len(metrics["error_distribution"]) > 0
 
-    def test_update_deployment_metrics_with_migrations(self, metrics_collector):
+    def test_update_deployment_metrics_with_migrations(metrics_collector):
         """Test updating metrics with migrations."""
         results = {
             "deployed": ["security-agent"],
@@ -89,7 +89,7 @@ class TestAgentMetricsCollector:
         assert metrics["migrations_performed"] == 2
         assert metrics["version_migrations"] == 2
 
-    def test_rolling_average_calculation(self, metrics_collector):
+    def test_rolling_average_calculation(metrics_collector):
         """Test rolling average calculation for deployment times."""
         # Add multiple deployments
         for i in range(5):
@@ -100,7 +100,7 @@ class TestAgentMetricsCollector:
         expected_avg = (100 + 110 + 120 + 130 + 140) / 5
         assert metrics["average_deployment_time_ms"] == expected_avg
 
-    def test_deployment_times_limit(self, metrics_collector):
+    def test_deployment_times_limit(metrics_collector):
         """Test that deployment times are limited to last 100 entries."""
         # Add more than 100 deployments
         for i in range(105):
@@ -114,7 +114,7 @@ class TestAgentMetricsCollector:
         deployment_times = metrics_collector._deployment_metrics["deployment_times"]
         assert min(deployment_times) == 5.0  # Should start from 5, not 0
 
-    def test_agent_type_categorization(self, metrics_collector):
+    def test_agent_type_categorization(metrics_collector):
         """Test agent type categorization."""
         test_cases = [
             ("security-scanner", "security"),
@@ -131,7 +131,7 @@ class TestAgentMetricsCollector:
             actual_type = metrics_collector._extract_agent_type(agent_name)
             assert actual_type == expected_type, f"Failed for {agent_name}"
 
-    def test_error_categorization(self, metrics_collector):
+    def test_error_categorization(metrics_collector):
         """Test error message categorization."""
         test_cases = [
             ("JSON parsing failed", "parsing_error"),
@@ -148,7 +148,7 @@ class TestAgentMetricsCollector:
             actual_category = metrics_collector._categorize_error(error_msg)
             assert actual_category == expected_category, f"Failed for {error_msg}"
 
-    def test_get_deployment_status(self, metrics_collector):
+    def test_get_deployment_status(metrics_collector):
         """Test getting deployment status."""
         status = metrics_collector.get_deployment_status()
 
@@ -157,7 +157,7 @@ class TestAgentMetricsCollector:
         assert "metrics_collection_active" in status
         assert status["metrics_collection_active"] is True
 
-    def test_reset_metrics(self, metrics_collector):
+    def test_reset_metrics(metrics_collector):
         """Test resetting metrics."""
         # Add some data first
         results = {"deployed": ["test-agent"], "errors": [], "migrated": []}
@@ -177,7 +177,7 @@ class TestAgentMetricsCollector:
         assert metrics["average_deployment_time_ms"] == 0.0
         assert len(metrics["agent_type_distribution"]) == 0
 
-    def test_track_validation_time(self, metrics_collector):
+    def test_track_validation_time(metrics_collector):
         """Test tracking validation times."""
         metrics_collector.track_validation_time("test-agent", 25.5)
         metrics_collector.track_validation_time("qa-agent", 30.0)
@@ -189,7 +189,7 @@ class TestAgentMetricsCollector:
         assert validation_times["test-agent"] == 25.5
         assert validation_times["qa-agent"] == 30.0
 
-    def test_get_performance_summary(self, metrics_collector):
+    def test_get_performance_summary(metrics_collector):
         """Test getting performance summary."""
         # Add some test data
         results = {"deployed": ["test-agent"], "errors": [], "migrated": []}
@@ -211,7 +211,7 @@ class TestAgentMetricsCollector:
         assert summary["fastest_deployment_ms"] == 150.0
         assert summary["slowest_deployment_ms"] == 200.0
 
-    def test_most_common_agent_type(self, metrics_collector):
+    def test_most_common_agent_type(metrics_collector):
         """Test getting most common agent type."""
         # Add agents of different types
         test_data = [
@@ -228,7 +228,7 @@ class TestAgentMetricsCollector:
         most_common = metrics_collector._get_most_common_agent_type()
         assert most_common == "security"  # Should be most frequent
 
-    def test_error_rate_calculation(self, metrics_collector):
+    def test_error_rate_calculation(metrics_collector):
         """Test error rate calculation."""
         # Add successful deployment
         results = {"deployed": ["agent1"], "errors": [], "migrated": []}
@@ -241,7 +241,7 @@ class TestAgentMetricsCollector:
         error_rate = metrics_collector._calculate_error_rate()
         assert error_rate == 50.0  # 1 failure out of 2 total = 50%
 
-    def test_mixed_success_failure_metrics(self, metrics_collector):
+    def test_mixed_success_failure_metrics(metrics_collector):
         """Test metrics with mixed success and failure scenarios."""
         # Successful deployment
         results = {"deployed": ["agent1"], "errors": [], "migrated": ["old-agent"]}

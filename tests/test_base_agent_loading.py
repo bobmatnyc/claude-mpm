@@ -19,7 +19,7 @@ def test_base_agent_loader():
     """Test the base_agent_loader module."""
     print("\n=== Testing base_agent_loader module ===")
     
-    from claude_mpm.agents.base_agent_loader import (
+    from claude_mpm.services.agents.base_agent_loader import (
         _get_base_agent_file,
         load_base_agent_instructions,
         get_base_agent_path

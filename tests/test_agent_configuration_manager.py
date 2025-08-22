@@ -55,20 +55,20 @@ class TestAgentConfigurationManager:
         """Create AgentConfigurationManager without base agent."""
         return AgentConfigurationManager()
 
-    def test_initialization(self, temp_base_agent_file):
+    def test_initialization(temp_base_agent_file):
         """Test AgentConfigurationManager initialization."""
         manager = AgentConfigurationManager(temp_base_agent_file)
         assert manager.base_agent_path == temp_base_agent_file
         assert hasattr(manager, "logger")
         assert manager._base_agent_cache is None
 
-    def test_initialization_no_base_agent(self):
+    def test_initialization_no_base_agent():
         """Test initialization without base agent."""
         manager = AgentConfigurationManager()
         assert manager.base_agent_path is None
         assert manager._base_agent_cache is None
 
-    def test_load_base_agent_success(self, config_manager):
+    def test_load_base_agent_success(config_manager):
         """Test successful base agent loading."""
         base_agent_data, base_agent_version = config_manager.load_base_agent()
 
@@ -80,7 +80,7 @@ class TestAgentConfigurationManager:
         # Test caching
         assert config_manager._base_agent_cache is not None
 
-    def test_load_base_agent_cached(self, config_manager):
+    def test_load_base_agent_cached(config_manager):
         """Test that base agent loading uses cache on second call."""
         # First call
         data1, version1 = config_manager.load_base_agent()
@@ -91,7 +91,7 @@ class TestAgentConfigurationManager:
         assert data1 is data2  # Should be same object (cached)
         assert version1 == version2
 
-    def test_load_base_agent_no_file(self, config_manager_no_base):
+    def test_load_base_agent_no_file(config_manager_no_base):
         """Test base agent loading when file doesn't exist."""
         base_agent_data, base_agent_version = config_manager_no_base.load_base_agent()
 
@@ -100,7 +100,7 @@ class TestAgentConfigurationManager:
         assert base_agent_data["description"] == "Base agent configuration"
         assert base_agent_version == (1, 0, 0)
 
-    def test_get_agent_tools_security(self, config_manager):
+    def test_get_agent_tools_security(config_manager):
         """Test tool assignment for security agents."""
         tools = config_manager.get_agent_tools("security-scanner", {})
 
@@ -109,7 +109,7 @@ class TestAgentConfigurationManager:
         assert "SecurityScan" in tools
         assert "VulnerabilityCheck" in tools
 
-    def test_get_agent_tools_qa(self, config_manager):
+    def test_get_agent_tools_qa(config_manager):
         """Test tool assignment for QA agents."""
         tools = config_manager.get_agent_tools("qa-validator", {})
 
@@ -118,7 +118,7 @@ class TestAgentConfigurationManager:
         assert "TestRunner" in tools
         assert "CodeAnalysis" in tools
 
-    def test_get_agent_tools_documentation(self, config_manager):
+    def test_get_agent_tools_documentation(config_manager):
         """Test tool assignment for documentation agents."""
         tools = config_manager.get_agent_tools("doc-generator", {})
 
@@ -127,7 +127,7 @@ class TestAgentConfigurationManager:
         assert "DocumentGenerator" in tools
         assert "MarkdownProcessor" in tools
 
-    def test_get_agent_tools_data(self, config_manager):
+    def test_get_agent_tools_data(config_manager):
         """Test tool assignment for data processing agents."""
         tools = config_manager.get_agent_tools("data-processor", {})
 
@@ -136,7 +136,7 @@ class TestAgentConfigurationManager:
         assert "DataProcessor" in tools
         assert "CSVHandler" in tools
 
-    def test_get_agent_tools_operations(self, config_manager):
+    def test_get_agent_tools_operations(config_manager):
         """Test tool assignment for operations agents."""
         tools = config_manager.get_agent_tools("ops-monitor", {})
 
@@ -145,7 +145,7 @@ class TestAgentConfigurationManager:
         assert "SystemMonitor" in tools
         assert "LogAnalyzer" in tools
 
-    def test_get_agent_tools_research(self, config_manager):
+    def test_get_agent_tools_research(config_manager):
         """Test tool assignment for research agents."""
         tools = config_manager.get_agent_tools("research-agent", {})
 
@@ -154,7 +154,7 @@ class TestAgentConfigurationManager:
         assert "WebSearch" in tools
         assert "DataCollector" in tools
 
-    def test_get_agent_tools_specializations(self, config_manager):
+    def test_get_agent_tools_specializations(config_manager):
         """Test tool assignment based on specializations metadata."""
         metadata = {"specializations": ["security", "testing"]}
         tools = config_manager.get_agent_tools("generic-agent", metadata)
@@ -163,7 +163,7 @@ class TestAgentConfigurationManager:
         assert "SecurityScan" in tools
         assert "VulnerabilityCheck" in tools
 
-    def test_get_agent_tools_default(self, config_manager):
+    def test_get_agent_tools_default(config_manager):
         """Test default tool assignment."""
         tools = config_manager.get_agent_tools("generic-agent", {})
 
@@ -174,7 +174,7 @@ class TestAgentConfigurationManager:
         assert "Bash" in tools
         assert "WebSearch" in tools
 
-    def test_get_agent_specific_config_security(self, config_manager):
+    def test_get_agent_specific_config_security(config_manager):
         """Test security agent configuration."""
         config = config_manager.get_agent_specific_config("security-scanner")
 
@@ -183,7 +183,7 @@ class TestAgentConfigurationManager:
         assert config["security_mode"] is True
         assert config["audit_logging"] is True
 
-    def test_get_agent_specific_config_qa(self, config_manager):
+    def test_get_agent_specific_config_qa(config_manager):
         """Test QA agent configuration."""
         config = config_manager.get_agent_specific_config("qa-validator")
 
@@ -192,7 +192,7 @@ class TestAgentConfigurationManager:
         assert config["test_mode"] is True
         assert config["coverage_reporting"] is True
 
-    def test_get_agent_specific_config_data(self, config_manager):
+    def test_get_agent_specific_config_data(config_manager):
         """Test data processing agent configuration."""
         config = config_manager.get_agent_specific_config("data-processor")
 
@@ -201,7 +201,7 @@ class TestAgentConfigurationManager:
         assert config["parallel_execution"] is True
         assert config["data_processing_mode"] is True
 
-    def test_get_agent_specific_config_ops(self, config_manager):
+    def test_get_agent_specific_config_ops(config_manager):
         """Test operations agent configuration."""
         config = config_manager.get_agent_specific_config("ops-monitor")
 
@@ -210,7 +210,7 @@ class TestAgentConfigurationManager:
         assert config["monitoring_mode"] is True
         assert config["alert_threshold"] == "warning"
 
-    def test_get_agent_specific_config_research(self, config_manager):
+    def test_get_agent_specific_config_research(config_manager):
         """Test research agent configuration."""
         config = config_manager.get_agent_specific_config("research-agent")
 
@@ -219,7 +219,7 @@ class TestAgentConfigurationManager:
         assert config["research_mode"] is True
         assert config["web_search_enabled"] is True
 
-    def test_get_agent_specific_config_default(self, config_manager):
+    def test_get_agent_specific_config_default(config_manager):
         """Test default agent configuration."""
         config = config_manager.get_agent_specific_config("generic-agent")
 
@@ -228,9 +228,9 @@ class TestAgentConfigurationManager:
         assert config["memory_limit"] == "1GB"
         assert config["parallel_execution"] is False
 
-    def test_determine_source_tier_project(self, config_manager):
+    def test_determine_source_tier_project(config_manager):
         """Test source tier determination for project context."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             temp_path = Path(temp_dir)
 
             # Create project indicator
@@ -240,9 +240,9 @@ class TestAgentConfigurationManager:
                 tier = config_manager.determine_source_tier()
                 assert tier == "project"
 
-    def test_determine_source_tier_user(self, config_manager):
+    def test_determine_source_tier_user(config_manager):
         """Test source tier determination for user context."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             temp_path = Path(temp_dir)
             user_config = temp_path / ".claude"
             user_config.mkdir()
@@ -253,9 +253,9 @@ class TestAgentConfigurationManager:
                 tier = config_manager.determine_source_tier()
                 assert tier == "user"
 
-    def test_determine_source_tier_system(self, config_manager):
+    def test_determine_source_tier_system(config_manager):
         """Test source tier determination for system context."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             temp_path = Path(temp_dir)
 
             with patch("pathlib.Path.cwd", return_value=temp_path), patch(
@@ -264,7 +264,7 @@ class TestAgentConfigurationManager:
                 tier = config_manager.determine_source_tier()
                 assert tier == "system"
 
-    def test_parse_base_agent_content_json(self, config_manager):
+    def test_parse_base_agent_content_json(config_manager):
         """Test parsing JSON base agent content."""
         json_content = json.dumps(
             {
@@ -280,7 +280,7 @@ class TestAgentConfigurationManager:
         assert data["version"] == "1.0.0"
         assert data["instructions"] == "Test instructions"
 
-    def test_parse_base_agent_content_markdown(self, config_manager):
+    def test_parse_base_agent_content_markdown(config_manager):
         """Test parsing Markdown with YAML frontmatter."""
         markdown_content = """---
 name: test-agent
@@ -304,7 +304,7 @@ This is a test agent with markdown instructions."""
             assert data["name"] == "test-agent"
             assert "instructions" in data
 
-    def test_parse_base_agent_content_plain_text(self, config_manager):
+    def test_parse_base_agent_content_plain_text(config_manager):
         """Test parsing plain text content."""
         plain_content = "You are a helpful AI assistant."
 
@@ -313,7 +313,7 @@ This is a test agent with markdown instructions."""
         assert data["name"] == "base-agent"
         assert data["instructions"] == plain_content
 
-    def test_extract_base_agent_version(self, config_manager):
+    def test_extract_base_agent_version(config_manager):
         """Test version extraction from base agent data."""
         test_cases = [
             ("1.2.3", (1, 2, 3)),
@@ -328,7 +328,7 @@ This is a test agent with markdown instructions."""
             result = config_manager._extract_base_agent_version(data)
             assert result == expected
 
-    def test_clear_cache(self, config_manager):
+    def test_clear_cache(config_manager):
         """Test cache clearing."""
         # Load base agent to populate cache
         config_manager.load_base_agent()
@@ -338,7 +338,7 @@ This is a test agent with markdown instructions."""
         config_manager.clear_cache()
         assert config_manager._base_agent_cache is None
 
-    def test_get_configuration_summary(self, config_manager):
+    def test_get_configuration_summary(config_manager):
         """Test configuration summary."""
         summary = config_manager.get_configuration_summary()
 

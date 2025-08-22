@@ -241,7 +241,7 @@ class TestConcurrentAgentDeployment:
             assert (target_dir / ".claude" / "agents" / f"{agent}.md").exists()
 
     @pytest.mark.asyncio
-    async def test_async_concurrent_deployment(self, deployment_service, tmp_path):
+    async def test_async_concurrent_deployment(deployment_service, tmp_path):
         """Test async concurrent deployment scenarios."""
         target_dir = tmp_path / "async_deployed"
 
@@ -363,7 +363,7 @@ class TestPartialDeploymentFailures:
         # Failure file should not exist or be incomplete
         assert not failure_file.exists() or failure_file.stat().st_size == 0
 
-    def test_deployment_failure_permission_denied(self, deployment_service, tmp_path):
+    def test_deployment_failure_permission_denied(deployment_service, tmp_path):
         """Test deployment behavior when permission is denied."""
         target_dir = tmp_path / "deployed"
         target_dir.mkdir()
@@ -385,7 +385,7 @@ class TestPartialDeploymentFailures:
                 has_permission_errors
             ), "Expected permission errors to be handled gracefully"
 
-    def test_deployment_failure_corrupted_template(self, deployment_service, tmp_path):
+    def test_deployment_failure_corrupted_template(deployment_service, tmp_path):
         """Test deployment behavior with corrupted agent templates."""
         templates_dir = tmp_path / "templates"
 
@@ -412,7 +412,7 @@ class TestPartialDeploymentFailures:
             if deployed_file.exists():
                 assert deployed_file.stat().st_size > 0
 
-    def test_deployment_failure_network_unavailable(self, deployment_service, tmp_path):
+    def test_deployment_failure_network_unavailable(deployment_service, tmp_path):
         """Test deployment behavior when network dependencies are unavailable."""
         target_dir = tmp_path / "deployed"
 
@@ -592,7 +592,7 @@ class TestRollbackScenarios:
                     len(current_content) > 0
                 ), f"File {filename} is empty after rollback"
 
-    def test_manual_rollback_capability(self, deployment_service_with_existing):
+    def test_manual_rollback_capability(deployment_service_with_existing):
         """Test manual rollback capability and verification."""
         deployment_service, target_dir = deployment_service_with_existing
 
@@ -641,7 +641,7 @@ This is the backup version of agent {i}.
             assert f"version: 1.{i}.0" in content
             assert "Backup version" in content
 
-    def test_state_consistency_after_rollback(self, deployment_service_with_existing):
+    def test_state_consistency_after_rollback(deployment_service_with_existing):
         """Test that system state is consistent after rollback operations."""
         deployment_service, target_dir = deployment_service_with_existing
 
@@ -754,7 +754,7 @@ class TestEdgeCasesAndIntegration:
 
         return AgentDeploymentService(templates_dir, base_agent_path)
 
-    def test_deployment_with_zero_agents(self, complex_deployment_service, tmp_path):
+    def test_deployment_with_zero_agents(complex_deployment_service, tmp_path):
         """Test deployment behavior when no agents are available."""
         target_dir = tmp_path / "deployed"
 

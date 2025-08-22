@@ -29,7 +29,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
     def setUp(self):
         self.logger = get_logger("test")
 
-    def test_improved_timing_constants(self):
+    def test_improved_timing_constants():
         """Test that improved timing constants are in place."""
         # This test verifies the constants are present in the source code
         import inspect
@@ -52,7 +52,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
             "time.sleep(0.5)", source, "Initial daemon startup delay should be present"
         )
 
-    def test_health_check_retry_logic(self):
+    def test_health_check_retry_logic():
         """Test that health check has retry logic for robustness."""
         import inspect
 
@@ -68,7 +68,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
             "settimeout(2.0)", source, "TCP timeout should be increased to 2.0s"
         )
 
-    def test_better_error_messages(self):
+    def test_better_error_messages():
         """Test that improved error messages are present."""
         import inspect
 
@@ -93,7 +93,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
 
     @patch("claude_mpm.cli.commands.run._check_socketio_server_running")
     @patch("subprocess.run")
-    def test_startup_timing_simulation(self, mock_subprocess, mock_health_check):
+    def test_startup_timing_simulation(mock_subprocess, mock_health_check):
         """Simulate startup with improved timing."""
         # Mock successful daemon start
         mock_subprocess.return_value.returncode = 0
@@ -117,7 +117,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
 
     @patch("socket.socket")
     @patch("urllib.request.urlopen")
-    def test_health_check_retry_behavior(self, mock_urlopen, mock_socket):
+    def test_health_check_retry_behavior(mock_urlopen, mock_socket):
         """Test health check retry behavior for various failure scenarios."""
         # Mock TCP connection success
         mock_sock = MagicMock()
@@ -144,7 +144,7 @@ class TestSocketIOStartupTimingFix(unittest.TestCase):
 
     @patch("socket.socket")
     @patch("urllib.request.urlopen")
-    def test_health_check_timeout_behavior(self, mock_urlopen, mock_socket):
+    def test_health_check_timeout_behavior(mock_urlopen, mock_socket):
         """Test health check behavior with connection timeouts."""
         # Mock TCP connection success
         mock_sock = MagicMock()

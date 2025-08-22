@@ -38,7 +38,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.exit")
-    def test_write_within_working_dir_allowed(self, mock_exit, mock_print):
+    def test_write_within_working_dir_allowed(mock_exit, mock_print):
         """Test that writes within working directory are allowed."""
         event = self.create_event(
             "PreToolUse",
@@ -83,7 +83,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.exit")
     @patch("claude_mpm.hooks.claude_hooks.hook_handler.logger")
-    def test_path_traversal_blocked(self, mock_logger, mock_exit, mock_print):
+    def test_path_traversal_blocked(mock_logger, mock_exit, mock_print):
         """Test that path traversal attempts are blocked."""
         event = self.create_event(
             "PreToolUse",
@@ -163,7 +163,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.exit")
-    def test_read_operations_allowed_anywhere(self, mock_exit, mock_print):
+    def test_read_operations_allowed_anywhere(mock_exit, mock_print):
         """Test that read operations are allowed from anywhere."""
         # Test Read tool
         event = self.create_event("PreToolUse", "Read", {"file_path": "/etc/hosts"})
@@ -198,7 +198,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.exit")
-    def test_relative_path_resolution(self, mock_exit, mock_print):
+    def test_relative_path_resolution(mock_exit, mock_print):
         """Test that relative paths are resolved correctly."""
         event = self.create_event(
             "PreToolUse",
@@ -228,7 +228,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.exit")
     @patch("claude_mpm.hooks.claude_hooks.hook_handler.logger")
-    def test_symlink_resolution(self, mock_logger, mock_exit, mock_print):
+    def test_symlink_resolution(mock_logger, mock_exit, mock_print):
         """Test that symlinks are resolved properly."""
         # This tests that if someone tries to use a symlink that points outside
         # the working directory, it's still blocked
@@ -262,7 +262,7 @@ class TestClaudeHookHandlerSecurity(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.exit")
     @patch("claude_mpm.hooks.claude_hooks.hook_handler.logger")
-    def test_invalid_path_blocked(self, mock_logger, mock_exit, mock_print):
+    def test_invalid_path_blocked(mock_logger, mock_exit, mock_print):
         """Test that invalid paths are blocked."""
         event = self.create_event(
             "PreToolUse",

@@ -28,7 +28,7 @@ from claude_mpm.services.mcp_gateway.registry.tool_registry import ToolRegistry
 class TestToolRegistryBasics:
     """Test basic tool registry functionality."""
 
-    def test_registry_creation(self):
+    def test_registry_creation():
         """Test registry can be created."""
         registry = ToolRegistry()
         # Check that registry has the expected attributes
@@ -37,7 +37,7 @@ class TestToolRegistryBasics:
         assert hasattr(registry, "_tool_definitions")
 
     @pytest.mark.asyncio
-    async def test_registry_initialization(self):
+    async def test_registry_initialization():
         """Test registry initialization."""
         registry = ToolRegistry()
         result = await registry.initialize()
@@ -52,7 +52,7 @@ class TestToolRegistration:
     """Test tool registration functionality."""
 
     @pytest.mark.asyncio
-    async def test_register_tool_success(self):
+    async def test_register_tool_success():
         """Test successful tool registration."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -77,7 +77,7 @@ class TestToolRegistration:
         mock_tool.initialize.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_register_duplicate_tool(self):
+    async def test_register_duplicate_tool():
         """Test registering duplicate tool."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -100,7 +100,7 @@ class TestToolRegistration:
         assert registry._metrics["total_tools"] == 1
 
     @pytest.mark.asyncio
-    async def test_register_tool_invalid_category(self):
+    async def test_register_tool_invalid_category():
         """Test registering tool with invalid category."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -119,7 +119,7 @@ class TestToolRegistration:
         assert registry._categories["user"] == 1
 
     @pytest.mark.asyncio
-    async def test_deregister_tool(self):
+    async def test_deregister_tool():
         """Test tool deregistration."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -145,7 +145,7 @@ class TestToolRegistration:
         mock_tool.shutdown.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_deregister_nonexistent_tool(self):
+    async def test_deregister_nonexistent_tool():
         """Test deregistering non-existent tool."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -158,7 +158,7 @@ class TestToolDiscovery:
     """Test tool discovery functionality."""
 
     @pytest.mark.asyncio
-    async def test_list_tools(self):
+    async def test_list_tools():
         """Test listing all tools."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -178,7 +178,7 @@ class TestToolDiscovery:
         assert all(isinstance(tool, MCPToolDefinition) for tool in tools)
 
     @pytest.mark.asyncio
-    async def test_search_tools(self):
+    async def test_search_tools():
         """Test searching for tools."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -205,7 +205,7 @@ class TestToolDiscovery:
         assert results[0].name == "echo_tool"
 
     @pytest.mark.asyncio
-    async def test_get_tool_by_name(self):
+    async def test_get_tool_by_name():
         """Test getting tool by name."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -232,7 +232,7 @@ class TestToolInvocation:
     """Test tool invocation functionality."""
 
     @pytest.mark.asyncio
-    async def test_invoke_tool_success(self):
+    async def test_invoke_tool_success():
         """Test successful tool invocation."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -264,7 +264,7 @@ class TestToolInvocation:
         mock_tool.invoke.assert_called_once_with(invocation)
 
     @pytest.mark.asyncio
-    async def test_invoke_nonexistent_tool(self):
+    async def test_invoke_nonexistent_tool():
         """Test invoking non-existent tool."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -276,7 +276,7 @@ class TestToolInvocation:
         assert "not found" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_invoke_tool_exception(self):
+    async def test_invoke_tool_exception():
         """Test tool invocation with exception."""
         registry = ToolRegistry()
         await registry.initialize()
@@ -304,7 +304,7 @@ class TestToolRegistryMetrics:
     """Test tool registry metrics."""
 
     @pytest.mark.asyncio
-    async def test_get_metrics(self):
+    async def test_get_metrics():
         """Test getting registry metrics."""
         registry = ToolRegistry()
         await registry.initialize()

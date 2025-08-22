@@ -36,7 +36,7 @@ class TestMCPGatewaySingleton:
         # Reset singleton instance
         MCPGatewayManager._instance = None
     
-    def test_singleton_pattern(self):
+    def test_singleton_pattern():
         """Test that singleton pattern works correctly."""
         manager1 = get_gateway_manager()
         manager2 = get_gateway_manager()
@@ -44,12 +44,12 @@ class TestMCPGatewaySingleton:
         assert manager1 is manager2
         assert isinstance(manager1, MCPGatewayManager)
     
-    def test_gateway_status_no_instance(self):
+    def test_gateway_status_no_instance():
         """Test gateway status when no instance is running."""
         assert not is_gateway_running()
         assert get_gateway_status() is None
     
-    def test_manager_initialization(self):
+    def test_manager_initialization():
         """Test manager initialization."""
         manager = get_gateway_manager()
         
@@ -58,7 +58,7 @@ class TestMCPGatewaySingleton:
         assert manager.lock_file is not None
         assert manager.instance_file is not None
     
-    def test_lock_acquisition_and_release(self):
+    def test_lock_acquisition_and_release():
         """Test lock acquisition and release."""
         manager = get_gateway_manager()
         
@@ -70,7 +70,7 @@ class TestMCPGatewaySingleton:
         manager.release_lock()
         assert manager._lock_fd is None
     
-    def test_instance_registration(self):
+    def test_instance_registration():
         """Test gateway instance registration."""
         manager = get_gateway_manager()
         
@@ -87,7 +87,7 @@ class TestMCPGatewaySingleton:
         # Cleanup
         manager.cleanup()
     
-    def test_concurrent_lock_acquisition(self):
+    def test_concurrent_lock_acquisition():
         """Test that only one process can acquire the lock."""
         manager1 = get_gateway_manager()
         
@@ -114,7 +114,7 @@ class TestMCPGatewayStartupVerification:
         MCPGatewayManager._instance = None
     
     @pytest.mark.asyncio
-    async def test_startup_verifier_initialization(self):
+    async def test_startup_verifier_initialization():
         """Test startup verifier initialization."""
         verifier = MCPGatewayStartupVerifier()
         
@@ -126,7 +126,7 @@ class TestMCPGatewayStartupVerification:
         assert "health_check" in verifier.essential_tools
     
     @pytest.mark.asyncio
-    async def test_verify_singleton_manager(self):
+    async def test_verify_singleton_manager():
         """Test singleton manager verification."""
         verifier = MCPGatewayStartupVerifier()
         
@@ -134,9 +134,9 @@ class TestMCPGatewayStartupVerification:
         assert result is True
     
     @pytest.mark.asyncio
-    async def test_config_directory_creation(self):
+    async def test_config_directory_creation():
         """Test configuration directory creation."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             verifier = MCPGatewayStartupVerifier()
             verifier.config_dir = Path(temp_dir) / "test_mcp"
             
@@ -148,9 +148,9 @@ class TestMCPGatewayStartupVerification:
             assert verifier.config_dir.exists()
     
     @pytest.mark.asyncio
-    async def test_gateway_configuration_creation(self):
+    async def test_gateway_configuration_creation():
         """Test gateway configuration creation."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             verifier = MCPGatewayStartupVerifier()
             verifier.config_dir = Path(temp_dir) / "test_mcp"
             verifier.config_file = verifier.config_dir / "gateway_config.json"
@@ -172,7 +172,7 @@ class TestMCPGatewayStartupVerification:
             assert "tools" in config_data["mcp"]
     
     @pytest.mark.asyncio
-    async def test_essential_tools_verification(self):
+    async def test_essential_tools_verification():
         """Test essential tools verification."""
         verifier = MCPGatewayStartupVerifier()
         
@@ -197,9 +197,9 @@ class TestMCPGatewayStartupVerification:
                 assert tools_status[tool_name]["available"] is True
     
     @pytest.mark.asyncio
-    async def test_overall_verification(self):
+    async def test_overall_verification():
         """Test overall verification process."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             verifier = MCPGatewayStartupVerifier()
             verifier.config_dir = Path(temp_dir) / "test_mcp"
             verifier.config_file = verifier.config_dir / "gateway_config.json"
@@ -228,7 +228,7 @@ class TestMCPGatewayStartupVerification:
             assert results["singleton_manager"] is True
     
     @pytest.mark.asyncio
-    async def test_global_verification_function(self):
+    async def test_global_verification_function():
         """Test global verification function."""
         with patch('claude_mpm.services.mcp_gateway.core.startup_verification.MCPGatewayStartupVerifier') as mock_verifier_class:
             mock_verifier = Mock()
@@ -246,7 +246,7 @@ class TestMCPGatewayStartupVerification:
             assert results["singleton_manager"] is True
             mock_verifier.verify_and_configure.assert_called_once()
     
-    def test_is_mcp_gateway_configured(self):
+    def test_is_mcp_gateway_configured():
         """Test quick configuration check."""
         # Should return True if basic components are available
         result = is_mcp_gateway_configured()
@@ -261,7 +261,7 @@ class TestMCPGatewayStartupIntegration:
         # Reset singleton instance
         MCPGatewayManager._instance = None
     
-    def test_cli_startup_integration(self):
+    def test_cli_startup_integration():
         """Test that CLI startup includes MCP gateway verification."""
         # This test verifies that the CLI startup process includes
         # MCP gateway verification without blocking
@@ -277,8 +277,8 @@ class TestMCPGatewayStartupIntegration:
         # Function should return immediately (non-blocking)
         assert True  # If we get here, the function didn't block
     
-    @patch('claude_mpm.cli.is_mcp_gateway_configured')
-    def test_cli_startup_with_configured_gateway(self, mock_is_configured):
+    @patch("claude_mpm.cli.commands.is_mcp_gateway_configured')
+    def test_cli_startup_with_configured_gateway(mock_is_configured):
         """Test CLI startup when gateway is already configured."""
         mock_is_configured.return_value = True
         
@@ -293,7 +293,7 @@ class TestMCPGatewayStartupIntegration:
         assert (end_time - start_time) < 1.0
         mock_is_configured.assert_called_once()
     
-    def test_background_verification_thread(self):
+    def test_background_verification_thread():
         """Test that verification runs in background thread."""
         from claude_mpm.cli import _verify_mcp_gateway_startup
         

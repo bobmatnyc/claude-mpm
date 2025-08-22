@@ -44,14 +44,14 @@ class TestServiceImpl2(ITestService):
 class TestDIContainerInterfaceCompliance:
     """Test suite for DIContainer interface compliance."""
 
-    def test_di_container_implements_interface(self):
+    def test_di_container_implements_interface():
         """Test that DIContainer explicitly implements IServiceContainer."""
         container = DIContainer()
         assert isinstance(
             container, IServiceContainer
         ), "DIContainer must inherit from IServiceContainer"
 
-    def test_register_method_exists(self):
+    def test_register_method_exists():
         """Test that register method exists with correct signature."""
         container = DIContainer()
 
@@ -65,7 +65,7 @@ class TestDIContainerInterfaceCompliance:
         # Test with singleton parameter
         container.register(ITestService, TestServiceImpl2, singleton=False)
 
-    def test_register_instance_method_exists(self):
+    def test_register_instance_method_exists():
         """Test that register_instance method exists with correct signature."""
         container = DIContainer()
 
@@ -82,7 +82,7 @@ class TestDIContainerInterfaceCompliance:
         resolved = container.resolve(ITestService)
         assert resolved is instance, "Should return the same instance"
 
-    def test_resolve_method_exists(self):
+    def test_resolve_method_exists():
         """Test that resolve method exists with correct signature."""
         container = DIContainer()
 
@@ -95,7 +95,7 @@ class TestDIContainerInterfaceCompliance:
         assert isinstance(resolved, TestServiceImpl)
         assert resolved.get_value() == "test_value"
 
-    def test_resolve_all_method_exists(self):
+    def test_resolve_all_method_exists():
         """Test that resolve_all method exists with correct signature."""
         container = DIContainer()
 
@@ -116,7 +116,7 @@ class TestDIContainerInterfaceCompliance:
         assert len(results) == 1, "Should return list with one item"
         assert isinstance(results[0], TestServiceImpl)
 
-    def test_is_registered_method_exists(self):
+    def test_is_registered_method_exists():
         """Test that is_registered method exists with correct signature."""
         container = DIContainer()
 
@@ -132,7 +132,7 @@ class TestDIContainerInterfaceCompliance:
         container.register(ITestService, TestServiceImpl)
         assert container.is_registered(ITestService)
 
-    def test_interface_method_signatures_match(self):
+    def test_interface_method_signatures_match():
         """Test that all interface methods have matching signatures."""
         container = DIContainer()
 
@@ -152,7 +152,7 @@ class TestDIContainerInterfaceCompliance:
             method = getattr(container, method_name)
             assert callable(method), f"{method_name} must be callable"
 
-    def test_singleton_behavior(self):
+    def test_singleton_behavior():
         """Test that singleton registration works correctly."""
         container = DIContainer()
 
@@ -164,7 +164,7 @@ class TestDIContainerInterfaceCompliance:
         instance2 = container.resolve(ITestService)
         assert instance1 is instance2, "Singleton should return same instance"
 
-    def test_transient_behavior(self):
+    def test_transient_behavior():
         """Test that transient registration works correctly."""
         container = DIContainer()
 
@@ -176,7 +176,7 @@ class TestDIContainerInterfaceCompliance:
         instance2 = container.resolve(ITestService)
         assert instance1 is not instance2, "Transient should return different instances"
 
-    def test_backwards_compatibility(self):
+    def test_backwards_compatibility():
         """Test that existing functionality still works after interface implementation."""
         container = DIContainer()
 
@@ -192,7 +192,7 @@ class TestDIContainerInterfaceCompliance:
         instance = container.get(ITestService)
         assert isinstance(instance, TestServiceImpl2)
 
-    def test_type_annotations(self):
+    def test_type_annotations():
         """Test that type annotations are properly defined."""
         import inspect
 

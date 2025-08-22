@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """Test script to verify the Socket.IO dashboard file viewer is working.
 
@@ -25,6 +26,7 @@ except ImportError:
     exit(1)
 
 
+@pytest.mark.asyncio
 async def test_file_operations():
     """Generate test file operations to verify dashboard tracking."""
 

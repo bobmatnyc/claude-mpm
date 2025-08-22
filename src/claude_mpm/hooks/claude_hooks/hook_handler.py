@@ -36,7 +36,7 @@ try:
 except ImportError:
     # Fallback values if constants module not available
     class NetworkConfig:
-        SOCKETIO_PORT_RANGE = (8080, 8099)
+        SOCKETIO_PORT_RANGE = (8765, 8785)
         RECONNECTION_DELAY = 0.5
         SOCKET_WAIT_TIMEOUT = 1.0
 

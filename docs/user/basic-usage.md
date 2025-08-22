@@ -232,7 +232,7 @@ When using `--monitor`, the dashboard provides:
 
 **Dashboard Connection**
 - Check port availability (default: 8765)
-- Try different port: `--websocket-port 8080`
+- Try different port: `--websocket-port 8766`
 - Verify firewall settings
 
 ### Getting Help

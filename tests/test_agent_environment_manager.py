@@ -34,7 +34,7 @@ class TestAgentEnvironmentManager:
     @pytest.fixture
     def temp_dir(self):
         """Create temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             yield Path(temp_dir)
 
     @pytest.fixture
@@ -55,7 +55,7 @@ class TestAgentEnvironmentManager:
         os.environ.clear()
         os.environ.update(original_env)
 
-    def test_initialization(self, env_manager):
+    def test_initialization(env_manager):
         """Test AgentEnvironmentManager initialization."""
         assert hasattr(env_manager, "logger")
         assert env_manager.logger is not None
@@ -93,7 +93,7 @@ class TestAgentEnvironmentManager:
         # Check that custom directory was created
         assert custom_config.exists()
 
-    def test_get_current_environment_empty(self, env_manager, clean_environment):
+    def test_get_current_environment_empty(env_manager, clean_environment):
         """Test getting current environment when no Claude variables are set."""
         current_env = env_manager.get_current_environment()
         assert isinstance(current_env, dict)
@@ -224,7 +224,7 @@ class TestAgentEnvironmentManager:
         assert not setup_results["success"]
         assert len(setup_results["errors"]) > 0
 
-    def test_get_environment_info(self, env_manager, clean_environment):
+    def test_get_environment_info(env_manager, clean_environment):
         """Test getting comprehensive environment information."""
         # Set some test environment variables
         os.environ["CLAUDE_CONFIG_DIR"] = "/test/config"
@@ -243,7 +243,7 @@ class TestAgentEnvironmentManager:
         )
         assert info["python_path"] == "/test/python"
 
-    def test_cleanup_environment(self, env_manager, clean_environment):
+    def test_cleanup_environment(env_manager, clean_environment):
         """Test cleaning up environment variables."""
         # Set some Claude environment variables
         os.environ["CLAUDE_CONFIG_DIR"] = "/test/config"
@@ -264,7 +264,7 @@ class TestAgentEnvironmentManager:
         # Check that other variables remain
         assert os.environ.get("OTHER_VAR") == "should-remain"
 
-    def test_find_claude_config_locations(self, env_manager, temp_dir):
+    def test_find_claude_config_locations(env_manager, temp_dir):
         """Test finding Claude configuration locations."""
         # Create some test config directories
         test_configs = [

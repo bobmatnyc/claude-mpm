@@ -22,7 +22,7 @@ from claude_mpm.core.interactive_session import InteractiveSession
 class TestResumeFlagVerification(unittest.TestCase):
     """Test --resume flag handling throughout the command pipeline."""
     
-    def test_resume_flag_not_filtered(self):
+    def test_resume_flag_not_filtered():
         """Verify --resume is NOT filtered out as an MPM-specific flag."""
         # Test that --resume passes through the filter
         args = ["--resume", "--continue", "--max-tokens", "4000"]
@@ -31,7 +31,7 @@ class TestResumeFlagVerification(unittest.TestCase):
         self.assertIn("--resume", filtered)
         self.assertEqual(filtered, ["--resume", "--continue", "--max-tokens", "4000"])
     
-    def test_mpm_flags_are_filtered(self):
+    def test_mpm_flags_are_filtered():
         """Verify MPM-specific flags ARE filtered out."""
         args = ["--monitor", "--resume", "--debug", "--continue"]
         filtered = filter_claude_mpm_args(args)
@@ -44,7 +44,7 @@ class TestResumeFlagVerification(unittest.TestCase):
         self.assertIn("--resume", filtered)
         self.assertIn("--continue", filtered)
     
-    def test_interactive_session_includes_resume(self):
+    def test_interactive_session_includes_resume():
         """Verify InteractiveSession includes --resume in final command."""
         # Create mock runner with --resume in claude_args
         mock_runner = Mock()
@@ -75,7 +75,7 @@ class TestResumeFlagVerification(unittest.TestCase):
         resume_index = cmd.index("--resume")
         self.assertGreater(resume_index, 3)  # After the base command parts
     
-    def test_resume_flag_position(self):
+    def test_resume_flag_position():
         """Verify --resume is added at the beginning of claude_args."""
         # Import here to avoid circular imports
         from claude_mpm.core.claude_runner import ClaudeRunner
@@ -122,7 +122,7 @@ class TestResumeFlagVerification(unittest.TestCase):
                                 # Verify --resume is at the beginning
                                 self.assertEqual(claude_args[0], "--resume")
     
-    def test_end_to_end_resume_command(self):
+    def test_end_to_end_resume_command():
         """Test the complete command building pipeline with --resume."""
         # Simulate the entire flow
         raw_args = ["--continue", "--max-tokens", "4000"]

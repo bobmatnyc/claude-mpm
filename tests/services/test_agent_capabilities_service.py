@@ -21,7 +21,7 @@ class TestAgentCapabilitiesService:
         """Create an AgentCapabilitiesService instance for testing."""
         return AgentCapabilitiesService()
 
-    def test_generate_deployed_agent_capabilities_success(self, service):
+    def test_generate_deployed_agent_capabilities_success(service):
         """Test successful agent capabilities generation."""
         # Mock agent discovery
         mock_agents = {
@@ -49,7 +49,7 @@ class TestAgentCapabilitiesService:
             assert "Development Agents" in result
             assert "Total Available Agents" in result
 
-    def test_generate_deployed_agent_capabilities_no_agents(self, service):
+    def test_generate_deployed_agent_capabilities_no_agents(service):
         """Test capabilities generation when no agents are found."""
         with patch.object(service, "_discover_agents_from_dir"):
             result = service.generate_deployed_agent_capabilities()
@@ -59,7 +59,7 @@ class TestAgentCapabilitiesService:
             assert "Engineer Agent" in result  # Default fallback includes these
             assert "Research Agent" in result
 
-    def test_discover_agents_from_dir(self, service):
+    def test_discover_agents_from_dir(service):
         """Test agent discovery from directory."""
         discovered_agents = {}
 
@@ -74,7 +74,7 @@ class TestAgentCapabilitiesService:
         assert hasattr(service, "_discover_agents_from_dir")
         assert callable(getattr(service, "_discover_agents_from_dir"))
 
-    def test_discover_agents_from_dir_with_files(self, service, tmp_path):
+    def test_discover_agents_from_dir_with_files(service, tmp_path):
         """Test agent discovery with actual files."""
         discovered_agents = {}
 
@@ -93,7 +93,7 @@ class TestAgentCapabilitiesService:
         assert discovered_agents["test-agent"]["name"] == "Test Agent"
         assert discovered_agents["test-agent"]["tier"] == "project"
 
-    def test_categorize_agent(self, service):
+    def test_categorize_agent(service):
         """Test agent categorization logic."""
         # Test different agent types based on actual implementation
         assert (
@@ -107,7 +107,7 @@ class TestAgentCapabilitiesService:
         )
         assert service._categorize_agent("unknown-agent", "some content") == "General"
 
-    def test_get_fallback_capabilities(self, service):
+    def test_get_fallback_capabilities(service):
         """Test fallback capabilities generation."""
         result = service._get_fallback_capabilities()
 
@@ -117,7 +117,7 @@ class TestAgentCapabilitiesService:
         assert "QA Agent" in result
         assert "Documentation Agent" in result
 
-    def test_agent_discovery_precedence(self, service, tmp_path):
+    def test_agent_discovery_precedence(service, tmp_path):
         """Test that project agents override system/user agents."""
         discovered_agents = {}
 
@@ -143,7 +143,7 @@ class TestAgentCapabilitiesService:
         assert discovered_agents["test-agent"]["tier"] == "project"
         assert discovered_agents["test-agent"]["name"] == "Project Test Agent"
 
-    def test_agent_with_yaml_frontmatter(self, service, tmp_path):
+    def test_agent_with_yaml_frontmatter(service, tmp_path):
         """Test agent discovery with YAML frontmatter."""
         discovered_agents = {}
 
@@ -171,7 +171,7 @@ This is the agent content.
         # This test verifies the method runs without error
         assert discovered_agents["custom-agent"]["tier"] == "project"
 
-    def test_error_handling_in_discovery(self, service, tmp_path):
+    def test_error_handling_in_discovery(service, tmp_path):
         """Test error handling during agent discovery."""
         discovered_agents = {}
 
@@ -188,7 +188,7 @@ This is the agent content.
         # Should have no agents due to parsing error
         assert len(discovered_agents) == 0
 
-    def test_agent_categorization_comprehensive(self, service):
+    def test_agent_categorization_comprehensive(service):
         """Test comprehensive agent categorization."""
         test_cases = [
             ("engineer-agent", "engineering content", "Development"),

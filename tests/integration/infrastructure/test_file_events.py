@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Test what events are being generated for file operations."""
 
+import pytest
+
+# Skip entire module - event_storage module was removed in refactoring
+pytestmark = pytest.mark.skip(reason="event_storage module was removed in refactoring - needs rewrite")
+
 import json
 import sys
 from pathlib import Path
@@ -8,7 +13,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.services.event_storage import EventStorage
+# from claude_mpm.services.event_storage import EventStorage  # Module removed
 
 
 def test_file_events():

@@ -4,7 +4,7 @@ Comprehensive QA tests for the updated memory system.
 
 Tests all aspects requested:
 1. File Naming: Memory files use correct {agent_name}_memories.md format (not {agent_name}_agent.md or {agent_name}.md)
-2. User-Level Memories: User directory ~/.claude-mpm/memories/ is created and works
+2. User-Level Memories: User directory ~/.claude/memories/ is created and works
 3. Memory Aggregation: User and project memories are properly merged
 4. Migration: Old format files ({agent_name}_agent.md and {agent_name}.md) are automatically migrated to new format
 5. Loading Order: User memories load first, then project memories (project overrides)
@@ -18,7 +18,7 @@ from unittest.mock import patch
 import pytest
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.framework_loader import FrameworkLoader
 
 
@@ -51,7 +51,7 @@ class TestMemorySystemQA:
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
-    def test_file_naming_new_format(self):
+    def test_file_naming_new_format():
         """Test 1: Verify new files are created with correct {agent_name}_memories.md format."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -75,7 +75,7 @@ class TestMemorySystemQA:
             
             print(f"✅ File naming test passed: {expected_file.name}")
 
-    def test_file_naming_no_agent_suffix(self):
+    def test_file_naming_no_agent_suffix():
         """Test that memory files never have _agent suffix in new system."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -101,7 +101,7 @@ class TestMemorySystemQA:
                 
             print("✅ File naming consistency test passed for all agent types")
 
-    def test_user_level_memories_creation(self):
+    def test_user_level_memories_creation():
         """Test 2: Verify user directory is created and works correctly."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -124,7 +124,7 @@ class TestMemorySystemQA:
             
             print("✅ User-level memories directory creation test passed")
 
-    def test_user_memory_functionality(self):
+    def test_user_memory_functionality():
         """Test that user memories can be created and loaded."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -157,7 +157,7 @@ class TestMemorySystemQA:
             
             print("✅ User memory functionality test passed")
 
-    def test_memory_aggregation_user_and_project(self):
+    def test_memory_aggregation_user_and_project():
         """Test 3: Verify user and project memories are properly aggregated."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -224,7 +224,7 @@ class TestMemorySystemQA:
             
             print("✅ Memory aggregation test passed")
 
-    def test_migration_old_to_new_format(self):
+    def test_migration_old_to_new_format():
         """Test 4: Verify old format files are automatically migrated."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -264,7 +264,7 @@ class TestMemorySystemQA:
             
             print("✅ Migration test passed")
 
-    def test_migration_user_directory(self):
+    def test_migration_user_directory():
         """Test migration works in user directory too."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -298,7 +298,7 @@ class TestMemorySystemQA:
             
             print("✅ User directory migration test passed")
 
-    def test_loading_order_user_first_project_override(self):
+    def test_loading_order_user_first_project_override():
         """Test 5: Verify user memories load first, then project memories override."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -363,7 +363,7 @@ class TestMemorySystemQA:
             
             print("✅ Loading order and override test passed")
 
-    def test_framework_loader_memory_aggregation(self):
+    def test_framework_loader_memory_aggregation():
         """Test framework loader properly loads memories through memory manager."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Create user PM memory
@@ -418,7 +418,7 @@ class TestMemorySystemQA:
                 
                 print("✅ Framework loader memory integration test passed")
 
-    def test_memory_system_integration(self):
+    def test_memory_system_integration():
         """Integration test verifying the complete memory system workflow."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -477,7 +477,7 @@ class TestMemorySystemQA:
             
             print("✅ Complete memory system integration test passed")
 
-    def test_memory_file_format_consistency(self):
+    def test_memory_file_format_consistency():
         """Test that all memory files follow consistent format."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -507,7 +507,7 @@ class TestMemorySystemQA:
                 
             print("✅ Memory file format consistency test passed")
 
-    def test_error_handling_and_fallbacks(self):
+    def test_error_handling_and_fallbacks():
         """Test error handling in memory system."""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.framework_loader import FrameworkLoader
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 
@@ -50,7 +50,7 @@ class MemoryV3_9_0_Tester:
 
     def create_temp_project(self, project_memory_content: str = None) -> Path:
         """Create a temporary project with optional project-specific memory."""
-        temp_dir = Path(tempfile.mkdtemp())
+        temp_dir = Path(tmp_path)
         self.temp_dirs.append(temp_dir)
 
         # Create .claude-mpm/agents directory
@@ -63,7 +63,7 @@ class MemoryV3_9_0_Tester:
 
         return temp_dir
 
-    def test_cli_memory_add(self):
+    def test_cli_memory_add():
         """Test adding memories via CLI commands."""
         print("\n=== Testing CLI Memory Add Commands ===")
 
@@ -143,7 +143,7 @@ class MemoryV3_9_0_Tester:
         except Exception as e:
             self.log_result("CLI memory add test", False, f"Exception: {str(e)}")
 
-    def test_api_memory_add(self):
+    def test_api_memory_add():
         """Test adding memories via Python API."""
         print("\n=== Testing Python API Memory Add ===")
 
@@ -202,7 +202,7 @@ class MemoryV3_9_0_Tester:
         except Exception as e:
             self.log_result("API memory add test", False, f"Exception: {str(e)}")
 
-    def test_80kb_limit_enforcement(self):
+    def test_80kb_limit_enforcement():
         """Test 80KB limit is properly enforced with optimization."""
         print("\n=== Testing 80KB Limit Enforcement ===")
 
@@ -266,7 +266,7 @@ class MemoryV3_9_0_Tester:
                 "80KB limit enforcement test", False, f"Exception: {str(e)}"
             )
 
-    def test_project_vs_system_memory_precedence(self):
+    def test_project_vs_system_memory_precedence():
         """Test project-specific memory takes precedence over system memory."""
         print("\n=== Testing Memory Precedence (Project vs System) ===")
 
@@ -329,7 +329,7 @@ This is project-specific memory that should override system memory.
         except Exception as e:
             self.log_result("Memory precedence test", False, f"Exception: {str(e)}")
 
-    def test_memory_persistence_across_sessions(self):
+    def test_memory_persistence_across_sessions():
         """Test that memories persist across different sessions/instances."""
         print("\n=== Testing Memory Persistence Across Sessions ===")
 
@@ -387,7 +387,7 @@ This is project-specific memory that should override system memory.
         except Exception as e:
             self.log_result("Memory persistence test", False, f"Exception: {str(e)}")
 
-    def test_performance_under_load(self):
+    def test_performance_under_load():
         """Test memory system performance under various load conditions."""
         print("\n=== Testing Performance Under Load ===")
 
@@ -456,7 +456,7 @@ This is project-specific memory that should override system memory.
         except Exception as e:
             self.log_result("Performance test", False, f"Exception: {str(e)}")
 
-    def test_error_handling_and_edge_cases(self):
+    def test_error_handling_and_edge_cases():
         """Test error handling and edge cases."""
         print("\n=== Testing Error Handling and Edge Cases ===")
 
@@ -529,7 +529,7 @@ This is project-specific memory that should override system memory.
         except Exception as e:
             self.log_result("Error handling test", False, f"Exception: {str(e)}")
 
-    def test_memory_optimization_features(self):
+    def test_memory_optimization_features():
         """Test memory optimization features."""
         print("\n=== Testing Memory Optimization Features ===")
 

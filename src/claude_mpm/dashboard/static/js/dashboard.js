@@ -1683,6 +1683,122 @@ function displayFileContentError(modal, result) {
     errorArea.style.display = 'block';
 }
 
+// Search Viewer Modal Functions
+window.showSearchViewerModal = function(searchParams, searchResults) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('search-viewer-modal');
+    if (!modal) {
+        modal = createSearchViewerModal();
+        document.body.appendChild(modal);
+    }
+
+    // Update modal content
+    updateSearchViewerModal(modal, searchParams, searchResults);
+
+    // Show the modal as flex container
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+};
+
+window.hideSearchViewerModal = function() {
+    const modal = document.getElementById('search-viewer-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // Restore background scrolling
+    }
+};
+
+function createSearchViewerModal() {
+    const modal = document.createElement('div');
+    modal.id = 'search-viewer-modal';
+    modal.className = 'modal search-viewer-modal';
+
+    modal.innerHTML = `
+        <div class="modal-content search-viewer-content">
+            <div class="search-viewer-header">
+                <h2 class="search-viewer-title">
+                    <span class="search-viewer-icon">🔍</span>
+                    <span class="search-viewer-title-text">Search Results</span>
+                </h2>
+                <button class="search-viewer-close" onclick="hideSearchViewerModal()">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="search-viewer-body">
+                <div class="search-params-section">
+                    <h3>Search Parameters</h3>
+                    <pre class="search-params-display"></pre>
+                </div>
+                <div class="search-results-section">
+                    <h3>Search Results</h3>
+                    <div class="search-results-display"></div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            hideSearchViewerModal();
+        }
+    });
+
+    // Close modal on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            hideSearchViewerModal();
+        }
+    });
+
+    return modal;
+}
+
+function updateSearchViewerModal(modal, searchParams, searchResults) {
+    const paramsDisplay = modal.querySelector('.search-params-display');
+    const resultsDisplay = modal.querySelector('.search-results-display');
+
+    // Display search parameters in formatted JSON
+    if (paramsDisplay && searchParams) {
+        paramsDisplay.textContent = JSON.stringify(searchParams, null, 2);
+    }
+
+    // Display search results
+    if (resultsDisplay && searchResults) {
+        let resultsHTML = '';
+        
+        if (typeof searchResults === 'string') {
+            // If results are a string, display as preformatted text
+            resultsHTML = `<pre class="search-results-text">${escapeHtml(searchResults)}</pre>`;
+        } else if (Array.isArray(searchResults)) {
+            // If results are an array, display as a list
+            resultsHTML = '<ul class="search-results-list">';
+            searchResults.forEach(result => {
+                if (typeof result === 'object') {
+                    resultsHTML += `<li><pre>${JSON.stringify(result, null, 2)}</pre></li>`;
+                } else {
+                    resultsHTML += `<li>${escapeHtml(String(result))}</li>`;
+                }
+            });
+            resultsHTML += '</ul>';
+        } else if (typeof searchResults === 'object') {
+            // If results are an object, display as formatted JSON
+            resultsHTML = `<pre class="search-results-json">${JSON.stringify(searchResults, null, 2)}</pre>`;
+        } else {
+            // Fallback: display as text
+            resultsHTML = `<div class="search-results-text">${escapeHtml(String(searchResults))}</div>`;
+        }
+        
+        resultsDisplay.innerHTML = resultsHTML;
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Global window functions for backward compatibility
 window.showAgentInstanceDetails = function(instanceId) {
     if (window.dashboard && typeof window.dashboard.showAgentInstanceDetails === 'function') {

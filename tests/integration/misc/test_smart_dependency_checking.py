@@ -67,7 +67,7 @@ def test_agent_change_detection():
     print("=" * 80)
 
     # Create a temporary test directory
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         test_dir = Path(tmpdir)
         agents_dir = test_dir / ".claude" / "agents"
         agents_dir.mkdir(parents=True)
@@ -133,7 +133,7 @@ def test_dependency_caching():
     print("TESTING DEPENDENCY CACHING")
     print("=" * 80)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         cache_dir = Path(tmpdir)
 
         # Initialize cache with short TTL for testing
@@ -192,7 +192,7 @@ def test_smart_dependency_checker():
     print("TESTING SMART DEPENDENCY CHECKER")
     print("=" * 80)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         test_dir = Path(tmpdir)
         agents_dir = test_dir / ".claude" / "agents"
         agents_dir.mkdir(parents=True)
@@ -243,7 +243,7 @@ def test_integration():
     print("TESTING FULL INTEGRATION")
     print("=" * 80)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         test_dir = Path(tmpdir)
 
         # Set up test environment

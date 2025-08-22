@@ -109,7 +109,7 @@ That's it! You now have:
 
 **Common Issues**:
 - **"Agent not found"**: Run `claude-mpm agents fix --all`
-- **Dashboard won't load**: Try `--websocket-port 8080`
+- **Dashboard won't load**: Try `--websocket-port 8766`
 - **Session won't resume**: Use full session ID
 
 **Get Support**:

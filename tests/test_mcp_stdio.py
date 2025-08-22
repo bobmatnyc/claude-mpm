@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test MCP Stdio Server
@@ -17,6 +18,7 @@ import sys
 from pathlib import Path
 
 
+@pytest.mark.asyncio
 async def test_mcp_server():
     """Test the MCP stdio server with sample requests."""
 

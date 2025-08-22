@@ -10,7 +10,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root / "src"))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_memory_extraction():
@@ -37,7 +37,7 @@ def test_memory_extraction():
       "remember": [
         "Project uses service-oriented architecture with 5 domains",
         "All services implement explicit interfaces for DI",
-        "Memory files stored in .claude-mpm/memories/ directory"
+        "Memory files stored in .claude/memories/ directory"
       ]
     }
     ```
@@ -120,7 +120,7 @@ def test_memory_extraction():
         expected_memories = [
             "Project uses service-oriented architecture with 5 domains",
             "All services implement explicit interfaces for DI",
-            "Memory files stored in .claude-mpm/memories/ directory",
+            "Memory files stored in .claude/memories/ directory",
             "Config singleton uses lazy initialization pattern",
             "Hooks system enables extensibility through pre/post delegation"
         ]

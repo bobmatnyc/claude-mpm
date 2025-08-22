@@ -26,7 +26,7 @@ class TestAgentRegistryMemoryIntegration:
 
     def setup_method(self):
         """Set up test environment."""
-        self.temp_dir = Path(tempfile.mkdtemp())
+        self.temp_dir = Path(tmp_path)
         self.registry = get_agent_registry()
 
     def teardown_method(self):
@@ -35,7 +35,7 @@ class TestAgentRegistryMemoryIntegration:
 
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
-    def test_basic_agent_loading(self):
+    def test_basic_agent_loading():
         """Test basic agent loading without memory."""
         # Create a simple agent file
         agent_dir = self.temp_dir / "agents"
@@ -71,7 +71,7 @@ class TestAgentRegistryMemoryIntegration:
             assert loaded_agent["agent_id"] == "test_agent"
             assert loaded_agent["metadata"]["name"] == "Test Agent"
 
-    def test_memory_aware_agent_creation(self):
+    def test_memory_aware_agent_creation():
         """Test creation of memory-aware agents from memory files."""
         # Create memory directory and file
         memories_dir = self.temp_dir / "memories"
@@ -140,7 +140,7 @@ class TestAgentRegistryMemoryIntegration:
                     self.registry.get_agent_tier("engineer_agent") == AgentTier.PROJECT
                 )
 
-    def test_enhance_existing_agent_with_memory(self):
+    def test_enhance_existing_agent_with_memory():
         """Test enhancing existing agent with memory content."""
         # Create agent directory and file
         agent_dir = self.temp_dir / "agents"
@@ -222,7 +222,7 @@ class TestAgentRegistryMemoryIntegration:
                     self.registry.get_agent_tier("research_agent") == AgentTier.PROJECT
                 )
 
-    def test_list_agents_includes_memory_info(self):
+    def test_list_agents_includes_memory_info():
         """Test that list_agents includes memory information."""
         # Create memory-aware agent
         memories_dir = self.temp_dir / "memories"
@@ -258,7 +258,7 @@ class TestAgentRegistryMemoryIntegration:
                 assert agent_summary["memory_size_kb"] > 0
                 assert "memory_file" in agent_summary
 
-    def test_extract_agent_name_from_memory_file(self):
+    def test_extract_agent_name_from_memory_file():
         """Test agent name extraction from memory filenames."""
         # Test various filename formats
         assert (

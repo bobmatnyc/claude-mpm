@@ -11,7 +11,7 @@ class TestMCPServerSecurity:
     """Test security aspects of MCP server run_command tool."""
 
     @pytest.mark.asyncio
-    async def test_run_command_prevents_shell_injection(self):
+    async def test_run_command_prevents_shell_injection():
         """Test that run_command prevents shell injection attacks."""
         # Mock the subprocess execution to capture what would be executed
         with patch("asyncio.create_subprocess_exec") as mock_exec:
@@ -43,7 +43,7 @@ class TestMCPServerSecurity:
             assert kwargs["stderr"] == asyncio.subprocess.PIPE
 
     @pytest.mark.asyncio
-    async def test_run_command_handles_various_injection_attempts(self):
+    async def test_run_command_handles_various_injection_attempts():
         """Test various command injection attack vectors."""
         injection_attempts = [
             "echo test && rm file.txt",  # Command chaining
@@ -80,7 +80,7 @@ class TestMCPServerSecurity:
                 assert len(args) >= 2
 
     @pytest.mark.asyncio
-    async def test_run_command_handles_quoted_arguments(self):
+    async def test_run_command_handles_quoted_arguments():
         """Test that quoted arguments are handled correctly."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
@@ -107,7 +107,7 @@ class TestMCPServerSecurity:
             assert args == ("echo", "hello world", "test")
 
     @pytest.mark.asyncio
-    async def test_run_command_handles_malformed_quotes(self):
+    async def test_run_command_handles_malformed_quotes():
         """Test that malformed quotes are handled gracefully."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             # Test command with unmatched quotes
@@ -130,7 +130,7 @@ class TestMCPServerSecurity:
             mock_exec.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_run_command_timeout_protection(self):
+    async def test_run_command_timeout_protection():
         """Test that timeout protection works correctly."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
@@ -157,7 +157,7 @@ class TestMCPServerSecurity:
             mock_exec.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_run_command_uses_safe_subprocess_call(self):
+    async def test_run_command_uses_safe_subprocess_call():
         """Test that run_command uses safe subprocess execution."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
@@ -183,7 +183,7 @@ class TestMCPServerSecurity:
             assert kwargs["stderr"] == asyncio.subprocess.PIPE
 
     @pytest.mark.asyncio
-    async def test_run_command_error_handling(self):
+    async def test_run_command_error_handling():
         """Test proper error handling for failed commands."""
         with patch("asyncio.create_subprocess_exec") as mock_exec:
             mock_process = AsyncMock()
@@ -205,7 +205,7 @@ class TestMCPServerSecurity:
             assert proc.returncode == 127
             assert stderr == b"command not found"
 
-    def test_shlex_split_security(self):
+    def test_shlex_split_security():
         """Test that shlex.split properly handles injection attempts."""
         # Test various injection attempts
         injection_attempts = [

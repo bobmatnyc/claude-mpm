@@ -41,8 +41,8 @@ class NetworkConfig:
     """Network-related configuration constants."""
 
     # Port ranges
-    SOCKETIO_PORT_RANGE: Tuple[int, int] = (8080, 8099)
-    DEFAULT_SOCKETIO_PORT = 8080
+    SOCKETIO_PORT_RANGE: Tuple[int, int] = (8765, 8785)
+    DEFAULT_SOCKETIO_PORT = 8765
     DEFAULT_DASHBOARD_PORT = 8765
 
     # Connection timeouts (seconds)

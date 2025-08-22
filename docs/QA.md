@@ -330,7 +330,7 @@ If you see `ModuleNotFoundError`:
 ### Hook Service Errors
 
 If hook service fails to start:
-1. Check port 8080-8099 availability
+1. Check port 8765-8785 availability
 2. Review hook service logs in `~/.claude-mpm/logs/`
 3. Try with `--no-hooks` flag
 

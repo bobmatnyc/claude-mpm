@@ -50,7 +50,7 @@ def test_run_command_with_resume():
     print("Testing full run command flow...")
     
     from claude_mpm.cli.commands.run import run_session
-    from claude_mpm.cli.parser import create_parser
+    from claude_mpm.cli.commands.parser import create_parser
     
     parser = create_parser()
     

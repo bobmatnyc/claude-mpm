@@ -1,3 +1,6 @@
+import pytest
+import pytest
+import pytest
 #!/usr/bin/env python3
 """
 Test script for MCP Server Implementation
@@ -28,6 +31,7 @@ from claude_mpm.services.mcp_gateway.tools.base_adapter import (
 )
 
 
+@pytest.mark.asyncio
 async def test_tool_registry():
     """Test the tool registry functionality."""
     print("\n=== Testing Tool Registry ===")
@@ -101,6 +105,7 @@ async def test_tool_registry():
     return True
 
 
+@pytest.mark.asyncio
 async def test_mcp_server():
     """Test the MCP server functionality."""
     print("\n=== Testing MCP Server ===")
@@ -157,6 +162,7 @@ async def test_mcp_server():
     return True
 
 
+@pytest.mark.asyncio
 async def test_service_registry():
     """Test the service registry functionality."""
     print("\n=== Testing Service Registry ===")

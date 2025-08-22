@@ -32,7 +32,7 @@ class TestRunnerConfigurationService:
         container.get = Mock()
         return container
 
-    def test_initialize_configuration_basic(self, service):
+    def test_initialize_configuration_basic(service):
         """Test basic configuration initialization."""
         with patch(
             "claude_mpm.services.runner_configuration_service.Config"
@@ -54,7 +54,7 @@ class TestRunnerConfigurationService:
             assert result["websocket_port"] == 8765  # default
             assert "config" in result
 
-    def test_initialize_configuration_with_defaults(self, service):
+    def test_initialize_configuration_with_defaults(service):
         """Test configuration initialization with default values."""
         with patch(
             "claude_mpm.services.runner_configuration_service.Config"
@@ -70,7 +70,7 @@ class TestRunnerConfigurationService:
             assert result["enable_websocket"] is False
             assert result["websocket_port"] == 8765
 
-    def test_initialize_configuration_config_not_found(self, service):
+    def test_initialize_configuration_config_not_found(service):
         """Test configuration initialization when config file not found."""
         with patch(
             "claude_mpm.services.runner_configuration_service.Config"
@@ -83,7 +83,7 @@ class TestRunnerConfigurationService:
             assert "config" in result
             assert mock_config.call_count == 2  # First call fails, second succeeds
 
-    def test_initialize_configuration_config_error(self, service):
+    def test_initialize_configuration_config_error(service):
         """Test configuration initialization with config error."""
         with patch(
             "claude_mpm.services.runner_configuration_service.Config"
@@ -95,13 +95,13 @@ class TestRunnerConfigurationService:
             ):
                 service.initialize_configuration()
 
-    def test_initialize_project_logger_off(self, service):
+    def test_initialize_project_logger_off(service):
         """Test project logger initialization when disabled."""
         result = service.initialize_project_logger("OFF")
 
         assert result is None
 
-    def test_initialize_project_logger_success(self, service):
+    def test_initialize_project_logger_success(service):
         """Test successful project logger initialization."""
         mock_logger = Mock()
 
@@ -116,7 +116,7 @@ class TestRunnerConfigurationService:
             mock_get_logger.assert_called_once_with("INFO")
             mock_logger.log_system.assert_called_once()
 
-    def test_initialize_project_logger_import_error(self, service):
+    def test_initialize_project_logger_import_error(service):
         """Test project logger initialization with import error."""
         with patch(
             "claude_mpm.services.runner_configuration_service.get_project_logger"
@@ -127,7 +127,7 @@ class TestRunnerConfigurationService:
 
             assert result is None
 
-    def test_initialize_project_logger_general_error(self, service):
+    def test_initialize_project_logger_general_error(service):
         """Test project logger initialization with general error."""
         with patch(
             "claude_mpm.services.runner_configuration_service.get_project_logger"
@@ -138,7 +138,7 @@ class TestRunnerConfigurationService:
 
             assert result is None
 
-    def test_initialize_response_logger_disabled(self, service):
+    def test_initialize_response_logger_disabled(service):
         """Test response logger initialization when disabled."""
         mock_config = Mock()
         mock_config.get.return_value = {"enabled": False}
@@ -147,7 +147,7 @@ class TestRunnerConfigurationService:
 
         assert result is None
 
-    def test_initialize_response_logger_success(self, service):
+    def test_initialize_response_logger_success(service):
         """Test successful response logger initialization."""
         mock_config = Mock()
         mock_config.get.return_value = {"enabled": True}
@@ -167,7 +167,7 @@ class TestRunnerConfigurationService:
             mock_get_logger.assert_called_once_with(mock_config)
             mock_project_logger.log_system.assert_called_once()
 
-    def test_initialize_response_logger_error(self, service):
+    def test_initialize_response_logger_error(service):
         """Test response logger initialization with error."""
         mock_config = Mock()
         mock_config.get.return_value = {"enabled": True}
@@ -181,7 +181,7 @@ class TestRunnerConfigurationService:
 
             assert result is None
 
-    def test_get_user_working_directory_set(self, service):
+    def test_get_user_working_directory_set(service):
         """Test getting user working directory when environment variable is set."""
         test_path = "/test/path"
 
@@ -190,14 +190,14 @@ class TestRunnerConfigurationService:
 
             assert result == Path(test_path)
 
-    def test_get_user_working_directory_not_set(self, service):
+    def test_get_user_working_directory_not_set(service):
         """Test getting user working directory when environment variable is not set."""
         with patch.dict(os.environ, {}, clear=True):
             result = service.get_user_working_directory()
 
             assert result is None
 
-    def test_register_core_services(self, service, mock_container):
+    def test_register_core_services(service, mock_container):
         """Test core services registration."""
         user_working_dir = Path("/test/dir")
 
@@ -206,7 +206,7 @@ class TestRunnerConfigurationService:
         # Should register deployment service
         mock_container.register_factory.assert_called_once()
 
-    def test_register_ticket_manager_disabled(self, service, mock_container):
+    def test_register_ticket_manager_disabled(service, mock_container):
         """Test ticket manager registration when disabled."""
         ticket_manager, enable_tickets = service.register_ticket_manager(
             mock_container, False
@@ -216,7 +216,7 @@ class TestRunnerConfigurationService:
         assert enable_tickets is False
         mock_container.register_singleton.assert_not_called()
 
-    def test_register_ticket_manager_success(self, service, mock_container):
+    def test_register_ticket_manager_success(service, mock_container):
         """Test successful ticket manager registration."""
         mock_ticket_manager = Mock()
         mock_container.get.return_value = mock_ticket_manager
@@ -230,7 +230,7 @@ class TestRunnerConfigurationService:
         mock_container.register_singleton.assert_called_once()
         mock_container.get.assert_called_once()
 
-    def test_register_ticket_manager_error(self, service, mock_container):
+    def test_register_ticket_manager_error(service, mock_container):
         """Test ticket manager registration with error."""
         mock_container.get.side_effect = Exception("Registration error")
 
@@ -241,7 +241,7 @@ class TestRunnerConfigurationService:
         assert ticket_manager is None
         assert enable_tickets is False
 
-    def test_register_hook_service_success(self, service, mock_container):
+    def test_register_hook_service_success(service, mock_container):
         """Test successful hook service registration."""
         mock_config = Mock()
         mock_hook_service = Mock()
@@ -253,7 +253,7 @@ class TestRunnerConfigurationService:
         mock_container.register_factory.assert_called_once()
         mock_container.get.assert_called_once()
 
-    def test_register_hook_service_error(self, service, mock_container):
+    def test_register_hook_service_error(service, mock_container):
         """Test hook service registration with error."""
         mock_config = Mock()
         mock_container.get.side_effect = Exception("Registration error")
@@ -262,7 +262,7 @@ class TestRunnerConfigurationService:
 
         assert result is None
 
-    def test_register_agent_capabilities_service_success(self, service, mock_container):
+    def test_register_agent_capabilities_service_success(service, mock_container):
         """Test successful agent capabilities service registration."""
         mock_service = Mock()
         mock_container.get.return_value = mock_service
@@ -306,13 +306,13 @@ class TestRunnerConfigurationService:
         mock_container.register_factory.assert_called_once()
         mock_container.get.assert_called_once()
 
-    def test_create_session_log_file_disabled(self, service):
+    def test_create_session_log_file_disabled(service):
         """Test session log file creation when disabled."""
         result = service.create_session_log_file(None, "OFF", {})
 
         assert result is None
 
-    def test_create_session_log_file_success(self, service, tmp_path):
+    def test_create_session_log_file_success(service, tmp_path):
         """Test successful session log file creation."""
         mock_project_logger = Mock()
         mock_project_logger.session_dir = tmp_path
@@ -325,7 +325,7 @@ class TestRunnerConfigurationService:
 
         assert result == tmp_path / "system.jsonl"
 
-    def test_create_session_log_file_permission_error(self, service):
+    def test_create_session_log_file_permission_error(service):
         """Test session log file creation with permission error."""
         mock_project_logger = Mock()
         mock_project_logger.session_dir = Path("/nonexistent/path")

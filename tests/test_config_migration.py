@@ -12,6 +12,11 @@ Tests critical functionality including:
 - Edge cases (empty configs, corrupted data)
 """
 
+import pytest
+
+# Skip entire module - config_migration module was removed in refactoring
+pytestmark = pytest.mark.skip(reason="config_migration module was removed in refactoring - functionality integrated elsewhere")
+
 import json
 import os
 import shutil
@@ -20,22 +25,21 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, mock_open, patch
 
-import pytest
 import yaml
 
-from claude_mpm.utils.config_migration import (
-    ConfigMigrationError,
-    ConfigMigrator,
-    migrate_config,
-)
+# from claude_mpm.utils.config_migration import (
+#     ConfigMigrationError,
+#     ConfigMigrator,
+#     migrate_config,
+# )  # Module removed
 
 
 class TestConfigMigratorBasics:
     """Test basic configuration migration functionality."""
 
-    def test_init_with_project_root(self):
+    def test_init_with_project_root():
         """Test initialization with explicit project root."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             assert migrator.project_root == Path(tmpdir)
@@ -45,9 +49,9 @@ class TestConfigMigratorBasics:
                 migrator.new_config_path == Path(tmpdir) / ".claude-mpm" / "config.yaml"
             )
 
-    def test_auto_detect_project_root(self):
+    def test_auto_detect_project_root():
         """Test automatic project root detection."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create .claude-mpm directory
             claude_dir = Path(tmpdir) / ".claude-mpm"
             claude_dir.mkdir()
@@ -62,9 +66,9 @@ class TestConfigMigratorBasics:
             finally:
                 os.chdir(original_cwd)
 
-    def test_detect_project_root_parent_dir(self):
+    def test_detect_project_root_parent_dir():
         """Test detection when .claude-mpm is in parent directory."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create .claude-mpm in parent
             claude_dir = Path(tmpdir) / ".claude-mpm"
             claude_dir.mkdir()
@@ -86,9 +90,9 @@ class TestConfigMigratorBasics:
 class TestMigrationDetection:
     """Test migration need detection."""
 
-    def test_needs_migration_old_structure_exists(self):
+    def test_needs_migration_old_structure_exists():
         """Test detection when old config structure exists."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old structure
@@ -97,9 +101,9 @@ class TestMigrationDetection:
 
             assert migrator.needs_migration() == True
 
-    def test_needs_migration_new_structure_complete(self):
+    def test_needs_migration_new_structure_complete():
         """Test detection when new structure is complete."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create complete new structure
@@ -113,9 +117,9 @@ class TestMigrationDetection:
 
             assert migrator.needs_migration() == False
 
-    def test_needs_migration_partial_new_structure(self):
+    def test_needs_migration_partial_new_structure():
         """Test detection when new structure is incomplete."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old structure
@@ -130,9 +134,9 @@ class TestMigrationDetection:
 
             assert migrator.needs_migration() == True
 
-    def test_needs_migration_corrupted_new_config(self):
+    def test_needs_migration_corrupted_new_config():
         """Test detection when new config is corrupted."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old structure
@@ -149,9 +153,9 @@ class TestMigrationDetection:
 class TestMigrationProcess:
     """Test the actual migration process."""
 
-    def test_migrate_project_json(self):
+    def test_migrate_project_json():
         """Test migration of project.json to consolidated config."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old project.json
@@ -174,9 +178,9 @@ class TestMigrationProcess:
 
             assert config["project"] == project_data
 
-    def test_migrate_response_tracking_json(self):
+    def test_migrate_response_tracking_json():
         """Test migration of response_tracking.json."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old response_tracking.json
@@ -199,9 +203,9 @@ class TestMigrationProcess:
 
             assert config["response_tracking"] == tracking_data
 
-    def test_migrate_both_configs(self):
+    def test_migrate_both_configs():
         """Test migration of both config files together."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create both old config files
@@ -226,9 +230,9 @@ class TestMigrationProcess:
             assert config["project"] == project_data
             assert config["response_tracking"] == tracking_data
 
-    def test_migrate_terminal_settings(self):
+    def test_migrate_terminal_settings():
         """Test migration of old terminal settings to new structure."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old config with flat terminal settings
@@ -263,9 +267,9 @@ class TestMigrationProcess:
 class TestDryRun:
     """Test dry run functionality."""
 
-    def test_dry_run_no_changes(self):
+    def test_dry_run_no_changes():
         """Test that dry run doesn't modify files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old structure
@@ -280,9 +284,9 @@ class TestDryRun:
             assert not migrator.new_config_path.exists()
             assert migrator.project_json.exists()
 
-    def test_dry_run_shows_what_would_migrate(self):
+    def test_dry_run_shows_what_would_migrate():
         """Test that dry run reports what would be migrated."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files
@@ -303,9 +307,9 @@ class TestDryRun:
 class TestBackupAndRestore:
     """Test backup creation and restoration."""
 
-    def test_backup_creation(self):
+    def test_backup_creation():
         """Test that backups are created before migration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files
@@ -324,9 +328,9 @@ class TestBackupAndRestore:
             backup_content = backup_files[0].read_text()
             assert '"name": "original"' in backup_content
 
-    def test_no_backup_option(self):
+    def test_no_backup_option():
         """Test migration without creating backup."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files
@@ -339,9 +343,9 @@ class TestBackupAndRestore:
             # Backup directory should not exist
             assert not migrator.backup_dir.exists()
 
-    def test_list_backups(self):
+    def test_list_backups():
         """Test listing available backups."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create multiple backups
@@ -360,9 +364,9 @@ class TestBackupAndRestore:
                 assert "size" in backup
                 assert "created" in backup
 
-    def test_restore_from_backup(self):
+    def test_restore_from_backup():
         """Test restoring configuration from backup."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create backup
@@ -383,9 +387,9 @@ class TestBackupAndRestore:
 
             assert restored == backup_data
 
-    def test_restore_nonexistent_backup(self):
+    def test_restore_nonexistent_backup():
         """Test restoring from non-existent backup."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             success = migrator.restore_from_backup("nonexistent.json")
@@ -395,9 +399,9 @@ class TestBackupAndRestore:
 class TestRollback:
     """Test rollback functionality."""
 
-    def test_rollback_on_error(self):
+    def test_rollback_on_error():
         """Test automatic rollback when migration fails."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files
@@ -423,9 +427,9 @@ class TestRollback:
                 data = json.load(f)
             assert data == original_data
 
-    def test_rollback_without_backup(self):
+    def test_rollback_without_backup():
         """Test rollback behavior when no backup exists."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Try rollback without backup
@@ -438,9 +442,9 @@ class TestRollback:
 class TestCleanup:
     """Test old file cleanup after migration."""
 
-    def test_cleanup_old_files(self):
+    def test_cleanup_old_files():
         """Test that old files are removed after successful migration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files
@@ -455,9 +459,9 @@ class TestCleanup:
             assert not migrator.project_json.exists()
             assert not migrator.response_tracking_json.exists()
 
-    def test_preserve_mcp_services(self):
+    def test_preserve_mcp_services():
         """Test that mcp_services.yaml is preserved during cleanup."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old files and mcp_services.yaml
@@ -475,9 +479,9 @@ class TestCleanup:
             # Config directory should still exist
             assert migrator.config_dir.exists()
 
-    def test_remove_empty_config_dir(self):
+    def test_remove_empty_config_dir():
         """Test that empty config directory is removed."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create only old files (no mcp_services.yaml)
@@ -494,9 +498,9 @@ class TestCleanup:
 class TestErrorHandling:
     """Test error handling and edge cases."""
 
-    def test_corrupted_json_file(self):
+    def test_corrupted_json_file():
         """Test handling of corrupted JSON files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create corrupted JSON
@@ -512,9 +516,9 @@ class TestErrorHandling:
                 config = yaml.safe_load(f)
             assert config["project"] == {}
 
-    def test_permission_error(self):
+    def test_permission_error():
         """Test handling of permission errors."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old file
@@ -530,9 +534,9 @@ class TestErrorHandling:
                 with pytest.raises(ConfigMigrationError):
                     migrator.migrate()
 
-    def test_disk_full(self):
+    def test_disk_full():
         """Test handling when disk is full."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old file
@@ -547,9 +551,9 @@ class TestErrorHandling:
 class TestDataPreservation:
     """Test that data is preserved correctly during migration."""
 
-    def test_preserve_all_fields(self):
+    def test_preserve_all_fields():
         """Test that all fields are preserved during migration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create complex config
@@ -575,9 +579,9 @@ class TestDataPreservation:
             assert config["project"] == project_data
             assert config["project"]["unicode"] == "世界 🌍 مرحبا"
 
-    def test_preserve_existing_config(self):
+    def test_preserve_existing_config():
         """Test that existing config sections are preserved."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create existing new config with some sections
@@ -604,9 +608,9 @@ class TestDataPreservation:
             assert config["another_section"] == [1, 2, 3]
             assert config["project"] == {"name": "test"}
 
-    def test_yaml_formatting_preserved(self):
+    def test_yaml_formatting_preserved():
         """Test that YAML formatting is reasonable after migration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create old config
@@ -632,9 +636,9 @@ class TestDataPreservation:
 class TestConvenienceFunction:
     """Test the convenience migrate_config function."""
 
-    def test_migrate_config_success(self):
+    def test_migrate_config_success():
         """Test convenience function for successful migration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create old structure
             config_dir = Path(tmpdir) / ".claude-mpm" / "config"
             config_dir.mkdir(parents=True)
@@ -648,9 +652,9 @@ class TestConvenienceFunction:
             new_config = Path(tmpdir) / ".claude-mpm" / "config.yaml"
             assert new_config.exists()
 
-    def test_migrate_config_not_needed(self):
+    def test_migrate_config_not_needed():
         """Test convenience function when migration not needed."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create complete new structure
             claude_dir = Path(tmpdir) / ".claude-mpm"
             claude_dir.mkdir()
@@ -666,9 +670,9 @@ class TestConvenienceFunction:
             success = migrate_config(Path(tmpdir))
             assert success == True
 
-    def test_migrate_config_dry_run(self):
+    def test_migrate_config_dry_run():
         """Test convenience function with dry run."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create old structure
             config_dir = Path(tmpdir) / ".claude-mpm" / "config"
             config_dir.mkdir(parents=True)
@@ -686,9 +690,9 @@ class TestConvenienceFunction:
 class TestEdgeCases:
     """Test edge cases and unusual scenarios."""
 
-    def test_empty_config_files(self):
+    def test_empty_config_files():
         """Test migration of empty config files."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create empty files
@@ -707,9 +711,9 @@ class TestEdgeCases:
             assert config["project"] == {}
             assert config["response_tracking"] == {}
 
-    def test_very_large_config(self):
+    def test_very_large_config():
         """Test migration of very large configuration."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create large config
@@ -728,9 +732,9 @@ class TestEdgeCases:
 
             assert len(config["project"]["data"]) == 10000
 
-    def test_special_characters_in_paths(self):
+    def test_special_characters_in_paths():
         """Test handling of special characters in file paths."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             # Create directory with spaces
             special_dir = Path(tmpdir) / "project with spaces"
             special_dir.mkdir()
@@ -745,9 +749,9 @@ class TestEdgeCases:
             success = migrator.migrate()
             assert success == True
 
-    def test_symlinked_config_files(self):
+    def test_symlinked_config_files():
         """Test migration when config files are symlinks."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             migrator = ConfigMigrator(Path(tmpdir))
 
             # Create actual file elsewhere

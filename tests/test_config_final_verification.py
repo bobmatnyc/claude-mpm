@@ -18,7 +18,7 @@ def main():
     
     # Test 1: Single process, multiple services
     print("\n1. Testing single process with multiple services...")
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     # Reset for clean test
     Config.reset_singleton()
@@ -54,7 +54,7 @@ handler.setLevel(logging.INFO)
 logging.getLogger("claude_mpm.core.config").addHandler(handler)
 
 # Reset and create config
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 Config.reset_singleton()
 
 # Create multiple instances
