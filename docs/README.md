@@ -9,6 +9,7 @@ Welcome to the Claude MPM documentation. This directory contains comprehensive g
 - **[Quick Start](../QUICKSTART.md)** - Get started in 5 minutes
 - **[Memory System](./MEMORY.md)** - Agent memory and learning
 - **[Project Agents](./PROJECT_AGENTS.md)** - Local agent deployment
+- **[MCP Setup](./MCP_SETUP.md)** - Complete MCP Gateway configuration guide
 
 ### For Developers
 - **[Developer Guide](./developer/)** - Architecture, APIs, and development
