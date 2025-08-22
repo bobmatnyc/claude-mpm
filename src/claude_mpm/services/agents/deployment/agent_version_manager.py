@@ -254,8 +254,11 @@ class AgentVersionManager:
             template_data = json.loads(template_file.read_text())
 
             # Extract agent version from template
+            metadata = template_data.get("metadata", {})
             current_agent_version = self.parse_version(
-                template_data.get("agent_version") or template_data.get("version", 0)
+                template_data.get("agent_version") or 
+                template_data.get("version") or
+                metadata.get("version", 0)
             )
 
             # If old format detected, always trigger update for migration

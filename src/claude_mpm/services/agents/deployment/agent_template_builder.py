@@ -136,7 +136,8 @@ class AgentTemplateBuilder:
         )
 
         # Extract custom metadata fields
-        agent_version = template_data.get("agent_version", "1.0.0")
+        metadata = template_data.get("metadata", {})
+        agent_version = template_data.get("agent_version") or template_data.get("version") or metadata.get("version", "1.0.0")
         agent_type = template_data.get("agent_type", "general")
         # Use the capabilities_model we already extracted earlier
         model_type = capabilities_model or "sonnet"

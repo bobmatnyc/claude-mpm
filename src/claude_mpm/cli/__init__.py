@@ -83,15 +83,26 @@ def main(argv: Optional[list] = None):
     # Initialize or update project registry
     _initialize_project_registry()
 
-    # Verify MCP Gateway configuration on startup (non-blocking)
-    _verify_mcp_gateway_startup()
-
-    # Create parser with version
+    # Parse args early to check if we should skip auto-configuration
+    # (for commands like --version, --help, etc.)
     parser = create_parser(version=__version__)
-
-    # Preprocess and parse arguments
     processed_argv = preprocess_args(argv)
     args = parser.parse_args(processed_argv)
+    
+    # Skip auto-configuration for certain commands
+    skip_auto_config_commands = ["--version", "-v", "--help", "-h"]
+    # sys is already imported at module level (line 16), use it directly
+    should_skip_auto_config = (
+        any(cmd in (processed_argv or sys.argv[1:]) for cmd in skip_auto_config_commands)
+        or (hasattr(args, 'command') and args.command in ["info", "doctor", "config", "mcp"])  # Info, diagnostic, and MCP commands
+    )
+    
+    if not should_skip_auto_config:
+        # Check for MCP auto-configuration (pipx installations)
+        _check_mcp_auto_configuration()
+
+    # Verify MCP Gateway configuration on startup (non-blocking)
+    _verify_mcp_gateway_startup()
 
     # Set up logging
     # Special case: For MCP start command, we need minimal logging to avoid stdout interference
@@ -101,7 +112,7 @@ def main(argv: Optional[list] = None):
     ):
         # For MCP server, configure minimal stderr-only logging
         import logging
-        import sys
+        # sys is already imported at module level
 
         # Only log errors to stderr for MCP server
         if not getattr(args, "test", False) and not getattr(
@@ -174,6 +185,36 @@ def _initialize_project_registry():
         logger = get_logger("cli")
         logger.debug(f"Failed to initialize project registry: {e}")
         # Continue execution - registry failure shouldn't block startup
+
+
+def _check_mcp_auto_configuration():
+    """
+    Check and potentially auto-configure MCP for pipx installations.
+    
+    WHY: Users installing via pipx should have MCP work out-of-the-box with
+    minimal friction. This function offers one-time auto-configuration with
+    user consent.
+    
+    DESIGN DECISION: This is blocking but quick - it only runs once and has
+    a 10-second timeout. We want to catch users on first run for the best
+    experience.
+    """
+    try:
+        from ..services.mcp_gateway.auto_configure import check_and_configure_mcp
+        
+        # This function handles all the logic:
+        # - Checks if already configured
+        # - Checks if pipx installation
+        # - Checks if already asked before
+        # - Prompts user if needed
+        # - Configures if user agrees
+        check_and_configure_mcp()
+        
+    except Exception as e:
+        # Non-critical - log but don't fail
+        from ..core.logger import get_logger
+        logger = get_logger("cli")
+        logger.debug(f"MCP auto-configuration check failed: {e}")
 
 
 def _verify_mcp_gateway_startup():

@@ -106,20 +106,21 @@ class SocketIORelay:
         self.last_connection_attempt = current_time
         
         try:
-            # Create new client
+            # Create new client with better connection settings
             self.client = socketio.Client(
                 reconnection=True,
-                reconnection_attempts=3,
-                reconnection_delay=1,
+                reconnection_attempts=5,
+                reconnection_delay=2,
+                reconnection_delay_max=10,
                 logger=False,
                 engineio_logger=False
             )
             
-            # Connect to server
+            # Connect to server with longer timeout
             self.client.connect(
                 f"http://localhost:{self.port}",
                 wait=True,
-                wait_timeout=2.0,
+                wait_timeout=10.0,  # Increase timeout for stability
                 transports=['websocket', 'polling']
             )
             
@@ -219,14 +220,9 @@ class SocketIORelay:
             if event_type.startswith("hook."):
                 await self.relay_event(event_type, data)
         
-        # Subscribe to all hook events
+        # Subscribe to all hook events via wildcard
+        # This will catch ALL hook.* events
         self.event_bus.on("hook.*", handle_hook_event)
-        
-        # Also subscribe to specific high-priority events
-        for event in ["hook.pre_tool", "hook.post_tool", "hook.subagent_stop", 
-                      "hook.user_prompt", "hook.assistant_response"]:
-            self.event_bus.on(event, lambda data, evt=event: 
-                             asyncio.create_task(self.relay_event(evt, data)))
         
         logger.info("SocketIO relay started and subscribed to events")
     

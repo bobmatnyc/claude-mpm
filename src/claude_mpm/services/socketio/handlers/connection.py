@@ -99,9 +99,9 @@ class ConnectionEventHandler(BaseEventHandler):
         # Connection health tracking
         self.connection_metrics = {}
         self.last_ping_times = {}
-        self.ping_interval = 30  # seconds
-        self.ping_timeout = 10  # seconds
-        self.stale_check_interval = 60  # seconds
+        self.ping_interval = 45  # seconds - avoid conflict with Engine.IO pings
+        self.ping_timeout = 20  # seconds - more lenient timeout
+        self.stale_check_interval = 90  # seconds - less frequent checks
         
         # Health monitoring tasks (will be started after event registration)
         self.ping_task = None

@@ -13,7 +13,7 @@ import logging
 import threading
 from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Set
-from pyee import AsyncIOEventEmitter
+from pyee.asyncio import AsyncIOEventEmitter
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -176,8 +176,32 @@ class EventBus:
             # Record event in history
             self._record_event(event_type, data)
             
-            # Emit event (pyee handles thread safety)
+            # Emit event to regular handlers (pyee handles thread safety)
             self._emitter.emit(event_type, data)
+            
+            # Also emit to wildcard handlers
+            if hasattr(self, '_wildcard_handlers'):
+                for prefix, handlers in self._wildcard_handlers.items():
+                    if event_type.startswith(prefix):
+                        for handler in handlers:
+                            try:
+                                # Call with event_type and data for wildcard handlers
+                                if asyncio.iscoroutinefunction(handler):
+                                    # Schedule async handlers
+                                    try:
+                                        loop = asyncio.get_event_loop()
+                                        if loop.is_running():
+                                            asyncio.create_task(handler(event_type, data))
+                                        else:
+                                            loop.run_until_complete(handler(event_type, data))
+                                    except RuntimeError:
+                                        # No event loop, skip async handler
+                                        pass
+                                else:
+                                    handler(event_type, data)
+                            except Exception as e:
+                                if self._debug:
+                                    logger.debug(f"Wildcard handler error: {e}")
             
             # Update stats
             self._stats["events_published"] += 1
@@ -217,29 +241,20 @@ class EventBus:
             handler: The handler function
         """
         if event_type.endswith("*"):
-            # Register for wildcard pattern
+            # Store wildcard handlers separately
+            if not hasattr(self, '_wildcard_handlers'):
+                self._wildcard_handlers = {}
+            
             prefix = event_type[:-1]
+            if prefix not in self._wildcard_handlers:
+                self._wildcard_handlers[prefix] = []
+            self._wildcard_handlers[prefix].append(handler)
             
-            # Create a wrapper that checks event names
-            def wildcard_wrapper(actual_event_type: str):
-                def wrapper(data):
-                    if actual_event_type.startswith(prefix):
-                        if asyncio.iscoroutinefunction(handler):
-                            return handler(actual_event_type, data)
-                        else:
-                            handler(actual_event_type, data)
-                return wrapper
-            
-            # Register for all possible events (we'll filter in the wrapper)
-            # For now, register common prefixes
-            for common_event in ["hook", "socketio", "system", "agent"]:
-                if common_event.startswith(prefix) or prefix.startswith(common_event):
-                    self._emitter.on(f"{common_event}.*", wildcard_wrapper(f"{common_event}.*"))
+            logger.debug(f"Registered wildcard handler for: {event_type}")
         else:
             # Regular event registration
             self._emitter.on(event_type, handler)
-        
-        logger.debug(f"Registered handler for: {event_type}")
+            logger.debug(f"Registered handler for: {event_type}")
     
     def once(self, event_type: str, handler: Callable) -> None:
         """Register a one-time event handler.

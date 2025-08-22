@@ -71,6 +71,7 @@ class AgentsCommand(AgentCommand):
                 "deps-install": self._install_agent_dependencies,
                 "deps-list": self._list_agent_dependencies,
                 "deps-fix": self._fix_agent_dependencies,
+                "cleanup-orphaned": self._cleanup_orphaned_agents,
             }
 
             if args.agents_command in command_map:
@@ -469,6 +470,87 @@ class AgentsCommand(AgentCommand):
         except Exception as e:
             self.logger.error(f"Error fixing dependencies: {e}", exc_info=True)
             return CommandResult.error_result(f"Error fixing dependencies: {e}")
+    
+    def _cleanup_orphaned_agents(self, args) -> CommandResult:
+        """Clean up orphaned agents that don't have templates."""
+        try:
+            from ...services.agents.deployment.multi_source_deployment_service import (
+                MultiSourceAgentDeploymentService
+            )
+            
+            # Determine agents directory
+            if hasattr(args, 'agents_dir') and args.agents_dir:
+                agents_dir = args.agents_dir
+            else:
+                # Check for project-level .claude/agents first
+                project_agents_dir = Path.cwd() / ".claude" / "agents"
+                if project_agents_dir.exists():
+                    agents_dir = project_agents_dir
+                else:
+                    # Fall back to user home directory
+                    agents_dir = Path.home() / ".claude" / "agents"
+            
+            if not agents_dir.exists():
+                return CommandResult.success_result(f"Agents directory not found: {agents_dir}")
+            
+            # Initialize service
+            service = MultiSourceAgentDeploymentService()
+            
+            # Determine if we're doing a dry run
+            dry_run = getattr(args, 'dry_run', True)
+            if hasattr(args, 'force') and args.force:
+                dry_run = False
+            
+            # Perform cleanup
+            results = service.cleanup_orphaned_agents(agents_dir, dry_run=dry_run)
+            
+            output_format = getattr(args, 'format', 'text')
+            quiet = getattr(args, 'quiet', False)
+            
+            if output_format in ['json', 'yaml']:
+                return CommandResult.success_result(
+                    f"Found {len(results.get('orphaned', []))} orphaned agents",
+                    data=results
+                )
+            else:
+                # Text output
+                if not results.get("orphaned"):
+                    print("✅ No orphaned agents found")
+                    return CommandResult.success_result("No orphaned agents found")
+                
+                if not quiet:
+                    print(f"\nFound {len(results['orphaned'])} orphaned agent(s):")
+                    for orphan in results["orphaned"]:
+                        print(f"  - {orphan['name']} v{orphan['version']}")
+                
+                if dry_run:
+                    print(
+                        f"\n📝 This was a dry run. Use --force to actually remove "
+                        f"{len(results['orphaned'])} orphaned agent(s)"
+                    )
+                else:
+                    if results.get("removed"):
+                        print(
+                            f"\n✅ Successfully removed {len(results['removed'])} orphaned agent(s)"
+                        )
+                    
+                    if results.get("errors"):
+                        print(f"\n❌ Encountered {len(results['errors'])} error(s):")
+                        for error in results["errors"]:
+                            print(f"  - {error}")
+                        return CommandResult.error_result(
+                            f"Cleanup completed with {len(results['errors'])} errors",
+                            data=results
+                        )
+                
+                return CommandResult.success_result(
+                    f"Cleanup {'preview' if dry_run else 'completed'}",
+                    data=results
+                )
+                
+        except Exception as e:
+            self.logger.error(f"Error during cleanup: {e}", exc_info=True)
+            return CommandResult.error_result(f"Error during cleanup: {e}")
 
 
 def manage_agents(args):

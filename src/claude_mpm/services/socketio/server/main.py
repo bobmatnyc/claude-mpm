@@ -43,6 +43,7 @@ from ...exceptions import SocketIOServerError as MPMConnectionError
 from ..handlers import EventHandlerRegistry, FileEventHandler, GitEventHandler
 from .broadcaster import SocketIOEventBroadcaster
 from .core import SocketIOServerCore
+from .eventbus_integration import EventBusIntegration
 
 
 class SocketIOServer(SocketIOServiceInterface):
@@ -93,6 +94,9 @@ class SocketIOServer(SocketIOServiceInterface):
         
         # Active session tracking for heartbeat
         self.active_sessions: Dict[str, Dict[str, Any]] = {}
+        
+        # EventBus integration
+        self.eventbus_integration = None
 
     def start_sync(self):
         """Start the Socket.IO server in a background thread (synchronous version)."""
@@ -144,6 +148,19 @@ class SocketIOServer(SocketIOServiceInterface):
 
         # Register events
         self._register_events()
+        
+        # Setup EventBus integration
+        # WHY: This connects the EventBus to the Socket.IO server, allowing
+        # events from other parts of the system to be broadcast to dashboard
+        try:
+            self.eventbus_integration = EventBusIntegration(self)
+            if self.eventbus_integration.setup(self.port):
+                self.logger.info("EventBus integration setup successful")
+            else:
+                self.logger.warning("EventBus integration setup failed or disabled")
+        except Exception as e:
+            self.logger.error(f"Failed to setup EventBus integration: {e}")
+            self.eventbus_integration = None
 
         # Update running state
         self.running = self.core.running
@@ -158,6 +175,14 @@ class SocketIOServer(SocketIOServiceInterface):
         # Stop the retry processor if running
         if self.broadcaster:
             self.broadcaster.stop_retry_processor()
+        
+        # Teardown EventBus integration
+        if self.eventbus_integration:
+            try:
+                self.eventbus_integration.teardown()
+                self.logger.info("EventBus integration teardown complete")
+            except Exception as e:
+                self.logger.error(f"Error during EventBus teardown: {e}")
         
         # Stop health monitoring in connection handler
         if self.event_registry:

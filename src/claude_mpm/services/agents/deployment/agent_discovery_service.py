@@ -198,7 +198,10 @@ class AgentDiscoveryService:
                 "name": metadata.get("name", template_file.stem),
                 "description": metadata.get("description", "No description available"),
                 "version": template_data.get(
-                    "agent_version", template_data.get("version", "1.0.0")
+                    "agent_version", 
+                    template_data.get("version", 
+                        metadata.get("version", "1.0.0")
+                    )
                 ),
                 "tools": capabilities.get("tools", []),
                 "specializations": metadata.get(
