@@ -18,7 +18,7 @@ def get_memory_usage():
 
 
 async def simulate_mcp_request():
-    """Simulate what happens when Claude Desktop makes a request."""
+    """Simulate what happens when Claude Code makes a request."""
     
     print("Simulating MCP server lifecycle...")
     initial_mem = get_memory_usage()

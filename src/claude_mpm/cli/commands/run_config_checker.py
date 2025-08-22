@@ -21,7 +21,7 @@ class RunConfigChecker:
         """Check .claude.json file size and warn about memory issues.
 
         WHY: Large .claude.json files (>500KB) cause significant memory issues when
-        using --resume. Claude Desktop loads the entire conversation history into
+        using --resume. Claude Code loads the entire conversation history into
         memory, leading to 2GB+ memory consumption.
         """
         try:

@@ -3,9 +3,9 @@ MCP Tool Adapters for aitrackdown Ticket Management
 ====================================================
 
 Provides MCP tool wrappers for common aitrackdown operations, enabling
-ticket management through Claude Desktop's MCP interface.
+ticket management through Claude Code's MCP interface.
 
-WHY: These tools allow Claude Desktop to interact with aitrackdown for
+WHY: These tools allow Claude Code to interact with aitrackdown for
 ticket management without requiring direct CLI access, providing a
 seamless integration experience.
 

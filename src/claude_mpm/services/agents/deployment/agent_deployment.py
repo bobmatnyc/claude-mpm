@@ -416,8 +416,12 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                     source_info=source_info,
                 )
 
-            # Deploy system instructions and framework files
-            self._deploy_system_instructions(agents_dir, force_rebuild, results)
+            # CRITICAL: System instructions deployment disabled to prevent automatic file creation
+            # The system should NEVER automatically write INSTRUCTIONS.md, MEMORY.md, WORKFLOW.md
+            # to .claude/ directory. These files should only be created when explicitly requested
+            # by the user through agent-manager commands.
+            # See deploy_system_instructions_explicit() for manual deployment.
+            # self._deploy_system_instructions(agents_dir, force_rebuild, results)
 
             self.logger.info(
                 f"Deployed {len(results['deployed'])} agents, "
@@ -616,6 +620,65 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         deployer.deploy_system_instructions(
             target_dir, force_rebuild, results, self._is_project_specific_deployment()
         )
+
+    def deploy_system_instructions_explicit(
+        self, target_dir: Optional[Path] = None, force_rebuild: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Explicitly deploy system instructions when requested by user.
+        
+        This method should ONLY be called when the user explicitly requests
+        deployment of system instructions through agent-manager commands.
+        It will deploy INSTRUCTIONS.md, MEMORY.md, and WORKFLOW.md to .claude-mpm/
+        directory (not .claude/).
+        
+        Args:
+            target_dir: Target directory for deployment (defaults to .claude-mpm/)
+            force_rebuild: Force rebuild even if files exist
+            
+        Returns:
+            Dict with deployment results
+        """
+        results = {
+            "deployed": [],
+            "updated": [],
+            "skipped": [],
+            "errors": [],
+        }
+        
+        try:
+            # Use .claude-mpm/ instead of .claude/
+            if target_dir is None:
+                if self._is_project_specific_deployment():
+                    target_dir = self.working_directory / ".claude-mpm"
+                else:
+                    target_dir = Path.home() / ".claude-mpm"
+            
+            # Ensure directory exists
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Deploy using the modified deployer (targeting .claude-mpm/)
+            from .system_instructions_deployer import SystemInstructionsDeployer
+            deployer = SystemInstructionsDeployer(self.logger, self.working_directory)
+            
+            # We'll need to pass .claude-mpm as the target
+            deployer.deploy_system_instructions_to_claude_mpm(
+                target_dir, force_rebuild, results, self._is_project_specific_deployment()
+            )
+            
+            self.logger.info(
+                f"Explicitly deployed system instructions to {target_dir}: "
+                f"deployed={len(results['deployed'])}, "
+                f"updated={len(results['updated'])}, "
+                f"skipped={len(results['skipped'])}"
+            )
+            
+        except Exception as e:
+            error_msg = f"Failed to deploy system instructions: {e}"
+            self.logger.error(error_msg)
+            results["errors"].append(error_msg)
+        
+        return results
 
     def _convert_yaml_to_md(self, target_dir: Path) -> Dict[str, Any]:
         """Convert existing YAML agent files to MD format with YAML frontmatter."""

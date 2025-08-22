@@ -93,7 +93,7 @@ def main():
     if failed == 0:
         print("\n🎉 ALL MCP TESTS PASSED!")
         print("\nThe MCP Gateway is ready for:")
-        print("  • Claude Desktop integration")
+        print("  • Claude Code integration")
         print("  • Production deployment")
         print("  • Extension with new tools")
         return 0

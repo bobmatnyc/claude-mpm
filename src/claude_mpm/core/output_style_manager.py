@@ -3,7 +3,7 @@
 This module handles:
 1. Claude version detection
 2. Output style extraction from framework instructions  
-3. One-time deployment to Claude Desktop >= 1.0.83 at startup
+3. One-time deployment to Claude Code >= 1.0.83 at startup
 4. Fallback injection for older versions
 
 The output style is set once at startup and not monitored or enforced after that.
@@ -41,7 +41,7 @@ class OutputStyleManager:
 
     def _detect_claude_version(self) -> Optional[str]:
         """
-        Detect Claude Desktop version by running 'claude --version'.
+        Detect Claude Code version by running 'claude --version'.
         
         Returns:
             Version string (e.g., "1.0.82") or None if Claude not found
@@ -73,7 +73,7 @@ class OutputStyleManager:
                 return None
                 
         except FileNotFoundError:
-            self.logger.info("Claude Desktop not found in PATH")
+            self.logger.info("Claude Code not found in PATH")
             return None
         except subprocess.TimeoutExpired:
             self.logger.warning("Claude version check timed out")
@@ -116,7 +116,7 @@ class OutputStyleManager:
 
     def supports_output_styles(self) -> bool:
         """
-        Check if Claude Desktop supports output styles (>= 1.0.83).
+        Check if Claude Code supports output styles (>= 1.0.83).
         
         Returns:
             True if Claude version >= 1.0.83, False otherwise
@@ -324,7 +324,7 @@ class OutputStyleManager:
 
     def deploy_output_style(self, content: str) -> bool:
         """
-        Deploy output style to Claude Desktop if version >= 1.0.83.
+        Deploy output style to Claude Code if version >= 1.0.83.
         Deploys the style file and activates it once.
         
         Args:
@@ -356,7 +356,7 @@ class OutputStyleManager:
 
     def _activate_output_style(self) -> bool:
         """
-        Update Claude Desktop settings to activate the claude-mpm output style.
+        Update Claude Code settings to activate the claude-mpm output style.
         Sets activeOutputStyle to "claude-mpm" once at startup.
         
         Returns:

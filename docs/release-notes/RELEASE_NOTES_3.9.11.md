@@ -27,7 +27,7 @@ docs/developer/13-mcp-gateway/
 - **Core Interfaces**: Detailed documentation of all MCP Gateway interfaces
 - **Built-in Tools**: Documentation for echo, calculator, and system_info tools
 - **Custom Tool Creation**: Step-by-step guide for building your own tools
-- **Claude Desktop Integration**: Complete setup and configuration instructions
+- **Claude Code Integration**: Complete setup and configuration instructions
 
 #### **🔧 Tool Development Guide**
 
@@ -85,7 +85,7 @@ docs/developer/13-mcp-gateway/
 ### **Architecture Documentation**
 ✅ **System Design**: Component relationships and data flow  
 ✅ **Design Principles**: Protocol compliance, stdio communication, singleton coordination  
-✅ **Integration Patterns**: Claude Desktop integration and tool registration  
+✅ **Integration Patterns**: Claude Code integration and tool registration  
 
 ### **Developer Experience**
 ✅ **Quick Start Guides**: Status checking, tool testing, gateway startup  
@@ -171,7 +171,7 @@ With comprehensive developer documentation in place, future releases will focus 
 - **Additional Built-in Tools**: Document summarizer, code analysis tools
 - **Enhanced Tool Discovery**: Dynamic tool loading and management
 - **Performance Optimizations**: Caching improvements and monitoring
-- **Advanced Claude Desktop Features**: Enhanced integration capabilities
+- **Advanced Claude Code Features**: Enhanced integration capabilities
 
 ## 🙏 Acknowledgments
 

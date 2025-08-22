@@ -78,7 +78,7 @@ def add_run_arguments(parser: argparse.ArgumentParser) -> None:
     run_group.add_argument(
         "--resume",
         action="store_true",
-        help="Pass --resume flag to Claude Desktop to resume the last conversation",
+        help="Pass --resume flag to Claude Code to resume the last conversation",
     )
 
     # Dependency checking options

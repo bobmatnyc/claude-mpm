@@ -3,7 +3,7 @@
 MCP Ticket Tools Demo
 =====================
 
-Demonstrates how to use the MCP ticket tools through Claude Desktop.
+Demonstrates how to use the MCP ticket tools through Claude Code.
 
 This script shows how the ticket tools can be registered and used
 via the MCP gateway for seamless aitrackdown integration.
@@ -34,12 +34,12 @@ async def demo_ticket_tools():
     """
     Demonstrate the ticket tools in action.
 
-    WHY: This shows how Claude Desktop can interact with aitrackdown
+    WHY: This shows how Claude Code can interact with aitrackdown
     through the MCP gateway, enabling seamless ticket management.
     """
     print("MCP Ticket Tools Demo")
     print("=" * 60)
-    print("\nThis demo shows how Claude Desktop can manage tickets")
+    print("\nThis demo shows how Claude Code can manage tickets")
     print("through the MCP gateway using aitrackdown.\n")
 
     # Create a tool registry
@@ -175,7 +175,7 @@ async def demo_ticket_tools():
     print("\n" + "=" * 60)
     print("Demo completed!")
     print("\nThese ticket tools are now available through the MCP gateway")
-    print("and can be used by Claude Desktop for ticket management.")
+    print("and can be used by Claude Code for ticket management.")
 
 
 if __name__ == "__main__":

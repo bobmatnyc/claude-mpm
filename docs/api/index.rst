@@ -9,7 +9,7 @@ Claude MPM API Reference
 Welcome to the Claude MPM API reference documentation. This documentation provides comprehensive
 coverage of all classes, methods, and interfaces in the Claude MPM framework.
 
-Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Desktop with
+Claude MPM (Multi-Agent Project Manager) is a framework that extends Claude Code with
 multi-agent orchestration capabilities, featuring a modern service-oriented architecture
 with interface-based contracts and dependency injection.
 

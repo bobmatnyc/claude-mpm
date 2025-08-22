@@ -56,7 +56,7 @@ The file viewer supports case-insensitive tracking of these Claude Code tools:
 
 **Critical Feature**: The implementation handles tool names case-insensitively to support both:
 
-- **Claude Desktop**: Sends capitalized tool names ("Read", "Write", "Edit")
+- **Claude Code**: Sends capitalized tool names ("Read", "Write", "Edit")
 - **Claude Code**: Sends lowercase tool names ("read", "write", "edit")
 
 ```javascript

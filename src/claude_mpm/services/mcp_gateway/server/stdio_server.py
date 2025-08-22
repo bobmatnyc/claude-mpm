@@ -3,7 +3,7 @@ Simplified MCP Stdio Server
 ============================
 
 A proper stdio-based MCP server that communicates via JSON-RPC over stdin/stdout.
-This server is spawned on-demand by Claude Desktop/Code and exits when the connection closes.
+This server is spawned on-demand by Claude Code/Code and exits when the connection closes.
 
 WHY: MCP servers should be simple stdio-based processes that Claude can spawn and control.
 They should NOT run as persistent background services with lock files.
@@ -45,7 +45,7 @@ def apply_backward_compatibility_patches():
     Apply backward compatibility patches for MCP protocol differences.
     
     This function patches the MCP Server to handle missing clientInfo
-    in initialize requests from older Claude Desktop versions.
+    in initialize requests from older Claude Code versions.
     """
     try:
         from mcp.server import Server
@@ -114,7 +114,7 @@ class SimpleMCPServer:
     A simple stdio-based MCP server implementation.
 
     WHY: This server follows the MCP specification for stdio communication,
-    making it compatible with Claude Desktop/Code's MCP client.
+    making it compatible with Claude Code/Code's MCP client.
 
     DESIGN DECISIONS:
     - No persistent state or lock files

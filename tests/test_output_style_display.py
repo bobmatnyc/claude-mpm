@@ -45,7 +45,7 @@ def test_output_style_manager():
     osm = OutputStyleManager()
     
     # Display version info
-    print(f"\nClaude Desktop Version: {osm.claude_version or 'Not detected'}")
+    print(f"\nClaude Code Version: {osm.claude_version or 'Not detected'}")
     print(f"Supports Output Styles: {'Yes' if osm.supports_output_styles() else 'No'}")
     
     # Get and display status summary

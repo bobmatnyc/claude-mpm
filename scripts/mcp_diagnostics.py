@@ -4,7 +4,7 @@ MCP Server Diagnostics Script
 ==============================
 
 This script provides comprehensive diagnostics for troubleshooting MCP server issues.
-Run this if the MCP server is not working in Claude Desktop.
+Run this if the MCP server is not working in Claude Code.
 
 WHY: When things go wrong, we need detailed information about the environment,
 configuration, and potential issues to quickly identify and fix problems.
@@ -162,8 +162,8 @@ def diagnose():
         except ImportError:
             print(f"  ✗ {dep}: Not installed")
     
-    # Claude Desktop Configuration
-    print_section("Claude Desktop Configuration")
+    # Claude Code Configuration
+    print_section("Claude Code Configuration")
     
     config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
     
@@ -209,7 +209,7 @@ def diagnose():
             print(f"  ✗ Error reading config: {e}")
     else:
         print(f"  ✗ Config file not found at {config_path}")
-        print("\nClaude Desktop may not be installed or configured")
+        print("\nClaude Code may not be installed or configured")
     
     # Test MCP Server Startup
     print_section("MCP Server Startup Test")
@@ -264,9 +264,9 @@ def diagnose():
         issues.append("claude-mpm not installed. Run: pip install -e .")
     
     if not config_path.exists():
-        issues.append("Claude Desktop config not found. Is Claude Desktop installed?")
+        issues.append("Claude Code config not found. Is Claude Code installed?")
     elif "claude-mpm-gateway" not in config.get("mcpServers", {}):
-        issues.append("MCP server not configured in Claude Desktop")
+        issues.append("MCP server not configured in Claude Code")
     
     if issues:
         print("Issues found:")
@@ -275,8 +275,8 @@ def diagnose():
     else:
         print("✅ No major issues detected!")
         print("\nIf MCP is still not working:")
-        print("  1. Restart Claude Desktop")
-        print("  2. Check Claude Desktop developer console for errors")
+        print("  1. Restart Claude Code")
+        print("  2. Check Claude Code developer console for errors")
         print("  3. Try running the wrapper script manually to see errors:")
         print(f"     python3 {wrapper_path}")
     

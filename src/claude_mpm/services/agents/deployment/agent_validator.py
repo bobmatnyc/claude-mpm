@@ -324,6 +324,7 @@ class AgentValidator:
         agent_info = {
             "file": agent_file.name,
             "name": agent_file.stem,
+            "path": str(agent_file),
             "description": "No description",
             "version": "unknown",
         }

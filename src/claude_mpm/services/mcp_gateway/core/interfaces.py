@@ -413,7 +413,7 @@ class IMCPGateway(IMCPLifecycle):
     Main interface for MCP gateway implementation.
 
     Orchestrates tool registry, communication, and request handling.
-    Acts as a protocol bridge between Claude Desktop and internal tools.
+    Acts as a protocol bridge between Claude Code and internal tools.
     """
 
     @abstractmethod

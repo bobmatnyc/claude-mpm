@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Test MCP installation configuration.
 
-WHY: Ensures that the MCP installation always configures Claude Desktop
+WHY: Ensures that the MCP installation always configures Claude Code
 with the correct claude-mpm command, not the old Python script approach.
 
 DESIGN DECISION: We test all possible scenarios for finding the claude-mpm

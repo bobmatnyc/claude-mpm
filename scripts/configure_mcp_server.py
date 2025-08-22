@@ -3,14 +3,14 @@
 MCP Server Configuration Script
 ================================
 
-This script configures Claude Desktop to use the claude-mpm MCP gateway server
+This script configures Claude Code to use the claude-mpm MCP gateway server
 with the correct Python environment and wrapper script.
 
 WHY: The MCP server needs to be configured with absolute paths and the proper
 wrapper script to ensure the Python environment is set up correctly.
 
 DESIGN DECISION: Use the wrapper script approach to handle environment setup
-robustly, regardless of how Claude Desktop invokes the server.
+robustly, regardless of how Claude Code invokes the server.
 """
 
 import json
@@ -24,7 +24,7 @@ from pathlib import Path
 
 def get_config_path():
     """
-    Get the Claude Desktop configuration file path based on the platform.
+    Get the Claude Code configuration file path based on the platform.
     
     Returns:
         Path: Path to the configuration file
@@ -235,8 +235,8 @@ def print_next_steps():
     print("=" * 60)
     
     print("\n📝 Next Steps:")
-    print("1. Restart Claude Desktop to load the new configuration")
-    print("2. The MCP server will start automatically when Claude Desktop launches")
+    print("1. Restart Claude Code to load the new configuration")
+    print("2. The MCP server will start automatically when Claude Code launches")
     print("3. Check server status with: python scripts/check_mcp_processes.py")
     
     print("\n🧪 To test the server manually:")
@@ -251,7 +251,7 @@ def print_next_steps():
     print("\n⚠️  Important Notes:")
     print("- The server runs in stdio mode (communicates via stdin/stdout)")
     print("- Logs are written to stderr to avoid interfering with the protocol")
-    print("- Multiple server instances may be spawned by Claude Desktop (this is normal)")
+    print("- Multiple server instances may be spawned by Claude Code (this is normal)")
 
 
 def main():

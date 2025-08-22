@@ -229,7 +229,7 @@ The output style installer fix successfully addresses all identified issues and 
 
 **QA Approved By**: QA Agent  
 **Test Date**: 2025-08-19  
-**Test Environment**: macOS with Claude Desktop 1.0.83  
+**Test Environment**: macOS with Claude Code 1.0.83  
 **Total Test Scenarios**: 9 (8 synthetic + 1 live)  
 **Pass Rate**: 100%
 

@@ -51,17 +51,9 @@ class AgentMemoryManager(MemoryServiceInterface):
     # Updated to support 20k tokens (~80KB) for enhanced memory capacity
     DEFAULT_MEMORY_LIMITS = {
         "max_file_size_kb": 80,  # Increased from 8KB to 80KB (20k tokens)
-        "max_sections": 10,
-        "max_items_per_section": 15,
+        "max_items": 100,  # Maximum total memory items
         "max_line_length": 120,
     }
-
-    REQUIRED_SECTIONS = [
-        "Project Architecture",
-        "Implementation Guidelines",
-        "Common Mistakes to Avoid",
-        "Current Technical Context",
-    ]
 
     def __init__(
         self, config: Optional[Config] = None, working_directory: Optional[Path] = None
@@ -138,12 +130,8 @@ class AgentMemoryManager(MemoryServiceInterface):
             "max_file_size_kb": config_limits.get(
                 "default_size_kb", self.DEFAULT_MEMORY_LIMITS["max_file_size_kb"]
             ),
-            "max_sections": config_limits.get(
-                "max_sections", self.DEFAULT_MEMORY_LIMITS["max_sections"]
-            ),
-            "max_items_per_section": config_limits.get(
-                "max_items_per_section",
-                self.DEFAULT_MEMORY_LIMITS["max_items_per_section"],
+            "max_items": config_limits.get(
+                "max_items", self.DEFAULT_MEMORY_LIMITS["max_items"]
             ),
             "max_line_length": config_limits.get(
                 "max_line_length", self.DEFAULT_MEMORY_LIMITS["max_line_length"]
@@ -272,75 +260,41 @@ class AgentMemoryManager(MemoryServiceInterface):
         self.logger.info(f"Creating default memory for agent: {agent_id}")
         return self._create_default_memory(agent_id)
 
-    def update_agent_memory(self, agent_id: str, section: str, new_item: str) -> bool:
-        """Add new learning item to specified section.
+    def update_agent_memory(self, agent_id: str, new_items: List[str]) -> bool:
+        """Add new learning items to agent memory as a simple list.
 
-        WHY: Agents discover new patterns and insights during task execution that
-        should be preserved for future tasks. This method adds new learnings while
-        enforcing size limits to prevent unbounded growth.
+        WHY: Simplified memory system - all memories are stored as a simple list
+        without categorization, making it easier to manage and understand.
 
         Args:
             agent_id: The agent identifier
-            section: The section name to add the item to
-            new_item: The learning item to add
+            new_items: List of new learning items to add
 
         Returns:
             bool: True if update succeeded, False otherwise
         """
         try:
-            current_memory = self.load_agent_memory(agent_id)
-            updated_memory = self.content_manager.add_item_to_section(
-                current_memory, section, new_item
-            )
-
-            # Enforce limits
-            agent_limits = self._get_agent_limits(agent_id)
-            if self.content_manager.exceeds_limits(updated_memory, agent_limits):
-                self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
-                updated_memory = self.content_manager.truncate_to_limits(
-                    updated_memory, agent_limits
-                )
-
-            # Save with timestamp
-            return self._save_memory_file(agent_id, updated_memory)
+            # Use the simplified _add_learnings_to_memory method
+            return self._add_learnings_to_memory(agent_id, new_items)
         except Exception as e:
             self.logger.error(f"Error updating memory for {agent_id}: {e}")
             # Never fail on memory errors
             return False
 
-    def add_learning(self, agent_id: str, learning_type: str, content: str) -> bool:
-        """Add structured learning to appropriate section.
+    def add_learning(self, agent_id: str, content: str) -> bool:
+        """Add a learning to agent memory as a simple list item.
 
-        WHY: Different types of learnings belong in different sections for better
-        organization and retrieval. This method maps learning types to appropriate
-        sections automatically.
+        WHY: Simplified interface for adding single learnings without categorization.
+        This method wraps the batch update for convenience.
 
         Args:
             agent_id: The agent identifier
-            learning_type: Type of learning (pattern, architecture, guideline, etc.)
             content: The learning content
 
         Returns:
             bool: True if learning was added successfully
         """
-        section_mapping = {
-            "pattern": "Coding Patterns Learned",
-            "architecture": "Project Architecture",
-            "guideline": "Implementation Guidelines",
-            "mistake": "Common Mistakes to Avoid",
-            "strategy": "Effective Strategies",
-            "integration": "Integration Points",
-            "performance": "Performance Considerations",
-            "domain": "Domain-Specific Knowledge",
-            "context": "Current Technical Context",
-        }
-
-        section = section_mapping.get(learning_type, "Recent Learnings")
-        success = self.update_agent_memory(agent_id, section, content)
-
-        # Socket.IO notifications removed - memory manager works independently
-
-        return success
+        return self.update_agent_memory(agent_id, [content])
 
     def _create_default_memory(self, agent_id: str) -> str:
         """Create project-specific default memory file for agent.
@@ -492,8 +446,8 @@ class AgentMemoryManager(MemoryServiceInterface):
         """Extract memory updates from agent response and update memory file.
 
         WHY: Agents provide memory updates in their responses that need to be
-        extracted and persisted. This method looks for "remember" field in JSON
-        responses and merges new learnings with existing memory.
+        extracted and persisted. This method looks for "remember" field for incremental
+        updates or "MEMORIES" field for complete replacement.
 
         Args:
             agent_id: The agent identifier
@@ -517,14 +471,38 @@ class AgentMemoryManager(MemoryServiceInterface):
             
             if not json_matches:
                 # Also try to find inline JSON objects
-                json_pattern2 = r'\{[^{}]*"(?:remember|Remember)"[^{}]*\}'
+                json_pattern2 = r'\{[^{}]*"(?:remember|Remember|MEMORIES)"[^{}]*\}'
                 json_matches = re.findall(json_pattern2, response, re.DOTALL)
             
             for json_str in json_matches:
                 try:
                     data = json.loads(json_str)
                     
-                    # Check for memory updates in "remember" field
+                    # Check for complete memory replacement in "MEMORIES" field
+                    if "MEMORIES" in data and data["MEMORIES"] is not None:
+                        memories = data["MEMORIES"]
+                        if isinstance(memories, list) and len(memories) > 0:
+                            # Filter out empty strings and None values
+                            valid_items = []
+                            for item in memories:
+                                if item and isinstance(item, str) and item.strip():
+                                    # Ensure item has bullet point for consistency
+                                    item_text = item.strip()
+                                    if not item_text.startswith("-"):
+                                        item_text = f"- {item_text}"
+                                    valid_items.append(item_text)
+                            
+                            if valid_items:
+                                self.logger.info(f"Replacing all memories for {agent_id} with {len(valid_items)} items")
+                                success = self.replace_agent_memory(agent_id, valid_items)
+                                if success:
+                                    self.logger.info(f"Successfully replaced memories for {agent_id}")
+                                    return True
+                                else:
+                                    self.logger.error(f"Failed to replace memories for {agent_id}")
+                        continue  # Skip checking remember field if MEMORIES was processed
+                    
+                    # Check for incremental memory updates in "remember" field
                     memory_items = None
                     
                     # Check both "remember" and "Remember" fields
@@ -566,11 +544,11 @@ class AgentMemoryManager(MemoryServiceInterface):
             return False
     
     def _add_learnings_to_memory(self, agent_id: str, learnings: List[str]) -> bool:
-        """Add new learnings to existing agent memory.
+        """Add new learnings to agent memory as a simple list.
         
-        WHY: Instead of replacing all memory, we want to intelligently merge new
-        learnings with existing knowledge, avoiding duplicates and maintaining
-        the most relevant information. PM memories are always saved to user dir.
+        WHY: Simplified memory system - all memories are stored as a simple list
+        without categorization, making it easier to manage and understand.
+        Updates timestamp on every update.
         
         Args:
             agent_id: The agent identifier
@@ -583,13 +561,14 @@ class AgentMemoryManager(MemoryServiceInterface):
             # Load existing memory
             current_memory = self.load_agent_memory(agent_id)
             
-            # Parse existing memory into sections
-            sections = self._parse_memory_sections(current_memory)
+            # Parse existing memory into a simple list
+            existing_items = self._parse_memory_list(current_memory)
             
-            # Clean sections - remove template placeholder text
-            sections = self._clean_template_placeholders(sections)
+            # Clean template placeholders if this is a fresh memory
+            existing_items = self._clean_template_placeholders_list(existing_items)
             
-            # Determine which section to add learnings to based on content
+            # Add new learnings, avoiding duplicates
+            updated = False
             for learning in learnings:
                 if not learning or not isinstance(learning, str):
                     continue
@@ -598,35 +577,34 @@ class AgentMemoryManager(MemoryServiceInterface):
                 if not learning:
                     continue
                 
-                # Categorize the learning based on keywords
-                section = self._categorize_learning(learning)
-                
-                # Add to appropriate section if not duplicate
-                if section not in sections:
-                    sections[section] = []
-                
-                # Check for duplicates (case-insensitive) - FIXED LOGIC
+                # Check for duplicates (case-insensitive)
                 normalized_learning = learning.lower()
                 # Strip bullet points from existing items for comparison
-                existing_normalized = [item.lstrip('- ').strip().lower() for item in sections[section]]
+                existing_normalized = [item.lstrip('- ').strip().lower() for item in existing_items]
                 
                 if normalized_learning not in existing_normalized:
                     # Add bullet point if not present
                     if not learning.startswith("-"):
                         learning = f"- {learning}"
-                    sections[section].append(learning)
+                    existing_items.append(learning)
                     self.logger.info(f"Added new memory for {agent_id}: {learning[:50]}...")
+                    updated = True
                 else:
                     self.logger.debug(f"Skipping duplicate memory for {agent_id}: {learning}")
             
-            # Rebuild memory content
-            new_content = self._build_memory_content(agent_id, sections)
+            # Only save if we actually added new items
+            if not updated:
+                self.logger.debug(f"No new memories to add for {agent_id}")
+                return True  # Not an error, just nothing new to add
+            
+            # Rebuild memory content as simple list with updated timestamp
+            new_content = self._build_simple_memory_content(agent_id, existing_items)
             
             # Validate and save
             agent_limits = self._get_agent_limits(agent_id)
             if self.content_manager.exceeds_limits(new_content, agent_limits):
                 self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
-                new_content = self.content_manager.truncate_to_limits(new_content, agent_limits)
+                new_content = self.content_manager.truncate_simple_list(new_content, agent_limits)
             
             # All memories go to project directory
             return self._save_memory_file(agent_id, new_content)
@@ -634,6 +612,59 @@ class AgentMemoryManager(MemoryServiceInterface):
         except Exception as e:
             self.logger.error(f"Error adding learnings to memory for {agent_id}: {e}")
             return False
+    
+    def _parse_memory_list(self, memory_content: str) -> List[str]:
+        """Parse memory content into a simple list.
+        
+        Args:
+            memory_content: Raw memory file content
+            
+        Returns:
+            List of memory items
+        """
+        items = []
+        
+        for line in memory_content.split('\n'):
+            line = line.strip()
+            # Skip metadata lines and headers
+            if line.startswith('<!-- ') or line.startswith('#') or not line:
+                continue
+            # Collect items (with or without bullet points)
+            if line.startswith('- '):
+                items.append(line)
+            elif line and not line.startswith('##'):  # Legacy format without bullets
+                items.append(f"- {line}")
+        
+        return items
+    
+    def _clean_template_placeholders_list(self, items: List[str]) -> List[str]:
+        """Remove template placeholder text from item list.
+        
+        Args:
+            items: List of memory items
+            
+        Returns:
+            List with placeholder text removed
+        """
+        # Template placeholder patterns to remove
+        placeholders = [
+            "Analyze project structure to understand architecture patterns",
+            "Observe codebase patterns and conventions during tasks",
+            "Extract implementation guidelines from project documentation",
+            "Learn from errors encountered during project work",
+            "Project analysis pending - gather context during tasks",
+            "claude-mpm: Software project requiring analysis"
+        ]
+        
+        cleaned = []
+        for item in items:
+            # Remove bullet point for comparison
+            item_text = item.lstrip("- ").strip()
+            # Keep item if it's not a placeholder
+            if item_text and item_text not in placeholders:
+                cleaned.append(item)
+        
+        return cleaned
     
     def _clean_template_placeholders(self, sections: Dict[str, List[str]]) -> Dict[str, List[str]]:
         """Remove template placeholder text from sections.
@@ -723,12 +754,12 @@ class AgentMemoryManager(MemoryServiceInterface):
         else:
             return "Recent Learnings"
     
-    def _build_memory_content(self, agent_id: str, sections: Dict[str, List[str]]) -> str:
-        """Build memory content from sections.
+    def _build_simple_memory_content(self, agent_id: str, items: List[str]) -> str:
+        """Build memory content as a simple list with updated timestamp.
         
         Args:
             agent_id: The agent identifier
-            sections: Dict mapping section names to lists of items
+            items: List of memory items
             
         Returns:
             str: The formatted memory content
@@ -736,119 +767,45 @@ class AgentMemoryManager(MemoryServiceInterface):
         lines = []
         
         # Add header
-        lines.append(f"# {agent_id.capitalize()} Agent Memory")
+        lines.append(f"# Agent Memory: {agent_id}")
+        # Always update timestamp when building new content
+        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
         lines.append("")
-        lines.append(f"<!-- Last Updated: {datetime.now().isoformat()} -->")
-        lines.append("")
         
-        # Add sections in consistent order
-        section_order = [
-            "Project Architecture",
-            "Implementation Guidelines",
-            "Common Mistakes to Avoid",
-            "Current Technical Context",
-            "Coding Patterns Learned",
-            "Effective Strategies",
-            "Integration Points",
-            "Performance Considerations",
-            "Domain-Specific Knowledge",
-            "Recent Learnings"
-        ]
-        
-        for section_name in section_order:
-            if section_name in sections and sections[section_name]:
-                lines.append(f"## {section_name}")
-                lines.append("")
-                for item in sections[section_name]:
-                    if item.strip():
-                        lines.append(item)
-                lines.append("")
-        
-        # Add any remaining sections
-        remaining = set(sections.keys()) - set(section_order)
-        for section_name in sorted(remaining):
-            if sections[section_name]:
-                lines.append(f"## {section_name}")
-                lines.append("")
-                for item in sections[section_name]:
-                    if item.strip():
-                        lines.append(item)
-                lines.append("")
+        # Add all items as a simple list
+        for item in items:
+            if item.strip():
+                # Ensure item has bullet point
+                if not item.strip().startswith("-"):
+                    lines.append(f"- {item.strip()}")
+                else:
+                    lines.append(item.strip())
         
         return '\n'.join(lines)
     
-    def replace_agent_memory(self, agent_id: str, memory_sections: Dict[str, List[str]]) -> bool:
-        """Replace agent's memory with new content organized by sections.
+    def replace_agent_memory(self, agent_id: str, memory_items: List[str]) -> bool:
+        """Replace agent's memory with new content as a simple list.
 
-        WHY: When agents provide memory updates, they replace the existing memory
-        rather than appending to it. This ensures memories stay current and relevant.
+        WHY: When agents provide complete memory updates through MEMORIES field,
+        they replace the existing memory rather than appending to it.
+        This ensures memories stay current and relevant.
 
         Args:
             agent_id: The agent identifier
-            memory_sections: Dict mapping section names to lists of memory items
+            memory_items: List of memory items to replace existing memories
 
         Returns:
             bool: True if memory was successfully replaced
         """
         try:
-            # Build new memory content
-            lines = []
-            
-            # Add header
-            lines.append(f"# {agent_id.capitalize()} Agent Memory")
-            lines.append("")
-            lines.append(f"<!-- Last Updated: {datetime.now().isoformat()} -->")
-            lines.append("")
-            
-            # Add sections in a consistent order
-            section_order = [
-                "Project Architecture",
-                "Implementation Guidelines", 
-                "Common Mistakes to Avoid",
-                "Current Technical Context",
-                "Coding Patterns Learned",
-                "Effective Strategies",
-                "Integration Points",
-                "Performance Considerations",
-                "Domain-Specific Knowledge",
-                "Recent Learnings"
-            ]
-            
-            # First add ordered sections that exist in memory_sections
-            for section_name in section_order:
-                if section_name in memory_sections and memory_sections[section_name]:
-                    lines.append(f"## {section_name}")
-                    lines.append("")
-                    for item in memory_sections[section_name]:
-                        if item.strip():  # Skip empty items
-                            # Add bullet point if not already present
-                            if not item.strip().startswith("-"):
-                                lines.append(f"- {item.strip()}")
-                            else:
-                                lines.append(item.strip())
-                    lines.append("")
-            
-            # Then add any remaining sections not in the order list
-            remaining_sections = set(memory_sections.keys()) - set(section_order)
-            for section_name in sorted(remaining_sections):
-                if memory_sections[section_name]:
-                    lines.append(f"## {section_name}")
-                    lines.append("")
-                    for item in memory_sections[section_name]:
-                        if item.strip():
-                            if not item.strip().startswith("-"):
-                                lines.append(f"- {item.strip()}")
-                            else:
-                                lines.append(item.strip())
-                    lines.append("")
-            
-            new_content = '\n'.join(lines)
+            # Build new memory content as simple list with updated timestamp
+            new_content = self._build_simple_memory_content(agent_id, memory_items)
             
             # Validate and save
             agent_limits = self._get_agent_limits(agent_id)
             if self.content_manager.exceeds_limits(new_content, agent_limits):
                 self.logger.debug(f"Memory for {agent_id} exceeds limits, truncating")
-                new_content = self.content_manager.truncate_to_limits(new_content, agent_limits)
+                new_content = self.content_manager.truncate_simple_list(new_content, agent_limits)
             
             # Save the new memory
             return self._save_memory_file(agent_id, new_content)

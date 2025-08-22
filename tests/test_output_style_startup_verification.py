@@ -64,8 +64,8 @@ def test_normal_startup_output_style_info(logger):
     
     # Check for expected output style information
     expected_patterns = [
-        "Claude Desktop version detected:",
-        "Claude Desktop supports output styles",
+        "Claude Code version detected:",
+        "Claude Code supports output styles",
         "Output style",
         "INFO: Detected Claude version:",
     ]
@@ -93,8 +93,8 @@ def test_normal_startup_output_style_info(logger):
 
 
 def test_different_claude_versions(logger):
-    """Test behavior with different Claude Desktop versions."""
-    logger.info("Testing different Claude Desktop version scenarios...")
+    """Test behavior with different Claude Code versions."""
+    logger.info("Testing different Claude Code version scenarios...")
     
     # We can't actually change the Claude version, but we can examine the logic
     # by looking at the code that handles different versions
@@ -104,7 +104,7 @@ def test_different_claude_versions(logger):
     output = stdout + stderr
     
     # Check version detection
-    version_detected = "Claude Desktop version detected:" in output
+    version_detected = "Claude Code version detected:" in output
     supports_output_styles = "supports output styles" in output
     
     logger.info(f"Version detected: {version_detected}")

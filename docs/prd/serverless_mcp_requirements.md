@@ -10,7 +10,7 @@
 ## Executive Summary
 
 ### Standards-Compliant Design Philosophy
-The Claude MPM MCP Gateway implements the official Model Context Protocol (MCP) specification, providing AI tool integration through a simple, standards-compliant stdio-based server. This design prioritizes protocol compliance, simplicity, and seamless integration with Claude Desktop and other MCP clients.
+The Claude MPM MCP Gateway implements the official Model Context Protocol (MCP) specification, providing AI tool integration through a simple, standards-compliant stdio-based server. This design prioritizes protocol compliance, simplicity, and seamless integration with Claude Code and other MCP clients.
 
 ### Core Local Benefits
 - **Zero Network Dependencies**: Runs entirely on local machine
@@ -421,7 +421,7 @@ class SafeToolExecution:
 # Check gateway status and available tools
 claude-mpm mcp status
 
-# Start MCP server (stdio mode for Claude Desktop integration)
+# Start MCP server (stdio mode for Claude Code integration)
 claude-mpm mcp start
 
 # List available tools
@@ -435,4 +435,4 @@ claude-mcp mcp test calculator --args '{"operation": "add", "a": 5, "b": 3}'
 claude-mpm mcp config view
 ```
 
-This standards-compliant architecture provides full MCP protocol compatibility while maintaining simplicity and ease of integration with Claude Desktop and other MCP clients.
+This standards-compliant architecture provides full MCP protocol compatibility while maintaining simplicity and ease of integration with Claude Code and other MCP clients.

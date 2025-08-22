@@ -119,7 +119,7 @@ command_map = {
 
 **`agents`** - Manage agent deployments
 - List available agents by tier (PROJECT > USER > SYSTEM)
-- Deploy agents to Claude Desktop compatibility format
+- Deploy agents to Claude Code compatibility format
 - Validate agent configurations
 - Clean up deployment artifacts
 

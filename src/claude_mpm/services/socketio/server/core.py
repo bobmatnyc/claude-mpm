@@ -231,15 +231,27 @@ class SocketIOServerCore:
     def _setup_static_files(self):
         """Setup static file serving for the dashboard."""
         try:
+            # Add debug logging for deployment context
+            try:
+                from ....core.unified_paths import PathContext
+                deployment_context = PathContext.detect_deployment_context()
+                self.logger.debug(f"Setting up static files in {deployment_context.value} mode")
+            except Exception as e:
+                self.logger.debug(f"Could not detect deployment context: {e}")
+            
             self.dashboard_path = self._find_static_path()
 
             if self.dashboard_path and self.dashboard_path.exists():
+                self.logger.info(f"✅ Dashboard found at: {self.dashboard_path}")
+                
                 # Serve index.html at root
                 async def index_handler(request):
                     index_file = self.dashboard_path / "index.html"
                     if index_file.exists():
+                        self.logger.debug(f"Serving dashboard index from: {index_file}")
                         return web.FileResponse(index_file)
                     else:
+                        self.logger.warning(f"Dashboard index.html not found at: {index_file}")
                         return web.Response(text="Dashboard not available", status=404)
 
                 self.app.router.add_get("/", index_handler)
@@ -252,10 +264,12 @@ class SocketIOServerCore:
                     self.app.router.add_static(
                         "/static/", dashboard_static_path, name="dashboard_static"
                     )
+                    self.logger.info(f"✅ Static assets available at: {dashboard_static_path}")
                 else:
-                    self.logger.debug(f"Static assets directory not found at: {dashboard_static_path}")
+                    self.logger.warning(f"⚠️  Static assets directory not found at: {dashboard_static_path}")
 
             else:
+                self.logger.warning("⚠️  No dashboard found, serving fallback response")
                 # Fallback handler
                 async def fallback_handler(request):
                     return web.Response(
@@ -266,7 +280,10 @@ class SocketIOServerCore:
                 self.app.router.add_get("/", fallback_handler)
                 
         except Exception as e:
-            self.logger.warning(f"Error setting up static files: {e}")
+            self.logger.error(f"❌ Error setting up static files: {e}")
+            import traceback
+            self.logger.debug(f"Static file setup traceback: {traceback.format_exc()}")
+            
             # Ensure we always have a basic handler
             async def error_handler(request):
                 return web.Response(
@@ -281,40 +298,73 @@ class SocketIOServerCore:
         WHY: The static files location varies depending on how the application
         is installed and run. We try multiple common locations to find them.
         """
+        # Get deployment-context-aware paths
+        try:
+            from ....core.unified_paths import get_path_manager
+            path_manager = get_path_manager()
+            
+            # Use package root for installed packages (including pipx)
+            package_root = path_manager.package_root
+            self.logger.debug(f"Package root: {package_root}")
+            
+            # Use project root for development
+            project_root = get_project_root()
+            self.logger.debug(f"Project root: {project_root}")
+            
+        except Exception as e:
+            self.logger.debug(f"Could not get path manager: {e}")
+            package_root = None
+            project_root = get_project_root()
+
         # Try multiple possible locations for static files and dashboard
         possible_paths = [
-            # Dashboard template directory (primary location)
-            get_project_root() / "src" / "claude_mpm" / "dashboard" / "templates",
-            get_project_root() / "dashboard" / "templates",
-            # Static file directories
-            get_project_root() / "src" / "claude_mpm" / "services" / "static",
-            get_project_root()
-            / "src"
-            / "claude_mpm"
-            / "services"
-            / "socketio"
-            / "static",
-            get_project_root() / "static",
-            get_project_root() / "src" / "static",
-            # Package installation locations
+            # Package-based paths (for pipx and pip installations)
+            package_root / "dashboard" / "templates" if package_root else None,
+            package_root / "services" / "socketio" / "static" if package_root else None,
+            package_root / "static" if package_root else None,
+            
+            # Project-based paths (for development)
+            project_root / "src" / "claude_mpm" / "dashboard" / "templates",
+            project_root / "dashboard" / "templates",
+            project_root / "src" / "claude_mpm" / "services" / "static",
+            project_root / "src" / "claude_mpm" / "services" / "socketio" / "static",
+            project_root / "static",
+            project_root / "src" / "static",
+            
+            # Package installation locations (fallback)
             Path(__file__).parent.parent / "static",
             Path(__file__).parent / "static",
+            
             # Scripts directory (for standalone installations)
             get_scripts_dir() / "static",
             get_scripts_dir() / "socketio" / "static",
+            
             # Current working directory
             Path.cwd() / "static",
             Path.cwd() / "socketio" / "static",
         ]
 
-        for path in possible_paths:
-            if path.exists() and path.is_dir():
-                # Check if it contains expected files
-                if (path / "index.html").exists():
-                    self.logger.debug(f"Found static files at: {path}")
-                    return path
+        # Filter out None values
+        possible_paths = [p for p in possible_paths if p is not None]
+        self.logger.debug(f"Searching {len(possible_paths)} possible static file locations")
 
-        self.logger.warning("Static files not found - dashboard will not be available")
+        for path in possible_paths:
+            self.logger.debug(f"Checking for static files at: {path}")
+            try:
+                if path.exists() and path.is_dir():
+                    # Check if it contains expected files
+                    if (path / "index.html").exists():
+                        self.logger.info(f"✅ Found static files at: {path}")
+                        return path
+                    else:
+                        self.logger.debug(f"Directory exists but no index.html: {path}")
+                else:
+                    self.logger.debug(f"Path does not exist: {path}")
+            except Exception as e:
+                self.logger.debug(f"Error checking path {path}: {e}")
+
+        self.logger.warning("⚠️  Static files not found - dashboard will not be available")
+        self.logger.debug(f"Searched paths: {[str(p) for p in possible_paths]}")
         return None
 
     def get_connection_count(self) -> int:

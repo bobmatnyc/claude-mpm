@@ -22,11 +22,11 @@ class MCPServerCommands:
         """Start MCP server command.
 
         WHY: This command starts the MCP server using the proper stdio-based
-        implementation that Claude Desktop can communicate with.
-        NOTE: MCP is for Claude Desktop's Code features.
+        implementation that Claude Code can communicate with.
+        NOTE: MCP is specifically for Claude Code features.
 
         DESIGN DECISION: Run the server directly in the same process to ensure
-        Claude Desktop sees the correct command path, not a wrapper script.
+        Claude Code sees the correct command path, not a wrapper script.
         """
         self.logger.info("MCP server start command called")
 
@@ -39,18 +39,18 @@ class MCPServerCommands:
             # Daemon mode - not recommended for MCP
             print("⚠️  MCP servers are designed to be spawned by Claude Code")
             print("   Running as a daemon is not recommended.")
-            print("   Note: MCP is ONLY for Claude Code, not Claude Desktop.")
+            print("   Note: MCP is specifically for Claude Code.")
             return 1
 
         if show_instructions:
             # Show configuration instructions
-            print("🚀 MCP Server Setup Instructions for Claude Desktop")
+            print("🚀 MCP Server Setup Instructions for Claude Code")
             print("=" * 50)
-            print("\nThe MCP server enables Claude Desktop to use tools and integrations.")
+            print("\nThe MCP server enables Claude Code to use tools and integrations.")
             print("\nTo configure the MCP server:")
             print("\n1. Run the configuration script:")
             print("   python scripts/configure_mcp_server.py")
-            print("\n2. Or manually configure Claude Desktop:")
+            print("\n2. Or manually configure Claude Code:")
             
             # Find project root for paths
             project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -62,7 +62,7 @@ class MCPServerCommands:
                 # Fallback to current executable
                 claude_mpm_path = sys.executable.replace("python", "claude-mpm")
             
-            print("\n   Add this to your Claude Desktop configuration:")
+            print("\n   Add this to your Claude Code configuration:")
             print("   (~/Library/Application Support/Claude/claude_desktop_config.json on macOS)")
             print("\n   {")
             print('     "mcpServers": {')
@@ -73,7 +73,7 @@ class MCPServerCommands:
             print('       }')
             print('     }')
             print('   }')
-            print("\n3. Restart Claude Desktop to load the MCP server")
+            print("\n3. Restart Claude Code to load the MCP server")
             print("\nTo test the server directly:")
             print("   claude-mpm mcp server")
             print("\nTo check running MCP processes:")

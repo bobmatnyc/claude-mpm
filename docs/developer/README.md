@@ -78,7 +78,7 @@ pytest tests/
 #### 🔌 [MCP Gateway](./13-mcp-gateway/)
 - **[MCP Gateway Overview](./13-mcp-gateway/README.md)** - Model Context Protocol gateway implementation
   - Production-ready MCP protocol handler
-  - Claude Desktop integration
+  - Claude Code integration
   - Extensible tool framework
   - Singleton coordination
   - Comprehensive testing and documentation

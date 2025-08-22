@@ -30,6 +30,11 @@ from ...core.unified_paths import get_package_root, get_scripts_dir
 from ...services.port_manager import PortManager
 from ...utils.dependency_manager import ensure_socketio_dependencies
 from ..shared import BaseCommand, CommandResult
+from ..startup_logging import (
+    log_startup_status, 
+    setup_startup_logging,
+    cleanup_old_startup_logs
+)
 from ..utils import get_user_input, list_agent_versions_at_startup
 
 
@@ -231,6 +236,12 @@ class RunCommand(BaseCommand):
             # Log session start
             if args.logging != LogLevel.OFF.value:
                 self.logger.info("Starting Claude MPM session")
+
+            # Log MCP and monitor startup status
+            if args.logging != LogLevel.OFF.value:
+                monitor_mode = getattr(args, "monitor", False)
+                websocket_port = getattr(args, "websocket_port", 8765)
+                log_startup_status(monitor_mode, websocket_port)
 
             # Perform startup checks
             self._check_configuration_health()
@@ -549,9 +560,27 @@ def run_session_legacy(args):
     Args:
         args: Parsed command line arguments
     """
+    # Set up startup logging to file early in the process
+    startup_log_file = setup_startup_logging(Path.cwd())
+    
     logger = get_logger("cli")
     if args.logging != LogLevel.OFF.value:
         logger.info("Starting Claude MPM session")
+        logger.info(f"Startup log: {startup_log_file}")
+    
+    # Clean up old startup logs (keep last 7 days or minimum 10 files)
+    try:
+        deleted_count = cleanup_old_startup_logs(Path.cwd())
+        if deleted_count > 0:
+            logger.debug(f"Cleaned up {deleted_count} old startup log files")
+    except Exception as e:
+        logger.debug(f"Failed to clean up old logs: {e}")
+
+    # Log MCP and monitor startup status
+    if args.logging != LogLevel.OFF.value:
+        monitor_mode = getattr(args, "monitor", False)
+        websocket_port = getattr(args, "websocket_port", 8765)
+        log_startup_status(monitor_mode, websocket_port)
 
     # Perform startup configuration check
     _check_configuration_health(logger)
@@ -1102,7 +1131,7 @@ def _check_claude_json_memory(args, logger):
     """Check .claude.json file size and warn about memory issues.
 
     WHY: Large .claude.json files (>500KB) cause significant memory issues when
-    using --resume. Claude Desktop loads the entire conversation history into
+    using --resume. Claude Code loads the entire conversation history into
     memory, leading to 2GB+ memory consumption.
 
     DESIGN DECISIONS:
@@ -1159,7 +1188,7 @@ def _check_claude_json_memory(args, logger):
             f"\n⚠️  CRITICAL: Large .claude.json file detected ({format_size(file_size)})"
         )
         print(f"   This WILL cause memory issues when using --resume")
-        print(f"   Claude Desktop may consume 2GB+ of memory\n")
+        print(f"   Claude Code may consume 2GB+ of memory\n")
 
         if not getattr(args, "force", False):
             print("   Recommended actions:")

@@ -2,12 +2,12 @@
 
 ## Overview
 
-Claude MPM implements a robust enforcement mechanism to ensure the `claude-mpm` output style is always active when using Claude Desktop >= 1.0.83. This prevents users from accidentally switching to a different output style that would break the PM delegation framework.
+Claude MPM implements a robust enforcement mechanism to ensure the `claude-mpm` output style is always active when using Claude Code >= 1.0.83. This prevents users from accidentally switching to a different output style that would break the PM delegation framework.
 
 ## Key Features
 
 ### 1. Automatic Deployment
-- Detects Claude Desktop version on startup
+- Detects Claude Code version on startup
 - Automatically deploys `claude-mpm.md` to `~/.claude/output-styles/` for Claude >= 1.0.83
 - Falls back to framework injection for older versions
 
@@ -29,7 +29,7 @@ Claude MPM implements a robust enforcement mechanism to ensure the `claude-mpm` 
 
 The `OutputStyleManager` class in `src/claude_mpm/core/output_style_manager.py` handles:
 
-1. **Version Detection**: Detects Claude Desktop version via `claude --version`
+1. **Version Detection**: Detects Claude Code version via `claude --version`
 2. **Style Extraction**: Extracts PM delegation rules from INSTRUCTIONS.md and BASE_PM.md
 3. **Deployment**: Writes claude-mpm.md to output-styles directory
 4. **Activation**: Updates settings.json to activate the style
@@ -78,8 +78,8 @@ manager.log_enforcement_status()
    ```
 
 3. **User Change Scenario**:
-   - User selects different style in Claude Desktop menu
-   - Claude Desktop updates settings.json
+   - User selects different style in Claude Code menu
+   - Claude Code updates settings.json
    - OutputStyleManager detects change on next check
    - Automatically restores claude-mpm style
    - Logs warning with enforcement count
@@ -89,7 +89,7 @@ manager.log_enforcement_status()
 ### Success States
 - `✅ Claude MPM output style is active and enforced`
 - `✅ Activated claude-mpm output style (was: <previous>)`
-- `✅ Output style deployed to Claude Desktop >= 1.0.83`
+- `✅ Output style deployed to Claude Code >= 1.0.83`
 
 ### Warning States
 - `⚠️ Output style was changed from 'claude-mpm' to '<style>' - re-enforcing claude-mpm style`
@@ -127,8 +127,8 @@ python scripts/debug_enforcement.py
 
 ### Known Issues
 
-1. **Menu Display**: Cannot control Claude Desktop's /output-style menu display
-   - The menu is part of Claude Desktop's native UI
+1. **Menu Display**: Cannot control Claude Code's /output-style menu display
+   - The menu is part of Claude Code's native UI
    - We can only control what's in settings.json
    - User may see different styles in menu but claude-mpm will be enforced
 
@@ -184,5 +184,5 @@ logging.basicConfig(level=logging.INFO)
 1. **Real-time Monitoring**: Use file system watchers for immediate detection
 2. **User Preference**: Add config option to disable enforcement if desired
 3. **Style Backup**: Save user's preferred style and restore on exit
-4. **Menu Integration**: Work with Claude Desktop team for native menu integration
+4. **Menu Integration**: Work with Claude Code team for native menu integration
 5. **Performance**: Optimize file I/O for faster checks

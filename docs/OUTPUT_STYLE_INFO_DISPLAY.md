@@ -15,7 +15,7 @@ Added two new methods:
 - Enhanced `_initialize_output_style()`: Now includes detailed status checking and activation verification
 
 **Information Displayed**:
-- Claude Desktop version detection
+- Claude Code version detection
 - Output style support status (>= 1.0.83 required)
 - Deployment mode (output style deployment vs framework injection)
 - File status (deployed/pending/not checked)
@@ -24,10 +24,10 @@ Added two new methods:
 
 **Sample Output**:
 ```
-[INFO] Claude Desktop version detected: 1.0.83
-[INFO] ✅ Claude Desktop supports output styles (>= 1.0.83)
+[INFO] Claude Code version detected: 1.0.83
+[INFO] ✅ Claude Code supports output styles (>= 1.0.83)
 [INFO] 📁 Output style file exists: /Users/masa/.claude/output-styles/claude-mpm.md
-[INFO] ✅ Output style deployed to Claude Desktop >= 1.0.83
+[INFO] ✅ Output style deployed to Claude Code >= 1.0.83
 [INFO] ✅ Output style 'claude-mpm' is ACTIVE
 ```
 
@@ -39,7 +39,7 @@ Added new method:
 - `get_status_summary()`: Returns a dictionary with comprehensive status information
 
 **Status Fields**:
-- `claude_version`: Detected Claude Desktop version or "Not detected"
+- `claude_version`: Detected Claude Code version or "Not detected"
 - `supports_output_styles`: "Yes" or "No" based on version check
 - `deployment_mode`: "Output style deployment" or "Framework injection"
 - `active_style`: Currently active output style from settings.json
@@ -61,7 +61,7 @@ Added:
 ## Startup Information Flow
 
 1. **Framework Loader Initialization**:
-   - Detects Claude Desktop version
+   - Detects Claude Code version
    - Checks output style support
    - Logs comprehensive status
 
@@ -103,7 +103,7 @@ python scripts/test_output_style_display.py
 ## Technical Details
 
 ### Version Detection
-- Uses `claude --version` command to detect Claude Desktop version
+- Uses `claude --version` command to detect Claude Code version
 - Parses version string using regex pattern `(\d+\.\d+\.\d+)`
 - Compares versions to determine feature support
 

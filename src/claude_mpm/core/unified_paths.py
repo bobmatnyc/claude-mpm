@@ -641,6 +641,128 @@ class UnifiedPathManager:
         if src_dir.exists() and str(src_dir) not in sys.path:
             sys.path.insert(0, str(src_dir))
 
+    def get_executable_path(self) -> Optional[Path]:
+        """Get the path to the claude-mpm executable for the current deployment context.
+        
+        This method provides deployment-context-aware executable path detection,
+        particularly useful for MCP server configuration.
+        
+        Returns:
+            Path to executable or None if not found
+        """
+        import shutil
+        
+        # Try standard which first
+        which_result = shutil.which("claude-mpm")
+        if which_result:
+            return Path(which_result)
+        
+        # Enhanced detection based on deployment context
+        if self._deployment_context == DeploymentContext.PIPX_INSTALL:
+            return self._find_pipx_executable()
+        elif self._deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+            return self._find_development_executable()
+        elif self._deployment_context == DeploymentContext.PIP_INSTALL:
+            return self._find_pip_executable()
+        
+        return None
+    
+    def _find_pipx_executable(self) -> Optional[Path]:
+        """Find claude-mpm executable in pipx installation."""
+        try:
+            import claude_mpm
+            module_path = Path(claude_mpm.__file__).parent
+            
+            if "pipx" not in str(module_path):
+                return None
+            
+            # Common pipx executable locations
+            home = Path.home()
+            pipx_paths = [
+                home / ".local" / "bin" / "claude-mpm",
+                home / ".local" / "share" / "pipx" / "venvs" / "claude-mpm" / "bin" / "claude-mpm",
+            ]
+            
+            # Windows paths
+            if sys.platform == "win32":
+                pipx_paths.extend([
+                    home / "AppData" / "Local" / "pipx" / "bin" / "claude-mpm.exe",
+                    home / ".local" / "bin" / "claude-mpm.exe",
+                ])
+            
+            for path in pipx_paths:
+                if path.exists():
+                    logger.debug(f"Found pipx executable: {path}")
+                    return path
+            
+            # Try to derive from module path
+            # Navigate up from module to find venv, then to bin
+            venv_path = module_path
+            for _ in range(5):  # Prevent infinite loops
+                if venv_path.name == "claude-mpm" and (venv_path / "pyvenv.cfg").exists():
+                    # Found the venv directory
+                    bin_dir = venv_path / ("Scripts" if sys.platform == "win32" else "bin")
+                    exe_name = "claude-mpm.exe" if sys.platform == "win32" else "claude-mpm"
+                    exe_path = bin_dir / exe_name
+                    
+                    if exe_path.exists():
+                        logger.debug(f"Found pipx executable via module path: {exe_path}")
+                        return exe_path
+                    break
+                
+                if venv_path == venv_path.parent:
+                    break
+                venv_path = venv_path.parent
+                
+        except Exception as e:
+            logger.debug(f"Error finding pipx executable: {e}")
+        
+        return None
+    
+    def _find_development_executable(self) -> Optional[Path]:
+        """Find claude-mpm executable in development installation."""
+        # For development, prefer the script in the project
+        scripts_dir = self.get_scripts_dir()
+        dev_executable = scripts_dir / "claude-mpm"
+        
+        if dev_executable.exists():
+            return dev_executable
+        
+        # Check if we're in a development venv
+        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+            venv_executable = venv_bin / "claude-mpm"
+            if venv_executable.exists():
+                return venv_executable
+        
+        return None
+    
+    def _find_pip_executable(self) -> Optional[Path]:
+        """Find claude-mpm executable in pip installation."""
+        # For pip installs, check the current Python environment
+        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
+            # In a virtual environment
+            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
+            venv_executable = venv_bin / "claude-mpm"
+            if venv_executable.exists():
+                return venv_executable
+        
+        # Check system-wide installation
+        try:
+            import site
+            for site_dir in site.getsitepackages():
+                # Look for installed scripts
+                site_path = Path(site_dir)
+                scripts_dir = site_path.parent / ("Scripts" if sys.platform == "win32" else "bin")
+                if scripts_dir.exists():
+                    exe_path = scripts_dir / "claude-mpm"
+                    if exe_path.exists():
+                        return exe_path
+        except Exception as e:
+            logger.debug(f"Error finding pip executable: {e}")
+        
+        return None
+
 
 # ============================================================================
 # Singleton Instance and Convenience Functions
@@ -701,6 +823,11 @@ def get_package_resource_path(resource_path: str) -> Path:
     return get_path_manager().get_package_resource_path(resource_path)
 
 
+def get_executable_path() -> Optional[Path]:
+    """Get the claude-mpm executable path for the current deployment context."""
+    return get_path_manager().get_executable_path()
+
+
 # ============================================================================
 # Export All Public Symbols
 # ============================================================================
@@ -719,4 +846,5 @@ __all__ = [
     "get_config_dir",
     "find_file_upwards",
     "get_package_resource_path",
+    "get_executable_path",
 ]

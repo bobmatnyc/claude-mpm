@@ -1,6 +1,6 @@
 # Claude MPM (npm wrapper)
 
-This is the npm wrapper for the **Claude Multi-Agent Project Manager (claude-mpm)**, a Python framework that extends Claude Desktop with multi-agent orchestration capabilities.
+This is the npm wrapper for the **Claude Multi-Agent Project Manager (claude-mpm)**, a Python framework that extends Claude Code with multi-agent orchestration capabilities.
 
 ## Requirements
 
@@ -55,7 +55,7 @@ pip install claude-mpm
 - **Memory System**: Persistent agent memory and context management
 - **WebSocket Dashboard**: Real-time monitoring of agent activities
 - **MCP Gateway**: Model Context Protocol server integration
-- **Claude Desktop Integration**: Seamless integration with Anthropic's Claude Desktop
+- **Claude Code Integration**: Seamless integration with Anthropic's Claude Code
 
 ## Documentation
 
