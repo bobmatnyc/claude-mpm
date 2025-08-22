@@ -72,11 +72,12 @@ Following the TSK-0053 refactoring, Claude MPM features:
 # Full test suite
 ./scripts/run_all_tests.sh
 
-# Lint and type checks
+# Lint and type checks (catches duplicate imports!)
 ./scripts/run_lint.sh
 ```
 
 See [docs/QA.md](docs/QA.md) for detailed testing procedures.
+See [docs/LINTING.md](docs/LINTING.md) for linting configuration and duplicate import detection.
 
 ### Key System Components
 
