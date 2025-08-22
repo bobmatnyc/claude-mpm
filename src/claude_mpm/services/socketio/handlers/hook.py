@@ -41,14 +41,23 @@ class HookEventHandler(BaseEventHandler):
             return
             
         # Extract hook event details
-        # Hook events come as: { type: "hook.user_prompt", timestamp: "...", data: {...} }
+        # Hook events can come in two formats:
+        # 1. Normalized: { type: "hook", subtype: "user_prompt", ... }
+        # 2. Legacy: { type: "hook.user_prompt", ... }
         event_type = data.get("type", "")
+        event_subtype = data.get("subtype", "")
         
-        # Extract the actual hook event name from the type (e.g., "hook.user_prompt" -> "user_prompt")
-        if event_type.startswith("hook."):
+        # Determine the actual hook event name
+        hook_event = ""
+        if event_type == "hook" and event_subtype:
+            # Normalized format: use subtype directly
+            hook_event = event_subtype
+        elif isinstance(event_type, str) and event_type.startswith("hook."):
+            # Legacy format: extract from dotted type
             hook_event = event_type[5:]  # Remove "hook." prefix
         else:
-            hook_event = data.get("event", "")  # Fallback for legacy format
+            # Fallback: check for 'event' field (another legacy format)
+            hook_event = data.get("event", "")
             
         hook_data = data.get("data", {})
         

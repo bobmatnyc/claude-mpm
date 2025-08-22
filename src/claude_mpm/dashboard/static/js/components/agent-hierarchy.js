@@ -33,7 +33,24 @@ class AgentHierarchy {
         // Default expand all nodes initially
         this.expandAll = true;
         
+        // Set up event listeners
+        this.setupEventListeners();
+        
         console.log('Agent hierarchy component initialized');
+    }
+    
+    /**
+     * Set up event listeners for safe interaction
+     */
+    setupEventListeners() {
+        // Use event delegation for toggle node clicks to avoid undefined dashboard errors
+        document.addEventListener('click', (event) => {
+            const toggleTarget = event.target.closest('[data-toggle-node]');
+            if (toggleTarget && window.dashboard && window.dashboard.agentHierarchy) {
+                const nodeId = toggleTarget.dataset.toggleNode;
+                window.dashboard.agentHierarchy.toggleNode(nodeId);
+            }
+        });
     }
     
     /**
@@ -451,7 +468,7 @@ class AgentHierarchy {
             <div class="agent-node agent-node-level-${level} ${isSelected ? 'agent-node-selected' : ''} ${impliedClass}" 
                  data-node-id="${node.id}" ${tooltipAttr}>
                 <div class="agent-node-header ${statusClass}" 
-                     onclick="dashboard.agentHierarchy.toggleNode('${node.id}')">
+                     data-toggle-node="${node.id}" style="cursor: pointer">
                     <span class="agent-node-expand">${expandIcon}</span>
                     <span class="agent-node-icon">${icon}</span>
                     <span class="agent-node-name">${this.escapeHtml(node.name)}</span>

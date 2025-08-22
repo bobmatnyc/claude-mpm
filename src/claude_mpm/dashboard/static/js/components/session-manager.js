@@ -1,6 +1,16 @@
 /**
  * Session Manager Component
  * Handles session selection and management
+ * 
+ * WHY: Provides session filtering and management for the dashboard, allowing users
+ * to view events from specific sessions or all sessions.
+ * 
+ * BROWSER COMPATIBILITY: This component runs in the browser. All Node.js-specific
+ * globals (process, require, etc.) have been removed. Uses browser-compatible
+ * alternatives for path handling and defaults.
+ * 
+ * FIX APPLIED: Removed process.cwd() reference that caused "process is not defined"
+ * error in browser. Now uses window.location.pathname or hardcoded fallbacks.
  */
 
 class SessionManager {
@@ -171,7 +181,12 @@ class SessionManager {
         }
 
         let sessionInfo = 'All Sessions';
-        let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || process?.cwd?.() || '/Users/masa/Projects/claude-mpm';
+        // Use browser-compatible fallback for working directory
+        // WHY: Removed process.cwd() Node.js reference - not available in browser
+        // BROWSER FIX: Use dashboard manager or hardcoded fallback
+        let workingDir = window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
+                        window.location.pathname || 
+                        '/Users/masa/Projects/claude-mpm';
         let gitBranch = 'Unknown';
 
         console.log('[SESSION-DEBUG] Initial values - sessionInfo:', sessionInfo, 'workingDir:', workingDir, 'gitBranch:', gitBranch);
@@ -184,7 +199,11 @@ class SessionManager {
             // For current session, try to extract info from recent events
             if (this.currentSessionId) {
                 const sessionData = this.extractSessionInfoFromEvents(this.currentSessionId);
-                workingDir = sessionData.workingDir || window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || '/Users/masa/Projects/claude-mpm';
+                // Browser-compatible working directory fallback
+                workingDir = sessionData.workingDir || 
+                           window.dashboard?.workingDirectoryManager?.getDefaultWorkingDir() || 
+                           window.location.pathname || 
+                           '/Users/masa/Projects/claude-mpm';
                 gitBranch = sessionData.gitBranch || 'Unknown';
             }
         } else if (this.selectedSessionId) {
@@ -197,7 +216,8 @@ class SessionManager {
                 // If session doesn't have these values, extract from events
                 if (!workingDir || !gitBranch) {
                     const sessionData = this.extractSessionInfoFromEvents(this.selectedSessionId);
-                    workingDir = workingDir || sessionData.workingDir || '.';
+                    // Browser-compatible fallback - no process.cwd()
+                    workingDir = workingDir || sessionData.workingDir || window.location.pathname || '.';
                     gitBranch = gitBranch || sessionData.gitBranch || '';
                 }
             }

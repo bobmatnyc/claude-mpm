@@ -39,6 +39,7 @@ class EventViewer {
 
         // Subscribe to socket events
         this.socketClient.onEventUpdate((events, sessions) => {
+            console.log('EventViewer received event update:', events?.length || 0, 'events');
             // Ensure we always have a valid events array
             this.events = Array.isArray(events) ? events : [];
             this.updateDisplay();
@@ -210,6 +211,7 @@ class EventViewer {
      * Update the display with current events
      */
     updateDisplay() {
+        console.log('EventViewer updating display with', this.events?.length || 0, 'events');
         this.updateEventTypeDropdown();
         this.applyFilters();
     }
@@ -282,8 +284,8 @@ class EventViewer {
     formatEventType(event) {
         // If we have type and subtype, use them
         if (event.type && event.subtype) {
-            // Check if type and subtype are identical to prevent "type.type" display
-            if (event.type === event.subtype) {
+            // Check if type and subtype are identical or subtype is 'generic' to prevent redundant display
+            if (event.type === event.subtype || event.subtype === 'generic') {
                 return event.type;
             }
             return `${event.type}.${event.subtype}`;
@@ -407,10 +409,25 @@ class EventViewer {
                 const stopType = data.stop_type || 'normal';
                 return `<strong>Stop (${stopType}):</strong> ${reason}`;
 
+            case 'subagent_start':
+                // Try multiple locations for agent type
+                const startAgentType = data.agent_type || data.agent || data.subagent_type || 'Unknown';
+                const startPrompt = data.prompt || data.description || data.task || 'No description';
+                const startTruncated = startPrompt.length > 60 ? startPrompt.substring(0, 60) + '...' : startPrompt;
+                // Format with proper agent type display
+                const startAgentDisplay = this.formatAgentType(startAgentType);
+                return `<strong>Subagent Start (${startAgentDisplay}):</strong> ${startTruncated}`;
+
             case 'subagent_stop':
-                const agentType = data.agent_type || 'unknown agent';
-                const stopReason = data.reason || 'unknown';
-                return `<strong>Subagent Stop (${agentType}):</strong> ${stopReason}`;
+                // Try multiple locations for agent type
+                const agentType = data.agent_type || data.agent || data.subagent_type || 'Unknown';
+                const stopReason = data.reason || data.stop_reason || 'completed';
+                // Format with proper agent type display
+                const stopAgentDisplay = this.formatAgentType(agentType);
+                // Include task completion status if available
+                const isCompleted = data.structured_response?.task_completed;
+                const completionStatus = isCompleted !== undefined ? (isCompleted ? ' ✓' : ' ✗') : '';
+                return `<strong>Subagent Stop (${stopAgentDisplay})${completionStatus}:</strong> ${stopReason}`;
 
             default:
                 // Fallback to original logic for unknown hook types
@@ -464,76 +481,185 @@ class EventViewer {
     }
 
     /**
+     * Format agent type for display with proper capitalization
+     * @param {string} agentType - The raw agent type string
+     * @returns {string} Formatted agent type for display
+     */
+    formatAgentType(agentType) {
+        // Handle common agent type patterns
+        const agentTypeMap = {
+            'research': 'Research',
+            'architect': 'Architect',
+            'engineer': 'Engineer',
+            'qa': 'QA',
+            'pm': 'PM',
+            'project_manager': 'PM',
+            'research_agent': 'Research',
+            'architect_agent': 'Architect',
+            'engineer_agent': 'Engineer',
+            'qa_agent': 'QA',
+            'unknown': 'Unknown'
+        };
+        
+        // Try to find a match in the map (case-insensitive)
+        const lowerType = (agentType || 'unknown').toLowerCase();
+        if (agentTypeMap[lowerType]) {
+            return agentTypeMap[lowerType];
+        }
+        
+        // If not in map, try to extract the agent name from patterns like "Research Agent" or "research_agent"
+        const match = agentType.match(/^(\w+)(?:_agent|Agent)?$/i);
+        if (match && match[1]) {
+            // Capitalize first letter
+            return match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
+        }
+        
+        // Fallback: just capitalize first letter of whatever we have
+        return agentType.charAt(0).toUpperCase() + agentType.slice(1);
+    }
+
+    /**
      * Format event content for single-row display (without timestamp)
-     * Format: "hook.pre_tool Pre-Tool (task_management): TodoWrite"
+     * Format: "{type}.{subtype}" followed by data details
      * @param {Object} event - Event object
      * @returns {string} Formatted single-row event content string
      */
     formatSingleRowEventContent(event) {
         const eventType = this.formatEventType(event);
         const data = event.data || {};
+        
+        // Include source if it's not the default 'system' source
+        const sourcePrefix = event.source && event.source !== 'system' ? `[${event.source}] ` : '';
 
-        // Extract event details for different event types
-        let eventDetails = '';
-        let category = '';
-        let action = '';
+        // Extract meaningful details from the data package for different event types
+        let dataDetails = '';
 
         switch (event.type) {
             case 'hook':
-                // Hook events: extract tool name and hook type
+                // Hook events: show tool name and operation details
                 const toolName = event.tool_name || data.tool_name || 'Unknown';
                 const hookType = event.subtype || 'Unknown';
-                const hookDisplayName = this.getHookDisplayName(hookType, data);
-                category = this.getEventCategory(event);
-                eventDetails = `${hookDisplayName} (${category}): ${toolName}`;
+                
+                // Format specific hook types
+                if (hookType === 'pre_tool' || hookType === 'post_tool') {
+                    const operation = data.operation_type || '';
+                    const status = hookType === 'post_tool' && data.success !== undefined 
+                        ? (data.success ? '✓' : '✗') 
+                        : '';
+                    dataDetails = `${toolName}${operation ? ` (${operation})` : ''}${status ? ` ${status}` : ''}`;
+                } else if (hookType === 'user_prompt') {
+                    const prompt = data.prompt_text || data.prompt_preview || '';
+                    const truncated = prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt;
+                    dataDetails = truncated || 'No prompt text';
+                } else if (hookType === 'subagent_start') {
+                    // Enhanced agent type detection
+                    const agentType = data.agent_type || data.agent || data.subagent_type || 'Unknown';
+                    const agentDisplay = this.formatAgentType(agentType);
+                    const prompt = data.prompt || data.description || data.task || '';
+                    const truncated = prompt.length > 40 ? prompt.substring(0, 40) + '...' : prompt;
+                    dataDetails = truncated ? `${agentDisplay} - ${truncated}` : agentDisplay;
+                } else if (hookType === 'subagent_stop') {
+                    // Enhanced agent type detection for subagent_stop
+                    const agentType = data.agent_type || data.agent || data.subagent_type || 'Unknown';
+                    const agentDisplay = this.formatAgentType(agentType);
+                    const reason = data.reason || data.stop_reason || 'completed';
+                    const isCompleted = data.structured_response?.task_completed;
+                    const status = isCompleted !== undefined ? (isCompleted ? '✓' : '✗') : '';
+                    dataDetails = `${agentDisplay}${status ? ' ' + status : ''} - ${reason}`;
+                } else if (hookType === 'stop') {
+                    const reason = data.reason || 'completed';
+                    const stopType = data.stop_type || 'normal';
+                    dataDetails = `${stopType} - ${reason}`;
+                } else {
+                    dataDetails = toolName;
+                }
                 break;
 
             case 'agent':
-                // Agent events
+                // Agent events: show agent name and status
                 const agentName = event.subagent_type || data.subagent_type || 'PM';
-                const agentAction = event.subtype || 'action';
-                category = 'agent_operations';
-                eventDetails = `${agentName} ${agentAction}`;
+                const status = data.status || '';
+                dataDetails = `${agentName}${status ? ` - ${status}` : ''}`;
                 break;
 
             case 'todo':
-                // Todo events
-                const todoCount = data.todos ? data.todos.length : 0;
-                category = 'task_management';
-                eventDetails = `TodoWrite (${todoCount} items)`;
+                // Todo events: show item count and status changes
+                if (data.todos && Array.isArray(data.todos)) {
+                    const count = data.todos.length;
+                    const completed = data.todos.filter(t => t.status === 'completed').length;
+                    const inProgress = data.todos.filter(t => t.status === 'in_progress').length;
+                    dataDetails = `${count} items (${completed} completed, ${inProgress} in progress)`;
+                } else {
+                    dataDetails = 'Todo update';
+                }
                 break;
 
             case 'memory':
-                // Memory events
+                // Memory events: show operation and key
                 const operation = data.operation || 'unknown';
                 const key = data.key || 'unknown';
-                category = 'memory_operations';
-                eventDetails = `${operation} ${key}`;
+                const value = data.value ? ` = ${JSON.stringify(data.value).substring(0, 30)}...` : '';
+                dataDetails = `${operation}: ${key}${value}`;
                 break;
 
             case 'session':
-                // Session events
-                const sessionAction = event.subtype || 'unknown';
-                category = 'session_management';
-                eventDetails = `Session ${sessionAction}`;
+                // Session events: show session ID
+                const sessionId = data.session_id || 'unknown';
+                dataDetails = `ID: ${sessionId}`;
                 break;
 
             case 'claude':
-                // Claude events
-                const claudeAction = event.subtype || 'interaction';
-                category = 'claude_interactions';
-                eventDetails = `Claude ${claudeAction}`;
+                // Claude events: show request/response preview
+                if (event.subtype === 'request') {
+                    const prompt = data.prompt || data.message || '';
+                    const truncated = prompt.length > 60 ? prompt.substring(0, 60) + '...' : prompt;
+                    dataDetails = truncated || 'Empty request';
+                } else if (event.subtype === 'response') {
+                    const response = data.response || data.content || '';
+                    const truncated = response.length > 60 ? response.substring(0, 60) + '...' : response;
+                    dataDetails = truncated || 'Empty response';
+                } else {
+                    dataDetails = data.message || 'Claude interaction';
+                }
+                break;
+
+            case 'log':
+                // Log events: show log level and message
+                const level = data.level || 'info';
+                const message = data.message || '';
+                const truncated = message.length > 60 ? message.substring(0, 60) + '...' : message;
+                dataDetails = `[${level.toUpperCase()}] ${truncated}`;
+                break;
+
+            case 'test':
+                // Test events: show test name or details
+                const testName = data.test_name || data.name || 'Test';
+                dataDetails = testName;
                 break;
 
             default:
-                // Generic events
-                category = 'general';
-                eventDetails = event.type || 'Unknown Event';
+                // Generic events: show any available data
+                if (typeof data === 'string') {
+                    dataDetails = data.length > 60 ? data.substring(0, 60) + '...' : data;
+                } else if (data.message) {
+                    dataDetails = data.message.length > 60 ? data.message.substring(0, 60) + '...' : data.message;
+                } else if (data.name) {
+                    dataDetails = data.name;
+                } else if (Object.keys(data).length > 0) {
+                    // Show first meaningful field from data
+                    const firstKey = Object.keys(data).find(k => !['timestamp', 'id'].includes(k));
+                    if (firstKey) {
+                        const value = data[firstKey];
+                        dataDetails = `${firstKey}: ${typeof value === 'object' ? JSON.stringify(value).substring(0, 40) + '...' : value}`;
+                    }
+                }
                 break;
         }
 
-        // Return formatted string: "type.subtype DisplayName (category): Details"
-        return `${eventType} ${eventDetails}`;
+        // Return formatted string: "[source] {type}.{subtype} - {data details}"
+        // The eventType already contains the type.subtype format from formatEventType()
+        const fullType = `${sourcePrefix}${eventType}`;
+        return dataDetails ? `${fullType} - ${dataDetails}` : fullType;
     }
 
     /**
@@ -548,6 +674,7 @@ class EventViewer {
             'post_tool': 'Post-Tool',
             'user_prompt': 'User-Prompt',
             'stop': 'Stop',
+            'subagent_start': 'Subagent-Start',
             'subagent_stop': 'Subagent-Stop',
             'notification': 'Notification'
         };
@@ -580,7 +707,9 @@ class EventViewer {
             return 'task_management';
         } else if (toolName === 'Task') {
             return 'agent_delegation';
-        } else if (event.subtype === 'stop' || event.subtype === 'subagent_stop') {
+        } else if (event.subtype === 'subagent_start' || event.subtype === 'subagent_stop') {
+            return 'agent_delegation';
+        } else if (event.subtype === 'stop') {
             return 'session_control';
         }
 

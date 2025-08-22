@@ -142,7 +142,7 @@ class TestE2E:
             ("What is 10 * 10?", "100"),
         ],
     )
-    def test_non_interactive_various_prompts(prompt, expected):
+    def test_non_interactive_various_prompts(self, prompt, expected):
         """Test non-interactive mode with various prompts."""
         result = subprocess.run(
             [str(CLAUDE_MPM_SCRIPT), "run", "-i", prompt, "--non-interactive"],

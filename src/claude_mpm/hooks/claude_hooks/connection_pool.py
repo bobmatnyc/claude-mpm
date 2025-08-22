@@ -109,7 +109,12 @@ class SocketIOConnectionPool:
             if client.connected:
                 # Send a keep-alive ping to establish the connection
                 try:
-                    client.emit('ping', {'timestamp': time.time()})
+                    client.emit('ping', {
+                        'type': 'system',
+                        'subtype': 'ping',
+                        'timestamp': time.time(),
+                        'source': 'connection_pool'
+                    })
                 except:
                     pass  # Ignore ping errors
                 return client
@@ -137,7 +142,12 @@ class SocketIOConnectionPool:
             # This helps detect zombie connections
             try:
                 # Just emit a ping, don't wait for response (faster)
-                client.emit('ping', {'timestamp': time.time()})
+                client.emit('ping', {
+                    'type': 'system',
+                    'subtype': 'ping',
+                    'timestamp': time.time(),
+                    'source': 'connection_pool'
+                })
                 return True
             except:
                 # If ping fails, connection might be dead

@@ -24,11 +24,41 @@ import time
 from collections import deque
 from datetime import datetime
 
-# Import extracted modules
-from .connection_pool import SocketIOConnectionPool
-from .event_handlers import EventHandlers
-from .memory_integration import MemoryHookManager
-from .response_tracking import ResponseTrackingManager
+# Import extracted modules with fallback for direct execution
+try:
+    # Try relative imports first (when imported as module)
+    from .connection_pool import SocketIOConnectionPool
+    from .event_handlers import EventHandlers
+    from .memory_integration import MemoryHookManager
+    from .response_tracking import ResponseTrackingManager
+except ImportError:
+    # Fall back to absolute imports (when run directly)
+    import sys
+    from pathlib import Path
+    # Add parent directory to path
+    sys.path.insert(0, str(Path(__file__).parent))
+    from connection_pool import SocketIOConnectionPool
+    from event_handlers import EventHandlers
+    from memory_integration import MemoryHookManager
+    from response_tracking import ResponseTrackingManager
+
+# Import EventNormalizer for consistent event formatting
+try:
+    from claude_mpm.services.socketio.event_normalizer import EventNormalizer
+except ImportError:
+    # Create a simple fallback EventNormalizer if import fails
+    class EventNormalizer:
+        def normalize(self, event_data):
+            """Simple fallback normalizer that returns event as-is."""
+            return type('NormalizedEvent', (), {
+                'to_dict': lambda: {
+                    'event': 'claude_event',
+                    'type': event_data.get('type', 'unknown'),
+                    'subtype': event_data.get('subtype', 'generic'),
+                    'timestamp': event_data.get('timestamp', datetime.now().isoformat()),
+                    'data': event_data.get('data', event_data)
+                }
+            })
 
 # Import constants for configuration
 try:
@@ -86,6 +116,8 @@ class ClaudeHookHandler:
         # Track events for periodic cleanup
         self.events_processed = 0
         self.last_cleanup = time.time()
+        # Event normalizer for consistent event schema
+        self.event_normalizer = EventNormalizer()
 
         # Maximum sizes for tracking
         self.MAX_DELEGATION_TRACKING = 200
@@ -503,14 +535,15 @@ class ClaudeHookHandler:
             return int(os.environ.get("CLAUDE_MPM_SOCKETIO_PORT", "8765"))
 
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
-        """Emit Socket.IO event with improved reliability and persistent connections.
+        """Emit Socket.IO event with improved reliability and event normalization.
 
         WHY improved approach:
+        - Uses EventNormalizer for consistent event schema
         - Maintains persistent connections throughout handler lifecycle
         - Better error handling and automatic recovery
         - Connection health monitoring before emission
         - Automatic reconnection for critical events
-        - Validates data before emission
+        - All events normalized to standard schema before emission
         """
         # Always try to emit Socket.IO events if available
         # The daemon should be running when manager is active
@@ -568,12 +601,20 @@ class ClaudeHookHandler:
                             )
                         return
             
-            # Format event for Socket.IO server
-            claude_event_data = {
-                "type": f"hook.{event}",  # Dashboard expects 'hook.' prefix
+            # Create event data for normalization
+            raw_event = {
+                "type": "hook",
+                "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
                 "timestamp": datetime.now().isoformat(),
                 "data": data,
+                "source": "claude_hooks",  # Identify the source
+                "session_id": data.get("sessionId"),  # Include session if available
             }
+            
+            # Normalize the event using EventNormalizer for consistent schema
+            # Pass source explicitly to ensure it's set correctly
+            normalized_event = self.event_normalizer.normalize(raw_event, source="hook")
+            claude_event_data = normalized_event.to_dict()
 
             # Log important events for debugging
             if DEBUG and event in ["subagent_stop", "pre_tool"]:

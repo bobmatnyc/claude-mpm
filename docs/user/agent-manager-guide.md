@@ -13,15 +13,15 @@ Claude MPM uses a three-tier agent hierarchy with clear precedence:
    - Deployed per-project for custom workflows
    - Persists with project repository
 
-2. **User Level** (`~/.claude/agents/`) - Middle priority
+2. **User Level** (`~/.claude/agents/`) - Middle priority (deprecated deployment location)
    - User's personal agent collection
-   - Shared across all projects for that user
+   - **Note**: As of v4.0.32+, user agents deploy to project directories
    - Overrides system agents but not project agents
 
 3. **System Level** (Framework installation) - Lowest priority
    - Default agents shipped with claude-mpm
    - Available to all users and projects
-   - Can be overridden at user or project level
+   - **Note**: As of v4.0.32+, system agents deploy to project directories
 
 ## Getting Started
 
@@ -101,21 +101,63 @@ claude-mpm agent-manager variant \
 
 ## Deploying Agents
 
-### Deploy to User Level
+**Important**: As of v4.0.32+, all agents deploy to the current project directory regardless of the `--tier` parameter.
 
-Deploy an agent to your personal collection:
+### Deploy to Project Directory (Default Behavior)
+
+All deployment commands now deploy agents to the current project's `.claude/agents/` directory:
 
 ```bash
+# These all deploy to the same location: <project>/.claude/agents/
 claude-mpm agent-manager deploy --id my-agent --tier user
-```
-
-### Deploy to Project Level
-
-Deploy an agent to the current project:
-
-```bash
 claude-mpm agent-manager deploy --id my-agent --tier project
+claude-mpm agent-manager deploy --id my-agent  # tier parameter is optional
 ```
+
+### Automatic User Agent Cleanup
+
+**Claude MPM now automatically removes outdated user agents during deployment to ensure you always have the latest agent versions.**
+
+**How It Works:**
+- During deployment, claude-mpm compares agent versions across all sources (project, user, system)
+- If a project or system agent has a higher version than a user agent, the outdated user agent is automatically removed
+- User agents with same or higher versions are preserved
+- All cleanup actions are logged for transparency
+
+**Example Cleanup Messages:**
+```
+INFO: Removing outdated user agent: engineer v1.8.0 (superseded by project v2.5.0)
+INFO: Cleanup complete: removed 2 outdated user agents
+```
+
+**Configuration:**
+```bash
+# Disable automatic cleanup if needed (enabled by default)
+export CLAUDE_MPM_CLEANUP_USER_AGENTS=false
+
+# Or via config file
+echo "agent_deployment:
+  cleanup_outdated_user_agents: false" >> ~/.claude-mpm/config.yaml
+```
+
+**Benefits:**
+- **Always Current**: Automatically get the latest agent versions
+- **No Conflicts**: Eliminates confusion from multiple agent versions
+- **Clean Environment**: Keeps user agent directory tidy
+- **Team Consistency**: Ensures team members use consistent agent versions
+
+### Legacy Tier Parameters
+
+The `--tier` parameter is maintained for backward compatibility but no longer affects deployment location:
+
+- `--tier user`: Deploys to current project directory (not user home)
+- `--tier project`: Deploys to current project directory (same as user)
+
+**Benefits of Project-Only Deployment**:
+- **Consistency**: All agents in one predictable location
+- **Isolation**: Projects don't interfere with each other
+- **Portability**: Agents travel with the project
+- **Team Sharing**: Easy to version control project agents
 
 ## Customizing PM Instructions
 
@@ -319,6 +361,70 @@ If configuration validation fails:
 3. Ensure model and tool_choice values are valid
 4. Test with `claude-mpm agent-manager test`
 
+### Agent Cleanup Issues
+
+If you experience unexpected agent behavior after deployment:
+1. **Check cleanup logs**: Look for messages about removed agents
+   ```bash
+   tail -f ~/.claude-mpm/logs/deployment.log | grep "cleanup"
+   ```
+2. **Verify agent versions**: Ensure you're using the expected agent version
+   ```bash
+   claude-mpm agent-manager list
+   ```
+3. **Disable cleanup temporarily**: If needed for debugging
+   ```bash
+   export CLAUDE_MPM_CLEANUP_USER_AGENTS=false
+   claude-mpm agent-manager deploy --id my-agent
+   ```
+4. **Manual cleanup**: Remove specific outdated agents manually
+   ```bash
+   rm ~/.claude-mpm/agents/outdated_agent.json
+   ```
+
+## Migration from Previous Versions
+
+### For Users of v4.0.31 and Earlier
+
+If you have agents deployed in `~/.claude/agents/` from previous versions:
+
+1. **Check existing deployments**:
+   ```bash
+   ls -la ~/.claude/agents/
+   ```
+
+2. **Migrate to project (recommended)**:
+   ```bash
+   # Navigate to your project
+   cd /path/to/your/project
+   
+   # Deploy agents to project directory
+   claude-mpm agent-manager deploy --id my-agent
+   
+   # Verify deployment
+   ls -la .claude/agents/
+   ```
+
+3. **Optional cleanup**:
+   ```bash
+   # Remove old user-level deployments (optional)
+   rm -rf ~/.claude/agents/
+   ```
+
+**Note**: Existing agents in `~/.claude/agents/` will continue to work until overridden by project deployments.
+
+### Updating Scripts and Automation
+
+Existing automation scripts will continue to work without changes:
+
+```bash
+# Old script (still works, deploys to project)
+claude-mpm agent-manager deploy --id my-agent --tier user
+
+# New equivalent (more explicit)
+claude-mpm agent-manager deploy --id my-agent
+```
+
 ## Advanced Features
 
 ### Batch Agent Creation
@@ -350,11 +456,15 @@ claude-mpm agent-manager deploy --id my-agent --tier project
 Always backup before major changes:
 
 ```bash
-# Backup user agents
+# Backup project agents (current deployment location)
+cp -r .claude/agents .claude/agents.backup
+
+# Backup legacy user agents (if they exist)
 cp -r ~/.claude/agents ~/.claude/agents.backup
 
-# Backup project agents
-cp -r .claude/agents .claude/agents.backup
+# Backup agent sources
+cp -r .claude-mpm/agents .claude-mpm/agents.backup
+cp -r ~/.claude-mpm/agents ~/.claude-mpm/agents.backup
 ```
 
 ## Integration with Claude Code
