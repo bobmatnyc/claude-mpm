@@ -157,15 +157,14 @@ class TestNoAutoInstructionsDeploy:
                 "errors": [],
             }
             
-            # Deploy to .claude-mpm
-            deployer.deploy_system_instructions_to_claude_mpm(
+            # Deploy to .claude
+            deployer.deploy_system_instructions(
                 target_dir=target_dir,
                 force_rebuild=True,
                 results=results,
-                is_project_specific=True
             )
             
-            # Check that files would be deployed to .claude-mpm (not .claude)
+            # Check that files would be deployed to .claude (always project level)
             # Note: Actual deployment depends on source files existing
             # This test verifies the method exists and doesn't throw errors
             assert len(results["errors"]) == 0 or all(
@@ -199,7 +198,6 @@ class TestNoAutoInstructionsDeploy:
                 target_dir=target_dir,
                 force_rebuild=True,
                 results=results,
-                is_project_specific=False
             )
             
             # The method would target ~/.claude if not project-specific

@@ -15,32 +15,25 @@ class AgentsDirectoryResolver:
     def __init__(
         self,
         working_directory: Path,
-        is_system_deployment: bool,
-        is_project_specific: bool,
     ):
         """
         Initialize the resolver.
 
         Args:
             working_directory: Current working directory
-            is_system_deployment: Whether this is a system agent deployment
-            is_project_specific: Whether this is a project-specific deployment
         """
         self.working_directory = working_directory
-        self.is_system_deployment = is_system_deployment
-        self.is_project_specific = is_project_specific
 
     def determine_agents_directory(self, target_dir: Optional[Path]) -> Path:
         """
         Determine the correct agents directory based on input.
-
-        Different deployment scenarios require different directory
-        structures. This method centralizes the logic for consistency.
-
-        HIERARCHY:
-        - System agents → Deploy to ~/.claude/agents/ (user's home directory)
-        - User custom agents from ~/.claude-mpm/agents/ → Deploy to ~/.claude/agents/
-        - Project-specific agents from <project>/.claude-mpm/agents/ → Deploy to <project>/.claude/agents/
+        
+        MODIFIED: Always deploy to project .claude/agents directory
+        regardless of agent source (system, user, or project).
+        
+        This ensures all agents are deployed at the project level while
+        maintaining discovery from both user (~/.claude-mpm) and project
+        (.claude-mpm) directories.
 
         Args:
             target_dir: Optional target directory
@@ -49,17 +42,9 @@ class AgentsDirectoryResolver:
             Path to agents directory
         """
         if not target_dir:
-            # Default deployment location depends on agent source
-            # Check if we're deploying system agents or user/project agents
-            if self.is_system_deployment:
-                # System agents go to user's home ~/.claude/agents/
-                return Path.home() / ".claude" / "agents"
-            elif self.is_project_specific:
-                # Project agents stay in project directory
-                return self.working_directory / ".claude" / "agents"
-            else:
-                # Default: User custom agents go to home ~/.claude/agents/
-                return Path.home() / ".claude" / "agents"
+            # Always deploy to project directory
+            # This is the key change - all agents go to project .claude/agents
+            return self.working_directory / ".claude" / "agents"
 
         # If target_dir provided, use it directly (caller decides structure)
         target_dir = Path(target_dir)

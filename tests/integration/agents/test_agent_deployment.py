@@ -14,7 +14,7 @@ import tempfile
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 
 def test_agent_deployment():
@@ -22,7 +22,7 @@ def test_agent_deployment():
     from claude_mpm.services.agents.deployment import AgentDeploymentService
 
     # Create a temporary user directory
-    with tmp_path as tmpdir:
+    with tempfile.TemporaryDirectory() as tmpdir:
         user_dir = Path(tmpdir) / "user_project"
         user_dir.mkdir(exist_ok=True)
 

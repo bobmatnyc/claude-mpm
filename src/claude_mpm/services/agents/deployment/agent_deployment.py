@@ -516,11 +516,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
                 return False
 
             # Ensure target directory exists
-            agents_dir = target_dir / ".claude" / "agents"
-            agents_dir.mkdir(parents=True, exist_ok=True)
+            # target_dir should already be the agents directory
+            target_dir.mkdir(parents=True, exist_ok=True)
 
             # Build and deploy the agent
-            target_file = agents_dir / f"{agent_name}.md"
+            target_file = target_dir / f"{agent_name}.md"
 
             # Check if update is needed
             if not force_rebuild and target_file.exists():
@@ -618,7 +618,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
 
         deployer = SystemInstructionsDeployer(self.logger, self.working_directory)
         deployer.deploy_system_instructions(
-            target_dir, force_rebuild, results, self._is_project_specific_deployment()
+            target_dir, force_rebuild, results
         )
 
     def deploy_system_instructions_explicit(
@@ -629,11 +629,11 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         
         This method should ONLY be called when the user explicitly requests
         deployment of system instructions through agent-manager commands.
-        It will deploy INSTRUCTIONS.md, MEMORY.md, and WORKFLOW.md to .claude-mpm/
-        directory (not .claude/).
+        It will deploy INSTRUCTIONS.md, MEMORY.md, and WORKFLOW.md to .claude/
+        directory in the project.
         
         Args:
-            target_dir: Target directory for deployment (defaults to .claude-mpm/)
+            target_dir: Target directory for deployment (ignored - always uses .claude/)
             force_rebuild: Force rebuild even if files exist
             
         Returns:
@@ -647,23 +647,19 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         }
         
         try:
-            # Use .claude-mpm/ instead of .claude/
-            if target_dir is None:
-                if self._is_project_specific_deployment():
-                    target_dir = self.working_directory / ".claude-mpm"
-                else:
-                    target_dir = Path.home() / ".claude-mpm"
+            # Always use project's .claude directory
+            target_dir = self.working_directory / ".claude"
             
             # Ensure directory exists
             target_dir.mkdir(parents=True, exist_ok=True)
             
-            # Deploy using the modified deployer (targeting .claude-mpm/)
+            # Deploy using the deployer (targeting .claude/)
             from .system_instructions_deployer import SystemInstructionsDeployer
             deployer = SystemInstructionsDeployer(self.logger, self.working_directory)
             
-            # We'll need to pass .claude-mpm as the target
-            deployer.deploy_system_instructions_to_claude_mpm(
-                target_dir, force_rebuild, results, self._is_project_specific_deployment()
+            # Deploy to .claude directory
+            deployer.deploy_system_instructions(
+                target_dir, force_rebuild, results
             )
             
             self.logger.info(
@@ -764,32 +760,9 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         """Determine the correct agents directory based on input."""
         from .agents_directory_resolver import AgentsDirectoryResolver
 
-        resolver = AgentsDirectoryResolver(
-            self.working_directory,
-            self._is_system_agent_deployment(),
-            self._is_project_specific_deployment(),
-        )
+        resolver = AgentsDirectoryResolver(self.working_directory)
         return resolver.determine_agents_directory(target_dir)
 
-    def _is_system_agent_deployment(self) -> bool:
-        """Check if this is a deployment of system agents."""
-        from .deployment_type_detector import DeploymentTypeDetector
-
-        return DeploymentTypeDetector.is_system_agent_deployment(self.templates_dir)
-
-    def _is_project_specific_deployment(self) -> bool:
-        """Check if deploying project-specific agents."""
-        from .deployment_type_detector import DeploymentTypeDetector
-
-        return DeploymentTypeDetector.is_project_specific_deployment(
-            self.templates_dir, self.working_directory
-        )
-
-    def _is_user_custom_deployment(self) -> bool:
-        """Check if deploying user custom agents."""
-        from .deployment_type_detector import DeploymentTypeDetector
-
-        return DeploymentTypeDetector.is_user_custom_deployment(self.templates_dir)
 
     def _initialize_deployment_results(
         self, agents_dir: Path, deployment_start_time: float

@@ -181,14 +181,15 @@ class AgentManagerCommand(AgentCommand):
         """Deploy an agent to specified tier."""
         try:
             agent_id = args.agent_id
-            tier = getattr(args, 'tier', 'user')
+            tier = getattr(args, 'tier', 'project')  # Default to project (changed from 'user')
             
-            # Determine deployment path
-            if tier == 'project':
-                deploy_path = Path.cwd() / ".claude" / "agents"
-            elif tier == 'user':
-                deploy_path = Path.home() / ".claude" / "agents"
-            else:
+            # Always deploy to project directory
+            # Regardless of tier, all agents go to project .claude/agents
+            deploy_path = Path.cwd() / ".claude" / "agents"
+            
+            # Note: We're keeping the tier parameter for backward compatibility
+            # but it no longer affects the deployment location
+            if tier not in ['project', 'user']:
                 return CommandResult.error_result("Invalid tier. Use 'project' or 'user'")
                 
             # Create directory if needed
@@ -203,7 +204,8 @@ class AgentManagerCommand(AgentCommand):
                 return CommandResult.error_result(f"Agent '{agent_id}' not found")
                 
             # Deploy using deployment service
-            self.deployment.deploy_agent(agent_id, str(deploy_path))
+            # Pass Path object, not string
+            self.deployment.deploy_agent(agent_id, deploy_path)
             
             return CommandResult.success_result(
                 f"Agent '{agent_id}' deployed to {tier} level"
