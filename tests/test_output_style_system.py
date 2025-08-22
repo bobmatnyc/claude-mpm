@@ -136,7 +136,7 @@ class TestOutputStyleManager:
                 assert saved_path.read_text() == content
     
     def test_deploy_output_style_success():
-        """Test successful deployment to Claude Desktop."""
+        """Test successful deployment to Claude Code."""
         with tmp_path as tmpdir:
             with patch('subprocess.run') as mock_run:
                 mock_result = MagicMock()

@@ -12,13 +12,13 @@ The output style information display in startup INFO messages has been successfu
 
 ### ✅ Core Functionality Tests
 - **Startup INFO Display**: Output style information correctly appears in startup logging
-- **Version Detection**: Claude Desktop version is properly detected and displayed
+- **Version Detection**: Claude Code version is properly detected and displayed
 - **Support Status**: Correct identification of output style support (>= 1.0.83 vs < 1.0.83)
 - **Deployment Status**: Accurate reporting of deployment state (deployed/not deployed/failed)
 - **Active Style Detection**: Proper identification of active output style from settings.json
 
 ### ✅ Scenario Testing
-- **Normal Operation**: Standard startup with Claude Desktop 1.0.83+ and deployed style
+- **Normal Operation**: Standard startup with Claude Code 1.0.83+ and deployed style
 - **Different Versions**: Behavior with versions supporting and not supporting output styles
 - **Settings Variations**: Different activeOutputStyle values in settings.json
 - **File States**: Existing vs non-existing output style files
@@ -57,11 +57,11 @@ The output style information display in startup INFO messages has been successfu
 ### Startup INFO Display Verification
 
 ```
-✅ Claude Desktop version detected: 1.0.83
-✅ Claude Desktop supports output styles (>= 1.0.83)
+✅ Claude Code version detected: 1.0.83
+✅ Claude Code supports output styles (>= 1.0.83)
 📁 Output style file exists: /Users/masa/.claude/output-styles/claude-mpm.md
 📝 Output style will be created at: [path] (when file doesn't exist)
-✅ Output style deployed to Claude Desktop >= 1.0.83
+✅ Output style deployed to Claude Code >= 1.0.83
 ✅ Output style 'claude-mpm' is ACTIVE
 ⚠️ Active output style: [other] (expected: claude-mpm) (when different style active)
 ```
@@ -92,7 +92,7 @@ The output style information display in startup INFO messages has been successfu
 ## Verified Features
 
 ### ✅ Claude Version Detection
-- Properly detects Claude Desktop version using `claude --version`
+- Properly detects Claude Code version using `claude --version`
 - Correctly identifies support for output styles (>= 1.0.83)
 - Displays clear status messages for supported/unsupported versions
 - Graceful fallback when version detection fails
@@ -130,7 +130,7 @@ The output style information display in startup INFO messages has been successfu
 
 ## Edge Case Handling
 
-### ✅ Missing Claude Desktop
+### ✅ Missing Claude Code
 - Falls back to injection mode with clear messaging
 - Doesn't break startup process
 - Provides helpful guidance about output style behavior

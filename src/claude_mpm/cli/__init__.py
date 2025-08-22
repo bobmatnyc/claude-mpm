@@ -28,6 +28,7 @@ from .commands import (  # run_guarded_session is imported lazily to avoid loadi
     manage_memory,
     manage_monitor,
     manage_tickets,
+    run_doctor,
     run_session,
     show_info,
 )
@@ -316,6 +317,7 @@ def _execute_command(command: str, args) -> int:
         CLICommands.AGGREGATE.value: aggregate_command,
         CLICommands.CLEANUP.value: cleanup_memory,
         CLICommands.MCP.value: manage_mcp,
+        CLICommands.DOCTOR.value: run_doctor,
     }
 
     # Execute command if found

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MCP (Model Context Protocol) Gateway enables Claude Desktop to interact with the claude-mpm system through a standardized protocol. This guide covers setup, configuration, and troubleshooting.
+The MCP (Model Context Protocol) Gateway enables Claude Code to interact with the claude-mpm system through a standardized protocol. This guide covers setup, configuration, and troubleshooting.
 
 ## Quick Setup
 
@@ -14,9 +14,9 @@ Run the diagnostics script to check your setup:
 python3 scripts/mcp_diagnostics.py
 ```
 
-### 2. Configure Claude Desktop
+### 2. Configure Claude Code
 
-The MCP server is configured in Claude Desktop's configuration file:
+The MCP server is configured in Claude Code's configuration file:
 - **Location**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Configuration**: Already set to use the robust wrapper script
 
@@ -35,9 +35,9 @@ Current configuration:
 }
 ```
 
-### 3. Restart Claude Desktop
+### 3. Restart Claude Code
 
-After configuration changes, restart Claude Desktop to load the MCP server.
+After configuration changes, restart Claude Code to load the MCP server.
 
 ## Architecture
 
@@ -68,10 +68,10 @@ After configuration changes, restart Claude Desktop to load the MCP server.
 
 ### How It Works
 
-1. Claude Desktop spawns the MCP server process
+1. Claude Code spawns the MCP server process
 2. The wrapper script sets up the Python environment
 3. The server communicates via stdin/stdout using JSON-RPC
-4. Claude Desktop can call registered tools through the MCP protocol
+4. Claude Code can call registered tools through the MCP protocol
 5. The server exits cleanly when the connection closes
 
 ## Testing
@@ -106,9 +106,9 @@ python3 src/claude_mpm/scripts/mcp_server.py
 
 ### Common Issues
 
-#### 1. MCP Icon Not Appearing in Claude Desktop
+#### 1. MCP Icon Not Appearing in Claude Code
 
-**Solution**: Restart Claude Desktop after configuration changes.
+**Solution**: Restart Claude Code after configuration changes.
 
 #### 2. Server Fails to Start
 
@@ -129,7 +129,7 @@ python3 scripts/mcp_diagnostics.py
 #### 4. Connection Errors
 
 **Check**:
-- Claude Desktop logs (Developer Console)
+- Claude Code logs (Developer Console)
 - Server stderr output (logged by wrapper)
 - Configuration syntax in `claude_desktop_config.json`
 
@@ -164,7 +164,7 @@ Log information includes:
 2. **Setup Verification** (`scripts/verify_mcp_setup.py`)
    - Tests all invocation methods
    - Verifies file existence
-   - Checks Claude Desktop config
+   - Checks Claude Code config
    - Provides test summary
 
 3. **Wrapper Test** (`scripts/test_mcp_wrapper.py`)
@@ -189,7 +189,7 @@ export MCP_WORKING_DIR=/path/to/project
 
 ### Custom Python Executable
 
-To use a specific Python version, modify the Claude Desktop config:
+To use a specific Python version, modify the Claude Code config:
 
 ```json
 {
@@ -233,7 +233,7 @@ Tools are registered in the MCP server. To add a new tool:
 1. Create tool class in `src/claude_mpm/services/mcp_gateway/tools/`
 2. Register in `stdio_server.py`
 3. Test with the wrapper script
-4. Update Claude Desktop and restart
+4. Update Claude Code and restart
 
 ### Debugging the Server
 
@@ -264,11 +264,11 @@ If you encounter issues:
 
 1. Run `python3 scripts/mcp_diagnostics.py`
 2. Check the troubleshooting section above
-3. Review Claude Desktop's developer console
+3. Review Claude Code's developer console
 4. Check the project's issue tracker
 
 ## References
 
 - [MCP Specification](https://spec.anthropic.com/mcp)
-- [Claude Desktop Documentation](https://claude.ai/desktop)
+- [Claude Code Documentation](https://claude.ai/desktop)
 - [claude-mpm Documentation](../README.md)

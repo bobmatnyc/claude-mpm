@@ -159,47 +159,29 @@ class MCPInstallCommands:
 
         DESIGN DECISION: We prioritize in this order:
         1. System-installed claude-mpm (most reliable)
-        2. Virtual environment claude-mpm (development)
-        3. Python module invocation (fallback)
+        2. pipx-installed claude-mpm (detected via deployment context)
+        3. Virtual environment claude-mpm (development)
+        4. Python module invocation (fallback)
 
         Returns:
             str or None: Path to claude-mpm executable
         """
-        import shutil
         import sys
-        import os
+        from ...core.unified_paths import get_executable_path
 
-        # 1. Try to find claude-mpm in PATH (system-wide or venv)
-        claude_mpm_path = shutil.which("claude-mpm")
-        if claude_mpm_path:
-            print(f"   Found claude-mpm: {claude_mpm_path}")
-            return claude_mpm_path
+        # Use the enhanced unified path manager for executable detection
+        executable_path = get_executable_path()
+        if executable_path:
+            print(f"   Found claude-mpm: {executable_path}")
+            return str(executable_path)
 
-        # 2. Check if we're in a virtual environment
-        if hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix):
-            # We're in a virtual environment
-            venv_bin = Path(sys.prefix) / ("Scripts" if sys.platform == "win32" else "bin")
-            venv_claude_mpm = venv_bin / "claude-mpm"
-            if venv_claude_mpm.exists():
-                print(f"   Found claude-mpm in venv: {venv_claude_mpm}")
-                return str(venv_claude_mpm)
-
-        # 3. Check if claude_mpm module is installed and use Python to run it
+        # Fallback: Use Python module invocation if no executable found
         try:
             import claude_mpm
-            # Return the Python executable - we'll handle the -m args separately
             print(f"   Using Python module: {sys.executable} -m claude_mpm")
             return sys.executable
         except ImportError:
             pass
-
-        # 4. Last resort: check project's local venv (development mode)
-        project_root = Path(__file__).parent.parent.parent.parent.parent
-        local_venv_bin = project_root / "venv" / ("Scripts" if sys.platform == "win32" else "bin")
-        local_claude_mpm = local_venv_bin / "claude-mpm"
-        if local_claude_mpm.exists():
-            print(f"   Found claude-mpm in project venv: {local_claude_mpm}")
-            return str(local_claude_mpm)
 
         return None
 

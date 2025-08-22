@@ -363,6 +363,10 @@ class MultiSourceAgentDeploymentService:
                     source_match = re.search(r'^source:\s*(.+)$', deployed_content, re.MULTILINE)
                     if source_match:
                         deployed_source = source_match.group(1).strip()
+                
+                # If source is still unknown, try to infer it from deployment context
+                if deployed_source == "unknown":
+                    deployed_source = self._infer_agent_source_from_context(agent_name, deployed_agents_dir)
             except Exception as e:
                 self.logger.warning(f"Error reading deployed agent '{agent_name}': {e}")
                 comparison_results["needs_update"].append(agent_name)
@@ -439,3 +443,67 @@ class MultiSourceAgentDeploymentService:
                 )
         
         return comparison_results
+    
+    def _infer_agent_source_from_context(self, agent_name: str, deployed_agents_dir: Path) -> str:
+        """Infer the source of a deployed agent when source metadata is missing.
+        
+        This method attempts to determine the agent source based on:
+        1. Deployment context (development vs pipx)
+        2. Agent naming patterns
+        3. Known system agents
+        
+        Args:
+            agent_name: Name of the agent
+            deployed_agents_dir: Directory where agent is deployed
+            
+        Returns:
+            Inferred source string (system/project/user)
+        """
+        # List of known system agents that ship with claude-mpm
+        system_agents = {
+            "pm", "engineer", "qa", "research", "documentation", "ops", 
+            "security", "web-ui", "api-qa", "version-control"
+        }
+        
+        # If this is a known system agent, it's from system
+        if agent_name in system_agents:
+            return "system"
+        
+        # Check deployment context
+        from ....core.unified_paths import get_path_manager
+        path_manager = get_path_manager()
+        
+        # If deployed_agents_dir is under user home/.claude/agents, check context
+        user_claude_dir = Path.home() / ".claude" / "agents"
+        if deployed_agents_dir == user_claude_dir:
+            # Check if we're in development mode
+            try:
+                from ....core.unified_paths import DeploymentContext, PathContext
+                deployment_context = PathContext.detect_deployment_context()
+                
+                if deployment_context in (DeploymentContext.DEVELOPMENT, DeploymentContext.EDITABLE_INSTALL):
+                    # In development mode, unknown agents are likely system agents being tested
+                    return "system"
+                elif deployment_context == DeploymentContext.PIPX_INSTALL:
+                    # In pipx mode, unknown agents could be system agents
+                    # Check if agent follows system naming patterns
+                    if agent_name.count('-') <= 2 and len(agent_name) <= 20:
+                        return "system"
+            except Exception:
+                pass
+        
+        # Check if deployed to project-specific directory
+        try:
+            project_root = path_manager.project_root
+            if str(deployed_agents_dir).startswith(str(project_root)):
+                return "project"
+        except Exception:
+            pass
+        
+        # Default inference based on naming patterns
+        # System agents typically have simple names
+        if '-' not in agent_name or agent_name.count('-') <= 1:
+            return "system"
+        
+        # Complex names are more likely to be user/project agents
+        return "user"

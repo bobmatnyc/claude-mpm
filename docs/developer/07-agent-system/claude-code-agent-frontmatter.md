@@ -1,10 +1,10 @@
 # Claude Code Agent Frontmatter: Anthropic's Official Standard
 
-> **⚠️ IMPORTANT NOTE**: This document describes **Anthropic's Claude Code** agent standard, not Claude MPM's agent format. Claude Code is Anthropic's official agent system for Claude Desktop and IDE integrations. For Claude MPM's agent format, see [frontmatter.md](./frontmatter.md).
+> **⚠️ IMPORTANT NOTE**: This document describes **Anthropic's Claude Code** agent standard, not Claude MPM's agent format. Claude Code is Anthropic's official agent system for Claude Code and IDE integrations. For Claude MPM's agent format, see [frontmatter.md](./frontmatter.md).
 
 ## Executive Summary
 
-This specification documents **Anthropic's Claude Code** agent format - the official standard used by Claude Desktop, Claude for VS Code, and other Anthropic tooling. Claude Code agents use a straightforward YAML frontmatter structure in Markdown files with two required fields (`name` and `description`), one optional field (`tools`), and one unofficial field (`model`) found in community implementations. 
+This specification documents **Anthropic's Claude Code** agent format - the official standard used by Claude Code, Claude for VS Code, and other Anthropic tooling. Claude Code agents use a straightforward YAML frontmatter structure in Markdown files with two required fields (`name` and `description`), one optional field (`tools`), and one unofficial field (`model`) found in community implementations. 
 
 **Key Distinction**: Claude Code agents are designed for Anthropic's ecosystem, while Claude MPM provides an extended agent format with additional capabilities. This document focuses exclusively on the Anthropic Claude Code standard.
 

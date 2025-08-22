@@ -210,6 +210,10 @@ class ClaudeRunner:
         else:
             self.system_instructions = self._load_system_instructions()
 
+        # Deploy output style early (before Claude Code launches)
+        # This ensures the "Claude MPM" output style is active on startup
+        self._deploy_output_style()
+        
         # Create session log file using configuration service
         self.session_log_file = self.configuration_service.create_session_log_file(
             self.project_logger, self.log_level, config_data
@@ -731,6 +735,80 @@ Use these agents to delegate specialized work via the Task tool.
         else:
             # Fallback if service not available
             return "v0.0.0"
+
+    def _deploy_output_style(self) -> None:
+        """Deploy the Claude MPM output style before Claude Code launches.
+        
+        This method ensures the output style is set to "Claude MPM" on startup
+        by deploying the style file and updating Claude Code settings.
+        Only works for Claude Code >= 1.0.83.
+        """
+        try:
+            from claude_mpm.core.output_style_manager import OutputStyleManager
+            
+            # Create OutputStyleManager instance
+            output_style_manager = OutputStyleManager()
+            
+            # Check if Claude Code supports output styles
+            if not output_style_manager.supports_output_styles():
+                self.logger.debug(
+                    f"Claude Code version {output_style_manager.claude_version or 'unknown'} "
+                    "does not support output styles (requires >= 1.0.83)"
+                )
+                return
+            
+            # Check if output style is already deployed and active
+            settings_file = Path.home() / ".claude" / "settings.json"
+            if settings_file.exists():
+                try:
+                    import json
+                    settings = json.loads(settings_file.read_text())
+                    if settings.get("activeOutputStyle") == "claude-mpm":
+                        # Already active, check if file exists
+                        output_style_file = Path.home() / ".claude" / "output-styles" / "claude-mpm.md"
+                        if output_style_file.exists():
+                            self.logger.debug("Output style 'Claude MPM' already deployed and active")
+                            return
+                except Exception:
+                    pass  # Continue with deployment if we can't read settings
+            
+            # Read the OUTPUT_STYLE.md content if it exists
+            output_style_path = Path(__file__).parent.parent / "agents" / "OUTPUT_STYLE.md"
+            
+            if output_style_path.exists():
+                # Use existing OUTPUT_STYLE.md content
+                output_style_content = output_style_path.read_text()
+                self.logger.debug("Using existing OUTPUT_STYLE.md content")
+            else:
+                # Extract output style content from framework instructions
+                output_style_content = output_style_manager.extract_output_style_content()
+                self.logger.debug("Extracted output style from framework instructions")
+            
+            # Deploy the output style
+            deployed = output_style_manager.deploy_output_style(output_style_content)
+            
+            if deployed:
+                self.logger.info("✅ Output style 'Claude MPM' deployed and activated on startup")
+                if self.project_logger:
+                    self.project_logger.log_system(
+                        "Output style 'Claude MPM' deployed and activated on startup",
+                        level="INFO",
+                        component="output_style"
+                    )
+            else:
+                self.logger.warning("Failed to deploy output style")
+                
+        except ImportError as e:
+            self.logger.warning(f"Could not import OutputStyleManager: {e}")
+        except Exception as e:
+            # Don't fail startup if output style deployment fails
+            self.logger.warning(f"Error deploying output style: {e}")
+            if self.project_logger:
+                self.project_logger.log_system(
+                    f"Output style deployment error: {e}",
+                    level="WARNING", 
+                    component="output_style"
+                )
 
     def _launch_subprocess_interactive(self, cmd: list, env: dict):
         """Launch Claude as a subprocess with PTY for interactive mode.

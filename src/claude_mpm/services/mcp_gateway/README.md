@@ -4,8 +4,8 @@
 
 The MCP Gateway is a standards-compliant implementation of the Model Context Protocol (MCP) for Claude MPM. It provides a simple, stdio-based server that enables seamless integration with Claude Code.
 
-**NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.**
-Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
+**NOTE: MCP is ONLY for Claude Code - NOT for Claude Code.**
+Claude Code uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 

@@ -40,7 +40,7 @@ Agent frontmatter defines the metadata and configuration for agent templates. Cl
 Claude MPM automatically converts JSON agents to Markdown format:
 - **Source**: `.claude-mpm/agents/*.json` (Claude MPM native format)
 - **Target**: `.claude/agents/*.md` (Claude Code compatibility format)
-- **Process**: Automatic during deployment for Claude Desktop/IDE integration
+- **Process**: Automatic during deployment for Claude Code/IDE integration
 
 ## Format Standards Comparison
 
@@ -63,7 +63,7 @@ Claude MPM automatically converts JSON agents to Markdown format:
 ### When to Use Each Format
 
 **Use Claude Code Format When:**
-- Working with Claude Desktop or IDE extensions  
+- Working with Claude Code or IDE extensions  
 - Need compatibility with Anthropic tooling
 - Creating simple, human-readable agents
 - Rapid prototyping and personal productivity

@@ -3,7 +3,7 @@ import pytest
 """
 Test script to verify MCP server exposes all tools including ticket tools.
 
-This script simulates what Claude Desktop does to list available tools.
+This script simulates what Claude Code does to list available tools.
 """
 
 import asyncio
@@ -60,7 +60,7 @@ async def test_tools():
             print(f"  - {tool_def.name}: {tool_def.description}")
 
     print(
-        "\n✅ All tools are properly registered and will be available in Claude Desktop"
+        "\n✅ All tools are properly registered and will be available in Claude Code"
     )
 
 

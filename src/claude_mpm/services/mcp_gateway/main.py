@@ -442,7 +442,7 @@ Examples:
   # Run with debug logging
   python -m claude_mpm.services.mcp_gateway.main --debug
 
-  # Run as MCP server for Claude Desktop
+  # Run as MCP server for Claude Code
   python -m claude_mpm.services.mcp_gateway.main --stdio
         """,
     )

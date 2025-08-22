@@ -68,7 +68,7 @@ class MemoryTemplateGenerator:
     def _create_basic_memory_template(
         self, agent_id: str, limits: Dict[str, Any]
     ) -> str:
-        """Create basic memory template when project analysis fails.
+        """Create basic memory template as a simple list.
 
         Args:
             agent_id: The agent identifier
@@ -77,45 +77,9 @@ class MemoryTemplateGenerator:
         Returns:
             str: Basic memory template
         """
-        agent_name = agent_id.replace("_agent", "").replace("_", " ").title()
-        project_name = self.working_directory.name
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = datetime.now().isoformat() + "Z"
 
-        return f"""# {agent_name} Agent Memory - {project_name}
+        return f"""# Agent Memory: {agent_id}
+<!-- Last Updated: {timestamp} -->
 
-<!-- MEMORY LIMITS: {limits['max_file_size_kb']}KB max | {limits['max_sections']} sections max | {limits['max_items_per_section']} items per section -->
-<!-- Last Updated: {timestamp} | Auto-updated by: {agent_id} -->
-
-## Project Context
-{project_name}: Software project requiring analysis
-
-## Project Architecture
-- Analyze project structure to understand architecture patterns
-
-## Coding Patterns Learned
-- Observe codebase patterns and conventions during tasks
-
-## Implementation Guidelines
-- Extract implementation guidelines from project documentation
-
-## Domain-Specific Knowledge
-<!-- Agent-specific knowledge accumulates here -->
-
-## Effective Strategies
-<!-- Successful approaches discovered through experience -->
-
-## Common Mistakes to Avoid
-- Learn from errors encountered during project work
-
-## Integration Points
-<!-- Key interfaces and integration patterns -->
-
-## Performance Considerations
-<!-- Performance insights and optimization patterns -->
-
-## Current Technical Context
-- Project analysis pending - gather context during tasks
-
-## Recent Learnings
-<!-- Most recent discoveries and insights -->
 """

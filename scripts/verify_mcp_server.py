@@ -105,7 +105,7 @@ async def main():
     
     if success:
         print("\n✅ MCP server is ready for use", file=sys.stderr)
-        print("\nClaude Desktop configuration is correct:", file=sys.stderr)
+        print("\nClaude Code configuration is correct:", file=sys.stderr)
         print("  Command: python3", file=sys.stderr)
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         print(f"  Args: {os.path.join(project_root, 'src', 'claude_mpm', 'scripts', 'mcp_server.py')}", file=sys.stderr)

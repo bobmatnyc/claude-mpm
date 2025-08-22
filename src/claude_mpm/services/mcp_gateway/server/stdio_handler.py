@@ -24,7 +24,7 @@ class StdioHandler(BaseMCPService, IMCPCommunication):
     STDIO-based communication handler for MCP.
 
     WHY: The MCP protocol uses stdio (stdin/stdout) for communication between
-    Claude Desktop and MCP servers. This handler manages the low-level
+    Claude Code and MCP servers. This handler manages the low-level
     message exchange, ensuring proper JSON-RPC formatting and error handling.
 
     DESIGN DECISIONS:

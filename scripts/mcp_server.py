@@ -6,7 +6,7 @@ MCP Server Launcher Script
 This is a simple launcher that delegates to the wrapper script.
 It exists to provide a consistent entry point for the MCP server.
 
-WHY: Claude Desktop needs a reliable entry point that can be called
+WHY: Claude Code needs a reliable entry point that can be called
 directly without going through the CLI module system.
 
 DESIGN DECISION: Keep this launcher minimal and delegate all logic

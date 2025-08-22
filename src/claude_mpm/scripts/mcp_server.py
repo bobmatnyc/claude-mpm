@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""MCP Server launcher script for Claude Desktop.
+"""MCP Server launcher script for Claude Code.
 
-This script launches the MCP gateway server for Claude Desktop integration.
+This script launches the MCP gateway server for Claude Code integration.
 It handles proper Python path setup and error reporting to stderr.
 """
 

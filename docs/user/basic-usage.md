@@ -30,6 +30,13 @@ claude-mpm
 ```
 This opens a persistent Claude session where you can have ongoing conversations and delegate tasks to specialized agents.
 
+#### Available Commands in Interactive Mode
+When in interactive mode, you can use these special commands:
+
+- `/agents` - Display all available agents and their capabilities
+- `/mpm-doctor` - Run diagnostic checks on your claude-mpm installation
+- `/mpm-doctor --verbose` - Run diagnostics with detailed output
+
 ### Non-Interactive Mode
 Run a single task and exit:
 ```bash

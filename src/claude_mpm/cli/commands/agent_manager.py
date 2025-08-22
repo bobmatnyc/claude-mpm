@@ -213,14 +213,15 @@ class AgentManagerCommand(AgentCommand):
             return CommandResult.error_result(f"Deployment failed: {e}")
             
     def _customize_pm(self, args) -> CommandResult:
-        """Customize PM instructions."""
+        """Customize PM instructions via .claude-mpm/INSTRUCTIONS.md."""
         try:
             level = getattr(args, 'level', 'user')
             
+            # Use .claude-mpm/INSTRUCTIONS.md for customization
             if level == 'user':
-                pm_file = Path.home() / ".claude" / "CLAUDE.md"
+                pm_file = Path.home() / ".claude-mpm" / "INSTRUCTIONS.md"
             elif level == 'project':
-                pm_file = Path.cwd() / "CLAUDE.md"
+                pm_file = Path.cwd() / ".claude-mpm" / "INSTRUCTIONS.md"
             else:
                 return CommandResult.error_result("Invalid level. Use 'user' or 'project'")
                 
@@ -240,12 +241,13 @@ class AgentManagerCommand(AgentCommand):
                     custom_rules=getattr(args, 'rules', None)
                 )
                 
-            # Save instructions
+            # Save instructions to .claude-mpm directory
             pm_file.parent.mkdir(parents=True, exist_ok=True)
             pm_file.write_text(instructions)
             
             return CommandResult.success_result(
-                f"PM instructions customized at {level} level: {pm_file}"
+                f"PM instructions customized at {level} level: {pm_file}\n"
+                f"Note: These instructions will be loaded by the framework loader."
             )
             
         except Exception as e:
@@ -479,7 +481,7 @@ Commands:
   create        Create a new agent (interactive or with arguments)
   variant       Create an agent variant based on existing agent
   deploy        Deploy agent to project or user tier
-  customize-pm  Customize PM instructions at user or project level
+  customize-pm  Customize PM instructions via .claude-mpm/INSTRUCTIONS.md
   show          Display detailed agent information
   test          Validate agent configuration
   templates     List available agent templates
@@ -490,6 +492,8 @@ Examples:
   claude-mpm agent-manager variant --base research --id research-v2
   claude-mpm agent-manager deploy --agent-id my-agent --tier user
   claude-mpm agent-manager customize-pm --level project
+
+Note: PM customization writes to .claude-mpm/INSTRUCTIONS.md, not CLAUDE.md
 """
         return CommandResult.success_result(help_text)
 

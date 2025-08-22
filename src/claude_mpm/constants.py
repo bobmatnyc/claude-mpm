@@ -40,6 +40,7 @@ class CLICommands(str, Enum):
     AGGREGATE = "aggregate"
     CLEANUP = "cleanup-memory"
     MCP = "mcp"
+    DOCTOR = "doctor"
 
     def with_prefix(self, prefix: CLIPrefix = CLIPrefix.MPM) -> str:
         """Get command with prefix."""

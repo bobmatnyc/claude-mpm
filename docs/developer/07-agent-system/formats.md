@@ -19,7 +19,7 @@ This document provides comprehensive documentation for all agent file formats su
 Claude MPM supports multiple agent file formats representing **two distinct agent standards**:
 
 ### Agent Standards
-1. **Anthropic's Claude Code Format** - Official format for Claude Desktop and IDE tools
+1. **Anthropic's Claude Code Format** - Official format for Claude Code and IDE tools
 2. **Claude MPM Format** - Extended format with advanced project capabilities
 
 ### File Format Implementations
@@ -34,7 +34,7 @@ All formats coexist seamlessly, with automatic format detection and appropriate 
 | Format | Extensions | Standard | Primary Use Case |
 |--------|------------|----------|------------------|
 | JSON | `.json` | Claude MPM | Structured configurations, API generation |
-| Claude Code | `.claude`, `.md`* | Anthropic | Claude Desktop/IDE integration |  
+| Claude Code | `.claude`, `.md`* | Anthropic | Claude Code/IDE integration |  
 | Claude MPM Markdown | `.claude-mpm` | Claude MPM | Enhanced project-specific agents |
 
 *`.md` files follow Claude Code standard when they contain simple frontmatter; Claude MPM standard when they contain `schema_version`*
@@ -147,7 +147,7 @@ The JSON format represents **Claude MPM's native agent format** with comprehensi
 
 ## Claude Code Format (Anthropic Standard)
 
-The `.claude` format follows **Anthropic's Claude Code standard** and is optimized for Claude Desktop integration and human readability. This is the official format used by Anthropic's development tools and IDE extensions.
+The `.claude` format follows **Anthropic's Claude Code standard** and is optimized for Claude Code integration and human readability. This is the official format used by Anthropic's development tools and IDE extensions.
 
 ### Structure
 
@@ -192,7 +192,7 @@ Create comprehensive, clear documentation following established standards. Focus
 
 ### Key Features (Anthropic Standard)
 
-- **Official Anthropic Format**: Direct compatibility with Claude Desktop and IDE tools
+- **Official Anthropic Format**: Direct compatibility with Claude Code and IDE tools
 - **Human-Readable**: Clean markdown format optimized for developers
 - **Simplified Metadata**: Minimal required fields for rapid development
 - **Flexible Tools**: String or array format as per Anthropic specification
@@ -225,7 +225,7 @@ Create comprehensive, clear documentation following established standards. Focus
 
 ### Use Cases (Anthropic Standard)
 
-- **Primary**: Claude Desktop and IDE extension development
+- **Primary**: Claude Code and IDE extension development
 - **Compatibility**: Integration with Anthropic developer tools  
 - **Development**: Quick prototyping with minimal configuration
 - **Personal**: Individual productivity and helper agents
@@ -534,7 +534,7 @@ Common field mappings between formats:
 **Standard-Based Selection:**
 
 **Choose Claude Code Standard (Anthropic) when:**
-- Primary use is Claude Desktop or IDE extensions
+- Primary use is Claude Code or IDE extensions
 - Need maximum compatibility with Anthropic tooling  
 - Creating simple, lightweight agents
 - Rapid prototyping with minimal configuration
@@ -551,7 +551,7 @@ Common field mappings between formats:
 
 **Use Claude Code (.claude) when:**
 - Following Anthropic standard for maximum compatibility
-- Human-authored agents for Claude Desktop
+- Human-authored agents for Claude Code
 - Simple configuration with essential fields only
 
 **Use Claude MPM JSON (.json) when:**

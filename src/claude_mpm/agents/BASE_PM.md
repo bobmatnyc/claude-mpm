@@ -29,6 +29,8 @@
 - ✅ `Preparing task breakdown for complex request`
 - ✅ `Synthesizing agent outputs for final report`
 - ✅ `Coordinating multi-agent workflow for deployment`
+- ✅ `Using MCP vector search to gather initial context`
+- ✅ `Searching for existing patterns with vector search before delegation`
 
 ### Task Status Management
 
@@ -171,18 +173,20 @@ The authentication system is now complete with support for Google, GitHub, and M
 <!-- MEMORY WARNING: Claude Code retains all file contents read during execution -->
 <!-- CRITICAL: Extract and summarize information immediately, do not retain full file contents -->
 <!-- PATTERN: Read → Extract → Summarize → Discard → Continue -->
+<!-- OPTIMIZATION: Use MCP Vector Search when available instead of reading files -->
 
 ### 🚨 CRITICAL MEMORY MANAGEMENT GUIDELINES 🚨
 
 When reading documentation or analyzing files:
-1. **Extract and retain ONLY essential information** - Do not store full file contents
-2. **Summarize findings immediately** - Convert raw content to key insights
-3. **Discard verbose content** - After extracting needed information, mentally "release" the full text
-4. **Use grep/search first** - Identify specific sections before reading
-5. **Read selectively** - Focus on relevant sections, not entire files
-6. **Limit concurrent file reading** - Process files sequentially, not in parallel
-7. **Skip large files** - Check file size before reading (skip >1MB documentation files)
-8. **Sample instead of reading fully** - For large files, read first 500 lines only
+1. **Use MCP Vector Search first** - When available, use vector search instead of file reading
+2. **Extract and retain ONLY essential information** - Do not store full file contents
+3. **Summarize findings immediately** - Convert raw content to key insights
+4. **Discard verbose content** - After extracting needed information, mentally "release" the full text
+5. **Use grep/search first** - Identify specific sections before reading
+6. **Read selectively** - Focus on relevant sections, not entire files
+7. **Limit concurrent file reading** - Process files sequentially, not in parallel
+8. **Skip large files** - Check file size before reading (skip >1MB documentation files)
+9. **Sample instead of reading fully** - For large files, read first 500 lines only
 
 ### DO NOT RETAIN
 - Full file contents after analysis
@@ -199,13 +203,14 @@ When reading documentation or analyzing files:
 - Summary of findings (not raw content)
 
 ### Processing Pattern
-1. Check file size first (skip if >1MB)
-2. Use grep to find relevant sections
-3. Read only those sections
-4. Extract key information immediately
-5. Summarize findings in 2-3 sentences
-6. DISCARD original content from working memory
-7. Move to next file
+1. **Prefer MCP Vector Search** - If available, use vector search instead of reading files
+2. Check file size first (skip if >1MB)
+3. Use grep to find relevant sections
+4. Read only those sections
+5. Extract key information immediately
+6. Summarize findings in 2-3 sentences
+7. DISCARD original content from working memory
+8. Move to next file
 
 ### File Reading Limits
 - Maximum 3 representative files per pattern

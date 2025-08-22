@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Output Style System provides version-aware handling of Claude MPM's output style configuration. It automatically detects the Claude Desktop version and either:
+The Output Style System provides version-aware handling of Claude MPM's output style configuration. It automatically detects the Claude Code version and either:
 - **Deploys** the output style to `~/.claude/output-styles/` for Claude >= 1.0.83
 - **Injects** the output style content into framework instructions for older versions
 
@@ -13,7 +13,7 @@ The Output Style System provides version-aware handling of Claude MPM's output s
 Handles all output style operations:
 - Claude version detection
 - Output style content extraction
-- Deployment to Claude Desktop
+- Deployment to Claude Code
 - Content injection for older versions
 
 ### 2. OUTPUT_STYLE.md (`src/claude_mpm/agents/OUTPUT_STYLE.md`)
@@ -117,7 +117,7 @@ python tests/test_output_style_system.py
 | `src/claude_mpm/agents/OUTPUT_STYLE.md` | Master output style file |
 | `src/claude_mpm/core/output_style_manager.py` | Output style management logic |
 | `~/.claude/output-styles/claude-mpm.md` | Deployed output style (>= 1.0.83) |
-| `~/.claude/settings.json` | Claude Desktop settings |
+| `~/.claude/settings.json` | Claude Code settings |
 
 ## Logging
 
@@ -130,7 +130,7 @@ The system provides INFO-level logging for:
 Example log output:
 ```
 INFO - Detected Claude version: 1.0.83
-INFO - Output style deployed to Claude Desktop >= 1.0.83
+INFO - Output style deployed to Claude Code >= 1.0.83
 INFO - Deployed output style to ~/.claude/output-styles/claude-mpm.md
 INFO - Activated claude-mpm output style in settings
 ```
@@ -139,7 +139,7 @@ INFO - Activated claude-mpm output style in settings
 
 ### Claude Not Found
 
-If Claude Desktop is not in PATH:
+If Claude Code is not in PATH:
 - System will fall back to injection mode
 - Output style content will be included in framework instructions
 

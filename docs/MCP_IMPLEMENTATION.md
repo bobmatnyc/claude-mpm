@@ -4,8 +4,8 @@
 
 The Claude MPM MCP Gateway is properly configured to use the official MCP protocol from the Anthropic MCP package. This ensures full protocol compliance and compatibility with Claude Code.
 
-**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
-Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
+**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Code.**
+Claude Code uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 

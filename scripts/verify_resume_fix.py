@@ -93,7 +93,7 @@ def verify_fix():
     print("\nThe --resume flag is properly implemented and will:")
     print("1. Be recognized by the bash wrapper")
     print("2. Be parsed correctly by the argument parser")
-    print("3. Pass through to Claude Desktop")
+    print("3. Pass through to Claude Code")
     print("\nUsage:")
     print("  claude-mpm --resume")
     print("  claude-mpm run --resume")

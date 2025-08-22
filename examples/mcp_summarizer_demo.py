@@ -26,7 +26,7 @@ async def demo_summarizer():
     documents = {
         "Technical Documentation": """
         The Claude MPM framework provides a sophisticated multi-agent orchestration system
-        designed to extend Claude Desktop's capabilities. The architecture follows a
+        designed to extend Claude Code's capabilities. The architecture follows a
         service-oriented design pattern with explicit interface contracts and dependency
         injection for maximum flexibility and maintainability.
 

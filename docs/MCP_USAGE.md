@@ -4,8 +4,8 @@
 
 The Claude MPM MCP Gateway is a proper stdio-based JSON-RPC server that integrates with Claude Code. It follows the MCP (Model Context Protocol) specification for tool invocation.
 
-**IMPORTANT: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
-Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
+**IMPORTANT: MCP integration is ONLY for Claude Code - NOT for Claude Code.**
+Claude Code uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Key Changes from Previous Implementation
 
@@ -167,7 +167,7 @@ Use the provided test script:
 python scripts/test_mcp_stdio.py
 ```
 
-This script simulates Claude Desktop's communication with the server.
+This script simulates Claude Code's communication with the server.
 
 ### Command Line Testing
 
@@ -186,7 +186,7 @@ claude-mpm mcp test echo --args '{"message": "test"}'
 
 ## How It Works
 
-1. **Spawning**: Claude Desktop spawns the `claude-mpm-mcp` process when needed
+1. **Spawning**: Claude Code spawns the `claude-mpm-mcp` process when needed
 2. **Communication**: Uses JSON-RPC 2.0 protocol over stdin/stdout
 3. **Tool Invocation**: Claude sends `tools/call` requests, server executes and returns results
 4. **Shutdown**: Server exits when stdin is closed (Claude disconnects)
@@ -194,7 +194,7 @@ claude-mpm mcp test echo --args '{"message": "test"}'
 ## Architecture
 
 ```
-Claude Desktop/Code
+Claude Code/Code
        |
        | (spawns process)
        v
@@ -301,7 +301,7 @@ logging.basicConfig(
 If you were using the old persistent service implementation:
 
 1. **Remove old configurations** that started the MCP server as a daemon
-2. **Update Claude Desktop config** to use the new `claude-mpm-mcp` command
+2. **Update Claude Code config** to use the new `claude-mpm-mcp` command
 3. **Clean up lock files** using `claude-mpm mcp cleanup`
 4. **No longer need to "start" or "stop"** the server - it's managed by Claude
 
@@ -310,7 +310,7 @@ If you were using the old persistent service implementation:
 1. **Simpler**: No complex state management or lock files
 2. **More Reliable**: No stale locks or orphaned processes
 3. **Standards Compliant**: Follows MCP specification exactly
-4. **Better Integration**: Works seamlessly with Claude Desktop's process management
+4. **Better Integration**: Works seamlessly with Claude Code's process management
 5. **Easier Debugging**: Clear stdio communication, logs to stderr
 
 ## Future Enhancements

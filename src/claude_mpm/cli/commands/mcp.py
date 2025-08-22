@@ -157,7 +157,7 @@ def _show_status(
     else:
         print(f"   No config file at {config_path}")
 
-    # Show Claude Desktop configuration
+    # Show Claude Code configuration
     claude_config = (
         Path.home()
         / "Library"
@@ -166,7 +166,7 @@ def _show_status(
         / "claude_desktop_config.json"
     )
     if claude_config.exists():
-        print(f"\n🖥️  Claude Desktop Config: {claude_config}")
+        print(f"\n🖥️  Claude Code Config: {claude_config}")
         try:
             with open(claude_config) as f:
                 config = json.load(f)
@@ -179,7 +179,7 @@ def _show_status(
         except Exception as e:
             print(f"   ⚠️  Error reading config: {e}")
     else:
-        print("\n🖥️  Claude Desktop not configured for MCP")
+        print("\n🖥️  Claude Code not configured for MCP")
         print("   Run: claude-mpm mcp start (for instructions)")
 
     # Show available tools count

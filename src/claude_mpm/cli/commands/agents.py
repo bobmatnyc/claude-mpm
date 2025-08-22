@@ -202,7 +202,8 @@ class AgentsCommand(AgentCommand):
                         print(f"📄 {agent['file']}")
                         if "name" in agent:
                             print(f"   Name: {agent['name']}")
-                        print(f"   Path: {agent['path']}")
+                        if "path" in agent:
+                            print(f"   Path: {agent['path']}")
                         print()
 
                 if verification["warnings"]:
