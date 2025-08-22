@@ -33,6 +33,7 @@ class CLICommands(str, Enum):
     TICKETS = "tickets"
     INFO = "info"
     AGENTS = "agents"
+    AGENT_MANAGER = "agent-manager"
     MEMORY = "memory"
     MONITOR = "monitor"
     CONFIG = "config"

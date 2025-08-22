@@ -20,7 +20,7 @@ src_dir = project_root / "src"
 sys.path.insert(0, str(src_dir))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_memory_migration():

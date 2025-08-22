@@ -497,8 +497,9 @@ class ClaudeRunner:
 
                     if needs_update:
                         # Build the agent markdown using the pre-initialized service and base agent data
-                        agent_content = project_deployment._build_agent_markdown(
-                            agent_name, json_file, base_agent_data
+                        # Use template_builder service instead of removed _build_agent_markdown method
+                        agent_content = project_deployment.template_builder.build_agent_markdown(
+                            agent_name, json_file, base_agent_data, source_info="project"
                         )
 
                         # Mark as project agent

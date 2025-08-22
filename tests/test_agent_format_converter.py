@@ -34,7 +34,7 @@ class TestAgentFormatConverter:
     @pytest.fixture
     def temp_dir_with_yaml(self):
         """Create temporary directory with YAML files."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             temp_path = Path(temp_dir)
 
             # Create test YAML files
@@ -63,12 +63,12 @@ model: "haiku"
 
             yield temp_path
 
-    def test_initialization(self, format_converter):
+    def test_initialization(format_converter):
         """Test AgentFormatConverter initialization."""
         assert hasattr(format_converter, "logger")
         assert format_converter.logger is not None
 
-    def test_convert_yaml_to_md_success(self, format_converter, temp_dir_with_yaml):
+    def test_convert_yaml_to_md_success(format_converter, temp_dir_with_yaml):
         """Test successful YAML to MD conversion."""
         results = format_converter.convert_yaml_to_md(temp_dir_with_yaml)
 
@@ -101,7 +101,7 @@ model: "haiku"
         assert "test-agent.yaml" in results["skipped"]
         assert len(results["converted"]) == 1  # Only qa-agent should be converted
 
-    def test_convert_yaml_to_md_nonexistent_directory(self, format_converter):
+    def test_convert_yaml_to_md_nonexistent_directory(format_converter):
         """Test conversion with nonexistent directory."""
         nonexistent_dir = Path("/nonexistent/directory")
         results = format_converter.convert_yaml_to_md(nonexistent_dir)
@@ -110,7 +110,7 @@ model: "haiku"
         assert results["errors"] == []
         assert results["skipped"] == []
 
-    def test_convert_yaml_content_to_md(self, format_converter):
+    def test_convert_yaml_content_to_md(format_converter):
         """Test YAML content to MD conversion."""
         yaml_content = """name: test-agent
 description: "Test agent for testing"
@@ -137,7 +137,7 @@ instructions: |
         assert "This is a test agent." in md_content
         assert "It performs testing tasks." in md_content
 
-    def test_extract_yaml_field_double_quotes(self, format_converter):
+    def test_extract_yaml_field_double_quotes(format_converter):
         """Test extracting field with double quotes."""
         yaml_content = 'name: "test-agent"\ndescription: "Test description"'
 
@@ -147,7 +147,7 @@ instructions: |
         assert name == "test-agent"
         assert description == "Test description"
 
-    def test_extract_yaml_field_single_quotes(self, format_converter):
+    def test_extract_yaml_field_single_quotes(format_converter):
         """Test extracting field with single quotes."""
         yaml_content = "name: 'test-agent'\ndescription: 'Test description'"
 
@@ -157,7 +157,7 @@ instructions: |
         assert name == "test-agent"
         assert description == "Test description"
 
-    def test_extract_yaml_field_no_quotes(self, format_converter):
+    def test_extract_yaml_field_no_quotes(format_converter):
         """Test extracting field without quotes."""
         yaml_content = "name: test-agent\nversion: 1.0.0"
 
@@ -167,7 +167,7 @@ instructions: |
         assert name == "test-agent"
         assert version == "1.0.0"
 
-    def test_extract_yaml_field_not_found(self, format_converter):
+    def test_extract_yaml_field_not_found(format_converter):
         """Test extracting non-existent field."""
         yaml_content = "name: test-agent\ndescription: Test description"
 
@@ -175,7 +175,7 @@ instructions: |
 
         assert missing_field is None
 
-    def test_convert_md_to_yaml(self, format_converter):
+    def test_convert_md_to_yaml(format_converter):
         """Test converting Markdown with frontmatter to YAML."""
         md_content = """---
 name: test-agent
@@ -195,7 +195,7 @@ This is a test agent with instructions."""
         assert "  # Test Agent" in yaml_content
         assert "  This is a test agent with instructions." in yaml_content
 
-    def test_convert_md_to_yaml_no_frontmatter(self, format_converter):
+    def test_convert_md_to_yaml_no_frontmatter(format_converter):
         """Test converting plain content to YAML."""
         plain_content = "name: test-agent\ndescription: Test description"
 
@@ -204,7 +204,7 @@ This is a test agent with instructions."""
         # Should return content as-is
         assert yaml_content == plain_content
 
-    def test_detect_format_markdown_yaml(self, format_converter):
+    def test_detect_format_markdown_yaml(format_converter):
         """Test detecting Markdown with YAML frontmatter format."""
         content = """---
 name: test-agent
@@ -215,28 +215,28 @@ name: test-agent
         format_type = format_converter.detect_format(content)
         assert format_type == "markdown_yaml"
 
-    def test_detect_format_json(self, format_converter):
+    def test_detect_format_json(format_converter):
         """Test detecting JSON format."""
         content = '{"name": "test-agent", "description": "Test"}'
 
         format_type = format_converter.detect_format(content)
         assert format_type == "json"
 
-    def test_detect_format_yaml(self, format_converter):
+    def test_detect_format_yaml(format_converter):
         """Test detecting YAML format."""
         content = "name: test-agent\ndescription: Test description"
 
         format_type = format_converter.detect_format(content)
         assert format_type == "yaml"
 
-    def test_detect_format_unknown(self, format_converter):
+    def test_detect_format_unknown(format_converter):
         """Test detecting unknown format."""
         content = "# This is just a markdown file\n\nWith some content."
 
         format_type = format_converter.detect_format(content)
         assert format_type == "unknown"
 
-    def test_normalize_agent_content_yaml_to_md(self, format_converter):
+    def test_normalize_agent_content_yaml_to_md(format_converter):
         """Test normalizing YAML content to Markdown."""
         yaml_content = 'name: test-agent\ndescription: "Test agent"'
 
@@ -247,7 +247,7 @@ name: test-agent
         assert normalized.startswith("---\n")
         assert "name: test-agent" in normalized
 
-    def test_normalize_agent_content_same_format(self, format_converter):
+    def test_normalize_agent_content_same_format(format_converter):
         """Test normalizing content that's already in target format."""
         md_content = """---
 name: test-agent
@@ -262,7 +262,7 @@ name: test-agent
         # Should return content unchanged
         assert normalized == md_content
 
-    def test_get_conversion_stats(self, format_converter, temp_dir_with_yaml):
+    def test_get_conversion_stats(format_converter, temp_dir_with_yaml):
         """Test getting conversion statistics."""
         # Add an MD file to the directory
         md_file = temp_dir_with_yaml / "existing-agent.md"
@@ -277,7 +277,7 @@ name: test-agent
         assert "yaml" in stats["formats"]
         assert "markdown_yaml" in stats["formats"]
 
-    def test_get_conversion_stats_nonexistent_directory(self, format_converter):
+    def test_get_conversion_stats_nonexistent_directory(format_converter):
         """Test getting stats for nonexistent directory."""
         nonexistent_dir = Path("/nonexistent/directory")
         stats = format_converter.get_conversion_stats(nonexistent_dir)
@@ -287,7 +287,7 @@ name: test-agent
         assert stats["md_files"] == 0
         assert stats["needs_conversion"] == 0
 
-    def test_extract_instructions_from_yaml_with_instructions(self, format_converter):
+    def test_extract_instructions_from_yaml_with_instructions(format_converter):
         """Test extracting instructions when instructions field exists."""
         yaml_content = """name: test-agent
 instructions: |
@@ -316,7 +316,7 @@ description: "This is a very long description that could serve as instructions f
         assert "Test-Agent Agent" in instructions
         assert "very long description" in instructions
 
-    def test_extract_instructions_from_yaml_default(self, format_converter):
+    def test_extract_instructions_from_yaml_default(format_converter):
         """Test extracting default instructions."""
         yaml_content = """name: test-agent
 description: "Short desc"
@@ -329,7 +329,7 @@ description: "Short desc"
         assert "Test-Agent Agent" in instructions
         assert "specialized functionality" in instructions
 
-    def test_convert_json_to_md(self, format_converter):
+    def test_convert_json_to_md(format_converter):
         """Test converting JSON content to Markdown."""
         json_content = json.dumps(
             {
@@ -346,7 +346,7 @@ description: "Short desc"
         assert "name: test-agent" in md_content
         assert 'description: "Test agent"' in md_content
 
-    def test_convert_json_to_md_invalid_json(self, format_converter):
+    def test_convert_json_to_md_invalid_json(format_converter):
         """Test converting invalid JSON."""
         invalid_json = '{"name": "test-agent", invalid}'
 
@@ -355,7 +355,7 @@ description: "Short desc"
         assert "Test-Agent Agent" in md_content
         assert "Conversion failed" in md_content
 
-    def test_convert_md_to_json(self, format_converter):
+    def test_convert_md_to_json(format_converter):
         """Test converting Markdown to JSON."""
         md_content = """---
 name: test-agent

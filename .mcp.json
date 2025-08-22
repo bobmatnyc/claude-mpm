@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "mcp-vector-search": {
+      "type": "stdio",
+      "command": "/Users/masa/Projects/managed/mcp-vector-search/.venv/bin/python3",
+      "args": [
+        "-m",
+        "mcp_vector_search.mcp.server",
+        "/Users/masa/Projects/claude-mpm"
+      ],
+      "env": {}
+    }
+  }
+}

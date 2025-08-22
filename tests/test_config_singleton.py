@@ -16,7 +16,7 @@ logging.basicConfig(
 
 def test_config_singleton():
     """Test that Config truly behaves as a singleton."""
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     print("=== Testing Config Singleton Behavior ===\n")
     
@@ -60,7 +60,7 @@ def test_service_config_usage():
     
     # Import services that use Config
     from claude_mpm.services.hook_service import HookService
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     # Get initial config instance
     initial_config = Config()

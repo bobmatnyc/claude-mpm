@@ -6,6 +6,7 @@ separate modules for better maintainability and code organization.
 """
 
 from .agents import manage_agents
+from .agent_manager import manage_agent_manager
 from .aggregate import aggregate_command
 from .cleanup import cleanup_memory
 from .config import manage_config
@@ -25,6 +26,7 @@ __all__ = [
     "list_tickets",
     "show_info",
     "manage_agents",
+    "manage_agent_manager",
     "manage_memory",
     "manage_monitor",
     "manage_config",

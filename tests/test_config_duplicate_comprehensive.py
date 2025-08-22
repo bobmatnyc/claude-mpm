@@ -36,7 +36,7 @@ def test_full_startup_sequence():
     from claude_mpm.core.claude_runner import ClaudeRunner
     
     # Reset singleton for clean test
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     Config.reset_singleton()
     
     # Create runner which should initialize everything
@@ -88,7 +88,7 @@ def test_full_startup_sequence():
 def test_parallel_initialization():
     """Test if parallel service initialization might cause issues."""
     import threading
-    from claude_mpm.core.config import Config
+    from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
     
     print("\n=== Testing parallel initialization ===\n")
     

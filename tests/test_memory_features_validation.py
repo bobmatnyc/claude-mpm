@@ -19,7 +19,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class MemorySystemValidator:
@@ -47,7 +47,7 @@ class MemorySystemValidator:
         if self.temp_dir and Path(self.temp_dir).exists():
             shutil.rmtree(self.temp_dir)
     
-    def test_exact_duplicate_prevention(self):
+    def test_exact_duplicate_prevention():
         """Test prevention of exact duplicate memory items."""
         print("\n=== Testing Exact Duplicate Prevention ===")
         
@@ -82,7 +82,7 @@ class MemorySystemValidator:
         print(f"Duplicate Prevention Test: {'PASS' if duplicate_prevented else 'FAIL'}")
         return duplicate_prevented
     
-    def test_similar_memory_detection(self):
+    def test_similar_memory_detection():
         """Test detection and prevention of similar (but not identical) memories."""
         print("\n=== Testing Similar Memory Detection ===")
         
@@ -130,7 +130,7 @@ class MemorySystemValidator:
         print(f"Similar Memory Detection Test: {'PASS' if similar_detected else 'FAIL'}")
         return similar_detected
     
-    def test_categorization_system(self):
+    def test_categorization_system():
         """Test the claimed intelligent categorization system."""
         print("\n=== Testing Categorization System ===")
         
@@ -217,7 +217,7 @@ class MemorySystemValidator:
         
         return categorization_success_rate >= 75
     
-    def test_memory_aggregation(self):
+    def test_memory_aggregation():
         """Test user-level and project-level memory aggregation."""
         print("\n=== Testing Memory Aggregation ===")
         
@@ -293,7 +293,7 @@ class MemorySystemValidator:
         print(f"Memory Aggregation Test: {'PASS' if aggregation_working else 'FAIL'}")
         return aggregation_working
     
-    def test_edge_cases(self):
+    def test_edge_cases():
         """Test edge cases and boundary conditions."""
         print("\n=== Testing Edge Cases ===")
         

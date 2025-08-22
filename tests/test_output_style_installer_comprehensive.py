@@ -43,7 +43,7 @@ class OutputStyleTester:
     def setup_test_environment(self):
         """Set up isolated test environment."""
         # Create temporary directory for testing
-        self.temp_dir = Path(tempfile.mkdtemp())
+        self.temp_dir = Path(tmp_path)
         logger.info(f"Created test environment: {self.temp_dir}")
         
         # Mock Path.home() to point to our temp directory

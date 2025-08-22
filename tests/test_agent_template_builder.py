@@ -34,7 +34,7 @@ class TestAgentTemplateBuilder:
     @pytest.fixture
     def temp_dir(self):
         """Create temporary directory for testing."""
-        with tempfile.TemporaryDirectory() as temp_dir:
+        with tmp_path as temp_dir:
             yield Path(temp_dir)
 
     @pytest.fixture
@@ -68,7 +68,7 @@ class TestAgentTemplateBuilder:
             "configuration_fields": {"model": "haiku", "tools": ["Read", "Write"]},
         }
 
-    def test_initialization(self, template_builder):
+    def test_initialization(template_builder):
         """Test AgentTemplateBuilder initialization."""
         assert hasattr(template_builder, "logger")
         assert template_builder.logger is not None
@@ -166,7 +166,7 @@ class TestAgentTemplateBuilder:
         assert "tools:" in result
         assert "- Read" in result
 
-    def test_merge_narrative_fields(self, template_builder):
+    def test_merge_narrative_fields(template_builder):
         """Test merging narrative fields."""
         base_data = {
             "when_to_use": ["General tasks"],
@@ -194,7 +194,7 @@ class TestAgentTemplateBuilder:
         assert "General tasks" in result["when_to_use"]
         assert "Testing" in result["when_to_use"]
 
-    def test_merge_configuration_fields(self, template_builder):
+    def test_merge_configuration_fields(template_builder):
         """Test merging configuration fields."""
         base_data = {
             "configuration_fields": {
@@ -218,7 +218,7 @@ class TestAgentTemplateBuilder:
         assert result["max_tokens"] == 4000  # Template value added
         assert result["tools"] == ["Read", "Write", "Edit"]  # Direct field overrides
 
-    def test_extract_agent_metadata(self, template_builder):
+    def test_extract_agent_metadata(template_builder):
         """Test extracting metadata from template content."""
         template_content = """# Agent Template
 
@@ -245,7 +245,7 @@ class TestAgentTemplateBuilder:
         assert "Test frameworks" in result["specialized_knowledge"]
         assert "Automated testing" in result["unique_capabilities"]
 
-    def test_format_yaml_list(self, template_builder):
+    def test_format_yaml_list(template_builder):
         """Test YAML list formatting."""
         items = ["Read", "Write", "Edit"]
         result = template_builder.format_yaml_list(items, 2)
@@ -253,12 +253,12 @@ class TestAgentTemplateBuilder:
         expected = "  - Read\n  - Write\n  - Edit"
         assert result == expected
 
-    def test_format_yaml_list_empty(self, template_builder):
+    def test_format_yaml_list_empty(template_builder):
         """Test YAML list formatting with empty list."""
         result = template_builder.format_yaml_list([], 2)
         assert result == ""
 
-    def test_model_mapping(self, template_builder, temp_dir, base_agent_data):
+    def test_model_mapping(template_builder, temp_dir, base_agent_data):
         """Test model name mapping."""
         template_data = {
             "name": "test-agent",
@@ -275,7 +275,7 @@ class TestAgentTemplateBuilder:
 
         assert "model: sonnet" in result
 
-    def test_fallback_values(self, template_builder, temp_dir, base_agent_data):
+    def test_fallback_values(template_builder, temp_dir, base_agent_data):
         """Test fallback values when template fields are missing."""
         minimal_template = {"name": "minimal-agent"}
         template_file = temp_dir / "minimal.json"
@@ -289,7 +289,9 @@ class TestAgentTemplateBuilder:
 
         # Should use fallback values
         assert "model: sonnet" in result  # Default model
-        assert "tools: Read,Write,Edit,Grep,Glob,LS" in result  # Default tools
+        # Default tools are not included in YAML when agent has full capabilities
+        # This is intentional for Claude Code compatibility
+        assert "tools:" not in result  # Tools field omitted for full-capability agents
 
 
 if __name__ == "__main__":

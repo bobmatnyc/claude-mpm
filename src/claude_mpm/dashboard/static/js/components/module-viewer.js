@@ -1184,6 +1184,59 @@ class ModuleViewer {
         if (!text || text.length <= maxLength) return text;
         return text.substring(0, maxLength) + '...';
     }
+    
+    /**
+     * Format operation details object for display
+     * @param {Object} details - Details object containing operation information
+     * @returns {string} Formatted HTML string
+     */
+    formatOperationDetails(details) {
+        if (!details || typeof details !== 'object') {
+            return '';
+        }
+        
+        let formattedDetails = '';
+        
+        // Display the bash command if available
+        if (details.parameters && details.parameters.command) {
+            formattedDetails += `<br><strong>Command:</strong> <code>${this.escapeHtml(details.parameters.command)}</code>`;
+        }
+        
+        // Display success/error status
+        if (details.success !== undefined) {
+            formattedDetails += `<br><strong>Status:</strong> ${details.success ? '✅ Success' : '❌ Failed'}`;
+        }
+        
+        // Display exit code if available
+        if (details.exit_code !== undefined && details.exit_code !== null) {
+            formattedDetails += `<br><strong>Exit Code:</strong> ${details.exit_code}`;
+        }
+        
+        // Display duration if available
+        if (details.duration_ms !== undefined && details.duration_ms !== null) {
+            const duration = details.duration_ms > 1000 
+                ? `${(details.duration_ms / 1000).toFixed(2)}s` 
+                : `${details.duration_ms}ms`;
+            formattedDetails += `<br><strong>Duration:</strong> ${duration}`;
+        }
+        
+        // Display error message if available
+        if (details.error) {
+            formattedDetails += `<br><strong>Error:</strong> ${this.escapeHtml(this.truncateText(details.error, 200))}`;
+        }
+        
+        return formattedDetails;
+    }
+    
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
     /**
      * Format JSON for display
@@ -1454,6 +1507,81 @@ class ModuleViewer {
 
             // Initialize JSON toggle functionality
             this.initializeJsonToggle();
+        } else if (toolName === 'Grep' || toolName === 'Search' || (parameters && parameters.pattern && !parameters.file_path)) {
+            // Special handling for search operations (Grep tool or any tool with pattern parameter)
+            const searchPattern = parameters.pattern || 'No pattern specified';
+            const searchPath = parameters.path || parameters.directory || '.';
+            const searchType = parameters.type || parameters.glob || 'all files';
+            
+            // Extract search results from result_summary
+            let searchResultsContent = '';
+            if (toolCall.result_summary) {
+                if (typeof toolCall.result_summary === 'string') {
+                    searchResultsContent = toolCall.result_summary;
+                } else if (toolCall.result_summary.output_preview) {
+                    searchResultsContent = toolCall.result_summary.output_preview;
+                } else {
+                    searchResultsContent = JSON.stringify(toolCall.result_summary, null, 2);
+                }
+            }
+
+            const content = `
+                <div class="structured-view-section">
+                    <div class="tool-call-details">
+                        <div class="tool-call-info ${statusClass}">
+                            <div class="structured-field">
+                                <strong>Tool Name:</strong> ${toolName}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Agent:</strong> ${agentName}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Status:</strong> ${statusIcon} ${statusText}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Search Pattern:</strong> <code>${searchPattern}</code>
+                            </div>
+                            <div class="structured-field">
+                                <strong>Search Path:</strong> ${searchPath}
+                            </div>
+                            <div class="structured-field">
+                                <strong>File Type:</strong> ${searchType}
+                            </div>
+                            <div class="structured-field">
+                                <strong>Started:</strong> ${new Date(toolCall.timestamp).toLocaleString()}
+                            </div>
+                            ${duration && duration !== '-' ? `
+                                <div class="structured-field">
+                                    <strong>Duration:</strong> ${duration}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="search-view-action" style="margin-top: 20px;">
+                            <button class="btn-view-search" data-search-params='${JSON.stringify(parameters)}' data-search-results='${JSON.stringify(searchResultsContent).replace(/'/g, "&#39;")}' onclick="window.showSearchViewerModal(JSON.parse(this.getAttribute('data-search-params')), JSON.parse(this.getAttribute('data-search-results')))">
+                                🔍 View Search Details
+                            </button>
+                        </div>
+
+                        ${this.createToolResultFromToolCall(toolCall)}
+                    </div>
+                </div>
+            `;
+
+            // Create collapsible JSON section
+            const toolCallData = {
+                toolCall: toolCall,
+                preEvent: preEvent,
+                postEvent: postEvent
+            };
+            const collapsibleJsonSection = this.createCollapsibleJsonSection(toolCallData);
+
+            if (this.dataContainer) {
+                this.dataContainer.innerHTML = contextualHeader + content + collapsibleJsonSection;
+            }
+
+            // Initialize JSON toggle functionality
+            this.initializeJsonToggle();
         } else {
             // For other tools, show detailed information
             const content = `
@@ -1581,7 +1709,7 @@ class ModuleViewer {
                                 <div class="operation-details">
                                     <strong>Agent:</strong> ${op.agent}<br>
                                     <strong>Session:</strong> ${op.sessionId ? op.sessionId.substring(0, 8) + '...' : 'Unknown'}
-                                    ${op.details ? `<br><strong>Details:</strong> ${op.details}` : ''}
+                                    ${op.details ? this.formatOperationDetails(op.details) : ''}
                                 </div>
                             </div>
                         `).join('')}

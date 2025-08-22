@@ -9,12 +9,12 @@ from claude_mpm.services.core.interfaces import MemoryHookInterface
 class TestMemoryHookService:
     """Test cases for MemoryHookService."""
 
-    def test_service_implements_interface(self):
+    def test_service_implements_interface():
         """Test that MemoryHookService implements MemoryHookInterface."""
         service = MemoryHookService()
         assert isinstance(service, MemoryHookInterface)
 
-    def test_service_instantiation(self):
+    def test_service_instantiation():
         """Test that MemoryHookService can be instantiated without errors."""
         service = MemoryHookService()
         assert service is not None
@@ -22,13 +22,13 @@ class TestMemoryHookService:
         assert service.hook_service is None
         assert service.registered_hooks == []
 
-    def test_service_instantiation_with_hook_service(self):
+    def test_service_instantiation_with_hook_service():
         """Test instantiation with a hook service."""
         mock_hook_service = Mock()
         service = MemoryHookService(hook_service=mock_hook_service)
         assert service.hook_service == mock_hook_service
 
-    def test_get_hook_status(self):
+    def test_get_hook_status():
         """Test get_hook_status method returns correct structure."""
         service = MemoryHookService()
         status = service.get_hook_status()
@@ -47,7 +47,7 @@ class TestMemoryHookService:
         assert status["total_hooks"] == 0
         assert status["status"] == "inactive"
 
-    def test_get_hook_status_with_hooks(self):
+    def test_get_hook_status_with_hooks():
         """Test get_hook_status with registered hooks."""
         mock_hook_service = Mock()
         service = MemoryHookService(hook_service=mock_hook_service)
@@ -60,7 +60,7 @@ class TestMemoryHookService:
         assert status["total_hooks"] == 2
         assert status["status"] == "active"
 
-    def test_get_memory_status(self):
+    def test_get_memory_status():
         """Test get_memory_status method."""
         service = MemoryHookService()
         status = service.get_memory_status()
@@ -74,12 +74,12 @@ class TestMemoryHookService:
         assert status["hooks_registered"] is False
         assert status["service_available"] is True
 
-    def test_is_memory_enabled(self):
+    def test_is_memory_enabled():
         """Test is_memory_enabled method."""
         service = MemoryHookService()
         assert service.is_memory_enabled() is False
 
-    def test_register_memory_hooks_without_hook_service(self):
+    def test_register_memory_hooks_without_hook_service():
         """Test register_memory_hooks when no hook service is available."""
         service = MemoryHookService()
         service.register_memory_hooks()
@@ -87,7 +87,7 @@ class TestMemoryHookService:
         # Should not register any hooks
         assert service.registered_hooks == []
 
-    def test_register_memory_hooks_with_hook_service(self):
+    def test_register_memory_hooks_with_hook_service():
         """Test register_memory_hooks with a mock hook service."""
         mock_hook_service = Mock()
         mock_hook_service.register_hook = Mock(return_value=True)
@@ -100,7 +100,7 @@ class TestMemoryHookService:
         assert "memory_load" in service.registered_hooks
         assert "memory_save" in service.registered_hooks
 
-    def test_unregister_memory_hooks(self):
+    def test_unregister_memory_hooks():
         """Test unregister_memory_hooks method."""
         mock_hook_service = Mock()
         service = MemoryHookService(hook_service=mock_hook_service)
@@ -111,7 +111,7 @@ class TestMemoryHookService:
         assert mock_hook_service.unregister_hook.call_count == 3
 
     @pytest.mark.asyncio
-    async def test_initialize_and_cleanup(self):
+    async def test_initialize_and_cleanup():
         """Test async initialization and cleanup methods."""
         service = MemoryHookService()
         
@@ -124,7 +124,7 @@ class TestMemoryHookService:
         # These are no-op methods but should not raise errors
         assert True
 
-    def test_all_abstract_methods_implemented(self):
+    def test_all_abstract_methods_implemented():
         """Verify all abstract methods from MemoryHookInterface are implemented."""
         # Get all abstract methods from the interface
         from abc import ABC

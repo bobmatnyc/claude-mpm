@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify ticket tools can be invoked through the MCP server.
@@ -17,6 +18,7 @@ from claude_mpm.services.mcp_gateway.core.interfaces import MCPToolInvocation
 from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
 
 
+@pytest.mark.asyncio
 async def test_ticket_tool_invocation():
     """Test invoking a ticket tool."""
     print("Testing ticket tool invocation...")

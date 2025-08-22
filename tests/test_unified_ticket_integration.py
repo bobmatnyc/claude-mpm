@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Integration test for the unified ticket tool.
@@ -21,6 +22,7 @@ from src.claude_mpm.services.mcp_gateway.tools.unified_ticket_tool import (
 )
 
 
+@pytest.mark.asyncio
 async def test_integration():
     """Test the unified ticket tool with actual invocations."""
     print("Unified Ticket Tool Integration Test")

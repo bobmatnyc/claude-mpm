@@ -14,7 +14,7 @@ from pathlib import Path
 
 def test_package_crypto_dep(package_name):
     """Test if a package requires cryptography as a dependency."""
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         venv_path = Path(tmpdir) / "test_venv"
 
         # Create venv

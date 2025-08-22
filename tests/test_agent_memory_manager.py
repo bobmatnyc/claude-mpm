@@ -12,8 +12,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from claude_mpm.core.config import Config
-from claude_mpm.services.agents.memory import AgentMemoryManager
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
+from claude_mpm.services.memory.manager import AgentMemoryManager
 
 
 class TestAgentMemoryManager:
@@ -22,7 +22,7 @@ class TestAgentMemoryManager:
     @pytest.fixture
     def temp_project_dir(self):
         """Create a temporary project directory."""
-        temp_dir = tempfile.mkdtemp()
+        temp_dir = tmp_path
         yield Path(temp_dir)
         shutil.rmtree(temp_dir)
 
@@ -30,11 +30,21 @@ class TestAgentMemoryManager:
     def memory_manager(self, temp_project_dir):
         """Create a memory manager with mocked project root."""
         with patch(
-            "claude_mpm.utils.paths.get_path_manager().get_project_root",
-            return_value=temp_project_dir,
-        ):
+            "claude_mpm.utils.paths.get_path_manager"
+        ) as mock_path_manager:
+            # Setup the mock path manager
+            mock_pm = MagicMock()
+            mock_pm.get_project_root.return_value = temp_project_dir
+            mock_path_manager.return_value = mock_pm
+            
             # Create a config object with default memory settings
-            config = Config()
+            config = MagicMock()
+            config.get.return_value = {
+                'memory': {
+                    'enabled': True,
+                    'max_size': 1000000
+                }
+            }
             manager = AgentMemoryManager(config)
             return manager
 
@@ -42,7 +52,7 @@ class TestAgentMemoryManager:
         self, memory_manager, temp_project_dir
     ):
         """Test that initialization creates the required directory structure."""
-        memories_dir = temp_project_dir / ".claude-mpm" / "memories"
+        memories_dir = temp_project_dir / ".claude" / "memories"
         assert memories_dir.exists()
         assert memories_dir.is_dir()
 
@@ -50,7 +60,7 @@ class TestAgentMemoryManager:
         assert readme_file.exists()
         assert "Agent Memory System" in readme_file.read_text()
 
-    def test_load_agent_memory_creates_default(self, memory_manager):
+    def test_load_agent_memory_creates_default(memory_manager):
         """Test that loading non-existent memory creates default."""
         memory = memory_manager.load_agent_memory("test_agent")
 
@@ -60,7 +70,7 @@ class TestAgentMemoryManager:
         assert "Common Mistakes to Avoid" in memory
         assert "Current Technical Context" in memory
 
-    def test_add_learning_to_existing_section(self, memory_manager):
+    def test_add_learning_to_existing_section(memory_manager):
         """Test adding learning to an existing section."""
         # Create initial memory
         memory_manager.load_agent_memory("engineer")
@@ -75,7 +85,7 @@ class TestAgentMemoryManager:
         memory = memory_manager.load_agent_memory("engineer")
         assert "Factory pattern" in memory
 
-    def test_add_learning_respects_item_limits(self, memory_manager):
+    def test_add_learning_respects_item_limits(memory_manager):
         """Test that section item limits are enforced."""
         # First, load to see how many default items exist
         initial_memory = memory_manager.load_agent_memory("qa")
@@ -118,7 +128,7 @@ class TestAgentMemoryManager:
         assert item_count == 15, f"Expected 15 items, got {item_count}"
         assert "New mistake" in memory  # New one added
 
-    def test_line_length_truncation(self, memory_manager):
+    def test_line_length_truncation(memory_manager):
         """Test that long lines are truncated."""
         long_content = "A" * 150  # Exceeds 120 char limit
 
@@ -136,7 +146,7 @@ class TestAgentMemoryManager:
             <= 122
         )  # "- " prefix
 
-    def test_update_timestamp(self, memory_manager):
+    def test_update_timestamp(memory_manager):
         """Test that timestamps are updated on changes."""
         # Create initial memory
         initial_memory = memory_manager.load_agent_memory("security")
@@ -149,7 +159,7 @@ class TestAgentMemoryManager:
         assert "<!-- Last Updated:" in updated_memory
         assert "Auto-updated by: system -->" in updated_memory
 
-    def test_validate_and_repair_missing_sections(self, memory_manager):
+    def test_validate_and_repair_missing_sections(memory_manager):
         """Test that missing required sections are added during validation."""
         # Create a memory file with missing sections
         memory_file = memory_manager.memories_dir / "broken_agent.md"
@@ -171,7 +181,7 @@ class TestAgentMemoryManager:
         for section in memory_manager.REQUIRED_SECTIONS:
             assert f"## {section}" in memory
 
-    def test_size_limit_enforcement(self, memory_manager):
+    def test_size_limit_enforcement(memory_manager):
         """Test that file size limits are enforced."""
         # Add many items to approach size limit
         for i in range(100):
@@ -184,7 +194,7 @@ class TestAgentMemoryManager:
         file_size_kb = len(memory_file.read_bytes()) / 1024
         assert file_size_kb <= memory_manager.memory_limits["max_file_size_kb"]
 
-    def test_error_handling_continues_operation(self, memory_manager):
+    def test_error_handling_continues_operation(memory_manager):
         """Test that errors don't break the memory system."""
         # Mock a write error
         with patch.object(Path, "write_text", side_effect=OSError("Disk full")):
@@ -196,7 +206,7 @@ class TestAgentMemoryManager:
         memory = memory_manager.load_agent_memory("ops")
         assert "Ops Agent Memory" in memory
 
-    def test_learning_type_mapping(self, memory_manager):
+    def test_learning_type_mapping(memory_manager):
         """Test that learning types map to correct sections."""
         mappings = [
             ("pattern", "Coding Patterns Learned"),

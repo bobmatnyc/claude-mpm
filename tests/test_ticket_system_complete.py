@@ -112,7 +112,7 @@ def test_argument_compatibility():
     print("Testing Argument Compatibility")
     print("=" * 60)
     
-    from claude_mpm.cli.commands.tickets import close_ticket
+    from claude_mpm.cli.commands.tickets import close_ticket_legacy as close_ticket
     from argparse import Namespace
     
     # Test with ticket_id (parser format)

@@ -26,7 +26,7 @@ from claude_mpm.services.mcp_gateway.tools.document_summarizer import (
 class TestLRUCache:
     """Test the LRU cache implementation."""
 
-    def test_cache_initialization(self):
+    def test_cache_initialization():
         """Test cache initialization with size and memory limits."""
         cache = LRUCache(max_size=10, max_memory_mb=1)
         assert cache.max_size == 10
@@ -35,7 +35,7 @@ class TestLRUCache:
         assert cache.hits == 0
         assert cache.misses == 0
 
-    def test_cache_put_and_get(self):
+    def test_cache_put_and_get():
         """Test basic cache put and get operations."""
         cache = LRUCache(max_size=3)
 
@@ -52,7 +52,7 @@ class TestLRUCache:
         assert cache.hits == 2
         assert cache.misses == 1
 
-    def test_cache_lru_eviction(self):
+    def test_cache_lru_eviction():
         """Test LRU eviction when cache is full."""
         cache = LRUCache(max_size=2)
 
@@ -70,7 +70,7 @@ class TestLRUCache:
         assert cache.get("key2") is None  # Evicted
         assert cache.get("key3") is not None  # New item
 
-    def test_cache_memory_limit(self):
+    def test_cache_memory_limit():
         """Test cache eviction based on memory limit."""
         cache = LRUCache(max_size=100, max_memory_mb=1)
 
@@ -84,7 +84,7 @@ class TestLRUCache:
         assert cache.current_memory <= cache.max_memory_bytes
         assert len(cache.cache) <= 2  # Should keep only 2 items
 
-    def test_cache_stats(self):
+    def test_cache_stats():
         """Test cache statistics reporting."""
         cache = LRUCache(max_size=10)
 
@@ -128,7 +128,7 @@ class TestDocumentSummarizerTool:
         except:
             pass
 
-    def test_tool_initialization(self, tool):
+    def test_tool_initialization(tool):
         """Test tool initialization and definition."""
         definition = tool.get_definition()
         assert definition.name == "document_summarizer"
@@ -136,25 +136,25 @@ class TestDocumentSummarizerTool:
         assert "mode" in definition.input_schema["properties"]
         assert definition.metadata["category"] == "document_processing"
 
-    def test_file_validation_exists(self, tool, temp_file):
+    def test_file_validation_exists(tool, temp_file):
         """Test file validation for existing file."""
         is_valid, error = tool._validate_file(temp_file)
         assert is_valid
         assert error is None
 
-    def test_file_validation_not_exists(self, tool):
+    def test_file_validation_not_exists(tool):
         """Test file validation for non-existent file."""
         is_valid, error = tool._validate_file("/nonexistent/file.txt")
         assert not is_valid
         assert "not found" in error.lower()
 
-    def test_file_validation_directory(self, tool):
+    def test_file_validation_directory(tool):
         """Test file validation rejects directories."""
         is_valid, error = tool._validate_file(tempfile.gettempdir())
         assert not is_valid
         assert "not a file" in error.lower()
 
-    def test_file_validation_size_limit(self, tool):
+    def test_file_validation_size_limit(tool):
         """Test file size validation."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             # Write more than 10MB
@@ -168,7 +168,7 @@ class TestDocumentSummarizerTool:
         finally:
             os.unlink(large_file)
 
-    def test_token_estimation(self, tool):
+    def test_token_estimation(tool):
         """Test token estimation calculation."""
         text = "This is a test sentence with several words."
         estimated = tool._estimate_tokens(text)
@@ -176,7 +176,7 @@ class TestDocumentSummarizerTool:
         expected = len(text) // 4
         assert estimated == expected
 
-    def test_sentence_truncation(self, tool):
+    def test_sentence_truncation(tool):
         """Test truncation at sentence boundaries."""
         text = "First sentence. Second sentence. Third sentence. Fourth sentence."
         truncated = tool._truncate_at_sentence(text, 30)
@@ -186,7 +186,7 @@ class TestDocumentSummarizerTool:
         assert len(truncated) <= 30
         assert "First sentence" in truncated
 
-    def test_code_block_extraction(self, tool):
+    def test_code_block_extraction(tool):
         """Test extraction and restoration of code blocks."""
         text = """
         Some text before code.
@@ -210,7 +210,7 @@ class TestDocumentSummarizerTool:
         restored = tool._restore_code_blocks(text_without, blocks)
         assert "def hello():" in restored
 
-    def test_summarize_brief_mode(self, tool):
+    def test_summarize_brief_mode(tool):
         """Test brief summarization mode."""
         text = "Beginning of document. " * 50
         text += "\n\nMiddle section. " * 100
@@ -223,7 +223,7 @@ class TestDocumentSummarizerTool:
         assert "End of document" in summary
         assert "content omitted" in summary or len(text) <= 500
 
-    def test_summarize_key_points_mode(self, tool):
+    def test_summarize_key_points_mode(tool):
         """Test key points extraction mode."""
         text = """
         Introduction paragraph.
@@ -247,7 +247,7 @@ class TestDocumentSummarizerTool:
         assert "First important point" in summary
         assert "Numbered item one" in summary
 
-    def test_summarize_technical_mode(self, tool):
+    def test_summarize_technical_mode(tool):
         """Test technical summarization mode."""
         text = """
         import os
@@ -273,7 +273,7 @@ class TestDocumentSummarizerTool:
         assert "class MyClass" in summary or "def my_function" in summary
 
     @pytest.mark.asyncio
-    async def test_invoke_success(self, tool, temp_file):
+    async def test_invoke_success(tool, temp_file):
         """Test successful tool invocation."""
         invocation = MCPToolInvocation(
             tool_name="document_summarizer",
@@ -290,7 +290,7 @@ class TestDocumentSummarizerTool:
         assert result.data["original_size"] > result.data["summary_size"]
 
     @pytest.mark.asyncio
-    async def test_invoke_with_cache(self, tool, temp_file):
+    async def test_invoke_with_cache(tool, temp_file):
         """Test tool invocation with caching."""
         invocation = MCPToolInvocation(
             tool_name="document_summarizer",
@@ -311,7 +311,7 @@ class TestDocumentSummarizerTool:
         assert result1.data["summary"] == result2.data["summary"]
 
     @pytest.mark.asyncio
-    async def test_invoke_invalid_file(self, tool):
+    async def test_invoke_invalid_file(tool):
         """Test tool invocation with invalid file."""
         invocation = MCPToolInvocation(
             tool_name="document_summarizer",
@@ -325,7 +325,7 @@ class TestDocumentSummarizerTool:
         assert "not found" in result.error.lower()
 
     @pytest.mark.asyncio
-    async def test_invoke_all_modes(self, tool, temp_file):
+    async def test_invoke_all_modes(tool, temp_file):
         """Test all summarization modes."""
         modes = ["brief", "detailed", "key_points", "technical"]
 
@@ -341,7 +341,7 @@ class TestDocumentSummarizerTool:
             assert result.data["reduction_percentage"] > 0
 
     @pytest.mark.asyncio
-    async def test_chunk_processing(self, tool):
+    async def test_chunk_processing(tool):
         """Test processing of large documents in chunks."""
         # Create a large temporary file
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
@@ -364,7 +364,7 @@ class TestDocumentSummarizerTool:
             os.unlink(large_file)
 
     @pytest.mark.asyncio
-    async def test_metrics_tracking(self, tool, temp_file):
+    async def test_metrics_tracking(tool, temp_file):
         """Test metrics tracking."""
         # Successful invocation
         invocation = MCPToolInvocation(
@@ -386,7 +386,7 @@ class TestDocumentSummarizerTool:
         assert metrics["average_execution_time"] > 0
 
     @pytest.mark.asyncio
-    async def test_initialization_and_shutdown(self, tool):
+    async def test_initialization_and_shutdown(tool):
         """Test tool initialization and shutdown."""
         # Initialize
         success = await tool.initialize()
@@ -405,7 +405,7 @@ class TestEdgeCases:
     def tool(self):
         return DocumentSummarizerTool()
 
-    def test_empty_file(self, tool):
+    def test_empty_file(tool):
         """Test handling of empty file."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
             f.write("")
@@ -420,7 +420,7 @@ class TestEdgeCases:
         finally:
             os.unlink(empty_file)
 
-    def test_unicode_handling(self, tool):
+    def test_unicode_handling(tool):
         """Test handling of unicode content."""
         with tempfile.NamedTemporaryFile(
             mode="w", encoding="utf-8", suffix=".txt", delete=False
@@ -436,7 +436,7 @@ class TestEdgeCases:
         finally:
             os.unlink(unicode_file)
 
-    def test_binary_file_handling(self, tool):
+    def test_binary_file_handling(tool):
         """Test handling of binary files."""
         with tempfile.NamedTemporaryFile(mode="wb", suffix=".bin", delete=False) as f:
             f.write(b"\x00\x01\x02\x03")
@@ -449,7 +449,7 @@ class TestEdgeCases:
         finally:
             os.unlink(binary_file)
 
-    def test_malformed_code_blocks(self, tool):
+    def test_malformed_code_blocks(tool):
         """Test handling of malformed code blocks."""
         text = """
         Incomplete code block:

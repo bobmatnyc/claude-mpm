@@ -27,7 +27,7 @@ from claude_mpm.core.exceptions import (
 class TestMPMError:
     """Test base MPMError class."""
 
-    def test_basic_error(self):
+    def test_basic_error():
         """Test basic error creation."""
         error = MPMError("Test error")
         assert str(error) == "Test error"
@@ -35,7 +35,7 @@ class TestMPMError:
         assert error.context == {}
         assert error.error_code == "mpm"
 
-    def test_error_with_context(self):
+    def test_error_with_context():
         """Test error with context."""
         context = {"key": "value", "number": 42}
         error = MPMError("Test error", context=context)
@@ -43,7 +43,7 @@ class TestMPMError:
         assert "key=value" in str(error)
         assert "number=42" in str(error)
 
-    def test_to_dict(self):
+    def test_to_dict():
         """Test dictionary conversion."""
         error = MPMError("Test error", context={"field": "test"})
         error_dict = error.to_dict()
@@ -56,13 +56,13 @@ class TestMPMError:
 class TestAgentDeploymentError:
     """Test AgentDeploymentError class."""
 
-    def test_basic_deployment_error(self):
+    def test_basic_deployment_error():
         """Test basic deployment error."""
         error = AgentDeploymentError("Deployment failed")
         assert error.message == "Deployment failed"
         assert error.error_code == "agent_deployment"
 
-    def test_deployment_error_with_agent_id(self):
+    def test_deployment_error_with_agent_id():
         """Test deployment error with agent ID context."""
         error = AgentDeploymentError(
             "Template not found",
@@ -71,7 +71,7 @@ class TestAgentDeploymentError:
         assert "[Agent: engineer]" in error.message
         assert "Template not found" in error.message
 
-    def test_deployment_error_permission(self):
+    def test_deployment_error_permission():
         """Test deployment error with permission issue."""
         error = AgentDeploymentError("Permission denied", context={"agent_id": "qa"})
         assert "Check directory permissions" in error.message
@@ -80,20 +80,20 @@ class TestAgentDeploymentError:
 class TestConfigurationError:
     """Test ConfigurationError class."""
 
-    def test_basic_config_error(self):
+    def test_basic_config_error():
         """Test basic configuration error."""
         error = ConfigurationError("Invalid config")
         assert error.message == "Invalid config"
         assert error.error_code == "configuration"
 
-    def test_config_error_with_file(self):
+    def test_config_error_with_file():
         """Test configuration error with file context."""
         error = ConfigurationError(
             "Parse error", context={"config_file": "config.yaml"}
         )
-        assert "[Config: config.yaml]" in error.message
+        assert "[Config: config.yml]" in error.message
 
-    def test_config_error_with_field_validation(self):
+    def test_config_error_with_field_validation():
         """Test configuration error with field validation."""
         error = ConfigurationError(
             "Type mismatch",
@@ -111,20 +111,20 @@ class TestConfigurationError:
 class TestConnectionError:
     """Test ConnectionError class."""
 
-    def test_basic_connection_error(self):
+    def test_basic_connection_error():
         """Test basic connection error."""
         error = ConnectionError("Connection failed")
         assert error.message == "Connection failed"
         assert error.error_code == "connection"
 
-    def test_connection_error_with_host_port(self):
+    def test_connection_error_with_host_port():
         """Test connection error with host and port."""
         error = ConnectionError(
             "Port in use", context={"host": "localhost", "port": 8080}
         )
         assert "[localhost:8080]" in error.message
 
-    def test_connection_error_with_retry(self):
+    def test_connection_error_with_retry():
         """Test connection error with retry information."""
         error = ConnectionError(
             "Timeout",
@@ -142,13 +142,13 @@ class TestConnectionError:
 class TestValidationError:
     """Test ValidationError class."""
 
-    def test_basic_validation_error(self):
+    def test_basic_validation_error():
         """Test basic validation error."""
         error = ValidationError("Invalid input")
         assert error.message == "Invalid input"
         assert error.error_code == "validation"
 
-    def test_validation_error_with_field(self):
+    def test_validation_error_with_field():
         """Test validation error with field information."""
         error = ValidationError(
             "Required field missing",
@@ -166,13 +166,13 @@ class TestValidationError:
 class TestServiceNotFoundError:
     """Test ServiceNotFoundError class."""
 
-    def test_basic_service_error(self):
+    def test_basic_service_error():
         """Test basic service not found error."""
         error = ServiceNotFoundError("Service missing")
         assert error.message == "Service missing"
         assert error.error_code == "service_not_found"
 
-    def test_service_error_with_available_services(self):
+    def test_service_error_with_available_services():
         """Test service error with available services list."""
         error = ServiceNotFoundError(
             "Service not registered",
@@ -196,13 +196,13 @@ class TestServiceNotFoundError:
 class TestMemoryError:
     """Test MemoryError class."""
 
-    def test_basic_memory_error(self):
+    def test_basic_memory_error():
         """Test basic memory error."""
         error = MemoryError("Memory operation failed")
         assert error.message == "Memory operation failed"
         assert error.error_code == "memory"
 
-    def test_memory_error_with_agent(self):
+    def test_memory_error_with_agent():
         """Test memory error with agent context."""
         error = MemoryError(
             "Storage failed",
@@ -222,13 +222,13 @@ class TestMemoryError:
 class TestHookError:
     """Test HookError class."""
 
-    def test_basic_hook_error(self):
+    def test_basic_hook_error():
         """Test basic hook error."""
         error = HookError("Hook failed")
         assert error.message == "Hook failed"
         assert error.error_code == "hook"
 
-    def test_hook_error_with_details(self):
+    def test_hook_error_with_details():
         """Test hook error with detailed context."""
         error = HookError(
             "Execution failed",
@@ -248,13 +248,13 @@ class TestHookError:
 class TestSessionError:
     """Test SessionError class."""
 
-    def test_basic_session_error(self):
+    def test_basic_session_error():
         """Test basic session error."""
         error = SessionError("Session failed")
         assert error.message == "Session failed"
         assert error.error_code == "session"
 
-    def test_session_error_with_context(self):
+    def test_session_error_with_context():
         """Test session error with context."""
         error = SessionError(
             "Initialization failed",
@@ -274,7 +274,7 @@ class TestSessionError:
 class TestFactoryFunctions:
     """Test factory functions for creating errors."""
 
-    def test_create_agent_deployment_error(self):
+    def test_create_agent_deployment_error():
         """Test factory function for agent deployment error."""
         error = create_agent_deployment_error(
             "Test error", agent_id="test", template_path="/path"
@@ -282,19 +282,19 @@ class TestFactoryFunctions:
         assert isinstance(error, AgentDeploymentError)
         assert error.context == {"agent_id": "test", "template_path": "/path"}
 
-    def test_create_configuration_error(self):
+    def test_create_configuration_error():
         """Test factory function for configuration error."""
         error = create_configuration_error("Test error", config_file="test.yaml")
         assert isinstance(error, ConfigurationError)
         assert error.context == {"config_file": "test.yaml"}
 
-    def test_create_connection_error(self):
+    def test_create_connection_error():
         """Test factory function for connection error."""
         error = create_connection_error("Test error", host="localhost", port=8080)
         assert isinstance(error, ConnectionError)
         assert error.context == {"host": "localhost", "port": 8080}
 
-    def test_create_validation_error(self):
+    def test_create_validation_error():
         """Test factory function for validation error."""
         error = create_validation_error("Test error", field="test_field")
         assert isinstance(error, ValidationError)
@@ -304,24 +304,24 @@ class TestFactoryFunctions:
 class TestErrorGroups:
     """Test error group constants."""
 
-    def test_deployment_errors(self):
+    def test_deployment_errors():
         """Test deployment error group."""
         error = AgentDeploymentError("Test")
         assert isinstance(error, DEPLOYMENT_ERRORS)
 
-    def test_configuration_errors(self):
+    def test_configuration_errors():
         """Test configuration error group."""
         config_error = ConfigurationError("Test")
         validation_error = ValidationError("Test")
         assert isinstance(config_error, CONFIGURATION_ERRORS)
         assert isinstance(validation_error, CONFIGURATION_ERRORS)
 
-    def test_network_errors(self):
+    def test_network_errors():
         """Test network error group."""
         error = ConnectionError("Test")
         assert isinstance(error, NETWORK_ERRORS)
 
-    def test_service_errors(self):
+    def test_service_errors():
         """Test service error group."""
         service_error = ServiceNotFoundError("Test")
         memory_error = MemoryError("Test")
@@ -333,7 +333,7 @@ class TestErrorGroups:
         assert isinstance(hook_error, SERVICE_ERRORS)
         assert isinstance(session_error, SERVICE_ERRORS)
 
-    def test_all_mpm_errors(self):
+    def test_all_mpm_errors():
         """Test that all custom errors inherit from MPMError."""
         errors = [
             AgentDeploymentError("Test"),
@@ -354,7 +354,7 @@ class TestErrorGroups:
 class TestErrorContextHandling:
     """Test enhanced context handling for all error types."""
 
-    def test_context_serialization_json_compatible(self):
+    def test_context_serialization_json_compatible():
         """Test that error contexts are JSON-serializable."""
         import json
 
@@ -377,7 +377,7 @@ class TestErrorContextHandling:
         assert parsed["context"]["number_value"] == 42
         assert parsed["context"]["boolean_value"] is True
 
-    def test_context_with_complex_objects(self):
+    def test_context_with_complex_objects():
         """Test error context with complex non-serializable objects."""
         from pathlib import Path
 
@@ -393,7 +393,7 @@ class TestErrorContextHandling:
         assert "path_object" in error.context
         assert str(error.context["path_object"]) == "/test/path"
 
-    def test_context_type_coercion(self):
+    def test_context_type_coercion():
         """Test that context values are properly coerced to strings when needed."""
         context = {
             "none_value": None,
@@ -411,7 +411,7 @@ class TestErrorContextHandling:
         assert "numeric_zero=0" in error_str
         assert "empty_string=" in error_str
 
-    def test_context_key_sanitization(self):
+    def test_context_key_sanitization():
         """Test that context keys are properly sanitized."""
         context = {
             "normal_key": "value1",
@@ -428,7 +428,7 @@ class TestErrorContextHandling:
         for key, value in context.items():
             assert f"{key}={value}" in error_str
 
-    def test_large_context_truncation(self):
+    def test_large_context_truncation():
         """Test handling of very large context values."""
         large_string = "x" * 10000  # 10KB string
         context = {"large_value": large_string, "normal_value": "test"}
@@ -440,7 +440,7 @@ class TestErrorContextHandling:
         assert len(error_str) < 20000  # Reasonable limit
         assert "normal_value=test" in error_str
 
-    def test_context_inheritance_preservation(self):
+    def test_context_inheritance_preservation():
         """Test that context is preserved through error inheritance."""
         base_context = {"base_key": "base_value"}
         base_error = MPMError("Base error", context=base_context)
@@ -453,7 +453,7 @@ class TestErrorContextHandling:
         assert base_error.context["base_key"] == "base_value"
         assert derived_error.context["derived_key"] == "derived_value"
 
-    def test_context_empty_handling(self):
+    def test_context_empty_handling():
         """Test proper handling of empty or None context."""
         # None context
         error1 = MPMError("Test error", context=None)
@@ -471,7 +471,7 @@ class TestErrorContextHandling:
 class TestErrorSerialization:
     """Test error serialization and deserialization."""
 
-    def test_basic_error_serialization(self):
+    def test_basic_error_serialization():
         """Test basic error serialization to dict."""
         error = MPMError("Test message", context={"key": "value"})
         result = error.to_dict()
@@ -485,7 +485,7 @@ class TestErrorSerialization:
         assert result["message"] == "Test message"
         assert result["context"] == {"key": "value"}
 
-    def test_all_error_types_serialization(self):
+    def test_all_error_types_serialization():
         """Test serialization of all error types."""
         error_classes = [
             (MPMError, "mpm"),
@@ -508,7 +508,7 @@ class TestErrorSerialization:
             assert result["message"] == "Test message"
             assert result["context"] == {"test": "value"}
 
-    def test_serialization_with_nested_errors(self):
+    def test_serialization_with_nested_errors():
         """Test serialization when context contains other errors."""
         nested_error = ValueError("Nested error")
         context = {
@@ -525,7 +525,7 @@ class TestErrorSerialization:
         assert result["context"]["error_message"] == "Nested error"
         assert result["context"]["error_type"] == "ValueError"
 
-    def test_serialization_preserves_original_data(self):
+    def test_serialization_preserves_original_data():
         """Test that serialization doesn't modify original error."""
         original_context = {"mutable_list": [1, 2, 3], "value": "test"}
         error = MPMError("Test error", context=original_context)
@@ -541,7 +541,7 @@ class TestErrorSerialization:
         assert error.context["mutable_list"] == [1, 2, 3]
         assert error.context["value"] == "test"
 
-    def test_json_serialization_compatibility(self):
+    def test_json_serialization_compatibility():
         """Test that error dicts are compatible with JSON serialization."""
         import json
 
@@ -567,7 +567,7 @@ class TestErrorSerialization:
             assert parsed["message"] == error_dict["message"]
             assert parsed["context"] == error_dict["context"]
 
-    def test_error_reconstruction_from_dict(self):
+    def test_error_reconstruction_from_dict():
         """Test that errors can be reconstructed from their dict representation."""
         original_error = AgentDeploymentError(
             "Deployment failed",
@@ -593,7 +593,7 @@ class TestErrorSerialization:
         assert reconstructed_error.error_code == original_error.error_code
         assert reconstructed_error.context == original_error.context
 
-    def test_serialization_performance(self):
+    def test_serialization_performance():
         """Test serialization performance with large contexts."""
         import time
 
@@ -613,7 +613,7 @@ class TestErrorSerialization:
         assert (end_time - start_time) < 1.0
         assert len(result["context"]) == len(large_context)
 
-    def test_circular_reference_handling(self):
+    def test_circular_reference_handling():
         """Test handling of circular references in context."""
         # Create circular reference
         context = {"self_ref": None}

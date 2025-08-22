@@ -27,7 +27,7 @@ def test_system_loading():
     if content.get("memory_instructions"):
         print(f"  ✓ MEMORY.md from: src/claude_mpm/agents/ (system)")
     if content.get("actual_memories"):
-        print(f"  ✓ PM.md from: .claude-mpm/memories/")
+        print(f"  ✓ PM.md from: .claude/memories/")
     
     return True
 
@@ -220,7 +220,7 @@ def main():
         print("\nThe framework loader is working correctly:")
         print("  • Loads WORKFLOW.md and MEMORY.md from system")
         print("  • Supports project-specific overrides")
-        print("  • Loads PM memories from .claude-mpm/memories/PM.md")
+        print("  • Loads PM memories from .claude/memories/PM.md")
         print("  • Integrates everything into final instructions")
     else:
         print("❌ SOME TESTS FAILED")

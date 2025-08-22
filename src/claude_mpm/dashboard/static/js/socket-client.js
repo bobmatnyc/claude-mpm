@@ -851,7 +851,6 @@ class SocketClient {
             }
         }
     }
-}
 
     /**
      * Clean up resources

@@ -17,7 +17,7 @@ from pathlib import Path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 def test_response_logging_interactive():
@@ -27,7 +27,7 @@ def test_response_logging_interactive():
     print("=" * 60 + "\n")
 
     # Create temporary config with response logging enabled
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tmp_path
     config_file = Path(temp_dir) / "claude-mpm.yml"
     log_dir = Path(temp_dir) / "logs"
 

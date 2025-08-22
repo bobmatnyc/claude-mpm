@@ -1,0 +1,24 @@
+{
+  "id": "agent-manager",
+  "name": "Agent Manager",
+  "prompt": "agent-manager.md",
+  "model": "sonnet",
+  "tool_choice": "auto",
+  "metadata": {
+    "description": "Manages agent creation, customization, deployment, and PM instruction configuration",
+    "version": "1.0.0",
+    "capabilities": [
+      "agent-creation",
+      "variant-management",
+      "pm-configuration",
+      "deployment-control",
+      "hierarchy-management",
+      "template-generation",
+      "validation",
+      "discovery"
+    ],
+    "tags": ["system", "management", "configuration"],
+    "author": "Claude MPM Team",
+    "category": "system"
+  }
+}

@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, mock_open, patch
 
 import pytest
 
-from claude_mpm.agents.base_agent_loader import (
+from claude_mpm.services.agents.base_agent_loader import (
     TEMPLATE_SECTIONS,
     PromptTemplate,
     _build_dynamic_prompt,
@@ -38,7 +38,7 @@ from claude_mpm.agents.base_agent_loader import (
 class TestBaseAgentLoading:
     """Test base agent file loading functionality."""
 
-    def test_load_base_agent_instructions(self):
+    def test_load_base_agent_instructions():
         """Test loading base agent instructions from file."""
         # Should load without errors
         instructions = load_base_agent_instructions(force_reload=True)
@@ -47,7 +47,7 @@ class TestBaseAgentLoading:
         assert len(instructions) > 0
         assert isinstance(instructions, str)
 
-    def test_load_with_cache(self):
+    def test_load_with_cache():
         """Test that loading uses cache on second call."""
         # Clear cache first
         clear_base_agent_cache()
@@ -68,7 +68,7 @@ class TestBaseAgentLoading:
 
             assert instructions2 == instructions1
 
-    def test_force_reload_bypasses_cache(self):
+    def test_force_reload_bypasses_cache():
         """Test that force_reload bypasses cache."""
         # Load once to populate cache
         instructions1 = load_base_agent_instructions()
@@ -85,7 +85,7 @@ class TestBaseAgentLoading:
             # Should have called open to read file
             mock_file.assert_called()
 
-    def test_missing_base_agent_file(self):
+    def test_missing_base_agent_file():
         """Test handling when base agent file is missing."""
         with patch(
             "claude_mpm.agents.base_agent_loader._get_base_agent_file"
@@ -100,7 +100,7 @@ class TestBaseAgentLoading:
             instructions = load_base_agent_instructions()
             assert instructions is None
 
-    def test_malformed_json_handling(self):
+    def test_malformed_json_handling():
         """Test handling of malformed JSON in base agent file."""
         with patch(
             "builtins.open", mock_open(read_data='{"invalid": json}')
@@ -117,7 +117,7 @@ class TestBaseAgentLoading:
 
                 assert instructions is None
 
-    def test_empty_instructions_handling(self):
+    def test_empty_instructions_handling():
         """Test handling when instructions field is empty."""
         empty_json = json.dumps({"narrative_fields": {"instructions": ""}})
 
@@ -138,7 +138,7 @@ class TestBaseAgentLoading:
 class TestTestModeHandling:
     """Test test mode instruction handling."""
 
-    def test_test_mode_enabled(self):
+    def test_test_mode_enabled():
         """Test that test mode instructions are included when enabled."""
         with patch.dict(os.environ, {"CLAUDE_PM_TEST_MODE": "true"}):
             clear_base_agent_cache()
@@ -148,7 +148,7 @@ class TestTestModeHandling:
             if instructions and "Standard Test Response Protocol" in instructions:
                 assert "Standard Test Response Protocol" in instructions
 
-    def test_test_mode_disabled(self):
+    def test_test_mode_disabled():
         """Test that test mode instructions are removed when disabled."""
         with patch.dict(os.environ, {"CLAUDE_PM_TEST_MODE": "false"}):
             clear_base_agent_cache()
@@ -180,7 +180,7 @@ This should stay
                 assert "Core Principles" in filtered
                 assert "Another Section" in filtered
 
-    def test_remove_test_instructions_preserves_structure(self):
+    def test_remove_test_instructions_preserves_structure():
         """Test that removing test instructions preserves document structure."""
         content = """
 ## Section 1
@@ -212,7 +212,7 @@ Content 2
 class TestPromptTemplates:
     """Test dynamic prompt template functionality."""
 
-    def test_minimal_template(self):
+    def test_minimal_template():
         """Test MINIMAL template includes only core sections."""
         content = """
 # Base Agent Instructions
@@ -244,7 +244,7 @@ Tool usage (should not be in minimal)
         assert "Quality Standards" not in result
         assert "Tool Usage Guidelines" not in result
 
-    def test_standard_template(self):
+    def test_standard_template():
         """Test STANDARD template includes medium set of sections."""
         content = """
 # Base Agent Instructions
@@ -277,7 +277,7 @@ Escalation content (should not be in standard)
         assert "Security Awareness" not in result
         assert "Escalation Triggers" not in result
 
-    def test_full_template(self):
+    def test_full_template():
         """Test FULL template includes all sections."""
         content = "Full content with all sections"
 
@@ -286,7 +286,7 @@ Escalation content (should not be in standard)
         # FULL template should return content unchanged
         assert result == content
 
-    def test_template_auto_selection_by_complexity(self):
+    def test_template_auto_selection_by_complexity():
         """Test template auto-selection based on complexity score."""
         agent_prompt = "Agent specific instructions"
 
@@ -302,7 +302,7 @@ Escalation content (should not be in standard)
         # Different templates should produce different lengths
         assert len(result_low) < len(result_medium) < len(result_high)
 
-    def test_template_override(self):
+    def test_template_override():
         """Test explicit template override."""
         agent_prompt = "Agent instructions"
 
@@ -323,7 +323,7 @@ Escalation content (should not be in standard)
 class TestInstructionPrepending:
     """Test instruction prepending functionality."""
 
-    def test_prepend_basic(self):
+    def test_prepend_basic():
         """Test basic prepending of base instructions."""
         agent_prompt = "Agent specific instructions"
         result = prepend_base_instructions(agent_prompt)
@@ -332,7 +332,7 @@ class TestInstructionPrepending:
         assert len(result) > len(agent_prompt)
         assert result.endswith(agent_prompt)
 
-    def test_prepend_with_custom_separator(self):
+    def test_prepend_with_custom_separator():
         """Test prepending with custom separator."""
         agent_prompt = "Agent instructions"
         separator = "\n===SEPARATOR===\n"
@@ -344,7 +344,7 @@ class TestInstructionPrepending:
         assert len(parts) == 2
         assert parts[1] == agent_prompt
 
-    def test_prepend_when_base_missing(self):
+    def test_prepend_when_base_missing():
         """Test prepending when base instructions are missing."""
         with patch(
             "claude_mpm.agents.base_agent_loader.load_base_agent_instructions",
@@ -356,7 +356,7 @@ class TestInstructionPrepending:
             # Should return original prompt unchanged
             assert result == agent_prompt
 
-    def test_prepend_test_mode_forces_full_template(self):
+    def test_prepend_test_mode_forces_full_template():
         """Test that test mode forces FULL template."""
         with patch.dict(os.environ, {"CLAUDE_PM_TEST_MODE": "true"}):
             agent_prompt = "Test agent prompt"
@@ -376,7 +376,7 @@ class TestInstructionPrepending:
 class TestSectionParsing:
     """Test content section parsing functionality."""
 
-    def test_parse_sections_basic(self):
+    def test_parse_sections_basic():
         """Test basic section parsing."""
         content = """
 ### Section One
@@ -398,7 +398,7 @@ Main content here
         assert "Content of section one" in sections["Section One"]
         assert "With multiple lines" in sections["Section Two"]
 
-    def test_parse_sections_with_subsections(self):
+    def test_parse_sections_with_subsections():
         """Test parsing with subsections."""
         content = """
 ### Main Section
@@ -418,7 +418,7 @@ More subsection content
         assert "Subsection One" in sections["Main Section"]
         assert "Subsection content" in sections["Main Section"]
 
-    def test_parse_pm_integration_merging(self):
+    def test_parse_pm_integration_merging():
         """Test that PM integration sections are merged."""
         content = """
 #### PM Orchestrator Integration
@@ -446,7 +446,7 @@ Other content
 class TestCaching:
     """Test caching mechanism."""
 
-    def test_cache_key_differentiation(self):
+    def test_cache_key_differentiation():
         """Test that different cache keys are used for different modes/templates."""
         clear_base_agent_cache()
 
@@ -462,7 +462,7 @@ class TestCaching:
         assert normal_instructions is not None
         assert test_instructions is not None
 
-    def test_cache_ttl(self):
+    def test_cache_ttl():
         """Test that cache has TTL set."""
         from claude_mpm.services.memory.cache.shared_prompt_cache import (
             SharedPromptCache,
@@ -479,7 +479,7 @@ class TestCaching:
             call_args = mock_set.call_args
             assert call_args[1]["ttl"] == 3600  # 1 hour
 
-    def test_clear_cache_all_templates(self):
+    def test_clear_cache_all_templates():
         """Test that clear_cache clears all template variations."""
         from claude_mpm.services.memory.cache.shared_prompt_cache import (
             SharedPromptCache,
@@ -497,7 +497,7 @@ class TestCaching:
 class TestConcurrency:
     """Test concurrent access safety."""
 
-    def test_concurrent_loading(self):
+    def test_concurrent_loading():
         """Test multiple threads loading simultaneously."""
         clear_base_agent_cache()
         results = []
@@ -527,7 +527,7 @@ class TestConcurrency:
         # All threads should get same result
         assert len(set(results)) == 1
 
-    def test_concurrent_prepending(self):
+    def test_concurrent_prepending():
         """Test multiple threads prepending instructions simultaneously."""
         results = []
         errors = []
@@ -562,19 +562,19 @@ class TestConcurrency:
 class TestFileValidation:
     """Test file validation functionality."""
 
-    def test_validate_existing_file(self):
+    def test_validate_existing_file():
         """Test validation of existing base agent file."""
         # Should pass for actual file
         assert validate_base_agent_file() == True
 
-    def test_validate_missing_file(self):
+    def test_validate_missing_file():
         """Test validation when file is missing."""
         with patch("claude_mpm.agents.base_agent_loader.BASE_AGENT_FILE") as mock_file:
             mock_file.exists.return_value = False
 
             assert validate_base_agent_file() == False
 
-    def test_validate_not_file(self):
+    def test_validate_not_file():
         """Test validation when path is not a file."""
         with patch("claude_mpm.agents.base_agent_loader.BASE_AGENT_FILE") as mock_file:
             mock_file.exists.return_value = True
@@ -582,7 +582,7 @@ class TestFileValidation:
 
             assert validate_base_agent_file() == False
 
-    def test_validate_unreadable_file(self):
+    def test_validate_unreadable_file():
         """Test validation when file is not readable."""
         with patch("claude_mpm.agents.base_agent_loader.BASE_AGENT_FILE") as mock_file:
             mock_file.exists.return_value = True
@@ -591,7 +591,7 @@ class TestFileValidation:
 
             assert validate_base_agent_file() == False
 
-    def test_get_base_agent_path(self):
+    def test_get_base_agent_path():
         """Test getting base agent file path."""
         path = get_base_agent_path()
 
@@ -603,7 +603,7 @@ class TestFileValidation:
 class TestMemoryOptimization:
     """Test memory optimization features."""
 
-    def test_template_size_reduction(self):
+    def test_template_size_reduction():
         """Test that templates reduce prompt size appropriately."""
         agent_prompt = "Test agent prompt"
 
@@ -623,7 +623,7 @@ class TestMemoryOptimization:
         size_reduction = (len(full) - len(minimal)) / len(full)
         assert size_reduction > 0.3  # At least 30% reduction
 
-    def test_cache_memory_efficiency(self):
+    def test_cache_memory_efficiency():
         """Test that caching reduces memory usage."""
         clear_base_agent_cache()
 
@@ -647,14 +647,14 @@ class TestMemoryOptimization:
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_empty_agent_prompt(self):
+    def test_empty_agent_prompt():
         """Test prepending to empty agent prompt."""
         result = prepend_base_instructions("")
 
         assert len(result) > 0
         assert result != ""
 
-    def test_very_large_agent_prompt(self):
+    def test_very_large_agent_prompt():
         """Test prepending to very large agent prompt."""
         large_prompt = "x" * (1024 * 1024)  # 1MB
         result = prepend_base_instructions(large_prompt)
@@ -662,14 +662,14 @@ class TestEdgeCases:
         assert large_prompt in result
         assert len(result) > len(large_prompt)
 
-    def test_unicode_in_instructions(self):
+    def test_unicode_in_instructions():
         """Test handling of Unicode in instructions."""
         agent_prompt = "Instructions with Unicode: 你好 мир 🌍"
         result = prepend_base_instructions(agent_prompt)
 
         assert agent_prompt in result
 
-    def test_null_complexity_score(self):
+    def test_null_complexity_score():
         """Test handling of null complexity score."""
         agent_prompt = "Test prompt"
 
@@ -679,7 +679,7 @@ class TestEdgeCases:
         assert agent_prompt in result
         assert len(result) > len(agent_prompt)
 
-    def test_out_of_range_complexity_score(self):
+    def test_out_of_range_complexity_score():
         """Test handling of out-of-range complexity scores."""
         agent_prompt = "Test prompt"
 
@@ -697,7 +697,7 @@ class TestEdgeCases:
 class TestBackwardCompatibility:
     """Test backward compatibility with older formats."""
 
-    def test_old_json_format(self):
+    def test_old_json_format():
         """Test handling of older JSON format without narrative_fields."""
         old_format = json.dumps({"instructions": "Old format instructions"})
 
@@ -714,7 +714,7 @@ class TestBackwardCompatibility:
 
                 assert instructions == "Old format instructions"
 
-    def test_new_json_format(self):
+    def test_new_json_format():
         """Test handling of new JSON format with narrative_fields."""
         new_format = json.dumps(
             {"narrative_fields": {"instructions": "New format instructions"}}

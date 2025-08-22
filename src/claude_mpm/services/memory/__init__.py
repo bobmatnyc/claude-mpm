@@ -9,9 +9,11 @@ This module provides memory management services including:
 from .builder import MemoryBuilder
 from .optimizer import MemoryOptimizer
 from .router import MemoryRouter
+from .indexed_memory import IndexedMemoryService
 
 __all__ = [
     "MemoryBuilder",
     "MemoryRouter",
     "MemoryOptimizer",
+    "IndexedMemoryService",
 ]

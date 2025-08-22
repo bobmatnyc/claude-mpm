@@ -62,7 +62,7 @@ class AgentFunctionalityTester:
         # Generate report
         self.generate_report()
 
-    def test_agent_loader_initialization(self):
+    def test_agent_loader_initialization():
         """Test 1: Verify AgentLoader can initialize without errors"""
         print("\n[TEST 1] Testing AgentLoader initialization...")
 
@@ -103,7 +103,7 @@ class AgentFunctionalityTester:
             )
             traceback.print_exc()
 
-    def test_load_all_templates(self):
+    def test_load_all_templates():
         """Test 2: Verify all agent templates can be loaded successfully"""
         print("\n[TEST 2] Testing loading of all agent templates...")
 
@@ -193,7 +193,7 @@ class AgentFunctionalityTester:
             )
         )
 
-    def test_agent_validation(self):
+    def test_agent_validation():
         """Test 3: Check that agent validation works correctly"""
         print("\n[TEST 3] Testing agent validation...")
 
@@ -254,7 +254,7 @@ class AgentFunctionalityTester:
             )
             traceback.print_exc()
 
-    def test_agent_operations(self):
+    def test_agent_operations():
         """Test 4: Run basic agent operations for end-to-end functionality"""
         print("\n[TEST 4] Testing agent operations...")
 
@@ -307,7 +307,7 @@ class AgentFunctionalityTester:
             )
             traceback.print_exc()
 
-    def test_no_regressions(self):
+    def test_no_regressions():
         """Test 5: Ensure no regression in other parts of the system"""
         print("\n[TEST 5] Testing for regressions...")
 

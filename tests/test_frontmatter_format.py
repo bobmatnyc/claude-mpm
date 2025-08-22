@@ -18,7 +18,7 @@ import yaml
 class TestFrontmatterFormat:
     """Test YAML frontmatter structure in deployed agents."""
 
-    def test_frontmatter_structure_valid(self, tmp_path):
+    def test_frontmatter_structure_valid(tmp_path):
         """Test that valid frontmatter is correctly parsed."""
         # Create a valid agent file with proper frontmatter
         agent_content = """---
@@ -49,7 +49,7 @@ This is the agent content after frontmatter.
         assert frontmatter["tools"] == "Read, Write, Edit, Grep, Glob, LS"
         assert frontmatter["model"] == "sonnet"
 
-    def test_frontmatter_required_fields(self, tmp_path):
+    def test_frontmatter_required_fields(tmp_path):
         """Test that all required fields are present in frontmatter."""
         required_fields = [
             "name",
@@ -77,7 +77,7 @@ This is the agent content after frontmatter.
             errors = self._validate_frontmatter(frontmatter)
             assert any(missing_field in error for error in errors)
 
-    def test_frontmatter_version_formats(self, tmp_path):
+    def test_frontmatter_version_formats(tmp_path):
         """Test various version format scenarios."""
         test_cases = [
             ("2.1.0", True, "Valid semantic version"),
@@ -113,7 +113,7 @@ Test content
                 is_valid == should_be_valid
             ), f"Version '{version}' ({description}) validation mismatch"
 
-    def test_frontmatter_tools_format(self, tmp_path):
+    def test_frontmatter_tools_format(tmp_path):
         """Test various tools field formats."""
         test_cases = [
             ("Read, Write, Edit", True, "Comma-separated tools"),
@@ -162,7 +162,7 @@ Test content
                 is_valid == should_be_valid
             ), f"Tools '{tools}' ({description}) validation mismatch"
 
-    def test_frontmatter_model_values(self, tmp_path):
+    def test_frontmatter_model_values(tmp_path):
         """Test valid model values in frontmatter."""
         valid_models = ["haiku", "sonnet", "opus"]
 
@@ -185,7 +185,7 @@ Test content
             assert frontmatter["model"] == model
             assert frontmatter["model"] in valid_models
 
-    def test_frontmatter_parsing_edge_cases(self, tmp_path):
+    def test_frontmatter_parsing_edge_cases(tmp_path):
         """Test edge cases in frontmatter parsing."""
         # Test with quotes in description
         agent_content = """---
@@ -244,7 +244,7 @@ Content
         frontmatter = self._extract_frontmatter(agent_file)
         assert "multiline" in frontmatter["description"]
 
-    def test_frontmatter_separator_detection(self, tmp_path):
+    def test_frontmatter_separator_detection(tmp_path):
         """Test that content after frontmatter separator is correctly identified."""
         agent_content = """---
 name: test_agent
@@ -274,7 +274,7 @@ This should still be part of content, not frontmatter.
         assert "This should still be part of content" in content
         assert "---" in content  # The second separator should be in content
 
-    def test_frontmatter_without_separator(self, tmp_path):
+    def test_frontmatter_without_separator(tmp_path):
         """Test handling of files without proper frontmatter separator."""
         agent_content = """name: test_agent
 description: Test agent
@@ -292,7 +292,7 @@ This file has no frontmatter separators.
         # Should return None or empty dict for invalid format
         assert frontmatter is None or len(frontmatter) == 0
 
-    def test_frontmatter_optional_fields(self, tmp_path):
+    def test_frontmatter_optional_fields(tmp_path):
         """Test optional fields in frontmatter."""
         agent_content = """---
 name: test_agent

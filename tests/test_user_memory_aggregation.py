@@ -15,8 +15,8 @@ class TestUserMemoryAggregation(unittest.TestCase):
 
     def setUp(self):
         """Set up test environment."""
-        self.test_user_dir = Path(tempfile.mkdtemp()) / ".claude-mpm" / "memories"
-        self.test_project_dir = Path(tempfile.mkdtemp()) / ".claude-mpm" / "memories"
+        self.test_user_dir = Path(tmp_path) / ".claude-mpm" / "memories"
+        self.test_project_dir = Path(tmp_path) / ".claude-mpm" / "memories"
         self.test_user_dir.mkdir(parents=True, exist_ok=True)
         self.test_project_dir.mkdir(parents=True, exist_ok=True)
 
@@ -28,7 +28,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
         if self.test_project_dir.parent.parent.exists():
             shutil.rmtree(self.test_project_dir.parent.parent)
 
-    def test_memory_directory_creation(self):
+    def test_memory_directory_creation():
         """Test that both user and project memory directories are created."""
         with patch.object(Path, 'home', return_value=self.test_user_dir.parent.parent):
             with patch('os.getcwd', return_value=str(self.test_project_dir.parent.parent)):
@@ -44,7 +44,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 self.assertTrue(user_readme.exists())
                 self.assertTrue(project_readme.exists())
 
-    def test_memory_aggregation_both_exist(self):
+    def test_memory_aggregation_both_exist():
         """Test memory aggregation when both user and project memories exist."""
         user_memory = """# Engineer Memory (User)
 
@@ -84,7 +84,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 self.assertIn("Microservices architecture", result)  # Project-only section
                 self.assertIn("Aggregated from user-level and project-level", result)
 
-    def test_memory_aggregation_only_user(self):
+    def test_memory_aggregation_only_user():
         """Test memory loading when only user memory exists."""
         user_memory = """# Engineer Memory (User)
 
@@ -107,7 +107,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 self.assertIn("type hints", result)
                 self.assertIn("SOLID principles", result)
 
-    def test_memory_aggregation_only_project(self):
+    def test_memory_aggregation_only_project():
         """Test memory loading when only project memory exists."""
         project_memory = """# Engineer Memory (Project)
 
@@ -130,7 +130,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 self.assertIn("Microservices architecture", result)
                 self.assertIn("REST API design", result)
 
-    def test_memory_section_merging(self):
+    def test_memory_section_merging():
         """Test that duplicate sections are properly merged."""
         user_memory = """# Engineer Memory (User)
 
@@ -176,7 +176,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 # Check no duplicates (User item 2 should appear only once)
                 self.assertEqual(result.count("User item 2"), 1)
 
-    def test_framework_loader_memory_loading(self):
+    def test_framework_loader_memory_loading():
         """Test that FrameworkLoader properly loads memories from both directories."""
         with patch.object(Path, 'home', return_value=self.test_user_dir.parent.parent):
             with patch.object(Path, 'cwd', return_value=self.test_project_dir.parent.parent):
@@ -203,7 +203,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                     self.assertIn("User content", content["actual_memories"])
                     self.assertIn("Project content", content["actual_memories"])
 
-    def test_save_memory_to_user_directory(self):
+    def test_save_memory_to_user_directory():
         """Test saving memory to user directory explicitly."""
         with patch.object(Path, 'home', return_value=self.test_user_dir.parent.parent):
             with patch('os.getcwd', return_value=str(self.test_project_dir.parent.parent)):
@@ -224,7 +224,7 @@ class TestUserMemoryAggregation(unittest.TestCase):
                 project_file = manager.project_memories_dir / "test_agent_memories.md"
                 self.assertFalse(project_file.exists())
 
-    def test_save_memory_to_project_directory(self):
+    def test_save_memory_to_project_directory():
         """Test saving memory to project directory (default)."""
         with patch.object(Path, 'home', return_value=self.test_user_dir.parent.parent):
             with patch('os.getcwd', return_value=str(self.test_project_dir.parent.parent)):

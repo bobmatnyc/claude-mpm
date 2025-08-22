@@ -30,7 +30,7 @@ class TestSystemInstructionsService:
         )
         return SystemInstructionsService(agent_capabilities_service=mock_agent_service)
 
-    def test_load_system_instructions_project_found(self, service, tmp_path):
+    def test_load_system_instructions_project_found(service, tmp_path):
         """Test loading system instructions from project directory."""
         # Create project instructions
         project_dir = tmp_path / "project"
@@ -49,7 +49,7 @@ class TestSystemInstructionsService:
         assert "Project Instructions" in result
         assert "Project-specific instructions" in result
 
-    def test_load_system_instructions_framework_fallback(self, service, tmp_path):
+    def test_load_system_instructions_framework_fallback(service, tmp_path):
         """Test fallback to framework instructions when project not found."""
         # Mock framework path
         framework_dir = tmp_path / "framework"
@@ -70,7 +70,7 @@ class TestSystemInstructionsService:
         assert result is not None
         assert "Framework Instructions" in result
 
-    def test_load_system_instructions_base_pm_fallback(self, service, tmp_path):
+    def test_load_system_instructions_base_pm_fallback(service, tmp_path):
         """Test fallback to BASE_PM.md when INSTRUCTIONS.md not found."""
         # Mock framework path with BASE_PM.md
         framework_dir = tmp_path / "framework"
@@ -91,7 +91,7 @@ class TestSystemInstructionsService:
         # Version should be replaced
         assert "{{VERSION}}" not in result
 
-    def test_load_system_instructions_not_found(self, service, tmp_path):
+    def test_load_system_instructions_not_found(service, tmp_path):
         """Test when no system instructions are found."""
         with patch(
             "claude_mpm.config.paths.paths.project_root", tmp_path / "nonexistent"
@@ -120,7 +120,7 @@ class TestSystemInstructionsService:
         assert "{{VERSION}}" not in result
         assert "{{CURRENT_DATE}}" not in result
 
-    def test_process_base_pm_content_without_agent_service(self, service):
+    def test_process_base_pm_content_without_agent_service(service):
         """Test BASE_PM content processing without agent capabilities service."""
         base_pm_content = """
 # Base PM
@@ -137,7 +137,7 @@ class TestSystemInstructionsService:
         assert "{{VERSION}}" not in result
         assert "{{CURRENT_DATE}}" not in result
 
-    def test_strip_metadata_comments(self, service):
+    def test_strip_metadata_comments(service):
         """Test HTML metadata comment stripping."""
         content_with_comments = """
 <!-- FRAMEWORK_VERSION: 0010 -->
@@ -159,7 +159,7 @@ Final content
         assert "More content" in result
         assert "Final content" in result
 
-    def test_strip_metadata_comments_no_comments(self, service):
+    def test_strip_metadata_comments_no_comments(service):
         """Test metadata stripping with no comments."""
         content = """
 # Clean Content
@@ -173,7 +173,7 @@ Just regular content
         expected = content.lstrip("\n")
         assert result == expected
 
-    def test_create_system_prompt_with_instructions(self, service):
+    def test_create_system_prompt_with_instructions(service):
         """Test system prompt creation with provided instructions."""
         instructions = "Test system instructions"
 
@@ -181,7 +181,7 @@ Just regular content
 
         assert result == instructions
 
-    def test_create_system_prompt_load_instructions(self, service, tmp_path):
+    def test_create_system_prompt_load_instructions(service, tmp_path):
         """Test system prompt creation that loads instructions."""
         # Create project instructions
         project_dir = tmp_path / "project"
@@ -199,7 +199,7 @@ Just regular content
         assert result is not None
         assert "Loaded Instructions" in result
 
-    def test_create_system_prompt_fallback(self, service, tmp_path):
+    def test_create_system_prompt_fallback(service, tmp_path):
         """Test system prompt creation with fallback."""
         with patch(
             "claude_mpm.config.paths.paths.project_root", tmp_path / "nonexistent"
@@ -211,7 +211,7 @@ Just regular content
 
         assert result == "Simple context"
 
-    def test_get_version_from_file(self, service, tmp_path):
+    def test_get_version_from_file(service, tmp_path):
         """Test version detection from VERSION file."""
         version_file = tmp_path / "VERSION"
         version_file.write_text("1.2.3")
@@ -221,7 +221,7 @@ Just regular content
 
         assert version == "1.2.3"
 
-    def test_get_version_from_package(self, service, tmp_path):
+    def test_get_version_from_package(service, tmp_path):
         """Test version detection from package."""
         with patch(
             "claude_mpm.config.paths.paths.project_root", tmp_path / "nonexistent"
@@ -233,7 +233,7 @@ Just regular content
 
         assert version == "2.0.0"
 
-    def test_get_version_unknown(self, service, tmp_path):
+    def test_get_version_unknown(service, tmp_path):
         """Test version detection when unknown."""
         with patch(
             "claude_mpm.config.paths.paths.project_root", tmp_path / "nonexistent"
@@ -242,14 +242,14 @@ Just regular content
 
         assert version == "unknown"
 
-    def test_error_handling_in_load_instructions(self, service):
+    def test_error_handling_in_load_instructions(service):
         """Test error handling during instruction loading."""
         with patch("pathlib.Path.cwd", side_effect=Exception("Test error")):
             result = service.load_system_instructions()
 
         assert result is None
 
-    def test_error_handling_in_process_base_pm(self, service):
+    def test_error_handling_in_process_base_pm(service):
         """Test error handling during BASE_PM processing."""
         # This should not crash even with invalid content
         result = service.process_base_pm_content("{{INVALID_TEMPLATE}}")
@@ -257,7 +257,7 @@ Just regular content
         assert result is not None
         assert "{{INVALID_TEMPLATE}}" in result
 
-    def test_error_handling_in_strip_comments(self, service):
+    def test_error_handling_in_strip_comments(service):
         """Test error handling during comment stripping."""
         # This should not crash even with invalid regex patterns
         result = service.strip_metadata_comments("Some content")

@@ -33,7 +33,7 @@ from typing import Any, Dict, Optional, Tuple
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.claude_session_logger import ClaudeSessionLogger
 from claude_mpm.services.response_tracker import ResponseTracker

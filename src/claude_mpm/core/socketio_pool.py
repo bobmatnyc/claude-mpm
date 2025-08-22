@@ -35,8 +35,8 @@ except ImportError:
     # Fallback if constants module not available
     class NetworkConfig:
         DEFAULT_DASHBOARD_PORT = 8765
-        SOCKETIO_PORT_RANGE = (8080, 8099)
-        DEFAULT_SOCKETIO_PORT = 8080
+        SOCKETIO_PORT_RANGE = (8765, 8785)
+        DEFAULT_SOCKETIO_PORT = 8765
 
     socketio = None
 

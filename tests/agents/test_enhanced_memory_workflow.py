@@ -283,7 +283,7 @@ if __name__ == "__main__":
 
     print("\n🎯 Summary of Enhanced Memory Integration:")
     print("─" * 50)
-    print("1. Memory files are detected in .claude-mpm/memories/")
+    print("1. Memory files are detected in .claude/memories/")
     print("2. Memory content is inserted after ## Memories line")
     print("3. Frontmatter includes memories: <line_count> field")
     print("4. Agent capabilities track memory presence and size")

@@ -379,10 +379,28 @@ class FileToolTracker {
         // For Bash commands, try to extract file paths from the command
         if (event.tool_name?.toLowerCase() === 'bash' && event.tool_parameters?.command) {
             const command = event.tool_parameters.command;
-            // Try to extract file paths from common patterns
-            const fileMatch = command.match(/(?:cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find|echo.*>|sed|awk|grep)\s+([^\s;|&]+)/);
+            
+            // Enhanced regex to handle commands with flags
+            // Match command followed by optional flags (starting with -) and then the file path
+            // Patterns to handle:
+            // 1. tail -50 /path/to/file
+            // 2. head -n 100 /path/to/file  
+            // 3. cat /path/to/file
+            // 4. grep -r "pattern" /path/to/file
+            const fileMatch = command.match(/(?:cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find|echo.*>|sed|awk|grep)(?:\s+-[a-zA-Z0-9]+)*(?:\s+[0-9]+)*\s+([^\s;|&]+)/);
+            
+            // If first match might be a flag, try a more specific pattern
             if (fileMatch && fileMatch[1]) {
-                return fileMatch[1];
+                const possiblePath = fileMatch[1];
+                // Check if it's actually a flag (starts with -)
+                if (possiblePath.startsWith('-')) {
+                    // Try alternative pattern that skips all flags
+                    const altMatch = command.match(/(?:cat|less|more|head|tail|touch|mv|cp|rm|mkdir|ls|find|echo.*>|sed|awk|grep)(?:\s+-[^\s]+)*\s+([^-][^\s;|&]*)/);
+                    if (altMatch && altMatch[1]) {
+                        return altMatch[1];
+                    }
+                }
+                return possiblePath;
             }
         }
 

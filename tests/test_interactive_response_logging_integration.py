@@ -25,7 +25,7 @@ def test_interactive_response_logging_integration():
     """Test that interactive sessions properly log responses when enabled."""
 
     # Create temporary directory for test
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tmp_path
     response_dir = Path(temp_dir) / "responses"
 
     try:
@@ -44,7 +44,7 @@ def test_interactive_response_logging_integration():
 
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
-        from claude_mpm.core.config import Config
+        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.core.interactive_session import InteractiveSession
         from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
         from claude_mpm.services.response_tracker import ResponseTracker
@@ -135,7 +135,7 @@ def test_response_logging_disabled():
     """Test that response logging doesn't interfere when disabled."""
 
     # Create temporary directory for test
-    temp_dir = tempfile.mkdtemp()
+    temp_dir = tmp_path
 
     try:
         # Create config file with response logging disabled
@@ -147,7 +147,7 @@ def test_response_logging_disabled():
 
         # Initialize components
         from claude_mpm.core.claude_runner import ClaudeRunner
-        from claude_mpm.core.config import Config
+        from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
         from claude_mpm.core.interactive_session import InteractiveSession
 
         # Create config

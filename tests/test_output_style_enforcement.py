@@ -151,7 +151,7 @@ def test_enforcement_with_missing_settings():
     print("=" * 60)
     
     # Create a temporary directory for testing
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         test_dir = Path(tmpdir) / ".claude"
         test_dir.mkdir(parents=True)
         

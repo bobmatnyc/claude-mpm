@@ -29,7 +29,7 @@ from claude_mpm.services.mcp_gateway.server.mcp_gateway import MCPGateway
 class TestMCPGatewayInitialization:
     """Test MCP gateway initialization."""
 
-    def test_gateway_creation(self):
+    def test_gateway_creation():
         """Test gateway can be created with default parameters."""
         gateway = MCPGateway()
         assert gateway.gateway_name == "claude-mpm-mcp"
@@ -37,14 +37,14 @@ class TestMCPGatewayInitialization:
         assert gateway._tool_registry is None
         assert gateway._communication is None
 
-    def test_gateway_creation_with_params(self):
+    def test_gateway_creation_with_params():
         """Test gateway creation with custom parameters."""
         gateway = MCPGateway(gateway_name="test-gateway", version="2.0.0")
         assert gateway.gateway_name == "test-gateway"
         assert gateway.version == "2.0.0"
 
     @pytest.mark.asyncio
-    async def test_server_initialization(self):
+    async def test_server_initialization():
         """Test server initialization process."""
         server = MCPServer()
 
@@ -57,7 +57,7 @@ class TestMCPGatewayInitialization:
             assert server.state.name == "RUNNING"
 
     @pytest.mark.asyncio
-    async def test_server_initialization_failure(self):
+    async def test_server_initialization_failure():
         """Test server initialization failure handling."""
         server = MCPServer()
 
@@ -73,7 +73,7 @@ class TestMCPGatewayInitialization:
 class TestMCPServerDependencyInjection:
     """Test dependency injection for MCP server."""
 
-    def test_set_tool_registry(self):
+    def test_set_tool_registry():
         """Test setting tool registry dependency."""
         server = MCPServer()
         mock_registry = Mock(spec=IMCPToolRegistry)
@@ -81,7 +81,7 @@ class TestMCPServerDependencyInjection:
         server.set_tool_registry(mock_registry)
         assert server._tool_registry is mock_registry
 
-    def test_set_communication(self):
+    def test_set_communication():
         """Test setting communication handler dependency."""
         server = MCPServer()
         mock_comm = Mock(spec=IMCPCommunication)
@@ -89,7 +89,7 @@ class TestMCPServerDependencyInjection:
         server.set_communication(mock_comm)
         assert server._communication is mock_comm
 
-    def test_get_capabilities(self):
+    def test_get_capabilities():
         """Test getting server capabilities."""
         server = MCPServer()
         capabilities = server.get_capabilities()
@@ -102,7 +102,7 @@ class TestMCPServerRequestHandling:
     """Test MCP server request handling."""
 
     @pytest.mark.asyncio
-    async def test_handle_request_success(self):
+    async def test_handle_request_success():
         """Test successful request handling."""
         server = MCPServer()
         await server.initialize()
@@ -122,7 +122,7 @@ class TestMCPServerRequestHandling:
         assert "result" in response or "error" in response
 
     @pytest.mark.asyncio
-    async def test_handle_request_unknown_method(self):
+    async def test_handle_request_unknown_method():
         """Test handling unknown method."""
         server = MCPServer()
         await server.initialize()
@@ -142,7 +142,7 @@ class TestMCPServerRequestHandling:
         assert response["error"]["code"] == -32601  # Method not found
 
     @pytest.mark.asyncio
-    async def test_handle_request_exception(self):
+    async def test_handle_request_exception():
         """Test request handling with exception."""
         server = MCPServer()
         await server.initialize()
@@ -166,7 +166,7 @@ class TestMCPServerMetrics:
     """Test MCP server metrics and monitoring."""
 
     @pytest.mark.asyncio
-    async def test_metrics_initialization(self):
+    async def test_metrics_initialization():
         """Test metrics are properly initialized."""
         server = MCPServer()
         await server.initialize()
@@ -178,7 +178,7 @@ class TestMCPServerMetrics:
         assert "uptime" in metrics
 
     @pytest.mark.asyncio
-    async def test_metrics_update_on_request(self):
+    async def test_metrics_update_on_request():
         """Test metrics update when handling requests."""
         server = MCPServer()
         await server.initialize()
@@ -195,7 +195,7 @@ class TestMCPServerMetrics:
         metrics = server.get_metrics()
         assert metrics["requests_handled"] == 1
 
-    def test_health_status(self):
+    def test_health_status():
         """Test health status reporting."""
         server = MCPServer()
         health = server.get_health_status()
@@ -209,7 +209,7 @@ class TestMCPServerLifecycle:
     """Test MCP server lifecycle management."""
 
     @pytest.mark.asyncio
-    async def test_server_shutdown(self):
+    async def test_server_shutdown():
         """Test server shutdown process."""
         server = MCPServer()
         await server.initialize()
@@ -225,7 +225,7 @@ class TestMCPServerLifecycle:
         mock_registry.shutdown.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_server_stop_alias(self):
+    async def test_server_stop_alias():
         """Test server stop method (alias for shutdown)."""
         server = MCPServer()
         await server.initialize()

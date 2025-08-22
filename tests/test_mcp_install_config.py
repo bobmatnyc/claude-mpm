@@ -29,7 +29,7 @@ class TestMCPInstallConfig(unittest.TestCase):
         self.logger = MagicMock()
         self.installer = MCPInstallCommands(self.logger)
 
-    def test_find_claude_mpm_in_path(self):
+    def test_find_claude_mpm_in_path():
         """Test finding claude-mpm in system PATH."""
         with patch('shutil.which') as mock_which:
             mock_which.return_value = '/usr/local/bin/claude-mpm'
@@ -39,7 +39,7 @@ class TestMCPInstallConfig(unittest.TestCase):
             self.assertEqual(result, '/usr/local/bin/claude-mpm')
             mock_which.assert_called_once_with('claude-mpm')
 
-    def test_find_claude_mpm_in_venv(self):
+    def test_find_claude_mpm_in_venv():
         """Test finding claude-mpm in virtual environment."""
         with patch('shutil.which') as mock_which:
             mock_which.return_value = None
@@ -55,7 +55,7 @@ class TestMCPInstallConfig(unittest.TestCase):
                         expected = str(Path('/path/to/venv') / 'bin' / 'claude-mpm')
                         self.assertEqual(result, expected)
 
-    def test_find_claude_mpm_python_module(self):
+    def test_find_claude_mpm_python_module():
         """Test falling back to Python module when executable not found."""
         with patch('shutil.which') as mock_which:
             mock_which.return_value = None
@@ -76,9 +76,9 @@ class TestMCPInstallConfig(unittest.TestCase):
             finally:
                 sys.prefix = original_prefix
 
-    def test_configure_with_direct_command(self):
+    def test_configure_with_direct_command():
         """Test configuration with direct claude-mpm command."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             config_path = Path(tmpdir) / 'settings.local.json'
             
             with patch.object(self.installer, '_get_claude_config_path', return_value=config_path):
@@ -99,9 +99,9 @@ class TestMCPInstallConfig(unittest.TestCase):
                     self.assertIn('PYTHONPATH', mcp_config['env'])
                     self.assertEqual(mcp_config['env']['MCP_MODE'], 'production')
 
-    def test_configure_with_python_module(self):
+    def test_configure_with_python_module():
         """Test configuration when using Python -m claude_mpm."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             config_path = Path(tmpdir) / 'settings.local.json'
             
             with patch.object(self.installer, '_get_claude_config_path', return_value=config_path):
@@ -122,9 +122,9 @@ class TestMCPInstallConfig(unittest.TestCase):
                     self.assertIn('PYTHONPATH', mcp_config['env'])
                     self.assertEqual(mcp_config['env']['MCP_MODE'], 'production')
 
-    def test_never_uses_script_path(self):
+    def test_never_uses_script_path():
         """Test that configuration never uses the old scripts/mcp_server.py path."""
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tmp_path as tmpdir:
             config_path = Path(tmpdir) / 'settings.local.json'
             
             # Test with various executable paths

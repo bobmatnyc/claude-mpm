@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify MCP server exposes all tools including ticket tools.
@@ -18,6 +19,7 @@ sys.path.insert(0, str(project_root / "src"))
 from claude_mpm.services.mcp_gateway.server.stdio_server import SimpleMCPServer
 
 
+@pytest.mark.asyncio
 async def test_tools():
     """Test that all tools are available."""
     print("Testing MCP server tools...")

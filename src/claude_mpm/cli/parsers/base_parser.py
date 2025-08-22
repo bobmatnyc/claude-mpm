@@ -322,6 +322,13 @@ def create_parser(
     except ImportError:
         pass
 
+    try:
+        from .agent_manager_parser import add_agent_manager_subparser
+
+        add_agent_manager_subparser(subparsers)
+    except ImportError:
+        pass
+
     # Import and add additional command parsers from commands module
     try:
         from ..commands.aggregate import add_aggregate_parser

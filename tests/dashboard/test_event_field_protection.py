@@ -171,7 +171,7 @@ class TestEventFieldProtection:
         return transformed
     
     @pytest.mark.parametrize("test_case", TEST_EVENTS, ids=[t["name"] for t in TEST_EVENTS])
-    def test_field_protection(self, test_case):
+    def test_field_protection(test_case):
         """Test that protected fields are not overwritten by data fields."""
         result = self.simulate_js_transform(test_case["input"])
         
@@ -188,7 +188,7 @@ class TestEventFieldProtection:
                     assert result.get(key) == value, \
                         f"Data field '{key}' was not copied to top level"
     
-    def test_hook_pre_tool_not_overwritten(self):
+    def test_hook_pre_tool_not_overwritten():
         """Specific test for hook.pre_tool events."""
         event = {
             "type": "hook.pre_tool",
@@ -205,7 +205,7 @@ class TestEventFieldProtection:
         assert result['subtype'] == 'pre_tool', "Hook subtype was lost"
         assert result['tool_name'] == 'Edit', "tool_name not copied to top level"
     
-    def test_original_event_name_preserved(self):
+    def test_original_event_name_preserved():
         """Test that originalEventName is preserved for display."""
         # Test with type
         event1 = {"type": "hook.user_prompt", "data": {}}
@@ -217,13 +217,13 @@ class TestEventFieldProtection:
         result2 = self.simulate_js_transform(event2)
         assert result2.get('originalEventName') == 'SubagentStart'
     
-    def test_no_protected_field_warnings(self, caplog):
+    def test_no_protected_field_warnings(caplog):
         """Test that warnings are logged when protected fields would be overwritten."""
         # This would need to be tested in the actual JavaScript environment
         # or with a more complete Python simulation that includes logging
         pass
     
-    def test_backwards_compatibility(self):
+    def test_backwards_compatibility():
         """Test that the fix maintains backwards compatibility."""
         # Event without data object
         event1 = {"type": "simple", "timestamp": "2024-01-01T10:00:00Z"}

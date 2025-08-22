@@ -69,7 +69,7 @@ class MemorySystemQATest:
         except Exception as e:
             return {"returncode": -1, "stdout": "", "stderr": str(e)}
 
-    def test_memory_init_different_directories(self):
+    def test_memory_init_different_directories():
         """Test 1: Memory init from different directories"""
         print("\n=== Test 1: Memory init from different directories ===")
 
@@ -132,8 +132,8 @@ class MemorySystemQATest:
             memory_dir3,
         ]
 
-    def test_memory_directory_location(self):
-        """Test 2: Verify .claude-mpm/memories is created in current directory"""
+    def test_memory_directory_location():
+        """Test 2: Verify .claude/memories is created in current directory"""
         print("\n=== Test 2: Memory directory location verification ===")
 
         test_dir = self.create_test_directory("location_check")
@@ -167,7 +167,7 @@ class MemorySystemQATest:
 
         return success, test_dir
 
-    def test_memory_commands_functionality(self):
+    def test_memory_commands_functionality():
         """Test 3: Test memory status, add, and other commands"""
         print("\n=== Test 3: Memory commands functionality ===")
 
@@ -220,7 +220,7 @@ class MemorySystemQATest:
 
         return success
 
-    def test_backward_compatibility(self):
+    def test_backward_compatibility():
         """Test 4: Test backward compatibility"""
         print("\n=== Test 4: Backward compatibility test ===")
 
@@ -287,7 +287,7 @@ class MemorySystemQATest:
 
         return success
 
-    def test_edge_cases(self):
+    def test_edge_cases():
         """Test 5: Edge cases and error conditions"""
         print("\n=== Test 5: Edge cases and error conditions ===")
 
@@ -347,7 +347,7 @@ class MemorySystemQATest:
 
         return success
 
-    def test_specific_directory_case(self):
+    def test_specific_directory_case():
         """Test 6: Specific use case from ~/Clients/Spin.Travel directory"""
         print(
             "\n=== Test 6: Specific directory case (~/Clients/Spin.Travel simulation) ==="

@@ -9,7 +9,7 @@ from claude_mpm.core.framework_loader import FrameworkLoader
 class TestMemoryAggregation:
     """Test the _aggregate_memories method."""
     
-    def test_single_memory_entry(self):
+    def test_single_memory_entry():
         """Test that a single memory entry is returned as-is."""
         loader = FrameworkLoader()
         entries = [{
@@ -20,7 +20,7 @@ class TestMemoryAggregation:
         result = loader._aggregate_memories(entries)
         assert result == "- Memory item 1\n- Memory item 2"
     
-    def test_unsectioned_bullet_points_only(self):
+    def test_unsectioned_bullet_points_only():
         """Test aggregation of simple bullet-point memories without sections."""
         loader = FrameworkLoader()
         entries = [
@@ -50,7 +50,7 @@ class TestMemoryAggregation:
         # Shared memory should appear only once (project overrides user)
         assert result.count("- Shared memory") == 1
     
-    def test_sectioned_memories(self):
+    def test_sectioned_memories():
         """Test aggregation of memories with section headers."""
         loader = FrameworkLoader()
         entries = [
@@ -84,7 +84,7 @@ class TestMemoryAggregation:
         assert "- Item A2" in section_a_content
         assert "- Item A3" in section_a_content
     
-    def test_mixed_sectioned_and_unsectioned(self):
+    def test_mixed_sectioned_and_unsectioned():
         """Test aggregation of memories with both sections and orphaned bullets."""
         loader = FrameworkLoader()
         entries = [
@@ -124,7 +124,7 @@ class TestMemoryAggregation:
         if orphan_indices and section_indices:
             assert max(orphan_indices) < min(section_indices)
     
-    def test_metadata_preservation(self):
+    def test_metadata_preservation():
         """Test that metadata HTML comments are preserved."""
         loader = FrameworkLoader()
         entries = [
@@ -151,7 +151,7 @@ class TestMemoryAggregation:
         assert len(metadata_lines) == 2
         assert lines.index(metadata_lines[0]) < lines.index("# Aggregated Memory")
     
-    def test_project_overrides_user(self):
+    def test_project_overrides_user():
         """Test that project-level memories override user-level for duplicates."""
         loader = FrameworkLoader()
         entries = [
@@ -175,7 +175,7 @@ class TestMemoryAggregation:
         assert "- User only item" in result
         assert "- Project only item" in result
     
-    def test_empty_memories(self):
+    def test_empty_memories():
         """Test handling of empty memory entries."""
         loader = FrameworkLoader()
         
@@ -190,7 +190,7 @@ class TestMemoryAggregation:
         result = loader._aggregate_memories(entries)
         assert "- Valid memory" in result
     
-    def test_non_bullet_unsectioned_content(self):
+    def test_non_bullet_unsectioned_content():
         """Test that non-bullet unsectioned content is handled properly."""
         loader = FrameworkLoader()
         entries = [{
@@ -207,7 +207,7 @@ class TestMemoryAggregation:
         assert "## Section" in result
         assert "- Section item" in result
     
-    def test_headers_without_sections_ignored(self):
+    def test_headers_without_sections_ignored():
         """Test that header lines without section designation are not treated as content."""
         loader = FrameworkLoader()
         

@@ -19,7 +19,7 @@ os.environ["CLAUDE_MPM_HOOK_DEBUG"] = "true"
 # Add the src directory to the path
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.hooks.claude_hooks.hook_handler import ClaudeHookHandler
 from claude_mpm.services.response_tracker import ResponseTracker
 

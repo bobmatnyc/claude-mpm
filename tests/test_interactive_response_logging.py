@@ -23,7 +23,7 @@ from unittest.mock import MagicMock, Mock, patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from claude_mpm.core.interactive_session import InteractiveSession
 
 
@@ -32,7 +32,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
 
     def setUp(self):
         """Set up test fixtures."""
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = tmp_path
         self.config_path = Path(self.temp_dir) / "config.json"
 
         # Create config with response logging enabled
@@ -54,7 +54,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-    def test_response_tracker_initialized_when_enabled(self):
+    def test_response_tracker_initialized_when_enabled():
         """Test that response tracker is initialized when response logging is enabled."""
         # Create mock runner with config
         mock_runner = Mock(spec=ClaudeRunner)
@@ -71,7 +71,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         self.assertTrue(session.response_tracker.enabled)
         self.assertIsNotNone(session.response_tracker.session_logger)
 
-    def test_response_tracker_not_initialized_when_disabled(self):
+    def test_response_tracker_not_initialized_when_disabled():
         """Test that response tracker is not initialized when response logging is disabled."""
         # Update config to disable response logging
         self.config_data["response_logging"]["enabled"] = False
@@ -92,7 +92,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         if session.response_tracker:
             self.assertFalse(session.response_tracker.enabled)
 
-    def test_session_id_set_in_tracker(self):
+    def test_session_id_set_in_tracker():
         """Test that session ID is properly set in the response tracker."""
         # Create mock runner with config
         mock_runner = Mock(spec=ClaudeRunner)
@@ -125,7 +125,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
                     session.session_id,
                 )
 
-    def test_cleanup_clears_session_id(self):
+    def test_cleanup_clears_session_id():
         """Test that cleanup properly clears the session ID from the tracker."""
         # Create mock runner with config
         mock_runner = Mock(spec=ClaudeRunner)
@@ -167,7 +167,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
                 self.assertIsNone(session.response_tracker.session_logger.session_id)
 
     @patch("claude_mpm.services.response_tracker.ResponseTracker")
-    def test_response_tracker_initialization_failure_handled(self, mock_tracker_class):
+    def test_response_tracker_initialization_failure_handled(mock_tracker_class):
         """Test that failure to initialize response tracker is handled gracefully."""
         # Make ResponseTracker initialization fail
         mock_tracker_class.side_effect = Exception("Test error")
@@ -187,7 +187,7 @@ class TestInteractiveResponseLogging(unittest.TestCase):
         # Tracker should be None since initialization failed
         self.assertIsNone(session.response_tracker)
 
-    def test_singleton_pattern_sharing(self):
+    def test_singleton_pattern_sharing():
         """Test that multiple ResponseTracker instances share the same session logger."""
         from claude_mpm.services.claude_session_logger import get_session_logger
         from claude_mpm.services.response_tracker import ResponseTracker

@@ -82,7 +82,7 @@ def test_file_modification_detection():
     print("\n=== Testing File Modification Detection ===")
 
     # Create a temporary directory with an agent file
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         tmppath = Path(tmpdir)
         agent_file = tmppath / "test_agent.md"
 

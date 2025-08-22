@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, call, patch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from claude_mpm.core.claude_runner import ClaudeRunner
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 
 class TestResponseLoggingAutoSwitch(unittest.TestCase):
@@ -34,7 +34,7 @@ class TestResponseLoggingAutoSwitch(unittest.TestCase):
         """Set up test environment."""
         # Reset Config singleton for clean test state
         Config.reset_singleton()
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = tmp_path
         self.config_file = Path(self.temp_dir) / "claude-mpm.yml"
 
     def tearDown(self):
@@ -58,7 +58,7 @@ response_logging:
 
     @patch("claude_mpm.core.claude_runner.os.execvpe")
     @patch("claude_mpm.core.claude_runner.subprocess.Popen")
-    def test_exec_mode_when_response_logging_disabled(self, mock_popen, mock_execvpe):
+    def test_exec_mode_when_response_logging_disabled(mock_popen, mock_execvpe):
         """Test that exec mode is used when response logging is disabled."""
         # Create config with response logging disabled
         config = self.create_config(response_logging_enabled=False)
@@ -133,7 +133,7 @@ response_logging:
 
     @patch("claude_mpm.core.claude_runner.os.execvpe")
     @patch("claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive")
-    def test_manual_override_with_exec_flag(self, mock_subprocess, mock_execvpe):
+    def test_manual_override_with_exec_flag(mock_subprocess, mock_execvpe):
         """Test that --launch-method exec overrides auto-switch."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)
@@ -163,7 +163,7 @@ response_logging:
         mock_execvpe.assert_not_called()
 
     @patch("claude_mpm.core.claude_runner.ClaudeRunner._launch_subprocess_interactive")
-    def test_subprocess_mode_preserves_response_logging(self, mock_subprocess):
+    def test_subprocess_mode_preserves_response_logging(mock_subprocess):
         """Test that subprocess mode properly collects output for response logging."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)
@@ -196,7 +196,7 @@ response_logging:
         env = call_args[0][1]
         self.assertIsInstance(env, dict)
 
-    def test_response_logger_initialization(self):
+    def test_response_logger_initialization():
         """Test that response logger is properly initialized when enabled."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)
@@ -218,7 +218,7 @@ response_logging:
                 self.assertEqual(runner.response_logger, mock_logger)
                 mock_get_logger.assert_called_once_with(config)
 
-    def test_logging_messages_for_auto_switch(self):
+    def test_logging_messages_for_auto_switch():
         """Test that appropriate log messages are generated during auto-switch."""
         # Create config with response logging enabled
         config = self.create_config(response_logging_enabled=True)

@@ -260,7 +260,7 @@ if __name__ == "__main__":
 
     print("\n✅ All memory integration tests passed!")
     print("\nMemory integration features:")
-    print("- Automatic detection of memory files in .claude-mpm/memories/")
+    print("- Automatic detection of memory files in .claude/memories/")
     print("- Creation of memory-aware agents at PROJECT tier")
     print("- Enhancement of existing agents with project memories")
     print("- Memory information included in agent metadata")

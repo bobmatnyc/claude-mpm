@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test MCP Client Integration
@@ -77,6 +78,7 @@ class SimpleMCPClient:
         )
 
 
+@pytest.mark.asyncio
 async def test_mcp_integration():
     """Test MCP server integration with a client."""
     print("🧪 Testing MCP Server Integration")

@@ -14,7 +14,7 @@ logging.basicConfig(
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 
 def test_multiple_config_instances():
     """Test creating multiple Config instances to see the duplicate logging."""

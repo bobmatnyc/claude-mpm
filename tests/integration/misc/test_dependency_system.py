@@ -138,7 +138,7 @@ def test_pyproject_update():
     from aggregate_agent_dependencies import DependencyAggregator
 
     # Create a temporary directory with test files
-    with tempfile.TemporaryDirectory() as temp_dir:
+    with tmp_path as temp_dir:
         temp_path = Path(temp_dir)
 
         # Create minimal pyproject.toml

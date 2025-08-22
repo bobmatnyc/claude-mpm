@@ -60,17 +60,23 @@ class AgentTemplateBuilder:
             raise
 
         # Extract tools from template with fallback
+        # Handle both dict and list formats for capabilities (backward compatibility)
+        capabilities = template_data.get("capabilities", {})
+        capabilities_tools = capabilities.get("tools") if isinstance(capabilities, dict) else None
+        
         tools = (
             template_data.get("tools")
-            or template_data.get("capabilities", {}).get("tools")
+            or capabilities_tools
             or template_data.get("configuration_fields", {}).get("tools")
             or ["Read", "Write", "Edit", "Grep", "Glob", "LS"]  # Default fallback
         )
 
         # Extract model from template with fallback
+        capabilities_model = capabilities.get("model") if isinstance(capabilities, dict) else None
+        
         model = (
             template_data.get("model")
-            or template_data.get("capabilities", {}).get("model")
+            or capabilities_model
             or template_data.get("configuration_fields", {}).get("model")
             or "sonnet"  # Default fallback
         )
@@ -132,7 +138,8 @@ class AgentTemplateBuilder:
         # Extract custom metadata fields
         agent_version = template_data.get("agent_version", "1.0.0")
         agent_type = template_data.get("agent_type", "general")
-        model_type = template_data.get("capabilities", {}).get("model", "sonnet")
+        # Use the capabilities_model we already extracted earlier
+        model_type = capabilities_model or "sonnet"
 
         # Map our model types to Claude Code format
         if model_type in ["opus", "sonnet", "haiku"]:

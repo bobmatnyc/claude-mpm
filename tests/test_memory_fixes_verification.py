@@ -3,7 +3,7 @@
 Verification tests for specific memory fixes.
 
 Tests:
-1. PM Memory Persistence: PM memories go to ~/.claude-mpm/memories/
+1. PM Memory Persistence: PM memories go to ~/.claude/memories/
 2. Directory Handling: PM uses user dir, others use project dir  
 3. Memory Hook Service: Test memory extraction from agent responses
 4. Migration Testing: Test migration with PM backup creation
@@ -22,7 +22,7 @@ import pytest
 from claude_mpm.services.agents.memory.agent_memory_manager import AgentMemoryManager
 from claude_mpm.hooks.memory_integration_hook import MemoryPostDelegationHook, MemoryPreDelegationHook
 from claude_mpm.hooks.base_hook import HookContext, HookType
-from claude_mpm.core.config import Config
+from claude_mpm.utils.config_manager import ConfigurationManager as ConfigManager
 from datetime import datetime
 
 
@@ -59,8 +59,8 @@ class TestMemoryFixesVerification:
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
-    def test_pm_memory_persistence_to_user_directory(self):
-        """Test 1: Verify PM memories are saved to ~/.claude-mpm/memories/"""
+    def test_pm_memory_persistence_to_user_directory():
+        """Test 1: Verify PM memories are saved to ~/.claude/memories/"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
                 config=self.config, 
@@ -87,7 +87,7 @@ class TestMemoryFixesVerification:
             
             print("✅ PM memory persistence to user directory verified")
 
-    def test_directory_handling_pm_vs_others(self):
+    def test_directory_handling_pm_vs_others():
         """Test 2: Verify PM uses user directory, other agents use project directory"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -114,7 +114,7 @@ class TestMemoryFixesVerification:
             
             print("✅ Directory handling verification passed")
 
-    def test_memory_hook_service_functionality(self):
+    def test_memory_hook_service_functionality():
         """Test 3: Test memory hook service functionality"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Test memory extraction hook
@@ -165,7 +165,7 @@ The implementation follows best practices.
             
             print("✅ Memory hook service functionality verified")
 
-    def test_migration_with_pm_backup_creation(self):
+    def test_migration_with_pm_backup_creation():
         """Test 4: Test migration from old formats with PM backup creation"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Create old format PM file in user directory
@@ -220,7 +220,7 @@ The implementation follows best practices.
             
             print("✅ Migration with PM backup creation verified")
 
-    def test_cross_project_pm_memory_accessibility(self):
+    def test_cross_project_pm_memory_accessibility():
         """Test 5: Test cross-project PM memory accessibility"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Create PM memory in first project
@@ -256,7 +256,7 @@ The implementation follows best practices.
             
             print("✅ Cross-project PM memory accessibility verified")
 
-    def test_other_agents_use_project_directory_correctly(self):
+    def test_other_agents_use_project_directory_correctly():
         """Test 6: Verify non-PM agents use project directory correctly"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Test multiple agents in project 1
@@ -304,7 +304,7 @@ The implementation follows best practices.
             
             print("✅ Other agents using project directory correctly verified")
 
-    def test_memory_hook_extraction_from_json_responses(self):
+    def test_memory_hook_extraction_from_json_responses():
         """Test memory extraction from JSON responses (new requirement)"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -338,7 +338,7 @@ The implementation follows security best practices.
             
             print("✅ Memory extraction from JSON responses verified")
 
-    def test_pm_memory_extraction_to_user_directory(self):
+    def test_pm_memory_extraction_to_user_directory():
         """Test that PM memory extraction saves to user directory"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             memory_manager = AgentMemoryManager(
@@ -379,7 +379,7 @@ Delegation was successful.
             
             print("✅ PM memory extraction to user directory verified")
 
-    def test_memory_directory_creation(self):
+    def test_memory_directory_creation():
         """Test that directories are created correctly"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Remove existing directories to test creation
@@ -416,7 +416,7 @@ Delegation was successful.
             
             print("✅ Memory directory creation verified")
 
-    def test_pre_delegation_hook_memory_injection(self):
+    def test_pre_delegation_hook_memory_injection():
         """Test pre-delegation hook injects memory correctly"""
         with patch('pathlib.Path.home', return_value=self.test_user_home):
             # Create memory for engineer
@@ -479,7 +479,7 @@ def run_memory_fixes_verification():
         print("\n" + "=" * 60)
         print("✅ ALL MEMORY FIXES VERIFICATION TESTS PASSED!")
         print("\nVerified:")
-        print("✓ PM memory persistence to ~/.claude-mpm/memories/")
+        print("✓ PM memory persistence to ~/.claude/memories/")
         print("✓ Directory handling: PM uses user dir, others use project dir")
         print("✓ Memory hook service functionality")
         print("✓ Migration with PM backup creation")

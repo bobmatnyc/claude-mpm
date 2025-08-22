@@ -1,3 +1,4 @@
+import pytest
 #!/usr/bin/env python3
 """
 Test script to verify the file-tool-tracker.js fix for undefined subtype handling.
@@ -46,6 +47,7 @@ class DashboardEventTester:
         except Exception as e:
             print(f"  ✗ Error sending event: {e}")
     
+    @pytest.mark.asyncio
     async def test_undefined_subtype_handling(self) -> None:
         """Test that the dashboard properly handles events with undefined subtypes."""
         print("\n=== Testing Undefined Subtype Handling ===\n")

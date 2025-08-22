@@ -27,7 +27,7 @@ def test_backward_compatibility():
     """Test that existing Claude session logger still works."""
     print("\n=== Testing Backward Compatibility ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Test original logger
         original_logger = ClaudeSessionLogger(
             base_dir=Path(tmpdir) / "original", use_async=False
@@ -147,7 +147,7 @@ def test_async_convenience_function():
     """Test the async convenience function for global usage."""
     print("\n=== Testing Async Convenience Function ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Set environment to control logger
         os.environ["CLAUDE_LOG_FORMAT"] = "json"
 
@@ -203,7 +203,7 @@ def test_session_id_handling():
     """Test session ID handling and environment variable detection."""
     print("\n=== Testing Session ID Handling ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         # Test 1: Environment variable detection
         test_session_id = "test_env_session_12345"
         os.environ["CLAUDE_SESSION_ID"] = test_session_id
@@ -285,7 +285,7 @@ def test_metadata_handling():
     """Test metadata handling and agent name extraction."""
     print("\n=== Testing Metadata Handling ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         logger = AsyncSessionLogger(base_dir=Path(tmpdir), enable_async=True)
         logger.set_session_id("metadata_test")
 
@@ -396,7 +396,7 @@ def test_error_recovery():
     """Test error recovery and graceful degradation."""
     print("\n=== Testing Error Recovery ===")
 
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tmp_path as tmpdir:
         logger = AsyncSessionLogger(
             base_dir=Path(tmpdir),
             enable_async=True,
