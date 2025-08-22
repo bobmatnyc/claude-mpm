@@ -1,0 +1,124 @@
+[
+  {
+    "timestamp": "2025-08-22T03:14:32.478322",
+    "session_id": "main_session_1",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Task",
+    "tool_parameters": {
+      "subagent_type": "engineer",
+      "task": "Implement feature X"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:14:33.478322",
+    "session_id": "subagent_session_1",
+    "hook_event_name": "SubagentStart",
+    "agent_type": "engineer",
+    "data": {
+      "agent_type": "engineer"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:14:37.478322",
+    "session_id": "subagent_session_1",
+    "hook_event_name": "SubagentStop",
+    "agent_type": "engineer"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:42.478322",
+    "session_id": "orphan_session_1",
+    "hook_event_name": "SubagentStart",
+    "agent_type": "research",
+    "data": {
+      "agent_type": "research"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:14:44.478322",
+    "session_id": "orphan_session_1",
+    "hook_event_name": "ToolUse",
+    "tool_name": "WebSearch",
+    "agent_type": "research"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:47.478322",
+    "session_id": "orphan_session_1",
+    "hook_event_name": "SubagentStop",
+    "agent_type": "research"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:52.478322",
+    "session_id": "orphan_session_2",
+    "hook_event_name": "SubagentStart",
+    "agent_type": "qa",
+    "data": {
+      "agent_type": "qa"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:14:53.478322",
+    "session_id": "orphan_session_2",
+    "hook_event_name": "ToolUse",
+    "tool_name": "Test",
+    "agent_type": "qa"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:55.478322",
+    "session_id": "orphan_session_3",
+    "hook_event_name": "SubagentStart",
+    "agent_type": "documentation",
+    "data": {
+      "agent_type": "documentation"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:14:56.478322",
+    "session_id": "orphan_session_3",
+    "hook_event_name": "ToolUse",
+    "tool_name": "Write",
+    "agent_type": "documentation"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:57.478322",
+    "session_id": "orphan_session_2",
+    "hook_event_name": "SubagentStop",
+    "agent_type": "qa"
+  },
+  {
+    "timestamp": "2025-08-22T03:14:59.478322",
+    "session_id": "orphan_session_3",
+    "hook_event_name": "SubagentStop",
+    "agent_type": "documentation"
+  },
+  {
+    "timestamp": "2025-08-22T03:15:12.478322",
+    "session_id": "orphan_session_4",
+    "hook_event_name": "SubagentStart",
+    "agent_type": "security",
+    "data": {
+      "agent_type": "security"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:15:14.478322",
+    "session_id": "orphan_session_4",
+    "hook_event_name": "SubagentStop",
+    "agent_type": "security"
+  },
+  {
+    "timestamp": "2025-08-22T03:15:22.478322",
+    "session_id": "legacy_session",
+    "type": "hook.subagent_start",
+    "data": {
+      "agent_id": "ops"
+    }
+  },
+  {
+    "timestamp": "2025-08-22T03:15:24.478322",
+    "session_id": "legacy_session",
+    "type": "hook.subagent_stop",
+    "data": {
+      "agent_id": "ops"
+    }
+  }
+]

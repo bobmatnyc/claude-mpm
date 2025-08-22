@@ -876,6 +876,17 @@ class ClaudeHookHandler:
                         metadata["task_completed"] = structured_response.get(
                             "task_completed", False
                         )
+                        
+                        # Check for MEMORIES field and process if present
+                        if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+                            memories = structured_response["MEMORIES"]
+                            if DEBUG:
+                                print(
+                                    f"Found MEMORIES field in {agent_type} response with {len(memories)} items",
+                                    file=sys.stderr,
+                                )
+                            # The memory will be processed by extract_and_update_memory
+                            # which is called by the memory hook service
 
                     # Track the response
                     file_path = (
@@ -937,7 +948,17 @@ class ClaudeHookHandler:
                 "files_modified": structured_response.get("files_modified", []),
                 "tools_used": structured_response.get("tools_used", []),
                 "remember": structured_response.get("remember"),
+                "MEMORIES": structured_response.get("MEMORIES"),  # Complete memory replacement
             }
+            
+            # Log if MEMORIES field is present
+            if "MEMORIES" in structured_response and structured_response["MEMORIES"]:
+                if DEBUG:
+                    memories_count = len(structured_response["MEMORIES"])
+                    print(
+                        f"Agent {agent_type} returned MEMORIES field with {memories_count} items",
+                        file=sys.stderr,
+                    )
 
         # Debug log the processed data
         if DEBUG:

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+
+### Added
+
+### Changed
+
+### Fixed
+
+### Removed
+## [4.0.33] - 2025-08-22
+
+### Added
+
+- Monitor UI build tracking system (separate from main versioning)
+- Hierarchical agent display with PM at top level
+- Implied PM detection for orphan agents
+- Agent-inference component with delegation hierarchy
+- Visual distinction for implied vs explicit PM nodes
+- Comprehensive test coverage for new agent hierarchy features
+- Performance optimization documentation and test scripts
+- Enhanced memory system integration with hook handler improvements
+
+### Changed
+
+### Fixed
+
+### Removed
+
 ## [4.0.32] - 2025-08-22
 
 ### Fixed

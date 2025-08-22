@@ -24,15 +24,8 @@ class MemoryContentManager:
 
     WHY: Memory content requires careful manipulation to maintain structure,
     enforce limits, and ensure consistency. This class centralizes all content
-    manipulation logic.
+    manipulation logic for simple list-based memories.
     """
-
-    REQUIRED_SECTIONS = [
-        "Project Architecture",
-        "Implementation Guidelines",
-        "Common Mistakes to Avoid",
-        "Current Technical Context",
-    ]
 
     def __init__(self, memory_limits: Dict[str, Any]):
         """Initialize the content manager.
@@ -43,41 +36,21 @@ class MemoryContentManager:
         self.memory_limits = memory_limits
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
-    def add_item_to_section(self, content: str, section: str, new_item: str) -> str:
-        """Add item to specified section with NLP-based deduplication.
+    def add_item_to_list(self, content: str, new_item: str) -> str:
+        """Add item to memory list with deduplication.
 
-        WHY: Each section has a maximum item limit to prevent information overload
-        and maintain readability. Additionally, we use NLP-based similarity detection
-        to prevent duplicate or highly similar items from cluttering the memory.
-        When similar items are found (>80% similarity), the newer item replaces the
-        older one to maintain recency while avoiding redundancy.
+        WHY: Simplified memory system uses a simple list format. We still use
+        NLP-based similarity detection to prevent duplicate or highly similar
+        items from cluttering the memory.
 
         Args:
             content: Current memory file content
-            section: Section name to add item to
             new_item: Item to add
 
         Returns:
             str: Updated content with new item added and duplicates removed
         """
         lines = content.split("\n")
-        section_start = None
-        section_end = None
-
-        # Find section boundaries
-        for i, line in enumerate(lines):
-            if line.startswith(f"## {section}"):
-                section_start = i
-            elif section_start is not None and line.startswith("## "):
-                section_end = i
-                break
-
-        if section_start is None:
-            # Section doesn't exist, add it
-            return self._add_new_section(content, section, new_item)
-
-        if section_end is None:
-            section_end = len(lines)
 
         # Ensure line length limit (account for "- " prefix)
         max_item_length = (
@@ -86,11 +59,13 @@ class MemoryContentManager:
         if len(new_item) > max_item_length:
             new_item = new_item[: max_item_length - 3] + "..."
 
-        # Check for duplicates or similar items using NLP similarity
+        # Find existing items and check for duplicates
         items_to_remove = []
-        for i in range(section_start + 1, section_end):
-            if lines[i].strip().startswith("- "):
-                existing_item = lines[i].strip()[2:]  # Remove "- " prefix
+        item_indices = []
+        for i, line in enumerate(lines):
+            if line.strip().startswith("- "):
+                item_indices.append(i)
+                existing_item = line.strip()[2:]  # Remove "- " prefix
                 similarity = self._calculate_similarity(existing_item, new_item)
                 
                 # If highly similar (>80%), mark for removal
@@ -104,77 +79,45 @@ class MemoryContentManager:
         # Remove similar items (in reverse order to maintain indices)
         for idx in reversed(items_to_remove):
             lines.pop(idx)
-            section_end -= 1
 
-        # Count remaining items after deduplication
-        item_count = 0
-        first_item_index = None
-        for i in range(section_start + 1, section_end):
-            if lines[i].strip().startswith("- "):
-                if first_item_index is None:
-                    first_item_index = i
-                item_count += 1
+        # Count remaining items
+        item_count = sum(1 for line in lines if line.strip().startswith("- "))
 
-        # Check if we need to remove oldest item due to section limits
-        if item_count >= self.memory_limits["max_items_per_section"]:
-            # Remove oldest item (first one) to make room
-            if first_item_index is not None:
-                lines.pop(first_item_index)
-                section_end -= 1  # Adjust section end after removal
+        # Check if we need to remove oldest item due to limits
+        max_items = self.memory_limits.get("max_items", 100)
+        if item_count >= max_items:
+            # Find and remove the first item (oldest)
+            for i, line in enumerate(lines):
+                if line.strip().startswith("- "):
+                    lines.pop(i)
+                    break
 
-        # Add new item (find insertion point after any comments)
-        insert_point = section_start + 1
-        while insert_point < section_end and (
-            not lines[insert_point].strip()
-            or lines[insert_point].strip().startswith("<!--")
-        ):
-            insert_point += 1
-
+        # Add new item at the end of the list
+        # Find the insertion point (after header and metadata, before any trailing empty lines)
+        insert_point = len(lines)
+        for i in range(len(lines) - 1, -1, -1):
+            if lines[i].strip():
+                insert_point = i + 1
+                break
+        
         lines.insert(insert_point, f"- {new_item}")
 
         # Update timestamp
         updated_content = "\n".join(lines)
         return self.update_timestamp(updated_content)
 
-    def _add_new_section(self, content: str, section: str, new_item: str) -> str:
-        """Add a new section with the given item.
-
-        WHY: When agents discover learnings that don't fit existing sections,
-        we need to create new sections dynamically while respecting the maximum
-        section limit.
-
+    def add_item_to_section(self, content: str, section: str, new_item: str) -> str:
+        """Legacy method for backward compatibility - delegates to add_item_to_list.
+        
         Args:
-            content: Current memory content
-            section: New section name
-            new_item: First item for the section
-
+            content: Current memory file content
+            section: Section name (ignored in simple list format)
+            new_item: Item to add
+            
         Returns:
-            str: Updated content with new section
+            str: Updated content with new item added
         """
-        lines = content.split("\n")
-
-        # Count existing sections
-        section_count = sum(1 for line in lines if line.startswith("## "))
-
-        if section_count >= self.memory_limits["max_sections"]:
-            self.logger.warning(f"Maximum sections reached, cannot add '{section}'")
-            # Try to add to Recent Learnings instead
-            return self.add_item_to_section(content, "Recent Learnings", new_item)
-
-        # Find insertion point (before Recent Learnings or at end)
-        insert_point = len(lines)
-        for i, line in enumerate(lines):
-            if line.startswith("## Recent Learnings"):
-                insert_point = i
-                break
-
-        # Insert new section
-        new_section = ["", f"## {section}", f"- {new_item}", ""]
-
-        for j, line in enumerate(new_section):
-            lines.insert(insert_point + j, line)
-
-        return "\n".join(lines)
+        return self.add_item_to_list(content, new_item)
 
     def exceeds_limits(
         self, content: str, agent_limits: Optional[Dict[str, Any]] = None
@@ -226,6 +169,23 @@ class MemoryContentManager:
             if not removed:
                 lines = lines[:-10]
 
+        # Also check max_items limit
+        max_items = limits.get("max_items", 100)
+        item_count = sum(1 for line in lines if line.strip().startswith("- "))
+        
+        if item_count > max_items:
+            # Remove oldest items to fit within max_items
+            items_removed = 0
+            target_removals = item_count - max_items
+            
+            i = 0
+            while i < len(lines) and items_removed < target_removals:
+                if lines[i].strip().startswith("- "):
+                    lines.pop(i)
+                    items_removed += 1
+                else:
+                    i += 1
+
         return "\n".join(lines)
     
     def truncate_to_limits(
@@ -262,7 +222,7 @@ class MemoryContentManager:
         """Validate memory file and repair if needed.
 
         WHY: Memory files might be manually edited by developers or corrupted.
-        This method ensures the file maintains required structure and sections.
+        This method ensures the file maintains proper simple list structure.
 
         Args:
             content: Content to validate
@@ -272,88 +232,94 @@ class MemoryContentManager:
             str: Validated and repaired content
         """
         lines = content.split("\n")
-        existing_sections = set()
-
-        # Find existing sections
-        for line in lines:
-            if line.startswith("## "):
-                section_name = line[3:].split("(")[0].strip()
-                existing_sections.add(section_name)
-
-        # Check for required sections
-        missing_sections = []
-        for required in self.REQUIRED_SECTIONS:
-            if required not in existing_sections:
-                missing_sections.append(required)
-
-        if missing_sections:
-            self.logger.info(
-                f"Adding missing sections to {agent_id} memory: {missing_sections}"
-            )
-
-            # Add missing sections before Recent Learnings
-            insert_point = len(lines)
-            for i, line in enumerate(lines):
-                if line.startswith("## Recent Learnings"):
-                    insert_point = i
-                    break
-
-            for section in missing_sections:
-                section_content = [
-                    "",
-                    f"## {section}",
-                    "<!-- Section added by repair -->",
-                    "",
-                ]
-                for j, line in enumerate(section_content):
-                    lines.insert(insert_point + j, line)
-                insert_point += len(section_content)
-
+        
+        # Ensure proper header format
+        has_header = False
+        has_timestamp = False
+        
+        for i, line in enumerate(lines[:5]):  # Check first 5 lines
+            if line.startswith("# Agent Memory:"):
+                has_header = True
+            elif line.startswith("<!-- Last Updated:"):
+                has_timestamp = True
+        
+        # Add missing header or timestamp
+        if not has_header or not has_timestamp:
+            from datetime import datetime
+            new_lines = []
+            
+            if not has_header:
+                new_lines.append(f"# Agent Memory: {agent_id}")
+            else:
+                # Keep existing header
+                for line in lines:
+                    if line.startswith("# "):
+                        new_lines.append(line)
+                        lines.remove(line)
+                        break
+            
+            if not has_timestamp:
+                new_lines.append(f"<!-- Last Updated: {datetime.now().isoformat()}Z -->")
+                new_lines.append("")
+            else:
+                # Keep existing timestamp
+                for line in lines:
+                    if line.startswith("<!-- Last Updated:"):
+                        new_lines.append(line)
+                        lines.remove(line)
+                        break
+            
+            # Add remaining content
+            for line in lines:
+                if not line.startswith("# ") and not line.startswith("<!-- Last Updated:"):
+                    new_lines.append(line)
+            
+            return "\n".join(new_lines)
+        
         return "\n".join(lines)
 
-    def parse_memory_content_to_dict(self, content: str) -> Dict[str, List[str]]:
-        """Parse memory content into structured dictionary format.
+    def parse_memory_content_to_list(self, content: str) -> List[str]:
+        """Parse memory content into a simple list format.
 
-        WHY: Provides consistent parsing of memory content into sections and items
-        for both display and programmatic access. This ensures the same parsing
-        logic is used across the system.
+        WHY: Provides consistent parsing of memory content as a simple list
+        for both display and programmatic access.
 
         Args:
             content: Raw memory file content
 
         Returns:
-            Dict mapping section names to lists of items
+            List of memory items
         """
-        sections = {}
-        current_section = None
-        current_items = []
+        items = []
 
         for line in content.split("\n"):
             line = line.strip()
 
-            # Skip empty lines and header information
-            if not line or line.startswith("#") and "Memory Usage" in line:
+            # Skip empty lines, headers, and metadata
+            if not line or line.startswith("#") or line.startswith("<!--"):
                 continue
 
-            if line.startswith("## ") and not line.startswith("## Memory Usage"):
-                # New section found
-                if current_section and current_items:
-                    sections[current_section] = current_items.copy()
-
-                current_section = line[3:].strip()
-                current_items = []
-
-            elif line.startswith("- ") and current_section:
-                # Item in current section
+            if line.startswith("- "):
+                # Item in list
                 item = line[2:].strip()
                 if item and len(item) > 3:  # Filter out very short items
-                    current_items.append(item)
+                    items.append(item)
 
-        # Add final section
-        if current_section and current_items:
-            sections[current_section] = current_items
-
-        return sections
+        return items
+    
+    def parse_memory_content_to_dict(self, content: str) -> Dict[str, List[str]]:
+        """Legacy method for backward compatibility.
+        
+        Returns a dict with single key 'memories' containing all items.
+        
+        Args:
+            content: Raw memory file content
+            
+        Returns:
+            Dict with 'memories' key mapping to list of items
+        """
+        items = self.parse_memory_content_to_list(content)
+        return {"memories": items}
 
     def _calculate_similarity(self, str1: str, str2: str) -> float:
         """Calculate similarity between two strings using fuzzy matching.
@@ -397,44 +363,27 @@ class MemoryContentManager:
         
         return similarity
 
-    def deduplicate_section(self, content: str, section: str) -> Tuple[str, int]:
-        """Deduplicate items within a section using NLP similarity.
+    def deduplicate_list(self, content: str) -> Tuple[str, int]:
+        """Deduplicate items in the memory list using NLP similarity.
 
-        WHY: Over time, sections can accumulate similar or duplicate items from
-        different sessions. This method cleans up existing sections by removing
-        similar items while preserving the most recent/relevant ones.
+        WHY: Over time, memory lists can accumulate similar or duplicate items from
+        different sessions. This method cleans up by removing similar items while
+        preserving the most recent ones.
 
         Args:
             content: Current memory file content
-            section: Section name to deduplicate
 
         Returns:
             Tuple of (updated content, number of items removed)
         """
         lines = content.split("\n")
-        section_start = None
-        section_end = None
         
-        # Find section boundaries
-        for i, line in enumerate(lines):
-            if line.startswith(f"## {section}"):
-                section_start = i
-            elif section_start is not None and line.startswith("## "):
-                section_end = i
-                break
-        
-        if section_start is None:
-            return content, 0  # Section not found
-        
-        if section_end is None:
-            section_end = len(lines)
-        
-        # Collect all items in the section
+        # Collect all items in the list
         items = []
         item_indices = []
-        for i in range(section_start + 1, section_end):
-            if lines[i].strip().startswith("- "):
-                items.append(lines[i].strip()[2:])  # Remove "- " prefix
+        for i, line in enumerate(lines):
+            if line.strip().startswith("- "):
+                items.append(line.strip()[2:])  # Remove "- " prefix
                 item_indices.append(i)
         
         # Find duplicates using pairwise comparison
@@ -461,6 +410,18 @@ class MemoryContentManager:
             lines.pop(item_indices[idx])
         
         return "\n".join(lines), removed_count
+    
+    def deduplicate_section(self, content: str, section: str) -> Tuple[str, int]:
+        """Legacy method for backward compatibility - delegates to deduplicate_list.
+        
+        Args:
+            content: Current memory file content
+            section: Section name (ignored in simple list format)
+            
+        Returns:
+            Tuple of (updated content, number of items removed)
+        """
+        return self.deduplicate_list(content)
 
     def validate_memory_size(self, content: str) -> tuple[bool, Optional[str]]:
         """Validate memory content size and structure.
@@ -474,7 +435,7 @@ class MemoryContentManager:
         try:
             # Check file size
             size_kb = len(content.encode("utf-8")) / 1024
-            max_size_kb = self.memory_limits.get("max_file_size_kb", 8)
+            max_size_kb = self.memory_limits.get("max_file_size_kb", 80)
 
             if size_kb > max_size_kb:
                 return (
@@ -482,20 +443,12 @@ class MemoryContentManager:
                     f"Memory size {size_kb:.1f}KB exceeds limit of {max_size_kb}KB",
                 )
 
-            # Check section count
-            sections = re.findall(r"^##\s+(.+)$", content, re.MULTILINE)
-            max_sections = self.memory_limits.get("max_sections", 10)
+            # Check item count
+            items = sum(1 for line in content.split("\n") if line.strip().startswith("- "))
+            max_items = self.memory_limits.get("max_items", 100)
 
-            if len(sections) > max_sections:
-                return False, f"Too many sections: {len(sections)} (max {max_sections})"
-
-            # Check for required sections
-            required = set(self.REQUIRED_SECTIONS)
-            found = set(sections)
-            missing = required - found
-
-            if missing:
-                return False, f"Missing required sections: {', '.join(missing)}"
+            if items > max_items:
+                return False, f"Too many items: {items} (max {max_items})"
 
             return True, None
 
