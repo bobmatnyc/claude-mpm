@@ -17,8 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
-## v4.0.30 (2025-08-22)
+## v4.0.31 (2025-08-22)
 
+### Fixed
+
+- **CRITICAL**: Prevent SystemInstructionsDeployer from creating CLAUDE.md files during startup
+- Fix deployer to keep INSTRUCTIONS.md as-is instead of renaming to CLAUDE.md
+- Prevents Claude Code from automatically reading duplicate PM instructions
+- Resolves instruction conflicts that caused startup behavior issues
+
+## v4.0.30 (2025-08-22)
 ### Fix
 
 - Fix incorrect documentation that referenced CLAUDE.md for PM customization
