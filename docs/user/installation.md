@@ -26,6 +26,27 @@ pip install "claude-mpm[agents,dev,docs]"
 pip install claude-mpm
 ```
 
+### Using pipx (Recommended for Isolated Installation)
+```bash
+# Install pipx if not already installed
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+
+# Install claude-mpm in isolated environment
+pipx install claude-mpm
+
+# Configure MCP for Claude Code (pipx users only)
+claude-mpm mcp-pipx-config
+```
+
+The pipx installation method provides:
+- **Isolated environment**: No dependency conflicts with other Python packages
+- **Global command access**: claude-mpm commands available system-wide
+- **Easy updates**: Simple upgrade with `pipx upgrade claude-mpm`
+- **Clean uninstall**: Complete removal with `pipx uninstall claude-mpm`
+
+For MCP configuration with pipx, see [MCP pipx Setup Guide](../MCP_PIPX_SETUP.md).
+
 ### With Agent Dependencies
 ```bash
 # Includes tools for code analysis, testing, and development workflows

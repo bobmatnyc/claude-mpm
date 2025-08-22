@@ -49,8 +49,20 @@ claude-mpm/
 ├── scripts/                          # ALL executable scripts and utilities
 │   ├── claude-mpm                    # Main executable script
 │   ├── run_mpm.py                    # Python runner for MPM
-│   ├── demo/                         # Demo scripts
-│   └── test_*.py                     # Test scripts (temporary/debugging)
+│   ├── development/                  # Development and debugging tools
+│   │   ├── debug_*.py                # Debugging scripts
+│   │   ├── run_all_tests.sh          # Test runner scripts
+│   │   └── run_lint.sh               # Code quality scripts
+│   ├── monitoring/                   # Runtime monitoring tools
+│   │   ├── monitor_*.py              # System monitoring scripts
+│   │   └── socketio_server.py        # Server monitoring
+│   ├── utilities/                    # MCP and configuration tools
+│   │   ├── configure_mcp_*.py        # MCP configuration scripts
+│   │   ├── mcp_*.py                  # MCP-related utilities
+│   │   └── eventbus_*.py             # Event bus utilities
+│   └── verification/                 # System verification utilities
+│       ├── verify_*.py               # Verification scripts
+│       └── test_*.py                 # Integration test scripts
 │
 ├── src/claude_mpm/                   # Main source code (Python package)
 │   ├── __init__.py                   # Package initialization
@@ -247,13 +259,33 @@ Project documentation including this structure guide:
 - **user/**: End-user documentation and guides
 
 ### `/scripts/` - Executable Scripts and Utilities
-All executable scripts and command-line utilities should be placed here:
+All executable scripts and command-line utilities organized by purpose:
+
+#### `/scripts/development/` - Development and Debugging Tools
+- **debug_*.py**: Debugging and analysis scripts
+- **run_all_tests.sh**: Comprehensive test execution
+- **run_lint.sh**: Code quality and linting
+- **diagnose_*.py**: System diagnosis tools
+
+#### `/scripts/monitoring/` - Runtime Monitoring Tools
+- **monitor_*.py**: Real-time system monitoring
+- **socketio_server.py**: Server monitoring and management
+
+#### `/scripts/utilities/` - MCP and Configuration Tools
+- **configure_mcp_*.py**: MCP setup and configuration
+- **mcp_*.py**: MCP server and wrapper utilities
+- **eventbus_*.py**: Event bus management tools
+- **generate_*.py**: Code and configuration generation
+
+#### `/scripts/verification/` - System Verification Utilities
+- **verify_*.py**: System verification and validation
+- **test_*.py**: Integration and end-to-end test scripts
+
+#### Root Level Scripts
 - **claude-mpm**: Main executable bash script
 - **run_mpm.py**: Python runner for MPM
-- **demo/**: Demo and example scripts
-- **Debugging scripts**: Temporary test scripts for debugging (prefix with `test_`)
-- **Migration scripts**: Database or data migration scripts
-- **Build scripts**: Build and deployment automation
+- **install.sh / uninstall.sh**: Installation scripts
+- **build-*.sh**: Build and deployment scripts
 
 ## File Placement Guidelines
 
@@ -283,9 +315,12 @@ When creating new files, follow these guidelines:
    - Examples: `/docs/examples/`
    - Assets: `/docs/assets/`
    - Archives: `/docs/archive/`
-8. **Scripts**: Place in `/scripts/`
-   - Executable scripts: `/scripts/*.py` or `/scripts/*.sh`
-   - Demo scripts: `/scripts/demo/`
+8. **Scripts**: Place in appropriate `/scripts/` subdirectory based on purpose:
+   - **Development tools**: `/scripts/development/`
+   - **Monitoring tools**: `/scripts/monitoring/`
+   - **Utilities and configuration**: `/scripts/utilities/`
+   - **Verification and testing**: `/scripts/verification/`
+   - **Root level only**: Main executables and installers
    - **NEVER place scripts in the project root directory**
    - **NEVER place test files outside of `/tests/`**
 

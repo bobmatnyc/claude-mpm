@@ -23,6 +23,13 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 pip install claude-mpm
 ```
 
+Or with pipx (recommended for isolated installation):
+```bash
+pipx install claude-mpm
+# Configure MCP for pipx users:
+claude-mpm mcp-pipx-config
+```
+
 **That's it!** See [QUICKSTART.md](QUICKSTART.md) for immediate usage or [docs/user/installation.md](docs/user/installation.md) for advanced options.
 
 ## Quick Usage
@@ -47,15 +54,17 @@ claude-mpm cleanup-memory
 See [QUICKSTART.md](QUICKSTART.md) for complete usage examples.
 
 
-## Architecture (v3.8.2+)
+## Architecture (v4.1.0+)
 
-Following the TSK-0053 refactoring, Claude MPM features:
+Following continuous improvements through v4.1.0, Claude MPM features:
 
-- **Service-Oriented Architecture**: Five specialized service domains
+- **Service-Oriented Architecture**: Five specialized service domains with Socket.IO stability improvements
 - **Interface-Based Contracts**: All services implement explicit interfaces
 - **Dependency Injection**: Service container with automatic resolution
 - **50-80% Performance Improvement**: Through lazy loading and intelligent caching
 - **Enhanced Security**: Comprehensive input validation and sanitization framework
+- **Improved Monitoring**: Enhanced dashboard with hierarchical agent display
+- **Socket.IO Stability**: Major reliability improvements for real-time communication
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture information.
 
@@ -144,11 +153,15 @@ See [docs/MEMORY.md](docs/MEMORY.md) and [docs/developer/11-dashboard/README.md]
 ### API Documentation
 Comprehensive API documentation is available at [docs/api/](docs/api/) - build with `make html` in that directory.
 
-## Recent Updates (v3.8.2)
+## Recent Updates (v4.1.0)
 
-**Major Architecture Refactoring (TSK-0053)**: Complete service-oriented redesign with 50-80% performance improvements, enhanced security, and interface-based design.
+**Socket.IO Stability Improvements**: Major reliability enhancements for real-time communication with improved error handling and connection management.
 
-**Process Management Improvements**: Enhanced hook system reliability with automatic process cleanup, timeout protection, and orphan process monitoring to prevent resource leaks.
+**Project Organization**: Comprehensive cleanup and reorganization with structured script directories for better maintainability.
+
+**Documentation Consolidation**: Streamlined documentation structure with consolidated guides and improved navigation.
+
+**Agent Hierarchy Display**: Enhanced dashboard with hierarchical agent display showing PM at top level with visual distinction for implied vs explicit nodes.
 
 See [CHANGELOG.md](CHANGELOG.md) for full history and [docs/MIGRATION.md](docs/MIGRATION.md) for upgrade instructions.
 
