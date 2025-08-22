@@ -63,15 +63,22 @@ class SystemAgentDeploymentStrategy(BaseDeploymentStrategy):
     def determine_target_directory(self, context: DeploymentContext) -> Path:
         """Determine target directory for system agents.
 
-        System agents are always deployed to ~/.claude/agents/
+        MODIFIED: System agents are now deployed to project .claude/agents/
+        to maintain consistency with the new deployment behavior.
+        All agents (system, user, project) deploy to the project level.
 
         Args:
             context: Deployment context
 
         Returns:
-            Path to ~/.claude/agents/
+            Path to <project>/.claude/agents/
         """
-        return Path.home() / ".claude" / "agents"
+        # Always deploy to project directory
+        if context.working_directory:
+            return context.working_directory / ".claude" / "agents"
+        else:
+            # Fallback to current working directory if not specified
+            return Path.cwd() / ".claude" / "agents"
 
     def get_templates_directory(self, context: DeploymentContext) -> Path:
         """Get templates directory for system agents.

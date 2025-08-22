@@ -37,8 +37,9 @@ class TargetDirectorySetupStep(BaseDeploymentStep):
                 if context.target_dir:
                     context.actual_target_dir = context.target_dir
                 else:
-                    # Default to user's home .claude/agents directory
-                    context.actual_target_dir = Path.home() / ".claude" / "agents"
+                    # MODIFIED: Default to project .claude/agents directory
+                    # All agents now deploy to the project level
+                    context.actual_target_dir = Path.cwd() / ".claude" / "agents"
 
             # Create target directory if it doesn't exist
             context.actual_target_dir.mkdir(parents=True, exist_ok=True)

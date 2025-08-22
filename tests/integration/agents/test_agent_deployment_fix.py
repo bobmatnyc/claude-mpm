@@ -15,7 +15,7 @@ import tempfile
 from pathlib import Path
 
 # Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
 from claude_mpm.core.logger import get_logger
 from claude_mpm.services.agents.deployment import AgentDeploymentService
