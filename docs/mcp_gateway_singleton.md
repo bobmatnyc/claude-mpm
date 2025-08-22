@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MCP Gateway implements a coordination pattern to ensure only one gateway handler is active per claude-mpm installation when invoked by MCP clients. Unlike background services, MCP gateways are stdio-based protocol handlers that are activated on-demand by Claude Desktop or other MCP clients.
+The MCP Gateway implements a coordination pattern to ensure only one gateway handler is active per claude-mpm installation when invoked by MCP clients. Unlike background services, MCP gateways are stdio-based protocol handlers that are activated on-demand by Claude Code or other MCP clients.
 
 ## Architecture
 
@@ -99,9 +99,9 @@ await run_global_gateway()
 $ claude-mpm mcp status
 
 Gateway Status: ℹ️  MCP protocol handler (stdio-based)
-  • Activated on-demand by MCP clients (Claude Desktop)
+  • Activated on-demand by MCP clients (Claude Code)
   • No background processes - communicates via stdin/stdout
-  • Ready for Claude Desktop integration
+  • Ready for Claude Code integration
   • Test with: claude-mpm mcp test <tool_name>
 ```
 

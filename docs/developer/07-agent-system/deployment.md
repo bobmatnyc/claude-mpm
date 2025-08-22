@@ -26,7 +26,7 @@ tools:
 ```
 
 **Why this matters:**
-- Claude Desktop/Code expects exact tool names without spaces
+- Claude Code/Code expects exact tool names without spaces
 - Adding spaces causes tool validation failures
 - Agents may fail to deploy or have missing capabilities
 - This is a common deployment failure point

@@ -16,7 +16,7 @@ This document explains the relationship between Anthropic's Claude Code agent fo
 
 ### Anthropic's Claude Code Format
 
-**Purpose**: Official agent format for Anthropic's Claude Desktop, IDE extensions, and developer tools.
+**Purpose**: Official agent format for Anthropic's Claude Code, IDE extensions, and developer tools.
 
 **Characteristics**:
 - Simple YAML frontmatter in Markdown files
@@ -58,7 +58,7 @@ This document explains the relationship between Anthropic's Claude Code agent fo
 
 | Benefit | Description | Use Case |
 |---------|-------------|----------|
-| **Bidirectional Support** | Claude MPM loads Claude Code agents | Use existing Claude Desktop agents |
+| **Bidirectional Support** | Claude MPM loads Claude Code agents | Use existing Claude Code agents |
 | **Format Detection** | Automatic detection and appropriate validation | Mixed environment deployments |
 | **Conversion Tools** | Automated format conversion utilities | Migration and interoperability |
 | **Dual Maintenance** | Maintain both formats simultaneously | Cross-platform compatibility |
@@ -204,7 +204,7 @@ model: sonnet
 #### Automated Conversion
 
 ```bash
-# Simplify for Claude Desktop compatibility
+# Simplify for Claude Code compatibility
 ./claude-mpm agents convert \
   --input path/to/agent.claude-mpm \
   --output-format claude-code \
@@ -316,7 +316,7 @@ agent_version: "1.2.0"
 
 ### Use Case 1: Cross-Platform Development
 
-**Scenario**: Developer using Claude Desktop wants to deploy agents in Claude MPM environment.
+**Scenario**: Developer using Claude Code wants to deploy agents in Claude MPM environment.
 
 **Solution**:
 1. Develop agents in Claude Code format for Desktop compatibility
@@ -325,7 +325,7 @@ agent_version: "1.2.0"
 
 ### Use Case 2: Enterprise Migration
 
-**Scenario**: Organization migrating from Claude Desktop to Claude MPM for advanced features.
+**Scenario**: Organization migrating from Claude Code to Claude MPM for advanced features.
 
 **Solution**:
 1. Inventory existing Claude Code agents
@@ -335,7 +335,7 @@ agent_version: "1.2.0"
 
 ### Use Case 3: Team Collaboration
 
-**Scenario**: Mixed team with some members using Claude Desktop, others using Claude MPM.
+**Scenario**: Mixed team with some members using Claude Code, others using Claude MPM.
 
 **Solution**:
 1. Establish Claude MPM as team standard for features

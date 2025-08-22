@@ -2,14 +2,14 @@
 
 ## Overview
 
-The MCP (Model Context Protocol) Gateway provides tool capabilities to Claude Desktop through a stdio-based server that follows the MCP specification.
+The MCP (Model Context Protocol) Gateway provides tool capabilities to Claude Code through a stdio-based server that follows the MCP specification.
 
 ## Architecture
 
 The gateway consists of:
 
 1. **Launcher Script** (`src/claude_mpm/scripts/mcp_server.py`)
-   - Entry point for Claude Desktop
+   - Entry point for Claude Code
    - Handles Python path setup
    - Configures logging to stderr
    - Launches the MCP server
@@ -33,11 +33,11 @@ The gateway consists of:
 
 ### Backward Compatibility
 
-The server includes patches to handle older Claude Desktop versions that may not send `clientInfo` in initialize requests.
+The server includes patches to handle older Claude Code versions that may not send `clientInfo` in initialize requests.
 
 ## Configuration
 
-The server is configured in Claude Desktop's config file:
+The server is configured in Claude Code's config file:
 
 ```json
 {
@@ -85,7 +85,7 @@ This will:
 
 1. Server logs go to stderr, not stdout (to avoid protocol interference)
 2. Use the verification script to test basic protocol flow
-3. Check Claude Desktop logs for connection issues
+3. Check Claude Code logs for connection issues
 
 ## Development
 

@@ -193,15 +193,13 @@ class MemoryContentManager:
         size_kb = len(content.encode("utf-8")) / 1024
         return size_kb > limits["max_file_size_kb"]
 
-    def truncate_to_limits(
+    def truncate_simple_list(
         self, content: str, agent_limits: Optional[Dict[str, Any]] = None
     ) -> str:
-        """Truncate content to fit within limits.
+        """Truncate simple list content to fit within limits.
 
-        WHY: When memory files exceed size limits, we need a strategy to reduce
-        size while preserving the most important information. This implementation
-        removes items from "Recent Learnings" first as they're typically less
-        consolidated than other sections.
+        WHY: When memory files exceed size limits, we remove oldest items
+        (from the beginning of the list) to maintain the most recent learnings.
 
         Args:
             content: Content to truncate
@@ -213,37 +211,28 @@ class MemoryContentManager:
         lines = content.split("\n")
         limits = agent_limits or self.memory_limits
 
-        # Strategy: Remove items from Recent Learnings first
+        # Strategy: Remove oldest items (from beginning) to keep recent ones
         while self.exceeds_limits("\n".join(lines), agent_limits):
             removed = False
 
-            # First try Recent Learnings
+            # Find and remove the first item (oldest)
             for i, line in enumerate(lines):
-                if line.startswith("## Recent Learnings"):
-                    # Find and remove first item in this section
-                    for j in range(i + 1, len(lines)):
-                        if lines[j].strip().startswith("- "):
-                            lines.pop(j)
-                            removed = True
-                            break
-                        elif lines[j].startswith("## "):
-                            break
+                if line.strip().startswith("- "):
+                    lines.pop(i)
+                    removed = True
                     break
-
-            # If no Recent Learnings items, remove from other sections
-            if not removed:
-                # Remove from sections in reverse order (bottom up)
-                for i in range(len(lines) - 1, -1, -1):
-                    if lines[i].strip().startswith("- "):
-                        lines.pop(i)
-                        removed = True
-                        break
 
             # Safety: If nothing removed, truncate from end
             if not removed:
                 lines = lines[:-10]
 
         return "\n".join(lines)
+    
+    def truncate_to_limits(
+        self, content: str, agent_limits: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """Legacy method for backward compatibility - delegates to truncate_simple_list."""
+        return self.truncate_simple_list(content, agent_limits)
 
     def update_timestamp(self, content: str) -> str:
         """Update the timestamp in the file header.
@@ -254,12 +243,20 @@ class MemoryContentManager:
         Returns:
             str: Content with updated timestamp
         """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        return re.sub(
-            r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
-            f"<!-- Last Updated: {timestamp} | Auto-updated by: system -->",
+        timestamp = datetime.now().isoformat() + "Z"
+        # Handle both old and new timestamp formats
+        content = re.sub(
+            r"<!-- Last Updated: .+? -->",
+            f"<!-- Last Updated: {timestamp} -->",
             content,
         )
+        # Also handle legacy format
+        content = re.sub(
+            r"<!-- Last Updated: .+ \| Auto-updated by: .+ -->",
+            f"<!-- Last Updated: {timestamp} -->",
+            content,
+        )
+        return content
 
     def validate_and_repair(self, content: str, agent_id: str) -> str:
         """Validate memory file and repair if needed.

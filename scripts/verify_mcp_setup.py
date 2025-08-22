@@ -4,10 +4,10 @@ Comprehensive MCP Setup Verification Script
 ===========================================
 
 This script verifies that the MCP server can be started in all the different ways
-it might be invoked by Claude Desktop or manually.
+it might be invoked by Claude Code or manually.
 
 WHY: We need to ensure the MCP server works regardless of how it's started,
-including as a script, module, or through the Claude Desktop configuration.
+including as a script, module, or through the Claude Code configuration.
 """
 
 import subprocess
@@ -153,9 +153,9 @@ def main():
     
     results = []
     
-    # Test 1: Direct wrapper script invocation (as Claude Desktop would)
+    # Test 1: Direct wrapper script invocation (as Claude Code would)
     results.append(test_method(
-        "Direct wrapper script (Claude Desktop style)",
+        "Direct wrapper script (Claude Code style)",
         ["python3", str(wrapper_script)],
         cwd=str(project_root)
     ))
@@ -181,8 +181,8 @@ def main():
         cwd="/tmp"
     ))
     
-    # Check Claude Desktop configuration
-    print_header("Claude Desktop Configuration")
+    # Check Claude Code configuration
+    print_header("Claude Code Configuration")
     
     config_path = Path.home() / "Library" / "Application Support" / "Claude" / "claude_desktop_config.json"
     if config_path.exists():
@@ -208,7 +208,7 @@ def main():
                     "cwd": str(project_root)
                 }, indent=2))
         else:
-            print("  ⚠ MCP server not configured in Claude Desktop")
+            print("  ⚠ MCP server not configured in Claude Code")
     else:
         print(f"  ⚠ Config file not found at {config_path}")
     
@@ -223,8 +223,8 @@ def main():
     if passed == total:
         print("\n✅ All tests passed! MCP server is properly configured.")
         print("\nNext steps:")
-        print("1. Restart Claude Desktop to pick up the new configuration")
-        print("2. Check if the MCP icon appears in Claude Desktop")
+        print("1. Restart Claude Code to pick up the new configuration")
+        print("2. Check if the MCP icon appears in Claude Code")
         print("3. Try using MCP tools in a conversation")
         return 0
     else:

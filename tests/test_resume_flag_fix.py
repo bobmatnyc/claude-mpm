@@ -3,7 +3,7 @@
 Test script to verify --resume flag handling in claude-mpm.
 
 This script tests various scenarios to ensure the --resume flag
-is properly passed through to Claude Desktop.
+is properly passed through to Claude Code.
 """
 
 import sys
@@ -164,7 +164,7 @@ def main():
         print("  • claude-mpm --resume")
         print("  • claude-mpm run --resume")
         print("  • claude-mpm --resume --mpm-resume last")
-        print("\nThe flag will be properly passed to Claude Desktop.")
+        print("\nThe flag will be properly passed to Claude Code.")
         
     except AssertionError as e:
         print(f"\n❌ Test failed: {e}")

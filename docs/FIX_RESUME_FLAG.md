@@ -1,13 +1,13 @@
 # Fix: --resume Flag Implementation
 
 ## Issue
-The `--resume` flag was not working properly in claude-mpm. When users tried to use `claude-mpm --resume` to resume their last Claude Desktop conversation, the flag was not being passed through to Claude.
+The `--resume` flag was not working properly in claude-mpm. When users tried to use `claude-mpm --resume` to resume their last Claude Code conversation, the flag was not being passed through to Claude.
 
 ## Root Cause
 The issue had multiple layers:
 1. The bash wrapper script didn't recognize `--resume` as an MPM-handled flag
 2. The argument parser didn't have `--resume` defined in the top-level or run subparser
-3. The flag wasn't being added to `claude_args` for passing to Claude Desktop
+3. The flag wasn't being added to `claude_args` for passing to Claude Code
 
 ## Solution
 The fix involved changes to multiple files:
@@ -33,7 +33,7 @@ The fix involved changes to multiple files:
 
 **File**: `src/claude_mpm/cli/commands/run.py`
 - Added logic to include `--resume` in `claude_args` before filtering
-- Ensures the flag is passed through to Claude Desktop
+- Ensures the flag is passed through to Claude Code
 
 ## Implementation Details
 
@@ -47,7 +47,7 @@ MPM_FLAGS=("--resume" "--mpm-resume" "--logging" ...)
 run_group.add_argument(
     "--resume",
     action="store_true",
-    help="Pass --resume flag to Claude Desktop to resume the last conversation",
+    help="Pass --resume flag to Claude Code to resume the last conversation",
 )
 ```
 
@@ -90,7 +90,7 @@ claude-mpm --resume --mpm-resume last
 ```
 
 ## Important Notes
-- The `--resume` flag is for Claude Desktop's native resume functionality
+- The `--resume` flag is for Claude Code's native resume functionality
 - The `--mpm-resume` flag is for MPM's session management (different feature)
 - Both flags can be used together if needed
 - The fix maintains backward compatibility with all existing functionality

@@ -201,7 +201,7 @@ The old individual ticket tools (`ticket_create`, `ticket_list`, etc.) are still
 
 ## Configuration Update
 
-Update your Claude Desktop MCP configuration:
+Update your Claude Code MCP configuration:
 
 **Old Configuration:**
 ```json

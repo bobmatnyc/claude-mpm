@@ -6,8 +6,8 @@ MCP protocol gateway using Anthropic's official MCP package.
 Handles stdio-based communication, request routing, and tool invocation.
 Acts as a bridge between Claude Code and internal tools.
 
-NOTE: MCP is ONLY for Claude Code - NOT for Claude Desktop.
-Claude Desktop uses a different system for agent deployment.
+NOTE: MCP is ONLY for Claude Code - NOT for Claude Code.
+Claude Code uses a different system for agent deployment.
 
 Part of ISS-0035: MCP Gateway Implementation - Core Gateway and Tool Registry
 """
@@ -339,7 +339,7 @@ class MCPGateway(BaseMCPService, IMCPGateway):
         to handle incoming requests from Claude Code.
 
         WHY: We use stdio (stdin/stdout) as it's the standard communication
-        method for MCP servers in Claude Desktop. This ensures compatibility
+        method for MCP servers in Claude Code. This ensures compatibility
         and allows the server to be launched as a subprocess.
         """
         try:

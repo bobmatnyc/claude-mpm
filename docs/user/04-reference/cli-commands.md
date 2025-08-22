@@ -243,6 +243,68 @@ claude-mpm agents fix --all
 claude-mpm agents list --by-tier | grep PROJECT
 ```
 
+### `claude-mpm doctor`
+
+Run comprehensive diagnostics on your Claude MPM installation.
+
+```bash
+claude-mpm doctor [options]
+claude-mpm diagnose [options]     # alias
+claude-mpm check-health [options] # alias
+```
+
+**Options:**
+- `--verbose`, `-v` - Show detailed diagnostic information
+- `--json` - Output results in JSON format
+- `--markdown` - Output results in Markdown format
+- `--no-color` - Disable colored output
+- `--output FILE`, `-o FILE` - Save output to file
+- `--checks CHECKS` - Run only specific checks
+- `--parallel` - Run checks in parallel (experimental)
+- `--fix` - Attempt to fix issues automatically (experimental)
+
+**Available check types:**
+- `installation` - Verify Claude MPM installation and dependencies
+- `configuration` - Check configuration files and settings
+- `filesystem` - Validate directory structure and permissions
+- `claude` - Test Claude Desktop integration
+- `agents` - Check agent deployments and availability
+- `mcp` - Verify MCP server configuration and connectivity
+- `monitor` - Check monitoring service status
+- `common` - Scan for common known issues
+
+**Examples:**
+```bash
+# Basic health check
+claude-mpm doctor
+
+# Detailed diagnostics
+claude-mpm doctor --verbose
+
+# Check specific components
+claude-mpm doctor --checks installation configuration
+
+# Save report to file
+claude-mpm doctor --output health-report.txt
+
+# JSON output for automation
+claude-mpm doctor --json | jq '.checks[] | select(.status == "error")'
+```
+
+**Exit codes:**
+- `0` - All checks passed
+- `1` - Warnings found
+- `2` - Errors detected
+- `130` - Interrupted by user
+
+**Interactive mode:**
+```
+/mpm-doctor
+/mpm-doctor --verbose
+```
+
+For detailed information, see the [Doctor Command Guide](../doctor-command.md).
+
 ## Environment Variables
 
 Override default behavior with environment variables:

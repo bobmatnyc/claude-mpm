@@ -6,7 +6,7 @@ MCP Server Robust Wrapper Script
 This wrapper ensures the Python environment is correctly set up regardless of how it's invoked.
 It handles various edge cases and provides clear error messages for troubleshooting.
 
-WHY: Claude Desktop may invoke this script in different ways (as module, script, different working dirs),
+WHY: Claude Code may invoke this script in different ways (as module, script, different working dirs),
 so we need a robust wrapper that handles all cases and sets up the environment correctly.
 
 DESIGN DECISION: Use comprehensive environment detection and setup with clear error reporting
@@ -423,7 +423,7 @@ def main():
         logger.error("1. Ensure claude-mpm is installed: pip install -e /Users/masa/Projects/claude-mpm")
         logger.error("2. Check Python version is 3.8+: python3 --version")
         logger.error("3. Verify project structure is intact")
-        logger.error("4. Check Claude Desktop config points to this wrapper script")
+        logger.error("4. Check Claude Code config points to this wrapper script")
         logger.error("=" * 60)
         sys.exit(1)
 

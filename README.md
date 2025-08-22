@@ -37,6 +37,9 @@ claude-mpm run --monitor
 # Use MCP Gateway for external tool integration
 claude-mpm mcp
 
+# Run health diagnostics  
+claude-mpm doctor
+
 # Manage memory for large conversation histories
 claude-mpm cleanup-memory
 ```

@@ -7,7 +7,20 @@ Solutions to common issues and problems with Claude MPM.
 
 ## Quick Diagnostics
 
-First, gather system information:
+**Start with the doctor command for comprehensive health checks:**
+
+```bash
+# Run comprehensive diagnostics
+claude-mpm doctor
+
+# Get detailed diagnostic information
+claude-mpm doctor --verbose
+
+# Focus on specific areas
+claude-mpm doctor --checks installation configuration agents
+```
+
+**Traditional diagnostic commands:**
 ```bash
 # Check system status
 claude-mpm info
@@ -18,6 +31,54 @@ claude-mpm --version
 # Verify installation
 claude-mpm run -i "test" --non-interactive
 ```
+
+## Using Doctor Command for Troubleshooting
+
+The `claude-mpm doctor` command is your first line of defense for diagnosing issues. It performs comprehensive health checks across all components:
+
+### Understanding Doctor Output
+
+The doctor command provides clear status indicators:
+- ✅ **OK**: Component working correctly
+- ⚠️ **WARNING**: Non-critical issue, may affect functionality  
+- ❌ **ERROR**: Critical issue requiring immediate attention
+- ℹ️ **INFO**: Recommendation or informational message
+
+### Common Doctor Findings
+
+**Agent Deployment Issues:**
+```
+❌ Agent Check
+   ✗ Deployed agents: 0 agents found
+   
+Fix: claude-mpm agents deploy
+```
+
+**Configuration Problems:**
+```
+⚠️ Configuration Check
+   ⚠ Claude Desktop config: MCP server not configured
+   
+Fix: claude-mpm mcp install
+```
+
+**Permission Errors:**
+```
+❌ Filesystem Check
+   ✗ Agent directory: Permission denied
+   
+Fix: chmod 755 ~/.claude/agents/
+```
+
+### Automated Diagnosis Workflow
+
+1. **Initial health check**: `claude-mpm doctor`
+2. **Detailed analysis**: `claude-mpm doctor --verbose` 
+3. **Targeted diagnosis**: `claude-mpm doctor --checks <specific-area>`
+4. **Automatic fixes**: `claude-mpm doctor --fix` (experimental)
+5. **Verify resolution**: `claude-mpm doctor`
+
+For complete doctor command documentation, see the [Doctor Command Guide](./doctor-command.md).
 
 ## Installation Issues
 

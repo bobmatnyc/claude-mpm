@@ -256,10 +256,10 @@ def main():
     if overall_success:
         print("🎉 All MCP standards compliance tests passed!")
         print("\nThe MCP Gateway is ready for:")
-        print("  • Claude Desktop integration")
+        print("  • Claude Code integration")
         print("  • Other MCP client connections")
         print("  • Standards-compliant protocol communication")
-        print("\nTo integrate with Claude Desktop, add this to your MCP config:")
+        print("\nTo integrate with Claude Code, add this to your MCP config:")
         print("{")
         print('  "mcpServers": {')
         print('    "claude-mpm": {')

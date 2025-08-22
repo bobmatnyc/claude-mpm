@@ -34,9 +34,41 @@ class FrameworkLoader:
 
     This component handles:
     1. Finding the framework (claude-multiagent-pm)
-    2. Loading INSTRUCTIONS.md instructions
+    2. Loading custom instructions from .claude-mpm/ directories
     3. Preparing agent definitions
     4. Formatting for injection
+    
+    Custom Instructions Loading:
+    The framework loader supports custom instructions through .claude-mpm/ directories.
+    It NEVER reads from .claude/ directories to avoid conflicts with Claude Code.
+    
+    File Loading Precedence (highest to lowest):
+    
+    INSTRUCTIONS.md:
+      1. Project: ./.claude-mpm/INSTRUCTIONS.md
+      2. User: ~/.claude-mpm/INSTRUCTIONS.md
+      3. System: (built-in framework instructions)
+    
+    WORKFLOW.md:
+      1. Project: ./.claude-mpm/WORKFLOW.md
+      2. User: ~/.claude-mpm/WORKFLOW.md
+      3. System: src/claude_mpm/agents/WORKFLOW.md
+    
+    MEMORY.md:
+      1. Project: ./.claude-mpm/MEMORY.md
+      2. User: ~/.claude-mpm/MEMORY.md
+      3. System: src/claude_mpm/agents/MEMORY.md
+    
+    Actual Memories:
+      - User: ~/.claude-mpm/memories/PM_memories.md
+      - Project: ./.claude-mpm/memories/PM_memories.md (overrides user)
+      - Agent memories: *_memories.md files (only loaded if agent is deployed)
+    
+    Important Notes:
+    - Project-level files always override user-level files
+    - User-level files always override system defaults
+    - The framework NEVER reads from .claude/ directories
+    - Custom instructions are clearly labeled with their source level
     """
 
     def __init__(
@@ -77,11 +109,11 @@ class FrameworkLoader:
             output_style_content = self.output_style_manager.extract_output_style_content(framework_loader=self)
             output_style_path = self.output_style_manager.save_output_style(output_style_content)
             
-            # Deploy to Claude Desktop if supported
+            # Deploy to Claude Code if supported
             deployed = self.output_style_manager.deploy_output_style(output_style_content)
             
             if deployed:
-                self.logger.info("✅ Output style deployed to Claude Desktop >= 1.0.83")
+                self.logger.info("✅ Output style deployed to Claude Code >= 1.0.83")
             else:
                 self.logger.info("📝 Output style will be injected into instructions for older Claude versions")
                 
@@ -97,11 +129,11 @@ class FrameworkLoader:
         # Claude version detection
         claude_version = self.output_style_manager.claude_version
         if claude_version:
-            self.logger.info(f"Claude Desktop version detected: {claude_version}")
+            self.logger.info(f"Claude Code version detected: {claude_version}")
             
             # Check if version supports output styles
             if self.output_style_manager.supports_output_styles():
-                self.logger.info("✅ Claude Desktop supports output styles (>= 1.0.83)")
+                self.logger.info("✅ Claude Code supports output styles (>= 1.0.83)")
                 
                 # Check deployment status
                 output_style_path = self.output_style_manager.output_style_path
@@ -111,10 +143,10 @@ class FrameworkLoader:
                     self.logger.info(f"📝 Output style will be created at: {output_style_path}")
                     
             else:
-                self.logger.info(f"⚠️ Claude Desktop {claude_version} does not support output styles (< 1.0.83)")
+                self.logger.info(f"⚠️ Claude Code {claude_version} does not support output styles (< 1.0.83)")
                 self.logger.info("📝 Output style content will be injected into framework instructions")
         else:
-            self.logger.info("⚠️ Claude Desktop not detected or version unknown")
+            self.logger.info("⚠️ Claude Code not detected or version unknown")
             self.logger.info("📝 Output style content will be injected into framework instructions as fallback")
 
     def _detect_framework_path(self) -> Optional[Path]:
@@ -311,42 +343,81 @@ class FrameworkLoader:
 
     def _load_instructions_file(self, content: Dict[str, Any]) -> None:
         """
-        Load INSTRUCTIONS.md or legacy CLAUDE.md from working directory.
+        Load custom INSTRUCTIONS.md from .claude-mpm directories.
 
-        NOTE: We no longer load CLAUDE.md since Claude Code already picks it up automatically.
+        Precedence (highest to lowest):
+        1. Project-specific: ./.claude-mpm/INSTRUCTIONS.md
+        2. User-specific: ~/.claude-mpm/INSTRUCTIONS.md
+        
+        NOTE: We do NOT load CLAUDE.md files since Claude Code already picks them up automatically.
         This prevents duplication of instructions.
 
         Args:
             content: Dictionary to update with loaded instructions
         """
-        # Disabled - Claude Code already reads CLAUDE.md automatically
-        # We don't need to duplicate it in the PM instructions
-        pass
+        # Check for project-specific INSTRUCTIONS.md first
+        project_instructions_path = Path.cwd() / ".claude-mpm" / "INSTRUCTIONS.md"
+        if project_instructions_path.exists():
+            loaded_content = self._try_load_file(
+                project_instructions_path, "project-specific INSTRUCTIONS.md"
+            )
+            if loaded_content:
+                content["custom_instructions"] = loaded_content
+                content["custom_instructions_level"] = "project"
+                self.logger.info("Using project-specific PM instructions from .claude-mpm/INSTRUCTIONS.md")
+                return
+        
+        # Check for user-specific INSTRUCTIONS.md
+        user_instructions_path = Path.home() / ".claude-mpm" / "INSTRUCTIONS.md"
+        if user_instructions_path.exists():
+            loaded_content = self._try_load_file(
+                user_instructions_path, "user-specific INSTRUCTIONS.md"
+            )
+            if loaded_content:
+                content["custom_instructions"] = loaded_content
+                content["custom_instructions_level"] = "user"
+                self.logger.info("Using user-specific PM instructions from ~/.claude-mpm/INSTRUCTIONS.md")
+                return
 
     def _load_workflow_instructions(self, content: Dict[str, Any]) -> None:
         """
-        Load WORKFLOW.md with project-specific override support.
+        Load WORKFLOW.md from .claude-mpm directories.
 
-        Precedence:
-        1. Project-specific: .claude-mpm/agents/WORKFLOW.md
-        2. System default: src/claude_mpm/agents/WORKFLOW.md or packaged
+        Precedence (highest to lowest):
+        1. Project-specific: ./.claude-mpm/WORKFLOW.md
+        2. User-specific: ~/.claude-mpm/WORKFLOW.md
+        3. System default: src/claude_mpm/agents/WORKFLOW.md or packaged
+        
+        NOTE: We do NOT load from .claude/ directories to avoid conflicts.
 
         Args:
             content: Dictionary to update with workflow instructions
         """
-        # Check for project-specific workflow first
-        project_workflow_path = Path.cwd() / ".claude-mpm" / "agents" / "WORKFLOW.md"
+        # Check for project-specific WORKFLOW.md first (highest priority)
+        project_workflow_path = Path.cwd() / ".claude-mpm" / "WORKFLOW.md"
         if project_workflow_path.exists():
             loaded_content = self._try_load_file(
                 project_workflow_path, "project-specific WORKFLOW.md"
             )
             if loaded_content:
                 content["workflow_instructions"] = loaded_content
-                content["project_workflow"] = "project"
-                self.logger.info("Using project-specific WORKFLOW.md")
+                content["workflow_instructions_level"] = "project"
+                self.logger.info("Using project-specific workflow instructions from .claude-mpm/WORKFLOW.md")
+                return
+        
+        # Check for user-specific WORKFLOW.md (medium priority)
+        user_workflow_path = Path.home() / ".claude-mpm" / "WORKFLOW.md"
+        if user_workflow_path.exists():
+            loaded_content = self._try_load_file(
+                user_workflow_path, "user-specific WORKFLOW.md"
+            )
+            if loaded_content:
+                content["workflow_instructions"] = loaded_content
+                content["workflow_instructions_level"] = "user"
+                self.logger.info("Using user-specific workflow instructions from ~/.claude-mpm/WORKFLOW.md")
                 return
 
-        # Fall back to system workflow
+        # Fall back to system workflow (lowest priority)
         if self.framework_path and self.framework_path != Path("__PACKAGED__"):
             system_workflow_path = (
                 self.framework_path / "src" / "claude_mpm" / "agents" / "WORKFLOW.md"
@@ -357,33 +428,48 @@ class FrameworkLoader:
                 )
                 if loaded_content:
                     content["workflow_instructions"] = loaded_content
-                    content["project_workflow"] = "system"
-                    self.logger.info("Using system WORKFLOW.md")
+                    content["workflow_instructions_level"] = "system"
+                    self.logger.info("Using system workflow instructions")
 
     def _load_memory_instructions(self, content: Dict[str, Any]) -> None:
         """
-        Load MEMORY.md with project-specific override support.
+        Load MEMORY.md from .claude-mpm directories.
 
-        Precedence:
-        1. Project-specific: .claude-mpm/agents/MEMORY.md
-        2. System default: src/claude_mpm/agents/MEMORY.md or packaged
+        Precedence (highest to lowest):
+        1. Project-specific: ./.claude-mpm/MEMORY.md
+        2. User-specific: ~/.claude-mpm/MEMORY.md
+        3. System default: src/claude_mpm/agents/MEMORY.md or packaged
+        
+        NOTE: We do NOT load from .claude/ directories to avoid conflicts.
 
         Args:
             content: Dictionary to update with memory instructions
         """
-        # Check for project-specific memory instructions first
-        project_memory_path = Path.cwd() / ".claude-mpm" / "agents" / "MEMORY.md"
+        # Check for project-specific MEMORY.md first (highest priority)
+        project_memory_path = Path.cwd() / ".claude-mpm" / "MEMORY.md"
         if project_memory_path.exists():
             loaded_content = self._try_load_file(
                 project_memory_path, "project-specific MEMORY.md"
             )
             if loaded_content:
                 content["memory_instructions"] = loaded_content
-                content["project_memory"] = "project"
-                self.logger.info("Using project-specific MEMORY.md")
+                content["memory_instructions_level"] = "project"
+                self.logger.info("Using project-specific memory instructions from .claude-mpm/MEMORY.md")
+                return
+        
+        # Check for user-specific MEMORY.md (medium priority)
+        user_memory_path = Path.home() / ".claude-mpm" / "MEMORY.md"
+        if user_memory_path.exists():
+            loaded_content = self._try_load_file(
+                user_memory_path, "user-specific MEMORY.md"
+            )
+            if loaded_content:
+                content["memory_instructions"] = loaded_content
+                content["memory_instructions_level"] = "user"
+                self.logger.info("Using user-specific memory instructions from ~/.claude-mpm/MEMORY.md")
                 return
 
-        # Fall back to system memory instructions
+        # Fall back to system memory instructions (lowest priority)
         if self.framework_path and self.framework_path != Path("__PACKAGED__"):
             system_memory_path = (
                 self.framework_path / "src" / "claude_mpm" / "agents" / "MEMORY.md"
@@ -394,8 +480,8 @@ class FrameworkLoader:
                 )
                 if loaded_content:
                     content["memory_instructions"] = loaded_content
-                    content["project_memory"] = "system"
-                    self.logger.info("Using system MEMORY.md")
+                    content["memory_instructions_level"] = "system"
+                    self.logger.info("Using system memory instructions")
     
     def _get_deployed_agents(self) -> set:
         """
@@ -835,9 +921,11 @@ class FrameworkLoader:
             "working_claude_md": "",
             "framework_instructions": "",
             "workflow_instructions": "",
-            "project_workflow": "",
+            "workflow_instructions_level": "",  # Track source level
             "memory_instructions": "",
-            "project_memory": "",
+            "memory_instructions_level": "",  # Track source level
+            "project_workflow": "",  # Deprecated, use workflow_instructions_level
+            "project_memory": "",  # Deprecated, use memory_instructions_level
             "actual_memories": "",  # Add field for actual memories from PM_memories.md
         }
 
@@ -1101,22 +1189,38 @@ class FrameworkLoader:
 
             # Note: We don't add working directory CLAUDE.md here since Claude Code
             # already picks it up automatically. This prevents duplication.
+            
+            # Add custom INSTRUCTIONS.md if present (overrides or extends framework instructions)
+            if self.framework_content.get("custom_instructions"):
+                level = self.framework_content.get("custom_instructions_level", "unknown")
+                instructions += f"\n\n## Custom PM Instructions ({level} level)\n\n"
+                instructions += "**The following custom instructions override or extend the framework defaults:**\n\n"
+                instructions += self._strip_metadata_comments(
+                    self.framework_content["custom_instructions"]
+                )
+                instructions += "\n"
 
             # Add WORKFLOW.md after instructions
             if self.framework_content.get("workflow_instructions"):
                 workflow_content = self._strip_metadata_comments(
                     self.framework_content["workflow_instructions"]
                 )
-                instructions += f"\n\n{workflow_content}\n"
-                # Note: project-specific workflow is being used (logged elsewhere)
+                level = self.framework_content.get("workflow_instructions_level", "system")
+                if level != "system":
+                    instructions += f"\n\n## Workflow Instructions ({level} level)\n\n"
+                    instructions += "**The following workflow instructions override system defaults:**\n\n"
+                instructions += f"{workflow_content}\n"
 
             # Add MEMORY.md after workflow instructions
             if self.framework_content.get("memory_instructions"):
                 memory_content = self._strip_metadata_comments(
                     self.framework_content["memory_instructions"]
                 )
-                instructions += f"\n\n{memory_content}\n"
-                # Note: project-specific memory instructions being used (logged elsewhere)
+                level = self.framework_content.get("memory_instructions_level", "system")
+                if level != "system":
+                    instructions += f"\n\n## Memory Instructions ({level} level)\n\n"
+                    instructions += "**The following memory instructions override system defaults:**\n\n"
+                instructions += f"{memory_content}\n"
             
             # Add actual PM memories after memory instructions
             if self.framework_content.get("actual_memories"):

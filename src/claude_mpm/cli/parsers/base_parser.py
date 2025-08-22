@@ -190,7 +190,7 @@ def add_top_level_run_arguments(parser: argparse.ArgumentParser) -> None:
     run_group.add_argument(
         "--resume",
         action="store_true",
-        help="Pass --resume flag to Claude Desktop to resume the last conversation",
+        help="Pass --resume flag to Claude Code to resume the last conversation",
     )
     run_group.add_argument(
         "--force",
@@ -338,6 +338,10 @@ def create_parser(
         from ..commands.cleanup import add_cleanup_parser
 
         add_cleanup_parser(subparsers)
+        
+        from ..commands.doctor import add_doctor_parser
+        
+        add_doctor_parser(subparsers)
     except ImportError:
         # Commands module may not be available during testing or refactoring
         pass

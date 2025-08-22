@@ -206,7 +206,7 @@ class InteractiveSession:
             return self._attempt_fallback_launch(environment)
 
     def process_interactive_command(self, prompt: str) -> Optional[bool]:
-        """Process special interactive commands like /agents.
+        """Process special interactive commands like /agents and /mpm-doctor.
 
         Args:
             prompt: User input command
@@ -214,9 +214,19 @@ class InteractiveSession:
         Returns:
             Optional[bool]: True if handled, False if error, None if not a special command
         """
+        # Parse command and arguments
+        parts = prompt.strip().split()
+        if not parts:
+            return None
+            
+        command = parts[0]
+        args = parts[1:]
+        
         # Check for special commands
-        if prompt.strip() == "/agents":
+        if command == "/agents":
             return self._show_available_agents()
+        elif command == "/mpm-doctor":
+            return self._run_doctor_diagnostics(args)
 
         # Not a special command
         return None
@@ -310,7 +320,13 @@ class InteractiveSession:
             print(f"\033[32m│\033[0m   {output_style_info:<49}\033[32m│\033[0m")
         print("\033[32m│                                                   │\033[0m")
         print(
-            "\033[32m│\033[0m   Type '/agents' to see available agents          \033[32m│\033[0m"
+            "\033[32m│\033[0m   Commands:                                       \033[32m│\033[0m"
+        )
+        print(
+            "\033[32m│\033[0m     /agents      - Show available agents          \033[32m│\033[0m"
+        )
+        print(
+            "\033[32m│\033[0m     /mpm-doctor  - Run diagnostic checks          \033[32m│\033[0m"
         )
         print("\033[32m╰───────────────────────────────────────────────────╯\033[0m")
         print("")  # Add blank line after box
@@ -551,4 +567,67 @@ class InteractiveSession:
             return False
         except Exception as e:
             print(f"Error getting agent versions: {e}")
+            return False
+
+    def _run_doctor_diagnostics(self, args: list) -> bool:
+        """Run doctor diagnostics from interactive mode.
+        
+        Args:
+            args: Command arguments (e.g., ['--verbose'])
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            from claude_mpm.services.diagnostics import DiagnosticRunner, DoctorReporter
+            
+            # Parse arguments
+            verbose = "--verbose" in args or "-v" in args
+            no_color = "--no-color" in args
+            
+            # Print header
+            print("\n" + "="*60)
+            print("Claude MPM Doctor Report")
+            print("="*60)
+            
+            # Create diagnostic runner
+            runner = DiagnosticRunner(verbose=verbose)
+            
+            # Run diagnostics
+            try:
+                summary = runner.run_diagnostics()
+            except KeyboardInterrupt:
+                print("\nDiagnostics interrupted by user")
+                return False
+            except Exception as e:
+                print(f"\n❌ Diagnostic failed: {str(e)}")
+                if verbose:
+                    import traceback
+                    traceback.print_exc()
+                return False
+            
+            # Create reporter
+            reporter = DoctorReporter(
+                use_color=not no_color,
+                verbose=verbose
+            )
+            
+            # Display results in terminal format
+            reporter.report(summary, format="terminal")
+            
+            # Return based on status
+            if summary.error_count > 0:
+                return False
+            
+            return True
+            
+        except ImportError as e:
+            print(f"Error: Diagnostics module not available: {e}")
+            print("Please ensure claude-mpm is properly installed")
+            return False
+        except Exception as e:
+            print(f"Error running diagnostics: {e}")
+            if "--verbose" in args or "-v" in args:
+                import traceback
+                traceback.print_exc()
             return False

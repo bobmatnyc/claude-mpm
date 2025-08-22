@@ -10,6 +10,7 @@ from .agent_manager import manage_agent_manager
 from .aggregate import aggregate_command
 from .cleanup import cleanup_memory
 from .config import manage_config
+from .doctor import run_doctor
 from .info import show_info
 from .mcp import manage_mcp
 from .memory import manage_memory
@@ -33,4 +34,5 @@ __all__ = [
     "aggregate_command",
     "cleanup_memory",
     "manage_mcp",
+    "run_doctor",
 ]

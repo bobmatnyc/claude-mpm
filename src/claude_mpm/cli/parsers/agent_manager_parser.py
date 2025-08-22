@@ -28,7 +28,7 @@ Examples:
   claude-mpm agent-manager create --id my-agent          # Create agent with ID
   claude-mpm agent-manager variant --base research       # Create research variant
   claude-mpm agent-manager deploy --id my-agent --tier user  # Deploy to user tier
-  claude-mpm agent-manager customize-pm --level project  # Edit project PM instructions
+  claude-mpm agent-manager customize-pm --level project  # Edit .claude-mpm/INSTRUCTIONS.md
   claude-mpm agent-manager show --id engineer            # Show agent details
   claude-mpm agent-manager test --id my-agent            # Test agent configuration
   claude-mpm agent-manager templates                     # List available templates
@@ -169,13 +169,13 @@ Examples:
     # Customize PM command
     pm_parser = agent_subparsers.add_parser(
         "customize-pm",
-        help="Customize PM instructions at user or project level"
+        help="Customize PM instructions via .claude-mpm/INSTRUCTIONS.md"
     )
     pm_parser.add_argument(
         "--level",
         choices=["user", "project"],
         default="user",
-        help="PM instruction level (default: user)"
+        help="PM instruction level - user (~/.claude-mpm) or project (./.claude-mpm) (default: user)"
     )
     pm_parser.add_argument(
         "--template",

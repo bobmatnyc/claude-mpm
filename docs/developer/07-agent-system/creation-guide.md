@@ -79,7 +79,7 @@ Select the appropriate format based on your needs:
 | Use JSON when: | Use .claude when: | Use .claude-mpm when: |
 |----------------|-------------------|------------------------|
 | Complex configuration | Simple, readable agents | Enhanced project agents |
-| API generation | Claude Desktop integration | Balanced features/readability |
+| API generation | Claude Code integration | Balanced features/readability |
 | Full validation | Quick prototyping | Project-specific deployment |
 
 ### Step 3: Create Directory Structure

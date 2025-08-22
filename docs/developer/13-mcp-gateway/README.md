@@ -4,8 +4,8 @@
 
 The MCP Gateway is a production-ready implementation of the Model Context Protocol (MCP) that enables seamless integration between Claude Code and Claude MPM tools. It provides a stdio-based protocol handler that acts as a bridge between MCP clients and internal tool implementations.
 
-**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Desktop.**
-Claude Desktop uses a different system for agent deployment via the `.claude/agents/` directory.
+**NOTE: MCP integration is ONLY for Claude Code - NOT for Claude Code.**
+Claude Code uses a different system for agent deployment via the `.claude/agents/` directory.
 
 ## Architecture
 
@@ -313,10 +313,10 @@ timeout 3 claude-mpm mcp start || echo "Gateway started successfully"
    python -c "from claude_mpm.services.mcp_gateway import ToolRegistry; r = ToolRegistry(); print(r.list_tools())"
    ```
 
-3. **Claude Desktop Integration Issues**
+3. **Claude Code Integration Issues**
    - Verify MCP configuration syntax
    - Check file paths and permissions
-   - Restart Claude Desktop after configuration changes
+   - Restart Claude Code after configuration changes
 
 ### Debug Mode
 

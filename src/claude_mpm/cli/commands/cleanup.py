@@ -2,7 +2,7 @@
 Memory cleanup command implementation for claude-mpm.
 
 WHY: Large .claude.json files (>1MB) cause significant memory issues when using --resume.
-Claude Desktop loads the entire conversation history into memory, leading to 2GB+ memory
+Claude Code loads the entire conversation history into memory, leading to 2GB+ memory
 consumption. This command helps users manage and clean up their conversation history.
 
 DESIGN DECISIONS:

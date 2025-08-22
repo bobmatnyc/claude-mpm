@@ -2,19 +2,19 @@
 
 ## 🎉 Major Release: MCP Gateway Production Ready!
 
-This patch release delivers a **complete, production-ready MCP Gateway** for Claude Desktop integration, along with important bug fixes for aitrackdown CLI integration.
+This patch release delivers a **complete, production-ready MCP Gateway** for Claude Code integration, along with important bug fixes for aitrackdown CLI integration.
 
 ## 🚀 Headline Features
 
-### **MCP Gateway - Ready for Claude Desktop** 
+### **MCP Gateway - Ready for Claude Code** 
 ✅ **Complete Implementation**: Full MCP protocol support using Anthropic's official package  
 ✅ **Production Ready**: Singleton coordination, comprehensive error handling, clean shutdown  
 ✅ **Extensible Tools**: 3 built-in tools (echo, calculator, system_info) with easy extension framework  
 ✅ **CLI Management**: Complete command suite for gateway management and testing  
 ✅ **Comprehensive Testing**: 31 unit tests + integration tests with >80% coverage  
-✅ **Full Documentation**: Setup guides, architecture docs, and Claude Desktop integration instructions  
+✅ **Full Documentation**: Setup guides, architecture docs, and Claude Code integration instructions  
 
-### **Claude Desktop Integration**
+### **Claude Code Integration**
 ```json
 {
   "mcpServers": {
@@ -57,7 +57,7 @@ This patch release delivers a **complete, production-ready MCP Gateway** for Cla
 ```bash
 # Gateway Management
 claude-mpm mcp status          # Show gateway status and available tools
-claude-mpm mcp start           # Start gateway for Claude Desktop
+claude-mpm mcp start           # Start gateway for Claude Code
 claude-mpm mcp tools           # List all available tools
 
 # Tool Testing
@@ -76,7 +76,7 @@ claude-mpm tickets workflow TSK-0092 tested --comment "Completed"
 **EP-0007: MCP Gateway Phase 1** - **COMPLETED** ✅
 - 7 out of 8 tasks successfully completed
 - All core functionality implemented and tested
-- Ready for production use and Claude Desktop integration
+- Ready for production use and Claude Code integration
 - Comprehensive documentation and setup guides
 
 ## 🔄 Migration Notes
@@ -102,8 +102,8 @@ claude-mpm mcp status
 claude-mpm mcp test echo --args '{"message": "Testing MCP!"}'
 ```
 
-### **3. Configure Claude Desktop**
-Add to your Claude Desktop MCP configuration:
+### **3. Configure Claude Code**
+Add to your Claude Code MCP configuration:
 ```json
 {
   "mcpServers": {
@@ -116,8 +116,8 @@ Add to your Claude Desktop MCP configuration:
 }
 ```
 
-### **4. Restart Claude Desktop**
-The MCP Gateway will be available as tools in your Claude Desktop sessions!
+### **4. Restart Claude Code**
+The MCP Gateway will be available as tools in your Claude Code sessions!
 
 ## 📈 Next Steps
 
@@ -125,11 +125,11 @@ With the MCP Gateway foundation complete, future releases will focus on:
 - Additional specialized tools (document summarizer, code analysis, etc.)
 - Enhanced tool discovery and management
 - Performance optimizations and monitoring
-- Advanced Claude Desktop integration features
+- Advanced Claude Code integration features
 
 ## 🙏 Acknowledgments
 
-This release represents a major milestone in Claude MPM's evolution, providing a robust, production-ready MCP Gateway that seamlessly integrates with Claude Desktop while maintaining the project's focus on clean, maintainable code architecture.
+This release represents a major milestone in Claude MPM's evolution, providing a robust, production-ready MCP Gateway that seamlessly integrates with Claude Code while maintaining the project's focus on clean, maintainable code architecture.
 
 ---
 

@@ -9,7 +9,7 @@ Get Claude MPM running in 5 minutes or less!
 pip install claude-mpm
 ```
 
-**Requirements**: Python 3.8+, Claude Code (for Claude Desktop integration)
+**Requirements**: Python 3.8+, Claude Code
 
 ## 2. Start Claude MPM (10 seconds)
 

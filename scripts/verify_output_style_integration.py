@@ -44,7 +44,7 @@ def main():
     print("\n4. Checking output style handling...")
     if loader.output_style_manager:
         if loader.output_style_manager.supports_output_styles():
-            print("   ✓ Using Claude Desktop output styles (>= 1.0.83)")
+            print("   ✓ Using Claude Code output styles (>= 1.0.83)")
             print(f"   ✓ Output style deployed to: {loader.output_style_manager.output_style_path}")
             
             # Check if file exists
@@ -81,9 +81,9 @@ def main():
     print("\n6. Summary:")
     print("   The output style system is properly integrated and will:")
     if loader.output_style_manager and loader.output_style_manager.supports_output_styles():
-        print("   - Use Claude Desktop's native output style support")
+        print("   - Use Claude Code's native output style support")
         print("   - Deploy claude-mpm.md to ~/.claude/output-styles/")
-        print("   - Activate the style in Claude Desktop settings")
+        print("   - Activate the style in Claude Code settings")
     else:
         print("   - Inject output style content into framework instructions")
         print("   - Include style guidance in PM instructions")

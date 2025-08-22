@@ -6,7 +6,7 @@ MCP Process Diagnostic Script
 This script checks for running MCP server processes, displays their status,
 and can optionally clean up orphaned processes.
 
-WHY: Multiple MCP server instances can accumulate due to Claude Desktop's
+WHY: Multiple MCP server instances can accumulate due to Claude Code's
 spawning behavior, leading to memory issues. This tool helps diagnose and
 manage these processes.
 
@@ -246,7 +246,7 @@ class MCPProcessChecker:
         
         if total_memory > 500 * 1024 * 1024:  # 500 MB
             print(f"  - High memory usage detected: {format_bytes(total_memory)}")
-            print("    Consider restarting Claude Desktop")
+            print("    Consider restarting Claude Code")
             issues_found = True
         
         if not issues_found:

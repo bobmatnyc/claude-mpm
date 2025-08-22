@@ -53,11 +53,11 @@ claude_mpm.framework_loader - INFO - Using agents from main directory: /Users/ma
 claude_mpm.core.unified_agent_registry - INFO - UnifiedAgentRegistry initialized with cache=enabled
 claude_mpm.core.unified_agent_registry - INFO - Discovered 33 agents in 0.01s
 claude_mpm.output_style_manager - INFO - Detected Claude version: 1.0.83
-claude_mpm.framework_loader - INFO - Claude Desktop version detected: 1.0.83
-claude_mpm.framework_loader - INFO - ✅ Claude Desktop supports output styles (>= 1.0.83)
+claude_mpm.framework_loader - INFO - Claude Code version detected: 1.0.83
+claude_mpm.framework_loader - INFO - ✅ Claude Code supports output styles (>= 1.0.83)
 claude_mpm.framework_loader - INFO - 📁 Output style file exists: /Users/masa/.claude/output-styles/claude-mpm.md
 claude_mpm.output_style_manager - INFO - Saved output style to /Users/masa/Projects/claude-mpm/src/claude_mpm/agents/OUTPUT_STYLE.md
 claude_mpm.output_style_manager - INFO - Deployed output style to /Users/masa/.claude/output-styles/claude-mpm.md
-claude_mpm.framework_loader - INFO - ✅ Output style deployed to Claude Desktop >= 1.0.83
+claude_mpm.framework_loader - INFO - ✅ Output style deployed to Claude Code >= 1.0.83
 claude_mpm.framework_loader - INFO - Loaded 15 user agents: code-analyzer, data-engineer, documentation, engineer, memory-manager, ops, project-organizer, qa, refactoring-engineer, research, security, ticketing, version-control, web-qa, web-ui
 claude_mpm.services.system_instructions_service.SystemInstructionsService.system_instructions_service - INFO - Loaded and cached framework instructions via FrameworkLoader

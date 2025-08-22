@@ -7,7 +7,7 @@ As of version 4.0.14, Claude MPM properly handles both Claude's native `--resume
 ## Flags
 
 ### `--resume` (Claude Native)
-- **Purpose**: Passes through to Claude Desktop's native resume functionality
+- **Purpose**: Passes through to Claude Code's native resume functionality
 - **Usage**: `claude-mpm run --resume`
 - **Behavior**: Opens Claude's native resume screen showing recent conversations
 

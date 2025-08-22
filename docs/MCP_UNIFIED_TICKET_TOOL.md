@@ -2,7 +2,7 @@
 
 ## Overview
 
-The MCP Gateway now uses a **single unified ticket tool** instead of 5 separate tools for ticket management operations. This provides a cleaner, more intuitive API for Claude Desktop/Code users.
+The MCP Gateway now uses a **single unified ticket tool** instead of 5 separate tools for ticket management operations. This provides a cleaner, more intuitive API for Claude Code/Code users.
 
 ## Migration from Separate Tools to Unified Tool
 
@@ -151,9 +151,9 @@ This should show:
 
 The separate ticket tools (`ticket_tools.py`) are still available in the codebase but are no longer registered or used by the MCP servers. They can be removed in a future cleanup once we're confident the unified tool is working well.
 
-## Configuration in Claude Desktop
+## Configuration in Claude Code
 
-No changes needed to the Claude Desktop configuration. The MCP server will automatically provide the unified ticket tool:
+No changes needed to the Claude Code configuration. The MCP server will automatically provide the unified ticket tool:
 
 ```json
 {
@@ -168,7 +168,7 @@ No changes needed to the Claude Desktop configuration. The MCP server will autom
 ## Troubleshooting
 
 ### Issue: Still seeing 5 separate ticket tools
-**Solution**: Restart Claude Desktop to reload the MCP server with the new configuration.
+**Solution**: Restart Claude Code to reload the MCP server with the new configuration.
 
 ### Issue: "Unknown operation" error
 **Solution**: Ensure you're using one of the valid operations: create, list, update, view, search

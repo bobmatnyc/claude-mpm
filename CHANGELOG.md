@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 ## [Unreleased]
+## [4.0.32] - 2025-08-22
+
+### Fixed
+
+- **CRITICAL**: Prevent automatic file creation in .claude/ directory during startup
+- Disabled automatic system instructions deployment to .claude/ directory
+- Framework now loads custom instructions from .claude-mpm/ directories
+- Prevents conflicts with Claude Code's .claude/ directory management
+- Files only created when explicitly requested by user
+- Updated framework_loader.py to read from .claude-mpm/ with proper precedence
+- Added safe deployment methods to system_instructions_deployer.py
+- Comprehensive test coverage for directory loading behavior
+
 
 ### Added
 
@@ -17,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 
-## v4.0.31 (2025-08-22)
+## [4.0.31] - 2025-08-22
 
 ### Fixed
 

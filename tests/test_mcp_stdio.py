@@ -5,7 +5,7 @@ Test MCP Stdio Server
 =====================
 
 A simple test script to verify the MCP stdio server works correctly.
-This simulates how Claude Desktop would communicate with the server.
+This simulates how Claude Code would communicate with the server.
 
 WHY: We need to test that our stdio-based MCP server correctly handles
 JSON-RPC messages over stdin/stdout.
