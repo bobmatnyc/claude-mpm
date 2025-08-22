@@ -19,11 +19,13 @@ import { EventViewer } from '@components/event-viewer.js';
 import { ModuleViewer } from '@components/module-viewer.js';
 import { SessionManager } from '@components/session-manager.js';
 import { AgentInference } from '@components/agent-inference.js';
+import { AgentHierarchy } from '@components/agent-hierarchy.js';
 import { UIStateManager } from '@components/ui-state-manager.js';
 import { EventProcessor } from '@components/event-processor.js';
 import { ExportManager } from '@components/export-manager.js';
 import { WorkingDirectoryManager } from '@components/working-directory.js';
 import { FileToolTracker } from '@components/file-tool-tracker.js';
+import { BuildTracker } from '@components/build-tracker.js';
 class Dashboard {
     constructor() {
         // Core components (existing)
@@ -34,11 +36,13 @@ class Dashboard {
         // New modular components
         this.socketManager = null;
         this.agentInference = null;
+        this.agentHierarchy = null;
         this.uiStateManager = null;
         this.eventProcessor = null;
         this.exportManager = null;
         this.workingDirectoryManager = null;
         this.fileToolTracker = null;
+        this.buildTracker = null;
 
         // Initialize the dashboard
         this.init();
@@ -53,7 +57,9 @@ class Dashboard {
         // Initialize modules in dependency order
         this.initializeSocketManager();
         this.initializeCoreComponents();
+        this.initializeBuildTracker();
         this.initializeAgentInference();
+        this.initializeAgentHierarchy();
         this.initializeUIStateManager();
         this.initializeWorkingDirectoryManager();
         this.initializeFileToolTracker();
@@ -99,11 +105,42 @@ class Dashboard {
     }
 
     /**
+     * Initialize build tracker
+     */
+    initializeBuildTracker() {
+        this.buildTracker = new BuildTracker();
+        
+        // Set the socket client for receiving updates
+        this.buildTracker.setSocketClient(this.socketClient);
+        
+        // Mount to header - find the best location
+        const headerTitle = document.querySelector('.header-title');
+        if (headerTitle) {
+            // Insert after the title and status badge
+            this.buildTracker.mount(headerTitle);
+        } else {
+            console.warn('Could not find header-title element for build tracker');
+        }
+        
+        // Make available globally for debugging
+        window.buildTracker = this.buildTracker;
+    }
+
+    /**
      * Initialize agent inference system
      */
     initializeAgentInference() {
         this.agentInference = new AgentInference(this.eventViewer);
         this.agentInference.initialize();
+    }
+    
+    /**
+     * Initialize agent hierarchy component
+     */
+    initializeAgentHierarchy() {
+        this.agentHierarchy = new AgentHierarchy(this.agentInference, this.eventViewer);
+        // Make available globally for debugging and onclick handlers
+        window.dashboard.agentHierarchy = this.agentHierarchy;
     }
 
     /**
@@ -154,6 +191,9 @@ class Dashboard {
 
             // Process agent inference for new events
             this.agentInference.processAgentInference();
+            
+            // Update agent hierarchy with new events
+            this.agentHierarchy.updateWithNewEvents(events);
 
             // Auto-scroll events list if on events tab
             if (this.uiStateManager.getCurrentTab() === 'events') {
@@ -291,25 +331,59 @@ class Dashboard {
     }
 
     /**
-     * Render agents tab with unique instance view (one row per PM delegation)
+     * Render agents tab with hierarchical view
      */
     renderAgents() {
         const agentsList = document.getElementById('agents-list');
         if (!agentsList) return;
-
-        // Process agent inference to get PM delegations
-        this.agentInference.processAgentInference();
-
-        // Generate HTML for unique agent instances
-        const events = this.eventProcessor.getFilteredEventsForTab('agents');
-        const agentHTML = this.eventProcessor.generateAgentHTML(events);
-
-        agentsList.innerHTML = agentHTML;
-        this.exportManager.scrollListToBottom('agents-list');
-
-        // Update filter dropdowns with unique instances
+        
+        // Get filter values
+        const searchText = document.getElementById('agents-search-input')?.value || '';
+        const agentType = document.getElementById('agents-type-filter')?.value || '';
+        
+        // Build filters object
+        const filters = {};
+        if (searchText) filters.searchText = searchText;
+        if (agentType) filters.agentType = agentType;
+        
+        // Generate hierarchical HTML
+        const hierarchyHTML = this.agentHierarchy.render(filters);
+        agentsList.innerHTML = hierarchyHTML;
+        
+        // Add expand/collapse all buttons if not present
+        this.addHierarchyControls();
+        
+        // Update filter dropdowns with available agent types
         const uniqueInstances = this.agentInference.getUniqueAgentInstances();
         this.updateAgentsFilterDropdowns(uniqueInstances);
+    }
+    
+    /**
+     * Add hierarchy control buttons
+     */
+    addHierarchyControls() {
+        const tabFilters = document.querySelector('#agents-tab .tab-filters');
+        if (!tabFilters) return;
+        
+        // Check if controls already exist
+        if (document.getElementById('hierarchy-controls')) return;
+        
+        // Create control buttons
+        const controls = document.createElement('div');
+        controls.id = 'hierarchy-controls';
+        controls.className = 'hierarchy-controls';
+        controls.innerHTML = `
+            <button onclick="dashboard.agentHierarchy.expandAllNodes(); dashboard.renderAgents();" 
+                    class="hierarchy-btn hierarchy-expand-all">
+                Expand All
+            </button>
+            <button onclick="dashboard.agentHierarchy.collapseAllNodes(); dashboard.renderAgents();" 
+                    class="hierarchy-btn hierarchy-collapse-all">
+                Collapse All
+            </button>
+        `;
+        
+        tabFilters.appendChild(controls);
     }
 
     /**

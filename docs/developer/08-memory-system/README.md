@@ -67,6 +67,54 @@ When working with memory services:
 4. **Test Coverage**: Ensure comprehensive unit and integration tests
 5. **Performance Considerations**: Use caching appropriately
 
+### Agent Response Format for Memory
+
+When developing agents that need to update memories, use these response fields:
+
+#### Incremental Memory Updates
+Use the `remember` field to add new memories to existing lists:
+
+```json
+{
+  "remember": [
+    "Project uses FastAPI for web services",
+    "All database migrations go in /migrations/ directory"
+  ]
+}
+```
+
+#### Complete Memory Replacement
+Use the `MEMORIES` field to replace entire memory contents:
+
+```json
+{
+  "MEMORIES": [
+    "Complete optimized list of all current memories",
+    "Including both existing and new knowledge",
+    "Properly deduplicated and organized"
+  ]
+}
+```
+
+#### Memory Capture Criteria
+Only include memories that are:
+- **Project-Specific**: Information unique to this codebase
+- **Not Easily Found**: Knowledge not obvious from docs or code
+- **User-Directed**: Explicit user instructions with "remember", "memorize", etc.
+- **Implementation-Specific**: Project-specific patterns, constraints, or decisions
+
+#### Example Agent Response
+```json
+{
+  "analysis": "I've implemented the authentication system using JWT tokens...",
+  "remember": [
+    "Authentication tokens expire after 24 hours",
+    "User sessions are stored in Redis cache",
+    "Password reset tokens are valid for 1 hour only"
+  ]
+}
+```
+
 ## Configuration
 
 Memory services are configured through the main configuration:

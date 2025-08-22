@@ -7,7 +7,7 @@ A powerful orchestration framework for Claude Code that enables multi-agent work
 ## Features
 
 - 🤖 **Multi-Agent System**: 15 specialized agents for comprehensive project management
-- 🧠 **Agent Memory System**: Persistent learning with project-specific knowledge retention
+- 🧠 **Agent Memory System**: Simple list-based persistent learning with JSON response field updates
 - 🔄 **Session Management**: Resume previous sessions with `--resume` 
 - 📊 **Real-Time Monitoring**: Live dashboard with `--monitor` flag
 - 🔌 **MCP Gateway**: Model Context Protocol integration for extensible tool capabilities
@@ -91,7 +91,7 @@ Claude MPM includes 15 specialized agents:
 - **Code Analyzer** - Static code analysis with AST and tree-sitter
 
 ### Agent Memory System
-Agents learn project-specific patterns and remember insights across sessions. Initialize with `claude-mpm memory init`.
+Agents learn project-specific patterns using a simple list format and can update memories via JSON response fields (`remember` for incremental updates, `MEMORIES` for complete replacement). Initialize with `claude-mpm memory init`.
 
 ### MCP Gateway (Model Context Protocol)
 
