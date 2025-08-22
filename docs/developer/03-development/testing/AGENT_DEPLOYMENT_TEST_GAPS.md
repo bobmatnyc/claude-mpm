@@ -31,7 +31,7 @@ These methods handle the deployment process:
 - `set_claude_environment()` - Sets environment variables
 - `verify_deployment()` - Verifies deployment success
 - `clean_deployment()` - Removes system agents
-- `_deploy_system_instructions()` - Deploys CLAUDE.md
+- `_deploy_system_instructions()` - Deploys INSTRUCTIONS.md
 
 **Risk**: Failed deployments could leave system in inconsistent state.
 
