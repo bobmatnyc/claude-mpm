@@ -66,8 +66,10 @@ class StartupStatusLogger:
                     self.logger.info(f"MCP Server: {config_status['servers_count']} server(s) configured")
                 else:
                     self.logger.info("MCP Server: No servers configured")
+                    self._log_mcp_setup_hint()
             else:
                 self.logger.info("MCP Server: No configuration found in ~/.claude.json")
+                self._log_mcp_setup_hint()
             
             # Check for claude-mpm MCP gateway status
             gateway_status = self._check_mcp_gateway_status()
@@ -75,6 +77,9 @@ class StartupStatusLogger:
                 self.logger.info("MCP Gateway: Claude MPM gateway configured")
             else:
                 self.logger.info("MCP Gateway: Claude MPM gateway not configured")
+                # Check if this is a pipx installation that could benefit from auto-config
+                if self._is_pipx_installation() and not self._has_auto_config_preference():
+                    self.logger.info("MCP Gateway: Auto-configuration available for pipx users")
                 
         except Exception as e:
             self.logger.warning(f"MCP Server: Status check failed - {e}")
@@ -293,6 +298,76 @@ class StartupStatusLogger:
             result["error"] = str(e)
         
         return result
+    
+    def _is_pipx_installation(self) -> bool:
+        """Check if this is a pipx installation."""
+        try:
+            # Check if running from pipx
+            if "pipx" in sys.executable.lower():
+                return True
+            
+            # Check module path
+            import claude_mpm
+            module_path = Path(claude_mpm.__file__).parent
+            if "pipx" in str(module_path):
+                return True
+        except Exception:
+            pass
+        
+        return False
+    
+    def _has_auto_config_preference(self) -> bool:
+        """Check if user has already been asked about auto-configuration."""
+        try:
+            from ..config.paths import paths
+            preference_file = paths.claude_mpm_dir_hidden / "mcp_auto_config_preference.json"
+            return preference_file.exists()
+        except Exception:
+            return False
+    
+    def _log_mcp_setup_hint(self) -> None:
+        """Log helpful hints for MCP setup."""
+        # Check if installed via pipx
+        is_pipx = self._check_pipx_installation()
+        
+        if is_pipx:
+            self.logger.info("💡 TIP: It looks like you installed claude-mpm via pipx")
+            self.logger.info("   To configure MCP for Claude Code with pipx:")
+            self.logger.info("   1. Run: python3 scripts/configure_mcp_pipx.py")
+            self.logger.info("   2. Or see: docs/MCP_PIPX_SETUP.md for manual setup")
+            self.logger.info("   3. Restart Claude Code after configuration")
+        else:
+            self.logger.info("💡 TIP: To enable MCP integration with Claude Code:")
+            self.logger.info("   1. See docs/MCP_SETUP.md for setup instructions")
+            self.logger.info("   2. Run: claude-mpm doctor --check mcp to verify")
+            self.logger.info("   3. Restart Claude Code after configuration")
+    
+    def _check_pipx_installation(self) -> bool:
+        """Check if claude-mpm was installed via pipx."""
+        try:
+            # Check if running from a pipx venv
+            if "pipx" in sys.executable.lower():
+                return True
+            
+            # Check if claude-mpm-mcp command exists and is from pipx
+            mcp_cmd = shutil.which("claude-mpm-mcp")
+            if mcp_cmd and "pipx" in mcp_cmd.lower():
+                return True
+            
+            # Try to check pipx list
+            result = subprocess.run(
+                ["pipx", "list"],
+                capture_output=True,
+                text=True,
+                timeout=2
+            )
+            if result.returncode == 0 and "claude-mpm" in result.stdout:
+                return True
+                
+        except Exception:
+            pass
+        
+        return False
 
 
 def setup_startup_logging(project_root: Optional[Path] = None) -> Path:

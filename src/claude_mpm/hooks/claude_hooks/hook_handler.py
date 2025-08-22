@@ -60,6 +60,14 @@ except ImportError:
                 }
             })
 
+# Import EventBus for decoupled event distribution
+try:
+    from claude_mpm.services.event_bus import EventBus
+    EVENTBUS_AVAILABLE = True
+except ImportError:
+    EVENTBUS_AVAILABLE = False
+    EventBus = None
+
 # Import constants for configuration
 try:
     from claude_mpm.core.constants import NetworkConfig, RetryConfig, TimeoutConfig
@@ -111,13 +119,23 @@ class ClaudeHookHandler:
     """
 
     def __init__(self):
-        # Socket.IO client (persistent if possible)
-        self.connection_pool = SocketIOConnectionPool(max_connections=3)
         # Track events for periodic cleanup
         self.events_processed = 0
         self.last_cleanup = time.time()
         # Event normalizer for consistent event schema
         self.event_normalizer = EventNormalizer()
+        
+        # Initialize EventBus for decoupled event distribution
+        self.event_bus = None
+        if EVENTBUS_AVAILABLE:
+            try:
+                self.event_bus = EventBus.get_instance()
+                if DEBUG:
+                    print("✅ EventBus initialized for hook handler", file=sys.stderr)
+            except Exception as e:
+                if DEBUG:
+                    print(f"⚠️ Failed to initialize EventBus: {e}", file=sys.stderr)
+                self.event_bus = None
 
         # Maximum sizes for tracking
         self.MAX_DELEGATION_TRACKING = 200
@@ -511,176 +529,61 @@ class ClaudeHookHandler:
         """
         print(json.dumps({"action": "continue"}))
 
-    def _discover_socketio_port(self) -> int:
-        """Discover the port of the running SocketIO server."""
-        try:
-            # Try to import port manager
-            from claude_mpm.services.port_manager import PortManager
-
-            port_manager = PortManager()
-            instances = port_manager.list_active_instances()
-
-            if instances:
-                # Prefer port 8765 if available
-                for instance in instances:
-                    if instance.get("port") == 8765:
-                        return 8765
-                # Otherwise use the first active instance
-                return instances[0].get("port", 8765)
-            else:
-                # No active instances, use default
-                return 8765
-        except Exception:
-            # Fallback to environment variable or default
-            return int(os.environ.get("CLAUDE_MPM_SOCKETIO_PORT", "8765"))
 
     def _emit_socketio_event(self, namespace: str, event: str, data: dict):
-        """Emit Socket.IO event with improved reliability and event normalization.
+        """Emit event through EventBus for Socket.IO relay.
 
-        WHY improved approach:
-        - Uses EventNormalizer for consistent event schema
-        - Maintains persistent connections throughout handler lifecycle
-        - Better error handling and automatic recovery
-        - Connection health monitoring before emission
-        - Automatic reconnection for critical events
-        - All events normalized to standard schema before emission
+        WHY EventBus-only approach:
+        - Single event path prevents duplicates
+        - EventBus relay handles Socket.IO connection management
+        - Better separation of concerns
+        - More resilient with centralized failure handling
+        - Cleaner architecture and easier testing
         """
-        # Always try to emit Socket.IO events if available
-        # The daemon should be running when manager is active
-
-        # Get Socket.IO client with dynamic port discovery
-        port = self._discover_socketio_port()
-        client = self.connection_pool.get_connection(port)
+        # Create event data for normalization
+        raw_event = {
+            "type": "hook",
+            "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
+            "timestamp": datetime.now().isoformat(),
+            "data": data,
+            "source": "claude_hooks",  # Identify the source
+            "session_id": data.get("sessionId"),  # Include session if available
+        }
         
-        # If no client available, try to create one
-        if not client:
-            if DEBUG:
+        # Normalize the event using EventNormalizer for consistent schema
+        normalized_event = self.event_normalizer.normalize(raw_event, source="hook")
+        claude_event_data = normalized_event.to_dict()
+
+        # Log important events for debugging
+        if DEBUG and event in ["subagent_stop", "pre_tool"]:
+            if event == "subagent_stop":
+                agent_type = data.get("agent_type", "unknown")
                 print(
-                    f"Hook handler: No Socket.IO client available, attempting to create connection for event: hook.{event}",
+                    f"Hook handler: Publishing SubagentStop for agent '{agent_type}'",
                     file=sys.stderr,
                 )
-            # Force creation of a new connection
-            client = self.connection_pool._create_connection(port)
-            if client:
-                # Add to pool for future use
-                self.connection_pool.connections.append(
-                    {"port": port, "client": client, "created": time.time()}
+            elif event == "pre_tool" and data.get("tool_name") == "Task":
+                delegation = data.get("delegation_details", {})
+                agent_type = delegation.get("agent_type", "unknown")
+                print(
+                    f"Hook handler: Publishing Task delegation to agent '{agent_type}'",
+                    file=sys.stderr,
                 )
-            else:
+        
+        # Publish to EventBus for distribution through relay
+        if self.event_bus and EVENTBUS_AVAILABLE:
+            try:
+                # Publish to EventBus with topic format: hook.{event}
+                topic = f"hook.{event}"
+                self.event_bus.publish(topic, claude_event_data)
                 if DEBUG:
-                    print(
-                        f"Hook handler: Failed to create Socket.IO connection for event: hook.{event}",
-                        file=sys.stderr,
-                    )
-                return
-
-        try:
-            # Verify connection is alive before emitting
-            if not client.connected:
+                    print(f"✅ Published to EventBus: {topic}", file=sys.stderr)
+            except Exception as e:
                 if DEBUG:
-                    print(
-                        f"Hook handler: Client not connected, attempting reconnection for event: hook.{event}",
-                        file=sys.stderr,
-                    )
-                # Try to reconnect
-                try:
-                    client.connect(
-                        f"http://localhost:{port}",
-                        wait=True,
-                        wait_timeout=1.0,
-                        transports=['websocket', 'polling'],
-                    )
-                except:
-                    # If reconnection fails, get a fresh client
-                    client = self.connection_pool._create_connection(port)
-                    if not client:
-                        if DEBUG:
-                            print(
-                                f"Hook handler: Reconnection failed for event: hook.{event}",
-                                file=sys.stderr,
-                            )
-                        return
-            
-            # Create event data for normalization
-            raw_event = {
-                "type": "hook",
-                "subtype": event,  # e.g., "user_prompt", "pre_tool", "subagent_stop"
-                "timestamp": datetime.now().isoformat(),
-                "data": data,
-                "source": "claude_hooks",  # Identify the source
-                "session_id": data.get("sessionId"),  # Include session if available
-            }
-            
-            # Normalize the event using EventNormalizer for consistent schema
-            # Pass source explicitly to ensure it's set correctly
-            normalized_event = self.event_normalizer.normalize(raw_event, source="hook")
-            claude_event_data = normalized_event.to_dict()
-
-            # Log important events for debugging
-            if DEBUG and event in ["subagent_stop", "pre_tool"]:
-                if event == "subagent_stop":
-                    agent_type = data.get("agent_type", "unknown")
-                    print(
-                        f"Hook handler: Emitting SubagentStop for agent '{agent_type}'",
-                        file=sys.stderr,
-                    )
-                elif event == "pre_tool" and data.get("tool_name") == "Task":
-                    delegation = data.get("delegation_details", {})
-                    agent_type = delegation.get("agent_type", "unknown")
-                    print(
-                        f"Hook handler: Emitting Task delegation to agent '{agent_type}'",
-                        file=sys.stderr,
-                    )
-
-            # Emit synchronously
-            client.emit("claude_event", claude_event_data)
-            
-            # For critical events, wait a moment to ensure delivery
-            if event in ["subagent_stop", "pre_tool"]:
-                time.sleep(0.01)  # Small delay to ensure event is sent
-
-            # Verify emission for critical events
-            if event in ["subagent_stop", "pre_tool"] and DEBUG:
-                if client.connected:
-                    print(
-                        f"✅ Successfully emitted Socket.IO event: hook.{event} (connection still active)",
-                        file=sys.stderr,
-                    )
-                else:
-                    print(
-                        f"⚠️ Event emitted but connection closed after: hook.{event}",
-                        file=sys.stderr,
-                    )
-
-        except Exception as e:
+                    print(f"⚠️ Failed to publish to EventBus: {e}", file=sys.stderr)
+        else:
             if DEBUG:
-                print(f"❌ Socket.IO emit failed for hook.{event}: {e}", file=sys.stderr)
-
-            # Try to reconnect immediately for critical events
-            if event in ["subagent_stop", "pre_tool"]:
-                if DEBUG:
-                    print(
-                        f"Hook handler: Attempting immediate reconnection for critical event: hook.{event}",
-                        file=sys.stderr,
-                    )
-                # Force get a new client and emit again
-                self.connection_pool._cleanup_dead_connections()
-                retry_client = self.connection_pool._create_connection(port)
-                if retry_client:
-                    try:
-                        retry_client.emit("claude_event", claude_event_data)
-                        # Add to pool for future use
-                        self.connection_pool.connections.append(
-                            {"port": port, "client": retry_client, "created": time.time()}
-                        )
-                        if DEBUG:
-                            print(
-                                f"✅ Successfully re-emitted event after reconnection: hook.{event}",
-                                file=sys.stderr,
-                            )
-                    except Exception as retry_e:
-                        if DEBUG:
-                            print(f"❌ Re-emission failed: {retry_e}", file=sys.stderr)
+                print(f"⚠️ EventBus not available for event: hook.{event}", file=sys.stderr)
 
     def handle_subagent_stop(self, event: dict):
         """Handle subagent stop events with improved agent type detection.
@@ -1012,12 +915,9 @@ class ClaudeHookHandler:
         self._emit_socketio_event("/hook", "subagent_stop", subagent_stop_data)
 
     def __del__(self):
-        """Cleanup Socket.IO connections on handler destruction."""
-        if hasattr(self, "connection_pool") and self.connection_pool:
-            try:
-                self.connection_pool.close_all()
-            except:
-                pass
+        """Cleanup on handler destruction."""
+        # Connection pool no longer used - EventBus handles cleanup
+        pass
 
 
 def main():

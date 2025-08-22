@@ -507,6 +507,7 @@ class MultiSourceAgentDeploymentService:
             "needs_update": [],
             "up_to_date": [],
             "new_agents": [],
+            "orphaned_agents": [],  # Agents without templates
             "version_upgrades": [],
             "version_downgrades": [],
             "source_changes": []
@@ -527,9 +528,11 @@ class MultiSourceAgentDeploymentService:
             # Read template version
             try:
                 template_data = json.loads(template_path.read_text())
+                metadata = template_data.get("metadata", {})
                 template_version = self.version_manager.parse_version(
                     template_data.get("agent_version") or 
-                    template_data.get("version", "0.0.0")
+                    template_data.get("version") or
+                    metadata.get("version", "0.0.0")
                 )
             except Exception as e:
                 self.logger.warning(f"Error reading template for '{agent_name}': {e}")
@@ -597,13 +600,20 @@ class MultiSourceAgentDeploymentService:
                     "source": agent_sources[agent_name]
                 })
         
+        # Check for orphaned agents (deployed but no template)
+        orphaned = self._detect_orphaned_agents_simple(deployed_agents_dir, agents_to_deploy)
+        comparison_results["orphaned_agents"] = orphaned
+        
         # Log summary
-        self.logger.info(
-            f"Version comparison complete: "
-            f"{len(comparison_results['needs_update'])} need updates, "
-            f"{len(comparison_results['up_to_date'])} up to date, "
+        summary_parts = [
+            f"{len(comparison_results['needs_update'])} need updates",
+            f"{len(comparison_results['up_to_date'])} up to date",
             f"{len(comparison_results['new_agents'])} new agents"
-        )
+        ]
+        if comparison_results["orphaned_agents"]:
+            summary_parts.append(f"{len(comparison_results['orphaned_agents'])} orphaned")
+        
+        self.logger.info(f"Version comparison complete: {', '.join(summary_parts)}")
         
         if comparison_results["version_upgrades"]:
             for upgrade in comparison_results["version_upgrades"]:
@@ -622,10 +632,24 @@ class MultiSourceAgentDeploymentService:
         
         if comparison_results["version_downgrades"]:
             for downgrade in comparison_results["version_downgrades"]:
-                self.logger.warning(
-                    f"  Warning: {downgrade['name']} deployed version "
+                # Changed from warning to debug - deployed versions higher than templates
+                # are not errors, just informational
+                self.logger.debug(
+                    f"  Note: {downgrade['name']} deployed version "
                     f"{downgrade['deployed_version']} is higher than template "
-                    f"{downgrade['template_version']}"
+                    f"{downgrade['template_version']} (keeping deployed version)"
+                )
+        
+        # Log orphaned agents if found
+        if comparison_results["orphaned_agents"]:
+            self.logger.info(
+                f"Found {len(comparison_results['orphaned_agents'])} orphaned agent(s) "
+                f"(deployed without templates):"
+            )
+            for orphan in comparison_results["orphaned_agents"]:
+                self.logger.info(
+                    f"  - {orphan['name']} v{orphan['version']} "
+                    f"(consider removing or creating a template)"
                 )
         
         return comparison_results
@@ -693,3 +717,176 @@ class MultiSourceAgentDeploymentService:
         
         # Complex names are more likely to be user/project agents
         return "user"
+    
+    def detect_orphaned_agents(
+        self, 
+        deployed_agents_dir: Path,
+        available_agents: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Detect deployed agents that don't have corresponding templates.
+        
+        WHY: Orphaned agents can cause confusion with version warnings.
+        This method identifies them so they can be handled appropriately.
+        
+        Args:
+            deployed_agents_dir: Directory containing deployed agents
+            available_agents: Dictionary of available agents from all sources
+            
+        Returns:
+            List of orphaned agent information
+        """
+        orphaned = []
+        
+        if not deployed_agents_dir.exists():
+            return orphaned
+        
+        # Build a mapping of file stems to agent names for comparison
+        # Since available_agents uses display names like "Code Analysis Agent"
+        # but deployed files use stems like "code_analyzer"
+        available_stems = set()
+        stem_to_name = {}
+        
+        for agent_name, agent_sources in available_agents.items():
+            # Get the file path from the first source to extract the stem
+            if agent_sources and isinstance(agent_sources, list) and len(agent_sources) > 0:
+                first_source = agent_sources[0]
+                if 'file_path' in first_source:
+                    file_path = Path(first_source['file_path'])
+                    stem = file_path.stem
+                    available_stems.add(stem)
+                    stem_to_name[stem] = agent_name
+        
+        for deployed_file in deployed_agents_dir.glob("*.md"):
+            agent_stem = deployed_file.stem
+            
+            # Skip if this agent has a template (check by stem, not display name)
+            if agent_stem in available_stems:
+                continue
+            
+            # This is an orphaned agent
+            try:
+                deployed_content = deployed_file.read_text()
+                deployed_version, _, _ = self.version_manager.extract_version_from_frontmatter(
+                    deployed_content
+                )
+                version_str = self.version_manager.format_version_display(deployed_version)
+            except Exception:
+                version_str = "unknown"
+            
+            orphaned.append({
+                "name": agent_stem,
+                "file": str(deployed_file),
+                "version": version_str
+            })
+        
+        return orphaned
+    
+    def _detect_orphaned_agents_simple(
+        self, 
+        deployed_agents_dir: Path,
+        agents_to_deploy: Dict[str, Path]
+    ) -> List[Dict[str, Any]]:
+        """Simple orphan detection that works with agents_to_deploy structure.
+        
+        Args:
+            deployed_agents_dir: Directory containing deployed agents
+            agents_to_deploy: Dictionary mapping file stems to template paths
+            
+        Returns:
+            List of orphaned agent information
+        """
+        orphaned = []
+        
+        if not deployed_agents_dir.exists():
+            return orphaned
+        
+        # agents_to_deploy already contains file stems as keys
+        available_stems = set(agents_to_deploy.keys())
+        
+        for deployed_file in deployed_agents_dir.glob("*.md"):
+            agent_stem = deployed_file.stem
+            
+            # Skip if this agent has a template (check by stem)
+            if agent_stem in available_stems:
+                continue
+            
+            # This is an orphaned agent
+            try:
+                deployed_content = deployed_file.read_text()
+                deployed_version, _, _ = self.version_manager.extract_version_from_frontmatter(
+                    deployed_content
+                )
+                version_str = self.version_manager.format_version_display(deployed_version)
+            except Exception:
+                version_str = "unknown"
+            
+            orphaned.append({
+                "name": agent_stem,
+                "file": str(deployed_file),
+                "version": version_str
+            })
+        
+        return orphaned
+    
+    def cleanup_orphaned_agents(
+        self,
+        deployed_agents_dir: Path,
+        dry_run: bool = True
+    ) -> Dict[str, Any]:
+        """Clean up orphaned agents that don't have templates.
+        
+        WHY: Orphaned agents can accumulate over time and cause confusion.
+        This method provides a way to clean them up systematically.
+        
+        Args:
+            deployed_agents_dir: Directory containing deployed agents
+            dry_run: If True, only report what would be removed
+            
+        Returns:
+            Dictionary with cleanup results
+        """
+        results = {
+            "orphaned": [],
+            "removed": [],
+            "errors": []
+        }
+        
+        # First, discover all available agents from all sources
+        all_agents = self.discover_agents_from_all_sources()
+        available_names = set(all_agents.keys())
+        
+        # Detect orphaned agents
+        orphaned = self.detect_orphaned_agents(deployed_agents_dir, all_agents)
+        results["orphaned"] = orphaned
+        
+        if not orphaned:
+            self.logger.info("No orphaned agents found")
+            return results
+        
+        self.logger.info(f"Found {len(orphaned)} orphaned agent(s)")
+        
+        for orphan in orphaned:
+            agent_file = Path(orphan["file"])
+            
+            if dry_run:
+                self.logger.info(
+                    f"  Would remove: {orphan['name']} v{orphan['version']}"
+                )
+            else:
+                try:
+                    agent_file.unlink()
+                    results["removed"].append(orphan["name"])
+                    self.logger.info(
+                        f"  Removed: {orphan['name']} v{orphan['version']}"
+                    )
+                except Exception as e:
+                    error_msg = f"Failed to remove {orphan['name']}: {e}"
+                    results["errors"].append(error_msg)
+                    self.logger.error(f"  {error_msg}")
+        
+        if dry_run and orphaned:
+            self.logger.info(
+                "Run with dry_run=False to actually remove orphaned agents"
+            )
+        
+        return results

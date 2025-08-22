@@ -47,7 +47,7 @@ class SocketClient {
         // Health monitoring
         this.lastPingTime = null;
         this.lastPongTime = null;
-        this.pingTimeout = 40000; // 40 seconds (server sends every 30s)
+        this.pingTimeout = 90000; // 90 seconds for health check (more lenient than Socket.IO timeout)
         this.healthCheckInterval = null;
         
         // Start periodic status check as fallback mechanism
@@ -97,11 +97,13 @@ class SocketClient {
             autoConnect: true,
             reconnection: true,
             reconnectionDelay: 1000,
-            reconnectionDelayMax: 10000,
-            maxReconnectionAttempts: 10,
-            timeout: 10000,
+            reconnectionDelayMax: 5000,
+            reconnectionAttempts: Infinity,  // Keep trying indefinitely
+            timeout: 20000,  // Increase connection timeout
             forceNew: true,
-            transports: ['websocket', 'polling']
+            transports: ['websocket', 'polling'],
+            pingInterval: 25000,  // Match server setting
+            pingTimeout: 60000    // Match server setting
         });
 
         this.setupSocketHandlers();

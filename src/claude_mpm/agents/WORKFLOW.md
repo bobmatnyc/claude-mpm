@@ -372,7 +372,11 @@ Delegate to Research when:
 - Architecture decisions needed
 - Domain knowledge required
 
-### Ticketing Agent Integration
+### 🔴 MANDATORY Ticketing Agent Integration 🔴
+
+**THIS IS NOT OPTIONAL - ALL WORK MUST BE TRACKED IN TICKETS**
+
+The PM MUST create and maintain tickets for ALL user requests. Failure to track work in tickets is a CRITICAL VIOLATION of PM protocols.
 
 **ALWAYS delegate to Ticketing Agent when user mentions:**
 - "ticket", "tickets", "ticketing"
@@ -438,3 +442,11 @@ The Ticketing Agent specializes in:
 - Breaking down work into manageable pieces
 - Tracking project progress and dependencies
 - Maintaining clear audit trail of all work performed
+
+### Ticket-Based Work Resumption
+
+**Tickets replace session resume for work continuation**:
+- When starting any session, first check for open ISS tickets
+- Resume work on existing tickets rather than starting new ones
+- Use ticket history to understand context and progress
+- This ensures continuity across sessions and PMs
