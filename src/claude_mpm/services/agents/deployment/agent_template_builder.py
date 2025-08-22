@@ -148,16 +148,24 @@ class AgentTemplateBuilder:
         else:
             claude_model = "inherit"
 
-        # Determine color based on agent type
-        color_map = {
-            "engineer": "blue",
-            "qa": "green",
-            "security": "red",
-            "research": "purple",
-            "documentation": "orange",
-            "ops": "gray",
-        }
-        color = color_map.get(agent_type, "blue")
+        # Determine color - prefer template's color, fallback to type-based defaults
+        template_metadata = template_data.get("metadata", {})
+        template_color = template_metadata.get("color")
+        
+        if template_color:
+            # Use the color specified in the template
+            color = template_color
+        else:
+            # Fallback to default color map based on agent type
+            color_map = {
+                "engineer": "blue",
+                "qa": "green",
+                "security": "red",
+                "research": "purple",
+                "documentation": "cyan",  # Changed default to match template preference
+                "ops": "gray",
+            }
+            color = color_map.get(agent_type, "blue")
 
         # Check if we should include tools field (only if significantly restricting)
         # Claude Code approach: omit tools field unless specifically restricting
