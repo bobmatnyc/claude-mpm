@@ -31,6 +31,9 @@ except ImportError:
     aiohttp = None
     web = None
 
+# Import VersionService for dynamic version retrieval
+from claude_mpm.services.version_service import VersionService
+
 from ....core.constants import (
     NetworkConfig,
     PerformanceConfig,
@@ -158,11 +161,14 @@ class SocketIOServerCore:
     async def _start_server(self):
         """Start the Socket.IO server with aiohttp."""
         try:
-            # Create Socket.IO server
+            # Create Socket.IO server with proper ping/pong configuration
             self.sio = socketio.AsyncServer(
                 cors_allowed_origins="*",
                 logger=False,  # Disable Socket.IO's own logging
                 engineio_logger=False,
+                ping_interval=25,  # Send ping every 25 seconds
+                ping_timeout=60,   # Wait 60 seconds for pong response
+                max_http_buffer_size=1e8,  # 100MB max buffer
             )
 
             # Create aiohttp application
@@ -255,6 +261,23 @@ class SocketIOServerCore:
                         return web.Response(text="Dashboard not available", status=404)
 
                 self.app.router.add_get("/", index_handler)
+                
+                # Serve version.json from dashboard directory
+                async def version_handler(request):
+                    version_file = self.dashboard_path / "version.json"
+                    if version_file.exists():
+                        self.logger.debug(f"Serving version.json from: {version_file}")
+                        return web.FileResponse(version_file)
+                    else:
+                        # Return default version info if file doesn't exist
+                        return web.json_response({
+                            "version": "1.0.0",
+                            "build": 1,
+                            "formatted_build": "0001",
+                            "full_version": "v1.0.0-0001"
+                        })
+                
+                self.app.router.add_get("/version.json", version_handler)
 
                 # Serve static assets (CSS, JS) from the dashboard static directory
                 dashboard_static_path = (
@@ -426,7 +449,7 @@ class SocketIOServerCore:
                         "total_events": self.stats.get("events_sent", 0),
                         "active_sessions": active_sessions,
                         "server_info": {
-                            "version": "4.0.2",
+                            "version": VersionService().get_version(),
                             "port": self.port,
                         },
                     },

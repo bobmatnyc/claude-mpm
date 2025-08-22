@@ -1,0 +1,91 @@
+# Ruff configuration for catching duplicate imports and other issues
+# Ruff is faster and more comprehensive than flake8
+
+# Same line length as Black
+line-length = 88
+
+# Target Python 3.8+
+target-version = "py38"
+
+# Enable specific rule categories
+[lint]
+select = [
+    "F",     # Pyflakes (includes duplicate import detection)
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort (import sorting)
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear (catches common bugs)
+    "C4",    # flake8-comprehensions
+    "DTZ",   # flake8-datetimez
+    "ISC",   # flake8-implicit-str-concat
+    "PIE",   # flake8-pie
+    "RET",   # flake8-return
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking (imports in TYPE_CHECKING blocks)
+    "PTH",   # flake8-use-pathlib
+    "PL",    # Pylint rules
+    "RUF",   # Ruff-specific rules
+]
+
+# Specific rules to catch duplicate imports and scope issues
+extend-select = [
+    "F401",  # Unused imports
+    "F402",  # Import shadowed by loop variable  
+    "F403",  # Star imports
+    "F404",  # Late future import
+    "F405",  # Star import undefined names
+    "F811",  # Redefinition of unused variable (catches duplicate imports!)
+    "F821",  # Undefined name (catches scope issues!)
+    "F822",  # Undefined name in __all__
+    "F823",  # Local variable referenced before assignment
+    "F841",  # Local variable assigned but never used
+    "E902",  # IOError (can catch import errors)
+]
+
+# Rules to ignore
+ignore = [
+    "E203",  # Whitespace before ':' (Black compatibility)
+    "E501",  # Line too long (handled by formatter)
+    "B008",  # Do not perform function calls in argument defaults
+    "B905",  # zip() without explicit strict= parameter
+    "C901",  # Too complex (can enable later)
+]
+
+# Exclude paths
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "env", 
+    ".env",
+    "build",
+    "dist",
+    "*.egg-info",
+    ".pytest_cache",
+    ".mypy_cache",
+    "node_modules",
+    ".tox",
+    "migrations",
+]
+
+# Per-file ignores
+[per-file-ignores]
+"__init__.py" = ["F401", "F403"]  # Allow unused imports in __init__
+"tests/*" = ["F403", "F405"]       # Allow star imports in tests
+"scripts/*" = ["T201"]              # Allow print() in scripts
+
+# Import settings
+[lint.isort]
+known-first-party = ["claude_mpm"]
+combine-as-imports = true
+
+# McCabe complexity
+[lint.mccabe]
+max-complexity = 10
+
+# Type checking imports
+[lint.flake8-type-checking]
+strict = true  # Enforce imports only used for type checking to be in TYPE_CHECKING block

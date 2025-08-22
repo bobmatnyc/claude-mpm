@@ -35,10 +35,44 @@ export class BuildTracker {
     /**
      * Initialize the build tracker component
      */
-    init() {
+    async init() {
         console.log('Initializing BuildTracker component');
+        
+        // Try to load version.json for dashboard version
+        await this.loadDashboardVersion();
+        
         this.createElements();
         this.setupEventListeners();
+    }
+    
+    /**
+     * Load dashboard version from version.json if available
+     * 
+     * WHY: Attempts to load the actual dashboard version from the 
+     * version.json file created by the version management script.
+     * Falls back to defaults if file is not available.
+     */
+    async loadDashboardVersion() {
+        try {
+            // Try to fetch version.json from the dashboard root
+            const response = await fetch('/version.json');
+            if (response.ok) {
+                const versionData = await response.json();
+                
+                // Update monitor build info with loaded data
+                this.buildInfo.monitor = {
+                    version: versionData.version || "1.0.0",
+                    build: versionData.build || 1,
+                    formatted_build: versionData.formatted_build || "0001",
+                    full_version: versionData.full_version || "v1.0.0-0001"
+                };
+                
+                console.log('Loaded dashboard version:', this.buildInfo.monitor);
+            }
+        } catch (error) {
+            // Silently fall back to defaults if version.json not available
+            console.debug('Dashboard version.json not available, using defaults');
+        }
     }
     
     /**

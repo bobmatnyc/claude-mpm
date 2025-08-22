@@ -1,7 +1,18 @@
 #!/usr/bin/env python3
-"""Socket.IO connection pool for Claude Code hook handler.
+"""[DEPRECATED] Socket.IO connection pool for Claude Code hook handler.
 
-This module provides connection pooling for Socket.IO clients to reduce
+DEPRECATION NOTICE: As of v4.0.35, this module is deprecated.
+All event emission now goes through the EventBus, which handles
+Socket.IO connections via its relay component. This provides:
+- Single event path (no duplicates)
+- Better separation of concerns
+- Centralized connection management
+- More resilient architecture
+
+This module is kept for backward compatibility but will be removed in v5.0.0.
+Please use EventBus.publish() instead of direct Socket.IO emission.
+
+Original purpose: Provided connection pooling for Socket.IO clients to reduce
 connection overhead and implement circuit breaker patterns.
 """
 

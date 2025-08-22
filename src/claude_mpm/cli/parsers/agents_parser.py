@@ -132,5 +132,32 @@ def add_agents_subparser(subparsers) -> argparse.ArgumentParser:
         default=3,
         help="Maximum retry attempts per package (default: 3)",
     )
+    
+    # Cleanup orphaned agents
+    cleanup_orphaned_parser = agents_subparsers.add_parser(
+        "cleanup-orphaned",
+        help="Clean up orphaned agents that don't have templates"
+    )
+    cleanup_orphaned_parser.add_argument(
+        "--agents-dir",
+        type=Path,
+        help="Directory containing deployed agents (default: .claude/agents/)",
+    )
+    cleanup_orphaned_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=True,
+        help="Only show what would be removed without actually removing (default)",
+    )
+    cleanup_orphaned_parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Actually remove orphaned agents (disables dry-run)",
+    )
+    cleanup_orphaned_parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Only show summary, not individual agents",
+    )
 
     return agents_parser
