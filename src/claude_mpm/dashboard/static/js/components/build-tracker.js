@@ -96,16 +96,22 @@ export class BuildTracker {
         // Listen for build info updates
         if (this.socketClient && this.socketClient.socket) {
             // Listen for welcome message with build info
-            this.socketClient.socket.on('welcome', (data) => {
-                if (data.build_info) {
-                    this.updateBuildInfo(data.build_info);
+            this.socketClient.socket.on('welcome', (eventData) => {
+                // Handle both old format (direct) and new schema (nested in data)
+                const buildInfo = eventData.build_info || 
+                                 (eventData.data && eventData.data.build_info);
+                if (buildInfo) {
+                    this.updateBuildInfo(buildInfo);
                 }
             });
             
             // Listen for status updates with build info
-            this.socketClient.socket.on('status', (data) => {
-                if (data.build_info) {
-                    this.updateBuildInfo(data.build_info);
+            this.socketClient.socket.on('status', (eventData) => {
+                // Handle both old format (direct) and new schema (nested in data)
+                const buildInfo = eventData.build_info || 
+                                 (eventData.data && eventData.data.build_info);
+                if (buildInfo) {
+                    this.updateBuildInfo(buildInfo);
                 }
             });
             

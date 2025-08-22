@@ -13,6 +13,7 @@ Key Features:
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -190,8 +191,9 @@ class MultiSourceAgentDeploymentService:
         user_agents_dir: Optional[Path] = None,
         working_directory: Optional[Path] = None,
         excluded_agents: Optional[List[str]] = None,
-        config: Optional[Config] = None
-    ) -> Tuple[Dict[str, Path], Dict[str, str]]:
+        config: Optional[Config] = None,
+        cleanup_outdated: bool = True
+    ) -> Tuple[Dict[str, Path], Dict[str, str], Dict[str, Any]]:
         """Get the highest version agents from all sources for deployment.
         
         Args:
@@ -201,11 +203,13 @@ class MultiSourceAgentDeploymentService:
             working_directory: Current working directory for finding project agents
             excluded_agents: List of agent names to exclude from deployment
             config: Configuration object for additional filtering
+            cleanup_outdated: Whether to cleanup outdated user agents (default: True)
             
         Returns:
             Tuple of:
             - Dictionary mapping agent names to template file paths
             - Dictionary mapping agent names to their source
+            - Dictionary with cleanup results (removed, preserved, errors)
         """
         # Discover all available agents
         agents_by_name = self.discover_agents_from_all_sources(
@@ -217,6 +221,27 @@ class MultiSourceAgentDeploymentService:
         
         # Select highest version for each agent
         selected_agents = self.select_highest_version_agents(agents_by_name)
+        
+        # Clean up outdated user agents if enabled
+        cleanup_results = {"removed": [], "preserved": [], "errors": []}
+        if cleanup_outdated:
+            # Check if cleanup is enabled in config or environment
+            cleanup_enabled = True
+            
+            # Check environment variable first (for CI/CD and testing)
+            env_cleanup = os.environ.get("CLAUDE_MPM_CLEANUP_USER_AGENTS", "").lower()
+            if env_cleanup in ["false", "0", "no", "disabled"]:
+                cleanup_enabled = False
+                self.logger.debug("User agent cleanup disabled via environment variable")
+            
+            # Check config if environment doesn't disable it
+            if cleanup_enabled and config:
+                cleanup_enabled = config.get("agent_deployment.cleanup_outdated_user_agents", True)
+            
+            if cleanup_enabled:
+                cleanup_results = self.cleanup_outdated_user_agents(
+                    agents_by_name, selected_agents
+                )
         
         # Apply exclusion filters
         if excluded_agents:
@@ -256,7 +281,168 @@ class MultiSourceAgentDeploymentService:
             f"user: {sum(1 for s in agent_sources.values() if s == 'user')})"
         )
         
-        return agents_to_deploy, agent_sources
+        return agents_to_deploy, agent_sources, cleanup_results
+    
+    def cleanup_outdated_user_agents(
+        self,
+        agents_by_name: Dict[str, List[Dict[str, Any]]],
+        selected_agents: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Remove outdated user agents when project or system agents have higher versions.
+        
+        WHY: When project agents are updated to newer versions, outdated user agent
+        copies should be removed to prevent confusion and ensure the latest version
+        is always used. User agents with same or higher versions are preserved to
+        respect user customizations.
+        
+        Args:
+            agents_by_name: Dictionary mapping agent names to list of agent info from different sources
+            selected_agents: Dictionary mapping agent names to the selected highest version agent
+            
+        Returns:
+            Dictionary with cleanup results:
+            - removed: List of removed agent info
+            - preserved: List of preserved agent info with reasons
+            - errors: List of errors during cleanup
+        """
+        cleanup_results = {
+            "removed": [],
+            "preserved": [],
+            "errors": []
+        }
+        
+        # Get user agents directory
+        user_agents_dir = Path.home() / ".claude-mpm" / "agents"
+        
+        # Safety check - only operate on user agents directory
+        if not user_agents_dir.exists():
+            self.logger.debug("User agents directory does not exist, no cleanup needed")
+            return cleanup_results
+        
+        for agent_name, agent_versions in agents_by_name.items():
+            # Skip if only one version exists
+            if len(agent_versions) < 2:
+                continue
+                
+            selected = selected_agents.get(agent_name)
+            if not selected:
+                continue
+            
+            # Process each version of this agent
+            for agent_info in agent_versions:
+                # Only consider user agents for cleanup
+                if agent_info["source"] != "user":
+                    continue
+                
+                # Safety check - ensure path is within user agents directory
+                user_agent_path = Path(agent_info["path"])
+                try:
+                    # Resolve paths to compare them safely
+                    resolved_user_path = user_agent_path.resolve()
+                    resolved_user_agents_dir = user_agents_dir.resolve()
+                    
+                    # Verify the agent is actually in the user agents directory
+                    if not str(resolved_user_path).startswith(str(resolved_user_agents_dir)):
+                        self.logger.warning(
+                            f"Skipping cleanup for {agent_name}: path {user_agent_path} "
+                            f"is not within user agents directory"
+                        )
+                        cleanup_results["errors"].append({
+                            "agent": agent_name,
+                            "error": "Path outside user agents directory"
+                        })
+                        continue
+                except Exception as e:
+                    self.logger.error(f"Error resolving paths for {agent_name}: {e}")
+                    cleanup_results["errors"].append({
+                        "agent": agent_name,
+                        "error": f"Path resolution error: {e}"
+                    })
+                    continue
+                
+                # Compare versions
+                user_version = self.version_manager.parse_version(
+                    agent_info.get("version", "0.0.0")
+                )
+                selected_version = self.version_manager.parse_version(
+                    selected.get("version", "0.0.0")
+                )
+                
+                version_comparison = self.version_manager.compare_versions(
+                    user_version, selected_version
+                )
+                
+                # Determine action based on version comparison and selected source
+                if version_comparison < 0 and selected["source"] in ["project", "system"]:
+                    # User agent has lower version than selected project/system agent - remove it
+                    if user_agent_path.exists():
+                        try:
+                            # Log before removal for audit trail
+                            self.logger.info(
+                                f"Removing outdated user agent: {agent_name} "
+                                f"v{self.version_manager.format_version_display(user_version)} "
+                                f"(superseded by {selected['source']} "
+                                f"v{self.version_manager.format_version_display(selected_version)})"
+                            )
+                            
+                            # Remove the file
+                            user_agent_path.unlink()
+                            
+                            cleanup_results["removed"].append({
+                                "name": agent_name,
+                                "version": self.version_manager.format_version_display(user_version),
+                                "path": str(user_agent_path),
+                                "reason": f"Superseded by {selected['source']} v{self.version_manager.format_version_display(selected_version)}"
+                            })
+                        except PermissionError as e:
+                            error_msg = f"Permission denied removing {agent_name}: {e}"
+                            self.logger.error(error_msg)
+                            cleanup_results["errors"].append({
+                                "agent": agent_name,
+                                "error": error_msg
+                            })
+                        except Exception as e:
+                            error_msg = f"Error removing {agent_name}: {e}"
+                            self.logger.error(error_msg)
+                            cleanup_results["errors"].append({
+                                "agent": agent_name,
+                                "error": error_msg
+                            })
+                else:
+                    # Preserve the user agent
+                    if version_comparison >= 0:
+                        reason = "User version same or higher than selected version"
+                    elif selected["source"] == "user":
+                        reason = "User agent is the selected version"
+                    else:
+                        reason = "User customization preserved"
+                        
+                    cleanup_results["preserved"].append({
+                        "name": agent_name,
+                        "version": self.version_manager.format_version_display(user_version),
+                        "reason": reason
+                    })
+                    
+                    self.logger.debug(
+                        f"Preserving user agent {agent_name} "
+                        f"v{self.version_manager.format_version_display(user_version)}: {reason}"
+                    )
+        
+        # Log cleanup summary
+        if cleanup_results["removed"]:
+            self.logger.info(
+                f"Cleanup complete: removed {len(cleanup_results['removed'])} outdated user agents"
+            )
+        if cleanup_results["preserved"]:
+            self.logger.debug(
+                f"Preserved {len(cleanup_results['preserved'])} user agents"
+            )
+        if cleanup_results["errors"]:
+            self.logger.warning(
+                f"Encountered {len(cleanup_results['errors'])} errors during cleanup"
+            )
+        
+        return cleanup_results
     
     def _apply_config_filters(
         self, 

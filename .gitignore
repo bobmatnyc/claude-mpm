@@ -167,3 +167,21 @@ celerybeat.pid
 .dmypy.json
 dmypy.json
 .aitrackdown/
+
+# Test and debug scripts
+scripts/test_*.py
+scripts/debug_*.py
+scripts/fix_*.py
+scripts/demo_*.py
+
+# Temporary documentation
+docs/*-report.md
+docs/*-summary.md
+docs/test-*.md
+
+# Backup files
+*.backup
+*.bak
+
+# Test fixtures
+fake/

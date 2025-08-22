@@ -20,6 +20,13 @@ The agent system follows a three-tier hierarchy with the following precedence or
 
 When agents with the same name exist at multiple tiers, the PROJECT version takes precedence.
 
+### ⭐ Updated Deployment Behavior (v4.0.32+)
+
+**All agents now deploy to project-level directory:**
+- All tiers (PROJECT, USER, SYSTEM) → Deploy to `<project>/.claude/agents/`
+- Discovery still works from all three source locations
+- Benefits: Consistency, isolation, and portability
+
 ## Creating Project Agents
 
 To create a project-specific agent:

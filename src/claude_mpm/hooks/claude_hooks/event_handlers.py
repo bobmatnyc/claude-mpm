@@ -13,13 +13,25 @@ import sys
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from .tool_analysis import (
-    assess_security_risk,
-    calculate_duration,
-    classify_tool_operation,
-    extract_tool_parameters,
-    extract_tool_results,
-)
+# Import tool analysis with fallback for direct execution
+try:
+    # Try relative import first (when imported as module)
+    from .tool_analysis import (
+        assess_security_risk,
+        calculate_duration,
+        classify_tool_operation,
+        extract_tool_parameters,
+        extract_tool_results,
+    )
+except ImportError:
+    # Fall back to direct import (when parent script is run directly)
+    from tool_analysis import (
+        assess_security_risk,
+        calculate_duration,
+        classify_tool_operation,
+        extract_tool_parameters,
+        extract_tool_results,
+    )
 
 # Debug mode
 DEBUG = os.environ.get("CLAUDE_MPM_HOOK_DEBUG", "true").lower() != "false"
@@ -99,8 +111,8 @@ class EventHandlers:
                         file=sys.stderr,
                     )
 
-        # Emit to /hook namespace
-        self.hook_handler._emit_socketio_event("/hook", "user_prompt", prompt_data)
+        # Emit normalized event (namespace no longer needed with normalized events)
+        self.hook_handler._emit_socketio_event("", "user_prompt", prompt_data)
 
     def handle_pre_tool_fast(self, event):
         """Handle pre-tool use with comprehensive data capture.
@@ -152,7 +164,7 @@ class EventHandlers:
         if tool_name == "Task" and isinstance(tool_input, dict):
             self._handle_task_delegation(tool_input, pre_tool_data, session_id)
 
-        self.hook_handler._emit_socketio_event("/hook", "pre_tool", pre_tool_data)
+        self.hook_handler._emit_socketio_event("", "pre_tool", pre_tool_data)
 
     def _handle_task_delegation(
         self, tool_input: dict, pre_tool_data: dict, session_id: str
@@ -242,7 +254,7 @@ class EventHandlers:
             "hook_event_name": "SubagentStart",  # For dashboard compatibility
         }
         self.hook_handler._emit_socketio_event(
-            "/hook", "subagent_start", subagent_start_data
+            "", "subagent_start", subagent_start_data
         )
 
     def _get_git_branch(self, working_dir: str = None) -> str:
@@ -362,7 +374,7 @@ class EventHandlers:
                 session_id, agent_type, event, self.hook_handler.delegation_requests
             )
 
-        self.hook_handler._emit_socketio_event("/hook", "post_tool", post_tool_data)
+        self.hook_handler._emit_socketio_event("", "post_tool", post_tool_data)
 
     def handle_notification_fast(self, event):
         """Handle notification events from Claude.
@@ -399,9 +411,9 @@ class EventHandlers:
             ),
         }
 
-        # Emit to /hook namespace
+        # Emit normalized event
         self.hook_handler._emit_socketio_event(
-            "/hook", "notification", notification_data
+            "", "notification", notification_data
         )
 
     def handle_stop_fast(self, event):
@@ -481,8 +493,8 @@ class EventHandlers:
             "has_output": bool(event.get("final_output")),
         }
 
-        # Emit to /hook namespace
-        self.hook_handler._emit_socketio_event("/hook", "stop", stop_data)
+        # Emit normalized event
+        self.hook_handler._emit_socketio_event("", "stop", stop_data)
 
     def handle_subagent_stop_fast(self, event):
         """Handle subagent stop events with improved agent type detection."""
@@ -599,9 +611,9 @@ class EventHandlers:
                 file=sys.stderr,
             )
 
-        # Emit to /hook namespace with high priority
+        # Emit normalized event with high priority
         self.hook_handler._emit_socketio_event(
-            "/hook", "subagent_stop", subagent_stop_data
+            "", "subagent_stop", subagent_stop_data
         )
 
     def _handle_subagent_response_tracking(
@@ -737,7 +749,57 @@ class EventHandlers:
                 )
 
     def handle_assistant_response(self, event):
-        """Handle assistant response events for comprehensive response tracking."""
+        """Handle assistant response events for comprehensive response tracking.
+        
+        WHY emit assistant response events:
+        - Provides visibility into Claude's responses to user prompts
+        - Captures response content and metadata for analysis
+        - Enables tracking of conversation flow and response patterns
+        - Essential for comprehensive monitoring of Claude interactions
+        """
+        # Track the response for logging
         self.hook_handler.response_tracking_manager.track_assistant_response(
             event, self.hook_handler.pending_prompts
         )
+        
+        # Get working directory and git branch
+        working_dir = event.get("cwd", "")
+        git_branch = self._get_git_branch(working_dir) if working_dir else "Unknown"
+        
+        # Extract response data
+        response_text = event.get("response", "")
+        session_id = event.get("session_id", "")
+        
+        # Prepare assistant response data for Socket.IO emission
+        assistant_response_data = {
+            "response_text": response_text,
+            "response_preview": response_text[:500] if len(response_text) > 500 else response_text,
+            "response_length": len(response_text),
+            "session_id": session_id,
+            "working_directory": working_dir,
+            "git_branch": git_branch,
+            "timestamp": datetime.now().isoformat(),
+            "contains_code": "```" in response_text,
+            "contains_json": "```json" in response_text,
+            "hook_event_name": "AssistantResponse",  # Explicitly set for dashboard
+            "has_structured_response": bool(re.search(r"```json\s*\{.*?\}\s*```", response_text, re.DOTALL)),
+        }
+        
+        # Check if this is a response to a tracked prompt
+        if session_id in self.hook_handler.pending_prompts:
+            prompt_data = self.hook_handler.pending_prompts[session_id]
+            assistant_response_data["original_prompt"] = prompt_data.get("prompt", "")[:200]
+            assistant_response_data["prompt_timestamp"] = prompt_data.get("timestamp", "")
+            assistant_response_data["is_tracked_response"] = True
+        else:
+            assistant_response_data["is_tracked_response"] = False
+        
+        # Debug logging
+        if DEBUG:
+            print(
+                f"Hook handler: Processing AssistantResponse - session: '{session_id}', response_length: {len(response_text)}",
+                file=sys.stderr,
+            )
+        
+        # Emit normalized event
+        self.hook_handler._emit_socketio_event("", "assistant_response", assistant_response_data)

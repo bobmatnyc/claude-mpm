@@ -385,12 +385,23 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             
             if use_multi_source:
                 # Use multi-source deployment to get highest version agents
-                template_files, agent_sources = self._get_multi_source_templates(
+                template_files, agent_sources, cleanup_results = self._get_multi_source_templates(
                     excluded_agents, config, agents_dir, force_rebuild
                 )
                 results["total"] = len(template_files)
                 results["multi_source"] = True
                 results["agent_sources"] = agent_sources
+                results["cleanup"] = cleanup_results
+                
+                # Log cleanup results if any agents were removed
+                if cleanup_results.get("removed"):
+                    self.logger.info(
+                        f"Cleaned up {len(cleanup_results['removed'])} outdated user agents"
+                    )
+                    for removed in cleanup_results["removed"]:
+                        self.logger.debug(
+                            f"  - Removed: {removed['name']} v{removed['version']} ({removed['reason']})"
+                        )
             else:
                 # Get and filter template files from single source
                 template_files = self._get_filtered_templates(excluded_agents, config)
@@ -1098,7 +1109,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
     def _get_multi_source_templates(
         self, excluded_agents: List[str], config: Config, agents_dir: Path, 
         force_rebuild: bool = False
-    ) -> Tuple[List[Path], Dict[str, str]]:
+    ) -> Tuple[List[Path], Dict[str, str], Dict[str, Any]]:
         """Get agent templates from multiple sources with version comparison.
         
         WHY: This method uses the multi-source service to discover agents
@@ -1108,9 +1119,10 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             excluded_agents: List of agents to exclude
             config: Configuration object
             agents_dir: Target deployment directory
+            force_rebuild: Whether to force rebuild
             
         Returns:
-            Tuple of (template_files, agent_sources)
+            Tuple of (template_files, agent_sources, cleanup_results)
         """
         # Determine source directories
         system_templates_dir = self.templates_dir
@@ -1131,14 +1143,15 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
             user_agents_dir = potential_user_dir
             self.logger.info(f"Found user agents at: {user_agents_dir}")
         
-        # Get agents with version comparison
-        agents_to_deploy, agent_sources = self.multi_source_service.get_agents_for_deployment(
+        # Get agents with version comparison and cleanup
+        agents_to_deploy, agent_sources, cleanup_results = self.multi_source_service.get_agents_for_deployment(
             system_templates_dir=system_templates_dir,
             project_agents_dir=project_agents_dir,
             user_agents_dir=user_agents_dir,
             working_directory=self.working_directory,
             excluded_agents=excluded_agents,
-            config=config
+            config=config,
+            cleanup_outdated=True  # Enable cleanup by default
         )
         
         # Compare with deployed versions if agents directory exists
@@ -1179,7 +1192,7 @@ class AgentDeploymentService(ConfigServiceBase, AgentDeploymentInterface):
         # Convert to list of Path objects
         template_files = list(agents_to_deploy.values())
         
-        return template_files, agent_sources
+        return template_files, agent_sources, cleanup_results
 
     # ================================================================================
     # Interface Adapter Methods

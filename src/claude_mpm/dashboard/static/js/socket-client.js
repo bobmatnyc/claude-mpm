@@ -16,6 +16,12 @@ class SocketClient {
             error: [],
             event: []
         };
+        
+        // Event schema validation
+        this.eventSchema = {
+            required: ['source', 'type', 'subtype', 'timestamp', 'data'],
+            optional: ['event', 'session_id']
+        };
 
         // Connection state
         this.isConnected = false;
@@ -187,11 +193,18 @@ class SocketClient {
 
         // Primary event handler - this is what the server actually emits
         this.socket.on('claude_event', (data) => {
-            // console.log('Received claude_event:', data);
-
-            // Transform event to match expected format
-            const transformedEvent = this.transformEvent(data);
-            // console.log('Transformed event:', transformedEvent);
+            console.log('Received claude_event:', data);
+            
+            // Validate event schema
+            const validatedEvent = this.validateEventSchema(data);
+            if (!validatedEvent) {
+                console.warn('Invalid event schema received:', data);
+                return;
+            }
+            
+            // Transform event to match expected format (for backward compatibility)
+            const transformedEvent = this.transformEvent(validatedEvent);
+            console.log('Transformed event:', transformedEvent);
             this.addEvent(transformedEvent);
         });
 
@@ -629,6 +642,51 @@ class SocketClient {
     }
 
     /**
+     * Validate event against expected schema
+     * @param {Object} eventData - Raw event data
+     * @returns {Object|null} Validated event or null if invalid
+     */
+    validateEventSchema(eventData) {
+        if (!eventData || typeof eventData !== 'object') {
+            console.warn('Event data is not an object:', eventData);
+            return null;
+        }
+        
+        // Make a copy to avoid modifying the original
+        const validated = { ...eventData };
+        
+        // Check and provide defaults for required fields
+        if (!validated.source) {
+            validated.source = 'system';  // Default source for backward compatibility
+        }
+        if (!validated.type) {
+            // If there's an event field, use it as the type
+            if (validated.event) {
+                validated.type = validated.event;
+            } else {
+                validated.type = 'unknown';
+            }
+        }
+        if (!validated.subtype) {
+            validated.subtype = 'generic';
+        }
+        if (!validated.timestamp) {
+            validated.timestamp = new Date().toISOString();
+        }
+        if (!validated.data) {
+            validated.data = {};
+        }
+        
+        // Ensure data field is an object
+        if (validated.data && typeof validated.data !== 'object') {
+            validated.data = { value: validated.data };
+        }
+        
+        console.log('Validated event:', validated);
+        return validated;
+    }
+    
+    /**
      * Transform received event to match expected dashboard format
      * @param {Object} eventData - Raw event data from server
      * @returns {Object} Transformed event
@@ -718,7 +776,14 @@ class SocketClient {
             Object.keys(eventData.data).forEach(key => {
                 // Only copy if not a protected field
                 if (!protectedFields.includes(key)) {
-                    transformedEvent[key] = eventData.data[key];
+                    // Special handling for tool_parameters to ensure it's properly preserved
+                    // This is critical for file path extraction in file-tool-tracker
+                    if (key === 'tool_parameters' && typeof eventData.data[key] === 'object') {
+                        // Deep copy the tool_parameters object to preserve all nested fields
+                        transformedEvent[key] = JSON.parse(JSON.stringify(eventData.data[key]));
+                    } else {
+                        transformedEvent[key] = eventData.data[key];
+                    }
                 } else {
                     // Log warning if data field would overwrite a protected field
                     console.warn(`Protected field '${key}' in data object was not copied to top level to preserve event structure`);
@@ -735,9 +800,23 @@ class SocketClient {
                 type: transformedEvent.type,
                 subtype: transformedEvent.subtype,
                 tool_name: transformedEvent.tool_name,
+                has_tool_parameters: !!transformedEvent.tool_parameters,
+                tool_parameters: transformedEvent.tool_parameters,
                 has_data: !!transformedEvent.data,
                 keys: Object.keys(transformedEvent).filter(k => k !== 'data')
             });
+            
+            // Extra debug logging for file-related tools
+            const fileTools = ['Read', 'Write', 'Edit', 'MultiEdit', 'NotebookEdit'];
+            if (fileTools.includes(transformedEvent.tool_name)) {
+                console.log('File tool event details:', {
+                    tool_name: transformedEvent.tool_name,
+                    file_path: transformedEvent.tool_parameters?.file_path,
+                    path: transformedEvent.tool_parameters?.path,
+                    notebook_path: transformedEvent.tool_parameters?.notebook_path,
+                    full_parameters: transformedEvent.tool_parameters
+                });
+            }
         }
 
         return transformedEvent;
