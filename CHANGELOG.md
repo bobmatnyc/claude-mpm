@@ -16,6 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.1] - 2025-08-23
+
+### Added
+
+- **Enhanced Web QA Agent (v1.3.0)**: Python Playwright support for browser testing
+  - Browser automation capabilities for testing web applications
+  - Screenshot capture and visual validation features
+  - Improved coordination with Web UI agent for test handoffs
+
+### Changed
+
+- **Agent Templates**: Updated Web QA and Web UI agent templates with enhanced capabilities
+- **Version Management**: Added comprehensive version management script for automated releases
+
+### Fixed
+
+- **Web Agent Coordination**: Improved handoff mechanisms between Web UI and Web QA agents
+
 ## [4.0.34] - 2025-08-22
 
 ### Fixed
