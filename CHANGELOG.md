@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+## [4.1.2] - 2025-08-24
+
+### Fixed
+
+- **Logger Symlink Creation**: Fixed FileExistsError in logger.py symlink creation with thread-safe locking
+- **Code Quality Improvements**: Resolved 19 undefined names across the codebase
+- **Import Cleanup**: Fixed 12+ duplicate import statements throughout the project
+- **Syntax Corrections**: Corrected 1 syntax error in codebase
+- **Linting Compliance**: 77% reduction in linting issues through comprehensive cleanup
+- **Code Formatting**: Applied consistent code formatting with Black and isort
+- **Thread Safety**: Added thread-safe locking for symlink operations
+
 ## [4.1.1] - 2025-08-23
 
 ### Added
